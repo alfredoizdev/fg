@@ -55,19 +55,20 @@ const SWING_FX := {
 }
 
 # frame que conecta, alcance y dano de cada ataque (alcances en px de pantalla)
+# daño por TIER:  flojo (R) = 50 · medio (Q) = 90 · fuerte (W/E) = 100
 const ATTACKS := {
-	"punch":        {"hit_frame": 6, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 8},
-	"punch2":       {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 6},
-	"kick":         {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 12},
-	"crouch_punch": {"hit_frame": 1, "reach": 620.0 * CHAR_SCALE, "low": true,  "damage": 6},
-	"crouch_jab":   {"hit_frame": 1, "reach": 640.0 * CHAR_SCALE, "low": true,  "damage": 4},
-	"sweep":        {"hit_frame": 2, "reach": 700.0 * CHAR_SCALE, "low": true,  "trip": true, "damage": 12},
-	"crouch_kick":  {"hit_frame": 2, "reach": 640.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 9},
-	"jump_punch":   {"hit_frame": 2, "reach": 550.0 * CHAR_SCALE, "low": false, "damage": 9},
-	"jump_kick":    {"hit_frame": 2, "reach": 500.0 * CHAR_SCALE, "low": false, "damage": 10},
-	"spin_kick":    {"hit_frame": 2, "reach": 520.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 13, "impact_sfx": "kick_impact"},
-	"air_spin_kick": {"hit_frame": 4, "reach": 580.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 13, "impact_sfx": "kick_impact"},
-	"weak_punch":   {"hit_frame": 1, "reach": 480.0 * CHAR_SCALE, "low": false, "damage": 4},
+	"punch":        {"hit_frame": 6, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
+	"punch2":       {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
+	"kick":         {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 100},
+	"crouch_punch": {"hit_frame": 1, "reach": 620.0 * CHAR_SCALE, "low": true,  "damage": 90},
+	"crouch_jab":   {"hit_frame": 1, "reach": 640.0 * CHAR_SCALE, "low": true,  "damage": 50},
+	"sweep":        {"hit_frame": 2, "reach": 700.0 * CHAR_SCALE, "low": true,  "trip": true, "damage": 100},
+	"crouch_kick":  {"hit_frame": 2, "reach": 640.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100},
+	"jump_punch":   {"hit_frame": 2, "reach": 550.0 * CHAR_SCALE, "low": false, "damage": 90},
+	"jump_kick":    {"hit_frame": 2, "reach": 500.0 * CHAR_SCALE, "low": false, "damage": 100},
+	"spin_kick":    {"hit_frame": 2, "reach": 520.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
+	"air_spin_kick": {"hit_frame": 4, "reach": 580.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
+	"weak_punch":   {"hit_frame": 1, "reach": 480.0 * CHAR_SCALE, "low": false, "damage": 50},
 }
 
 const SPIN_TRAVEL := 600.0 * CHAR_SCALE  # avance de la patada giratoria (px/s)
@@ -141,6 +142,7 @@ const ANIM_LEVEL := {
 var sfx_key := ""
 
 @export var is_player := true
+@export var archetype := "assassin"   # define la vida: assassin 1200 · wizard 1000 · warrior 1500
 
 var input_enabled := true
 # EMBER DASH (↓→+Q): estado del especial
@@ -189,6 +191,8 @@ var koed := false
 var airborne := false
 var hit_flying := false
 var walk_dir := 0
+var spd := 1.0   # multiplicador de velocidad de desplazamiento por personaje (Favi = ágil)
+var base_scale := Vector2.ONE   # escala base del sprite por personaje (Favi = nena, más chica)
 var vel_y := 0.0
 var vel_x := 0.0
 var floor_y := 0.0
@@ -215,6 +219,7 @@ var sfx_player: AudioStreamPlayer
 # no estan importados se usa el destello de codigo como respaldo
 var fx_sprite: AnimatedSprite2D
 var fx_anims := {}
+var fx_blue := false   # true = chispas de impacto AZULES (Favi); false = naranja (DAM)
 
 func _ready() -> void:
 	floor_y = position.y
@@ -227,6 +232,7 @@ func _ready() -> void:
 	var ff := SpriteFrames.new()
 	var fx_defs := {
 		"hit": ["res://imagen-action/impact-effect/chispas-impat-hit-f/chispas-impat-hit-%d.png", 7, 26.0],
+		"hit_blue": ["res://imagen-action/impact-effect/chispas-impat-hit-favi/chispas-impat-hit-%d.png", 7, 26.0],
 		# bloqueo: se usa el escudo azul dibujado por CODIGO (_draw_block_flash),
 		# el de antes. La hoja fx-block nueva queda sin usar (al usuario no le gusto).
 	}
@@ -308,7 +314,7 @@ func current_attack() -> Dictionary:
 	if special_t > 0.0 and sprite.is_playing():
 		return {"name": "ember_dash", "frame": int(sprite.frame), "hit_frame": 1,
 			"reach": 520.0 * CHAR_SCALE, "low": false, "strong": true,
-			"damage": 15, "wall_launch": true, "impact_sfx": "kick_impact"}
+			"damage": 130, "wall_launch": true, "impact_sfx": "kick_impact"}
 	if sprite.animation in ATTACKS and sprite.is_playing():
 		var a: Dictionary = ATTACKS[sprite.animation].duplicate()
 		a["name"] = sprite.animation
@@ -383,14 +389,14 @@ func celebrate() -> void:
 func is_downed() -> bool:
 	return hit_flying or (sprite.animation == "hit_down" and sprite.is_playing())
 
-func _burst(escala: float, block := false, lado := 1) -> void:
+func _burst(escala: float, block := false, lado := 1, blue := false, alto := 0.0) -> void:
 	burst_t = BURST_TIME
 	burst_seed = randi()
 	burst_scale = escala
 	burst_block = block
-	var anim := "block" if block else "hit"
+	var anim := "block" if block else ("hit_blue" if (blue and fx_anims.has("hit_blue")) else "hit")
 	if fx_anims.has(anim):
-		fx_sprite.position = Vector2(float(facing) * 150.0 * float(lado), 0.0)
+		fx_sprite.position = Vector2(float(facing) * 150.0 * float(lado), alto)
 		fx_sprite.flip_h = facing < 0
 		fx_sprite.rotation = 0.0 if block else randf_range(-0.25, 0.25)
 		fx_sprite.flip_v = false if block else randf() < 0.5
@@ -623,7 +629,7 @@ func _launch(push_dir: int, mult := 1.0) -> void:
 		_play_sfx_key(k)
 
 # push_dir: hacia donde empuja el golpe (+1 derecha / -1 izquierda)
-func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip := false, launch_mult := 1.0, wall := false) -> String:
+func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip := false, launch_mult := 1.0, wall := false, atk_blue := false) -> String:
 	impact_sfx_override = impact_key
 	if breaker_inv_t > 0.0:
 		return "ignored"
@@ -632,7 +638,7 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	special_t = 0.0  # un golpe recibido corta el dash especial
 	# en el aire cualquier golpe lo derriba
 	if airborne:
-		_burst(1.2)
+		_burst(1.2, false, 1, atk_blue)
 		_launch(push_dir, launch_mult)
 		return "launched"
 	# la IA bloquea por instinto de vez en cuando
@@ -660,7 +666,7 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 				return "blocked"
 	# EMBER DASH: sale disparado RECTO hacia la pared (vuelo plano y veloz)
 	if wall:
-		_burst(1.2)
+		_burst(1.2, false, 1, atk_blue)
 		crouching = false
 		airborne = true
 		hit_flying = true
@@ -675,7 +681,7 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 		return "launched"
 	# barrido: derriba al piso con un vuelo corto y rasante (no lanza alto)
 	if trip:
-		_burst(1.1)
+		_burst(1.1, false, 1, atk_blue)
 		crouching = false
 		airborne = true
 		hit_flying = true
@@ -687,7 +693,7 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 		return "launched"
 	# golpe fuerte (gancho lanzador): si no fue bloqueado, sale por los aires
 	if strong:
-		_burst(1.2)
+		_burst(1.2, false, 1, atk_blue)
 		_launch(push_dir, launch_mult)
 		return "launched"
 	if low:
@@ -696,7 +702,11 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	else:
 		crouching = false
 		sprite.play("take_hit")
-	_burst(1.0)
+	# la chispa se pone a la altura del origen (pecho de DAM). Para Favi (nena, escala
+	# base < 1) el origen queda por encima de su cabeza, así que la bajamos hacia su
+	# cuerpo — más aún en golpe bajo (agachada). DAM (base 1.0) => 0, sin cambio.
+	var chispa_y := 500.0 * (1.0 - base_scale.y) * (3.0 if low else 2.0)
+	_burst(1.0, false, 1, atk_blue, chispa_y)
 	buffer_t = 0.0
 	punch_followup = false  # un golpe recibido corta el combo pendiente
 	position.x += push_dir * 20
@@ -716,10 +726,11 @@ func _physics_process(delta: float) -> void:
 		wall_squash_t = maxf(0.0, wall_squash_t - delta)
 		var c := 0.7 + 0.3 * (1.0 - wall_squash_t / SQUASH_DUR)   # 0.7 -> 1.0
 		var e := 2.0 - c                                          # 1.3 -> 1.0
-		# pared: comprime ancho y estira alto; piso: al reves
-		sprite.scale = Vector2(c, e) if squash_horizontal else Vector2(e, c)
-	elif sprite.scale != Vector2.ONE:
-		sprite.scale = Vector2.ONE
+		# pared: comprime ancho y estira alto; piso: al reves (relativo a la escala base)
+		var sc := Vector2(c, e) if squash_horizontal else Vector2(e, c)
+		sprite.scale = Vector2(base_scale.x * sc.x, base_scale.y * sc.y)
+	elif sprite.scale != base_scale:
+		sprite.scale = base_scale
 
 	# memoria del ↓ para detectar el cuarto adelante (↓ luego →+Q)
 	if is_player and input_enabled and Input.is_action_pressed("ui_down"):
@@ -823,7 +834,7 @@ func _physics_process(delta: float) -> void:
 		elif is_player:
 			var air_dir := Input.get_axis("ui_left", "ui_right")
 			if air_dir != 0.0:
-				position.x += air_dir * WALK_SPEED * delta
+				position.x += air_dir * WALK_SPEED * spd * delta
 		if position.y >= floor_y:
 			position.y = floor_y
 			airborne = false
@@ -904,7 +915,7 @@ func _physics_process(delta: float) -> void:
 	var dir := Input.get_axis("ui_left", "ui_right")
 	if dir != 0.0:
 		var forward := signi(int(dir)) == facing
-		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * delta
+		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * spd * delta
 		var want := 1 if forward else -1
 		if sprite.animation != "walk" or walk_dir != want:
 			if forward:
@@ -965,12 +976,12 @@ func _ai_process(delta: float) -> void:
 			else: ai_action = "idle"
 	match ai_action:
 		"advance":
-			position.x += facing * WALK_SPEED * 0.75 * delta
+			position.x += facing * WALK_SPEED * 0.75 * spd * delta
 			if sprite.animation != "walk" or walk_dir != 1:
 				sprite.play("walk")
 			walk_dir = 1
 		"retreat":
-			position.x -= facing * WALK_BACK_SPEED * 0.75 * delta
+			position.x -= facing * WALK_BACK_SPEED * 0.75 * spd * delta
 			if sprite.animation != "walk" or walk_dir != -1:
 				sprite.play_backwards("walk")
 			walk_dir = -1
@@ -1024,10 +1035,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		or (event.is_action_pressed("spin_kick") and up_tap_t > 0.0)
 	if quiere_break and not koed \
 			and (hit_flying or (String(sprite.animation) in ["take_hit", "take_hit_low"] and sprite.is_playing())):
+		var mb := get_parent()
+		if mb and mb.has_method("meter_can_break") and not mb.meter_can_break(self):
+			return   # sin ½ barra no se puede romper
 		if do_breaker():
-			var m := get_parent()
-			if m and m.has_method("on_breaker"):
-				m.on_breaker(self)
+			if mb and mb.has_method("on_breaker"):
+				mb.on_breaker(self)
 		return
 	if event.is_action_pressed("combo_break"):
 		return
@@ -1349,12 +1362,16 @@ func _draw_swing_trail() -> void:
 	var flat: float = fx["flat"]
 	if stages[stage].size() > 3:
 		r *= float(stages[stage][3])
+	# color de la estela: AZUL-blanco marino (Favi) o naranja de fuego (DAM)
+	var c_out := Color(0.12, 0.42, 1.0, 0.32 * al) if fx_blue else Color(1.0, 0.42, 0.12, 0.32 * al)
+	var c_core := Color(0.5, 0.85, 1.7, 0.55 * al) if fx_blue else Color(1.0, 0.85, 0.4, 0.55 * al)
+	var c_edge := Color(0.7, 1.2, 1.9, 0.75 * al) if fx_blue else Color(1.6, 1.2, 0.55, 0.75 * al)
 	# capa suave exterior, nucleo caliente y borde de ataque que florece
-	draw_colored_polygon(_swing_poly(a0, a1, w, r, c, flat), Color(1.0, 0.42, 0.12, 0.32 * al))
-	draw_colored_polygon(_swing_poly(a0 + 6.0, a1 - 2.0, w * 0.5, r, c, flat), Color(1.0, 0.85, 0.4, 0.55 * al))
+	draw_colored_polygon(_swing_poly(a0, a1, w, r, c, flat), c_out)
+	draw_colored_polygon(_swing_poly(a0 + 6.0, a1 - 2.0, w * 0.5, r, c, flat), c_core)
 	# el borde brillante va en la punta delantera del arco, venga de donde venga
 	var dirn := signf(a1 - a0)
 	var edge := PackedVector2Array()
 	for i in 13:
 		edge.append(_swing_pt(lerpf(a1 - 30.0 * dirn, a1, float(i) / 12.0), r, c, flat))
-	draw_polyline(edge, Color(1.6, 1.2, 0.55, 0.75 * al), 7.0)
+	draw_polyline(edge, c_edge, 7.0)

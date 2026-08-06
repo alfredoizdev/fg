@@ -4,7 +4,10 @@ extends Node2D
 
 const LEFT_LIMIT := 115.0
 const RIGHT_LIMIT := 1805.0
-const MAX_HP := 100
+const MAX_HP := 100   # (legado; la vida real es por personaje según arquetipo)
+# vida por ARQUETIPO (puede variar por personaje)
+const ARCH_HP := {"assassin": 1200, "wizard": 1000, "warrior": 1500}
+var hp_max := [1200, 1200]   # vida máxima por lado [P1, P2], se setea de cada peleador
 const HIT_MARGIN := 59.0     # tolerancia extra de alcance
 const AIR_REACH_H := 302.0   # altura maxima a la que un golpe aereo alcanza a un rival en el piso
 const WINS_NEEDED := 2       # rondas para ganar el combate
@@ -25,8 +28,8 @@ const CITY_NODES := ["BG", "StageBase", "Flame1", "Patch1", "Patch2", "Patch3",
 
 var glow_time := 0.0
 
-var player_hp := MAX_HP
-var dummy_hp := MAX_HP
+var player_hp := 1200
+var dummy_hp := 1200
 var round_num := 1
 var wins_p1 := 0
 var wins_p2 := 0
@@ -36,12 +39,17 @@ const P1_BAR_X := 126.0    # la barra PEGADA al avatar (borde recto) y va al cen
 const P2_BAR_X := 1094.0   # (1094 + 700 = 1794 = borde interno del avatar derecho)
 const METER_MAX := 3.0
 const MATCH_TIME := 99.0
+const METER_REGEN := 0.02      # recarga pasiva por segundo (neutro MUY lento)
+const METER_WALK := 0.025      # bonus mínimo al caminar (neutro sigue muy lento)
+const BLOCK_DRAIN := 0.0030    # energía drenada al BLOQUEAR, por punto de daño (más costoso)
+const HIT_DRAIN := 0.0018      # energía perdida al RECIBIR un impacto real, por punto de daño
 var meter := [0.0, 0.0]        # carga del meter por lado (0..3)
 var hp_bar_bg := []            # [P1,P2] fondo poligonal inclinado de la barra de vida
 var hp_bar_fill := []          # [P1,P2] relleno poligonal (se recalcula por HP)
 var hp_grad := []              # [P1,P2] texturas de degradado del relleno
-var meter_bg := [[], []]       # fondo de cada segmento (3 por lado)
-var meter_fl := [[], []]       # relleno de cada segmento (glow azul al cargar)
+var meter_bg := [[], []]       # fondo OSCURO de cada segmento (3 por lado)
+var meter_fill := [[], []]     # relleno VERDE por ancho (media barra = medio lleno)
+var meter_fl := [[], []]       # borde negro (Line2D) de cada segmento
 var meter_spark := [[], []]    # chispas (CPUParticles2D) del segmento lleno
 var match_time := MATCH_TIME
 var timer_label: Label
@@ -71,6 +79,7 @@ const DING_SCALE := [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24]
 var ding_player: AudioStreamPlayer
 var voz_player: AudioStreamPlayer          # grito de finisher (voz infernal)
 var kick_voz_player: AudioStreamPlayer     # voz furiosa de la patada giratoria (E)
+var music_player: AudioStreamPlayer        # música de fondo (se libera en _exit_tree)
 var _kick_voz_t := 0                        # cooldown (ms) para no solapar la voz de patada
 var _voz_cache := {}                        # streams de voz cacheados por nombre
 var ding_stream = null
@@ -89,6 +98,20 @@ var menu_panel: ColorRect
 var moves_panel: ColorRect
 var menu_opts := []
 var menu_sel := 0
+# --- SELECCIÓN DE PERSONAJE ---
+# cada personaje: id, nombre, arquetipo (vida), avatar, frames de pelea, escala de sprite.
+# Un personaje está "listo" (jugable) sólo si su recurso de frames existe.
+const CHARS := [
+	{"id": "dam",  "name": "DAM",  "arch": "assassin", "avatar": "res://imagen-action/dam/avatar/dam-avatar.png",  "frames": "res://fighter_frames.tres", "scale": 1.0},
+	{"id": "favi", "name": "FAVI", "arch": "assassin", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "frames": "res://favi_frames.tres",   "scale": 0.82},
+]
+var char_panel: ColorRect
+var char_cards := []            # [{border, av, name_lbl, wip_lbl, ready}] por personaje
+var char_sel := 0              # índice de CHARS resaltado
+var selected_char := "dam"    # personaje elegido por el jugador
+var pending_mode := 0         # modo de pelea elegido antes de elegir personaje
+var hud_name := [null, null]  # labels del nombre en el HUD [P1,P2]
+var hud_avatar := [null, null] # sprites del avatar en el HUD [P1,P2]
 var moves_sel := 0
 var moves_items := []
 var pinned_combo := -1
@@ -143,6 +166,11 @@ const DEMO_COMBOS := [
 
 func _ready() -> void:
 	dummy.ai_target = player
+	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
+	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
+	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
+	player_hp = hp_max[0]
+	dummy_hp = hp_max[1]
 	ding_player = AudioStreamPlayer.new()
 	ding_player.volume_db = -3.0
 	add_child(ding_player)
@@ -155,17 +183,20 @@ func _ready() -> void:
 	_build_hud()                              # meter de 3 segmentos + avatares
 	if ResourceLoader.exists("res://imagen-action/sound-effect/combo-ding.wav"):
 		ding_stream = load("res://imagen-action/sound-effect/combo-ding.wav")
+	# el cierre de ventana lo maneja _notification (para apagar el audio antes de quit)
+	get_tree().set_auto_accept_quit(false)
 	# musica de fondo en loop, bajita
-	var music := AudioStreamPlayer.new()
-	music.volume_db = -20.0
-	add_child(music)
-	var ruta_bg := "res://imagen-action/sound-effect/tunetank-emotional-classical-484234.mp3"
+	music_player = AudioStreamPlayer.new()
+	music_player.volume_db = -20.0
+	add_child(music_player)
+	# OGG en vez de MP3: el MP3 tiene un leak conocido del AudioServer de Godot al salir
+	var ruta_bg := "res://imagen-action/sound-effect/tunetank-emotional-classical.ogg"
 	if ResourceLoader.exists(ruta_bg):
 		var bg_stream = load(ruta_bg)
-		if bg_stream is AudioStreamMP3:
+		if bg_stream is AudioStreamOggVorbis:
 			bg_stream.loop = true          # repite sin cortes
-		music.stream = bg_stream
-		music.play()
+		music_player.stream = bg_stream
+		music_player.play()
 	for i in 2:
 		var c := Node2D.new()
 		c.position = Vector2(270, 300) if i == 0 else Vector2(1650, 300)
@@ -370,6 +401,53 @@ func _ready() -> void:
 	hint.size = Vector2(700, 40)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mp.add_child(hint)
+	# --- PANEL DE SELECCIÓN DE PERSONAJE ---
+	var cp := ColorRect.new()
+	cp.color = Color(0.03, 0.03, 0.07, 0.92)
+	cp.position = Vector2(360, 150)
+	cp.size = Vector2(1200, 760)
+	cp.visible = false
+	$UI.add_child(cp)
+	char_panel = cp
+	var ct := Label.new()
+	ct.text = "SELECT YOUR FIGHTER"
+	ct.add_theme_font_size_override("font_size", 48)
+	ct.position = Vector2(0, 40); ct.size = Vector2(1200, 60)
+	ct.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cp.add_child(ct)
+	char_cards = []
+	for i in CHARS.size():
+		var c: Dictionary = CHARS[i]
+		var cardx := 300.0 + i * 340.0
+		var border := ColorRect.new()
+		border.color = Color(0, 0, 0)
+		border.position = Vector2(cardx, 160); border.size = Vector2(300, 420)
+		cp.add_child(border)
+		var inner := ColorRect.new()
+		inner.color = Color(0.09, 0.09, 0.13)
+		inner.position = Vector2(cardx + 6, 166); inner.size = Vector2(288, 408)
+		cp.add_child(inner)
+		var av := Sprite2D.new()
+		if ResourceLoader.exists(String(c["avatar"])):
+			av.texture = load(String(c["avatar"]))
+		av.centered = true
+		av.scale = Vector2(260.0 / 560.0, 260.0 / 560.0)
+		av.position = Vector2(cardx + 150, 310)
+		cp.add_child(av)
+		var nm := Label.new()
+		nm.text = String(c["name"])
+		nm.add_theme_font_size_override("font_size", 40)
+		nm.position = Vector2(cardx, 480); nm.size = Vector2(300, 50)
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cp.add_child(nm)
+		char_cards.append({"border": border, "av": av, "name": nm})
+	var chint := Label.new()
+	chint.text = "←  →   choose        Q  confirm        ESC  back"
+	chint.add_theme_font_size_override("font_size", 22)
+	chint.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
+	chint.position = Vector2(0, 690); chint.size = Vector2(1200, 40)
+	chint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cp.add_child(chint)
 	var vp := ColorRect.new()
 	vp.color = Color(0.03, 0.03, 0.07, 0.93)
 	vp.position = Vector2(310, 110)
@@ -494,7 +572,16 @@ func _enter_training() -> void:
 	player.set_facing(1)
 	player.input_enabled = true
 
+func meter_can_break(quien: Node2D) -> bool:
+	# se puede romper si el breaker tiene al menos ½ barra (salvo en BREAK PRACTICE)
+	if break_practice:
+		return true
+	var i := 0 if quien == player else 1
+	return meter[i] >= 0.5
+
 func on_breaker(quien: Node2D) -> void:
+	var b_idx := 0 if quien == player else 1
+	meter[b_idx] = maxf(0.0, meter[b_idx] - 0.5)   # romper gasta ½ barra
 	var otro: Node2D = dummy if quien == player else player
 	var dir := 1.0 if otro.position.x >= quien.position.x else -1.0
 	otro.position.x = clampf(otro.position.x + dir * 240.0, LEFT_LIMIT, RIGHT_LIMIT)
@@ -569,8 +656,8 @@ func _run_demo(id: String) -> void:
 	dummy_ai_mode = false
 	player.revive()
 	dummy.revive()
-	player_hp = MAX_HP
-	dummy_hp = MAX_HP
+	player_hp = hp_max[0]
+	dummy_hp = hp_max[1]
 	for i in 2:
 		combo_n[i] = 0
 		combo_t[i] = 99.0
@@ -749,8 +836,122 @@ func _run_demo(id: String) -> void:
 	if state == "demo":
 		_open_moves()
 
+# --- FRAMES DE FAVI (en código): espeja la estructura de DAM (mismos nombres, loop,
+# speed y conteo). Usa los frames REALES de Favi donde existan (favi/<accion>/), y la
+# POSE como placeholder para el resto — así es jugable ya y cada animación real se
+# activa sola cuando la otra terminal procese su sheet.
+# al CERRAR la ventana: parar la música y soltar el stream ANTES de quit(), si no el
+# AudioServer de Godot deja el playback vivo y avisa "audio leaked / resource still in
+# use at exit". Requiere set_auto_accept_quit(false) en _ready (lo maneja este handler).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_cerrar_limpio()
+
+func _cerrar_limpio() -> void:
+	_apagar_audio()
+	# darle 2 frames al AudioServer para vaciar el playback parado antes de salir
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_tree().quit()
+
+func _exit_tree() -> void:
+	_apagar_audio()
+
+func _apagar_audio() -> void:
+	if is_instance_valid(music_player):
+		music_player.stop()
+		music_player.stream = null
+
+func _favi_action_frames(accion: String) -> Array:
+	for variante in [accion, accion.replace("_", "-")]:
+		var out := []
+		var i := 1
+		while true:
+			var p := "res://imagen-action/favi/%s/favi-%s-%d.png" % [variante, variante, i]
+			if ResourceLoader.exists(p):
+				out.append(load(p))
+				i += 1
+			else:
+				break
+		if not out.is_empty():
+			return out
+	return []
+
+const FAVI_SPD := 1.2   # Favi es assassin ágil: anima y se desplaza ~20% más rápido que DAM
+# Favi es una NENA de ~10 años al lado de DAM (joven adulto): se ve más baja.
+const FAVI_SCALE := 0.85            # ~68% de la altura de DAM (su cabeza a la altura del pecho)
+# En la textura (1300x1280, centrada) los pies están ~500px bajo el centro (feetY 1140 - 640).
+# A escala 1.0 (como DAM) los pies caen en el PISO; para otra escala se compensa el offset
+# para que los pies sigan cayendo en ese MISMO piso (y no floten ni se hundan).
+const FAVI_FEET_FROM_CENTER := 500.0
+
+func _build_favi_frames() -> SpriteFrames:
+	var dam := load("res://fighter_frames.tres") as SpriteFrames
+	var sf := SpriteFrames.new()
+	var pose := _favi_action_frames("pose")
+	if pose.is_empty():
+		pose = [load("res://imagen-action/favi/avatar/favi-avatar.png")]
+	for anim in dam.get_animation_names():
+		if not sf.has_animation(anim):
+			sf.add_animation(anim)
+		sf.set_animation_loop(anim, dam.get_animation_loop(anim))
+		sf.set_animation_speed(anim, dam.get_animation_speed(anim) * FAVI_SPD)
+		var real := _favi_action_frames(anim)
+		if real.is_empty():
+			var n: int = maxi(1, dam.get_frame_count(anim))   # placeholder pose, mismo conteo
+			for i in n:
+				sf.add_frame(anim, pose[i % pose.size()])
+		else:
+			for t in real:
+				sf.add_frame(anim, t)
+	if sf.has_animation("default"):
+		sf.remove_animation("default")
+	return sf
+
+func _char_data(id: String) -> Dictionary:
+	for c in CHARS:
+		if String(c["id"]) == id:
+			return c
+	return CHARS[0]
+
+# aplica un personaje a un peleador: frames, arquetipo (vida) y escala de sprite
+func _apply_char(f: Node2D, id: String) -> void:
+	var c := _char_data(id)
+	f.archetype = String(c["arch"])
+	f.fx_blue = id == "favi"   # estela del arma AZUL para Favi (naranja fuego para DAM)
+	if id == "favi":
+		f.sprite.sprite_frames = _build_favi_frames()
+		# base_scale (no sprite.scale directo): el efecto squash del fighter reescribe
+		# sprite.scale cada frame, así que la escala de personaje va en base_scale.
+		f.base_scale = Vector2(FAVI_SCALE, FAVI_SCALE)
+		f.sprite.scale = f.base_scale
+		# anclar los PIES al MISMO piso que DAM (escala 1.0): que no floten ni se hundan.
+		f.sprite.offset = Vector2(0, FAVI_FEET_FROM_CENTER / FAVI_SCALE - FAVI_FEET_FROM_CENTER)
+		f.spd = FAVI_SPD   # desplazamiento más rápido para acompañar la animación ágil
+	else:
+		f.sprite.sprite_frames = load("res://fighter_frames.tres")
+		f.base_scale = Vector2.ONE
+		f.sprite.scale = f.base_scale
+		f.sprite.offset = Vector2(0, 0)
+		f.spd = 1.0
+	f.sprite.play("pose")
+
+# actualiza nombre + avatar del HUD según los personajes (P1 = jugador, P2 = rival)
+func _refresh_hud_chars() -> void:
+	var ids := [selected_char, "dam"]
+	for side in 2:
+		var c := _char_data(ids[side])
+		if hud_name[side] != null:
+			hud_name[side].text = String(c["name"])
+		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
+			hud_avatar[side].texture = load(String(c["avatar"]))
+
 func _start_round() -> void:
 	state = "intro"
+	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
+	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
+	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
+	_refresh_hud_chars()
 	player.input_enabled = false
 	dummy.ai_enabled = false
 	player.revive()
@@ -759,14 +960,14 @@ func _start_round() -> void:
 	dummy.position = Vector2(1290, 625)
 	player.set_facing(1)
 	dummy.set_facing(-1)
-	player_hp = MAX_HP
-	dummy_hp = MAX_HP
+	player_hp = hp_max[0]
+	dummy_hp = hp_max[1]
 	for i in 2:
 		combo_n[i] = 0
 		combo_t[i] = 99.0
 		combo_last[i] = ""
 		combo_ui[i].visible = false
-	meter = [0.0, 0.0]        # el meter arranca vacío cada ronda
+	meter = [1.0, 1.0]        # arranca con 1 barra (solo INFERNO); las otras 2 se ganan
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	announce.visible = true
 	announce.text = "ROUND %d" % round_num
@@ -851,13 +1052,14 @@ func try_ultra(atacante: Node2D, largo := false) -> bool:
 	if state != "fight" or ultra_active:
 		return false
 	var idx := 0 if atacante == player else 1
-	var vhp: int = dummy_hp if atacante == player else player_hp
-	if vhp > int(MAX_HP * ULTRA_HP):
-		return false          # el rival aun tiene demasiada vida
+	var costo := 3.0 if largo else 2.0   # APOCALYPSE (largo) = 3 barras, ANNIHILATION = 2
+	if meter[idx] < costo:
+		return false          # sin barras suficientes para el ultra
 	# el combo debe estar VIVO (3+ hits y dentro de la ventana): si ya dropeaste
 	# aunque el numero siga apagandose en pantalla, ya NO cuenta
 	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
 		return false
+	meter[idx] -= costo
 	_run_ultra(atacante, idx, largo)
 	return true
 
@@ -1016,9 +1218,9 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 			_end_round(false)
 	else:
 		if idx == 0:
-			dummy_hp = MAX_HP
+			dummy_hp = hp_max[1]
 		else:
-			player_hp = MAX_HP
+			player_hp = hp_max[0]
 		state = "fight"
 		player.input_enabled = true
 		dummy.ai_enabled = dummy_ai_mode
@@ -1030,10 +1232,13 @@ func try_critical(atacante: Node2D) -> bool:
 	if state != "fight" or ultra_active:
 		return false
 	var idx := 0 if atacante == player else 1
+	if meter[idx] < 1.0:
+		return false          # INFERNO cuesta 1 barra
 	# requiere un combo VIVO de 7+ (rango MASTER)
 	# TEMPORAL PARA PROBAR: bajado a 3; devolver a 7 despues
 	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
 		return false
+	meter[idx] -= 1.0
 	_run_critical(atacante, idx)
 	return true
 
@@ -1099,6 +1304,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	var n0: int = combo_n[idx]
 	var HITS := 8
 	var PASO := 0.07
+	var crit_total := int(hp_max[1 - idx] * 0.40)   # INFERNO: ~40% de la vida del rival
 	var dealt := 0
 	var hit_i := 0
 	var hit_cd := 0.0
@@ -1122,7 +1328,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 		if hit_cd <= 0.0 and hit_i < HITS:
 			hit_cd = PASO
 			hit_i += 1
-			var d := (CRIT_DMG - dealt) if hit_i == HITS else int(CRIT_DMG / HITS)
+			var d := (crit_total - dealt) if hit_i == HITS else int(crit_total / HITS)
 			dealt += d
 			if idx == 0:
 				dummy_hp = maxi(0, dummy_hp - d)
@@ -1218,6 +1424,7 @@ func _build_hud() -> void:
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		nw.add_child(lbl)
 		$UI.add_child(nw)
+		hud_name[side] = lbl
 		for i in WINS_NEEDED:
 			var dc: float = (770.0 + i * 34) if side == 0 else (1150.0 - i * 34)
 			var d := Polygon2D.new()
@@ -1259,27 +1466,23 @@ func _build_hud() -> void:
 		fill.z_index = 1
 		$UI.add_child(fill)
 		hp_bar_fill.append(fill)
-	# METER: 3 segmentos inclinados con degradado NEÓN verde (oscuro -> claro, tubo)
-	var meter_grad = load("res://imagen-action/hud/meter-grad-green.png")
-	var mtw := 256.0
-	var mth := 48.0
+	# METER: 3 segmentos inclinados, VERDE PLANO (relleno por ancho: media barra = medio lleno)
 	for side in 2:
-		meter_bg[side].clear(); meter_fl[side].clear()
+		meter_bg[side].clear(); meter_fill[side].clear(); meter_fl[side].clear()
 		var msl := M_SL if side == 0 else -M_SL   # espejo a la derecha
 		for s in 3:
 			var bx := _meter_x(side, s)
 			var poly := _para(bx, bx + M_W, M_Y, M_Y + M_H, msl)
-			var bgp := Polygon2D.new()   # segmento con textura de degradado verde
+			var bgp := Polygon2D.new()   # fondo OSCURO (parte vacía del segmento)
 			bgp.polygon = poly
-			bgp.texture = meter_grad
-			# UV: oscuro del lado del avatar -> claro hacia el centro (espejado a la derecha)
-			if side == 0:
-				bgp.uv = PackedVector2Array([Vector2(0, 0), Vector2(mtw, 0), Vector2(mtw, mth), Vector2(0, mth)])
-			else:
-				bgp.uv = PackedVector2Array([Vector2(mtw, 0), Vector2(0, 0), Vector2(0, mth), Vector2(mtw, mth)])
-			bgp.color = Color(0.14, 0.14, 0.14, 1.0)   # modulación (se ajusta por carga)
+			bgp.color = Color(0.06, 0.10, 0.07, 0.97)
 			$UI.add_child(bgp)
 			meter_bg[side].append(bgp)
+			var fp := Polygon2D.new()    # relleno VERDE (se recalcula por carga, por ancho)
+			fp.color = Color(0.22, 0.82, 0.34, 0.98)
+			fp.z_index = 1
+			$UI.add_child(fp)
+			meter_fill[side].append(fp)
 			var ln := Line2D.new()       # borde NEGRO fino
 			var pts := PackedVector2Array(poly)
 			pts.append(poly[0])
@@ -1339,11 +1542,12 @@ func _build_hud() -> void:
 			av.flip_h = side == 1
 			av.z_index = 6
 			$UI.add_child(av)
+			hud_avatar[side] = av
 
 # actualiza el relleno inclinado de una barra de vida (se vacía hacia el centro)
 func _update_hp_bar(side: int, hp: int) -> void:
 	var fill: Polygon2D = hp_bar_fill[side]
-	var frac := clampf(float(hp) / float(MAX_HP), 0.0, 1.0)
+	var frac := clampf(float(hp) / float(hp_max[side]), 0.0, 1.0)
 	if frac <= 0.001:
 		fill.visible = false
 		return
@@ -1357,7 +1561,7 @@ func _update_hp_bar(side: int, hp: int) -> void:
 		rx = x0 + BAR_W; lx = rx - BAR_W * frac
 	fill.polygon = _bar_poly(side, lx, rx, HP_YT, HP_YB, HP_SL)
 	# relleno AZUL PLANO para ambos. En peligro (≤25%) parpadea ROJO.
-	if hp > 0 and hp <= int(MAX_HP * ULTRA_HP):
+	if hp > 0 and hp <= int(hp_max[side] * ULTRA_HP):
 		var p := 0.6 + 0.4 * absf(sin(glow_time * 7.0))
 		fill.texture = null
 		fill.color = Color(2.3 * p, 0.26 * p, 0.16 * p)
@@ -1530,7 +1734,7 @@ func _physics_process(_delta: float) -> void:
 	if ultra_hint:
 		var listo: bool = state == "fight" and not ultra_active \
 				and combo_n[0] >= 3 and combo_t[0] <= COMBO_WINDOW \
-				and dummy_hp > 0 and dummy_hp <= int(MAX_HP * ULTRA_HP)
+				and meter[0] >= 2.0
 		ultra_hint.visible = listo
 		if listo:
 			ultra_hint.modulate.a = 0.6 + 0.4 * absf(sin(glow_time * 8.0))
@@ -1601,12 +1805,32 @@ func _physics_process(_delta: float) -> void:
 				moves_panel.visible = true
 				state = "moves"
 			else:
-				# 0=AI FIGHT (IA rankeada), 1=PRACTICE DUMMY (sin IA),
-				# 2=BREAK PRACTICE (IA encadena combos, tú rompes; sin KO)
-				break_practice = menu_sel == 2
-				dummy_ai_mode = menu_sel == 0 or menu_sel == 2
+				# guarda el modo y pasa a elegir personaje
+				pending_mode = menu_sel
 				menu_panel.visible = false
-				_start_round()
+				char_panel.visible = true
+				state = "char_select"
+		return
+	if state == "char_select":
+		var dc := 0
+		if Input.is_action_just_pressed("ui_left"):
+			dc = -1
+		if Input.is_action_just_pressed("ui_right"):
+			dc = 1
+		char_sel = posmod(char_sel + dc, CHARS.size())
+		for i in char_cards.size():
+			char_cards[i]["border"].color = Color(1.0, 0.85, 0.25) if i == char_sel else Color(0, 0, 0)
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
+			selected_char = String(CHARS[char_sel]["id"])
+			# 0=AI FIGHT, 1=PRACTICE DUMMY, 2=BREAK PRACTICE
+			break_practice = pending_mode == 2
+			dummy_ai_mode = pending_mode == 0 or pending_mode == 2
+			char_panel.visible = false
+			_start_round()
+		elif Input.is_action_just_pressed("ui_cancel"):
+			char_panel.visible = false
+			menu_panel.visible = true
+			state = "menu"
 		return
 	if state == "moves":
 		var dirm2 := 0
@@ -1681,21 +1905,37 @@ func _physics_process(_delta: float) -> void:
 		attack_done_p1 = _process_attacker(player, dummy, attack_done_p1, true)
 		attack_done_p2 = _process_attacker(dummy, player, attack_done_p2, false)
 
+		# RECARGA del meter: pasiva con el tiempo + extra al caminar hacia el rival.
+		# (los golpes también recargan, en _process_attacker.)
+		if not ultra_active:
+			for i in 2:
+				var fgt: Node2D = player if i == 0 else dummy
+				var gain := METER_REGEN
+				if String(fgt.sprite.animation) == "walk" and fgt.walk_dir == 1:
+					gain += METER_WALK          # caminando hacia adelante
+				meter[i] = clampf(meter[i] + gain * _delta, 0.0, METER_MAX)
+
 	# BARRAS DE VIDA inclinadas (se vacían hacia el CENTRO) con degradado
 	_update_hp_bar(0, player_hp)
 	_update_hp_bar(1, dummy_hp)
-	# METER: borde negro fino (estático); el degradado verde se ILUMINA según la carga
-	# (modulación del brillo de la textura). El segmento lleno late y hace bloom (HDR>1).
-	var pulso := 0.7 + 0.3 * sin(glow_time * 8.0)
+	# METER: relleno VERDE por ANCHO (media barra = medio llena), desde el lado del avatar.
+	# Las chispas (partículas) sólo emiten en el segmento lleno.
 	for side in 2:
 		var mv: float = meter[side]
+		var msl := M_SL if side == 0 else -M_SL
 		for s in 3:
 			var f := clampf(mv - float(s), 0.0, 1.0)
-			var b := 0.14 + 1.15 * f                 # oscuro vacío -> brillante lleno
 			var lleno := f >= 0.999
-			if lleno:
-				b *= (1.0 + 0.5 * pulso)             # el lleno late (bloom)
-			meter_bg[side][s].color = Color(b, b, b, 1.0)
+			var fp: Polygon2D = meter_fill[side][s]
+			if f <= 0.001:
+				fp.visible = false
+			else:
+				fp.visible = true
+				var bx := _meter_x(side, s)
+				if side == 0:   # llena desde la izquierda (lado del avatar) hacia el centro
+					fp.polygon = _para(bx, bx + M_W * f, M_Y, M_Y + M_H, msl)
+				else:           # llena desde la derecha (lado del avatar) hacia el centro
+					fp.polygon = _para(bx + M_W * (1.0 - f), bx + M_W, M_Y, M_Y + M_H, msl)
 			if s < meter_spark[side].size():
 				meter_spark[side][s].emitting = lleno   # chispas solo en el segmento lleno
 	# DOTS de rounds: encendidos = rondas ganadas
@@ -1790,6 +2030,11 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)))
 	if result != "ignored":
 		att.duck_swing()
+	# BLOQUEAR gasta energía: mantener la guardia mientras recibís golpes drena el meter
+	# (proporcional a la fuerza del golpe). Es un costo por cada golpe aguantado.
+	if result == "blocked":
+		var didx := 1 if att_is_player else 0
+		meter[didx] = maxf(0.0, meter[didx] - float(atk.get("damage", 50)) * BLOCK_DRAIN)
 	if result == "hit" or result == "launched":
 		var hidx := 0 if att_is_player else 1
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
@@ -1797,8 +2042,8 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# temblorcito por cada golpe conectado (crece un poco con el combo)
 		_shake(clampf(4.0 + float(combo_n[hidx]) * 0.7, 4.0, 13.0), 0.08)
 		# el METER carga: el que pega gana más, el que recibe un poco
-		meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.014)
-		meter[1 - hidx] = minf(METER_MAX, meter[1 - hidx] + float(dmg_real) * 0.006)
+		meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.0020)   # pegar CARGA
+		meter[1 - hidx] = maxf(0.0, meter[1 - hidx] - float(dmg_real) * HIT_DRAIN)   # recibir DRENA
 		# la IA puede romper tu combo largo (si aun tiene su breaker)
 		if att_is_player and dummy_ai_mode and combo_n[0] >= 3 and randf() < 0.55:
 			if dummy.do_breaker():
@@ -1809,14 +2054,14 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 				if dummy_ai_mode and not break_practice:
 					_end_round(true)
 				else:
-					dummy_hp = MAX_HP  # munieco de practica / drill: se reinicia, no muere
+					dummy_hp = hp_max[1]  # munieco de practica / drill: se reinicia, no muere
 		else:
 			player_hp = maxi(0, player_hp - dmg_real)
 			if player_hp <= 0:
 				if dummy_ai_mode and not break_practice:
 					_end_round(false)
 				else:
-					player_hp = MAX_HP
+					player_hp = hp_max[0]
 	return done
 
 func _end_round(player_won: bool) -> void:
