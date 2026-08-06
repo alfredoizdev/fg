@@ -1,0 +1,89 @@
+[gd_resource type="SpriteFrames" load_steps=17 format=3]
+
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-flames/stage-flames-1.png" id="f1"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-flames/stage-flames-2.png" id="f2"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-flames/stage-flames-3.png" id="f3"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-flames/stage-flames-4.png" id="f4"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-smoke/stage-smoke-1.png" id="s1"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-smoke/stage-smoke-2.png" id="s2"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-smoke/stage-smoke-3.png" id="s3"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-smoke/stage-smoke-4.png" id="s4"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch/stage-firepatch-1.png" id="fp1"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch/stage-firepatch-2.png" id="fp2"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch/stage-firepatch-3.png" id="fp3"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch/stage-firepatch-4.png" id="fp4"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch2/stage-firepatch2-1.png" id="fq1"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch2/stage-firepatch2-2.png" id="fq2"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch2/stage-firepatch2-3.png" id="fq3"]
+[ext_resource type="Texture2D" path="res://imagen-action/stage/stage-firepatch2/stage-firepatch2-4.png" id="fq4"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("f1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("f2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("f3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("f4")
+}],
+"loop": true,
+"name": &"flames",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("s1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s4")
+}],
+"loop": true,
+"name": &"smoke",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("fp1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("fp2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("fp3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("fp4")
+}],
+"loop": true,
+"name": &"firepatch",
+"speed": 9.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("fq1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("fq2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("fq3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("fq4")
+}],
+"loop": true,
+"name": &"firepatch2",
+"speed": 9.0
+}]

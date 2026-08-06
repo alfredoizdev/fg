@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://fighter.gd" id="1_fgt"]
+[ext_resource type="SpriteFrames" path="res://fighter_frames.tres" id="2_frm"]
+
+[node name="Fighter" type="Node2D"]
+script = ExtResource("1_fgt")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_frm")
+animation = &"pose"
+autoplay = "pose"

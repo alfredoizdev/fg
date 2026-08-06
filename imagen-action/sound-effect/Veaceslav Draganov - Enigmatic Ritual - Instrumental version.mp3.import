@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cenojebrvwixm"
+path="res://.godot/imported/Veaceslav Draganov - Enigmatic Ritual - Instrumental version.mp3-9c6a98cc755831a9a1d9568aa7f7442d.mp3str"
+
+[deps]
+
+source_file="res://imagen-action/sound-effect/Veaceslav Draganov - Enigmatic Ritual - Instrumental version.mp3"
+dest_files=["res://.godot/imported/Veaceslav Draganov - Enigmatic Ritual - Instrumental version.mp3-9c6a98cc755831a9a1d9568aa7f7442d.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

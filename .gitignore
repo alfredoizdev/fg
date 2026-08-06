@@ -1,0 +1,14 @@
+# Godot 4 import/cache (regenerated on open)
+.godot/
+
+# macOS
+.DS_Store
+
+# Claude / session tooling
+.claude/
+
+# Dev-only capture helpers
+/cap.gd
+/cap.gd.uid
+/cap2.gd
+/cap2.gd.uid
