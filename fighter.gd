@@ -1011,7 +1011,10 @@ func _physics_process(delta: float) -> void:
 					or (position.x >= 1805.0 and vel_x > 0.0)):
 				wall_bounced = true
 				position.x = clampf(position.x, 115.0, 1805.0)
-				vel_x = -vel_x * 0.65
+				# rebota hacia ADELANTE (lejos de la pared) con buen empuje
+				vel_x = -vel_x * 0.9
+				if absf(vel_x) < 320.0 * CHAR_SCALE:   # rebote mínimo garantizado
+					vel_x = signf(vel_x) * 320.0 * CHAR_SCALE
 				vel_y = minf(vel_y, -520.0 * CHAR_SCALE)
 				if sprite.sprite_frames.has_animation("wall_splat"):
 					sprite.play("wall_splat")
