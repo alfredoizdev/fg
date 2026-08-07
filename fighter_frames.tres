@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=133 format=3]
+[gd_resource type="SpriteFrames" load_steps=131 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -74,8 +74,6 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/spin-kick/dam-spin-kick-4.png" id="sk4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/spin-kick/dam-spin-kick-5.png" id="sk5"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/spin-kick/dam-spin-kick-6.png" id="sk6"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/spin-kick/dam-spin-kick-7.png" id="sk7"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/spin-kick/dam-spin-kick-8.png" id="sk8"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/weak-punch/dam-weak-punch-1.png" id="wp1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/weak-punch/dam-weak-punch-2.png" id="wp2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/weak-punch/dam-weak-punch-3.png" id="wp3"]
@@ -256,12 +254,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("sk6")
-}, {
-"duration": 1.0,
-"texture": ExtResource("sk7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("sk8")
 }],
 "loop": false,
 "name": &"spin_kick",
