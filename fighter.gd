@@ -150,6 +150,14 @@ var special_t := 0.0
 var dash_border_on := false   # borde rojo eléctrico activo durante el EMBER DASH
 var ghost_timer := 0.0
 var down_recent_t := 0.0
+# DASH DE AGUJAS de Fe (←→+Q): embestida que NO levanta; si conecta, 3 golpes en el sitio
+const FE_DASH_SPEED := 1350.0 * CHAR_SCALE   # velocidad de la embestida (px/s)
+const FE_DASH_TIME := 0.28                   # cuánto persigue antes de rendirse
+var fe_dash_t := 0.0        # >0 = embistiendo hacia adelante (mueve el cuerpo)
+var fe_dash_active := false # true toda la secuencia (embestida + 3 golpes): el árbitro pega, no la anim
+var back_recent_t := 0.0   # memoria de ATRÁS reciente (para el motion ←→ del dash)
+var dash_voz_sfx: AudioStream = null   # voz "water way" al arrancar el dash (carga perezosa)
+var spin_voz_sfx: AudioStream = null   # voz "Power Twister" al girar (peonza, carga perezosa)
 var fire_trail: CPUParticles2D
 var wall_squash_t := 0.0  # aplaston contra la pared/piso: compresion breve del sprite
 var squash_horizontal := true  # true = contra pared (comprime ancho); false = piso
@@ -205,6 +213,8 @@ var breaker_inv_t := 0.0     # invencibilidad tras romper
 # destello de impacto: chispas radiales al recibir un golpe
 const BURST_TIME := 0.22
 var burst_t := 0.0
+var water_flash_t := 0.0   # tinte AZUL marino al ser golpeado por el poder de agua de Fe
+var water_bg := false       # true = víctima volando por el agua: suelta sombras fantasma AZULES (hasta caer)
 var burst_seed := 0
 var burst_scale := 1.0
 var burst_block := false   # true = flash de escudo (bloqueo), false = estallido de dano
@@ -214,17 +224,23 @@ var juggle_hits := 0           # lanzamientos seguidos: cada uno eleva menos
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 var sfx_player: AudioStreamPlayer
+var voz_player: AudioStreamPlayer   # voz/grito propio (SEPARADO del de impactos: suenan a la vez)
 
 # efectos de impacto dibujados (hojas fx-hit / fx-block procesadas); si aun
 # no estan importados se usa el destello de codigo como respaldo
 var fx_sprite: AnimatedSprite2D
 var fx_anims := {}
 var fx_blue := false   # true = chispas de impacto AZULES (Favi); false = naranja (DAM)
+var fx_floral := false  # true = estela MORADA+ROSA floral (Aye); tiene prioridad sobre fx_blue
 
 func _ready() -> void:
 	floor_y = position.y
 	sfx_player = AudioStreamPlayer.new()
 	add_child(sfx_player)
+	# player de VOZ aparte: el grito de Fe (cast/dash/spin/whirlpool) no debe cortarse
+	# cuando llega un golpe (que suena en sfx_player). Los dos se oyen a la vez.
+	voz_player = AudioStreamPlayer.new()
+	add_child(voz_player)
 	for k in SFX_FILES:
 		if ResourceLoader.exists(SFX_FILES[k]):
 			sfx[k] = load(SFX_FILES[k])
@@ -233,8 +249,9 @@ func _ready() -> void:
 	var fx_defs := {
 		"hit": ["res://imagen-action/impact-effect/chispas-impat-hit-f/chispas-impat-hit-%d.png", 7, 26.0],
 		"hit_blue": ["res://imagen-action/impact-effect/chispas-impat-hit-favi/chispas-impat-hit-%d.png", 7, 26.0],
-		# bloqueo: se usa el escudo azul dibujado por CODIGO (_draw_block_flash),
-		# el de antes. La hoja fx-block nueva queda sin usar (al usuario no le gusto).
+		# bloqueo: anillo de barrera AZUL de la hoja fx-block (nueva, 5 frames). Si
+		# existe, _draw_hit_burst se salta el destello de codigo (no hay doble efecto).
+		"block": ["res://imagen-action/impact-effect/fx-block/fx-block-%d.png", 5, 24.0],
 	}
 	for k in fx_defs:
 		var d: Array = fx_defs[k]
@@ -284,7 +301,10 @@ func _on_animation_changed() -> void:
 	_play_sfx_key(nombre)
 	# humo de dash en golpes fuertes (con cooldown para no saturar en el ultra).
 	# sale atras del personaje (extremo trasero), no adelante
-	if nombre in SMOKE_MOVES and dash_smoke_cd <= 0.0 and special_t <= 0.0:
+	# ...pero NO durante el ULTRA de Fe (aéreo o en el suelo): sin humo en su combo cinemático
+	var _mb := get_parent()
+	var _en_ultra_fe: bool = fx_blue and _mb != null and bool(_mb.get("ultra_active"))
+	if nombre in SMOKE_MOVES and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
 		_spawn_dash_smoke(0.5, 200.0)
 		dash_smoke_cd = 0.28
 
@@ -310,11 +330,39 @@ func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
 	if breaker_inv_t > 0.0:
 		return {}
+	# el DASH DE AGUJAS no pega por la animación: el árbitro (main._fe_dash_attack) mete los 3 golpes
+	if fe_dash_active:
+		return {}
 	# durante el EMBER DASH el golpe es el especial (reusa el corte como pose)
 	if special_t > 0.0 and sprite.is_playing():
 		return {"name": "ember_dash", "frame": int(sprite.frame), "hit_frame": 1,
 			"reach": 520.0 * CHAR_SCALE, "low": false, "strong": true,
 			"damage": 130, "wall_launch": true, "impact_sfx": "kick_impact"}
+	# PEONZA de Fe (E en el suelo): golpea DOS veces y NO levanta (el rival se queda en el
+	# sitio). Dos ventanas con NOMBRES distintos para que el árbitro registre 2 impactos;
+	# strong=false para no lanzar por los aires. SOLO Fe (DAM conserva su patada que levanta).
+	if sprite.animation == "spin_kick" and sprite.is_playing() \
+			and sprite.sprite_frames.has_animation("water_cast"):
+		var fr := int(sprite.frame)
+		if fr < 4:
+			return {"name": "spin_kick", "frame": fr, "hit_frame": 2,
+				"reach": 520.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 60, "impact_sfx": "kick_impact"}
+		return {"name": "spin_kick_2", "frame": fr, "hit_frame": 5,
+			"reach": 520.0 * CHAR_SCALE, "low": false, "strong": false,
+			"damage": 60, "impact_sfx": "kick_impact"}
+	# PATADA AÉREA DOBLE de Fe (salto+R): 2 golpes ligeros que NO levantan. Dos ventanas con
+	# NOMBRES distintos; hit_frame al ARRANQUE de cada ventana (0 y 2) para que ambos peguen
+	# aunque la animación sea rápida (no depende de acertar un frame intermedio exacto).
+	if sprite.animation == "air_jab" and sprite.is_playing():
+		var afr := int(sprite.frame)
+		if afr < 2:
+			return {"name": "air_jab", "frame": afr, "hit_frame": 0,
+				"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 35, "impact_sfx": "kick_impact"}
+		return {"name": "air_jab_2", "frame": afr, "hit_frame": 2,
+			"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
+			"damage": 35, "impact_sfx": "kick_impact"}
 	if sprite.animation in ATTACKS and sprite.is_playing():
 		var a: Dictionary = ATTACKS[sprite.animation].duplicate()
 		a["name"] = sprite.animation
@@ -327,6 +375,9 @@ func do_ko() -> void:
 	crouching = false
 	hit_flying = false
 	airborne = false
+	water_bg = false
+	fe_dash_t = 0.0
+	fe_dash_active = false
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
@@ -367,6 +418,9 @@ func revive() -> void:
 	crouching = false
 	hit_flying = false
 	airborne = false
+	water_bg = false
+	fe_dash_t = 0.0
+	fe_dash_active = false
 	punch_followup = false
 	juggle_hits = 0
 	wall_bounced = false
@@ -382,9 +436,9 @@ func revive() -> void:
 func celebrate() -> void:
 	crouching = false
 	sprite.play("victory")
-	var m := get_parent()          # DAM dice su frase de victoria (boca sincronizada)
+	var m := get_parent()          # el ganador dice su frase de victoria (boca sincronizada)
 	if m and m.has_method("_play_victory_line"):
-		m._play_victory_line()
+		m._play_victory_line(self)
 
 func is_downed() -> bool:
 	return hit_flying or (sprite.animation == "hit_down" and sprite.is_playing())
@@ -413,6 +467,29 @@ func _start_special() -> void:
 	crouching = false
 	_spawn_dash_smoke()   # ráfaga de humo al arrancar el dash
 	sprite.play("punch")
+
+# DASH DE AGUJAS de Fe (←→+Q): embiste hacia adelante SIN levantar al rival; si conecta,
+# el árbitro (main._fe_dash_attack) aplica 3 golpes seguidos y lo deja en el sitio (sigue combo).
+func _start_fe_dash() -> void:
+	fe_dash_t = FE_DASH_TIME
+	fe_dash_active = true
+	back_recent_t = 0.0
+	down_recent_t = 0.0
+	punch_followup = false
+	crouching = false
+	_spawn_dash_smoke()
+	# usa "dash" si ya hay frames reales, si no "punch" de placeholder
+	sprite.play("dash" if sprite.sprite_frames.has_animation("dash") else "punch")
+	# voz del dash (Fe grita "water way" al arrancar — versión enérgica, como el cast)
+	var ruta := "res://imagen-action/favi/Fe-sound-effect/dash-fe-energetica.wav"
+	if dash_voz_sfx == null and ResourceLoader.exists(ruta):
+		dash_voz_sfx = load(ruta)
+	if dash_voz_sfx != null:
+		voz_player.stream = dash_voz_sfx
+		voz_player.play()
+	var mb := get_parent()
+	if mb and mb.has_method("_fe_dash_attack"):
+		mb._fe_dash_attack(self)
 
 # humo de dash DIBUJADO (dash-dust, 6 frames): brota en el punto de arranque y se
 # queda fijo; la cola se espeja segun la direccion del dash
@@ -568,6 +645,63 @@ func spawn_fire_impact() -> Node2D:
 	e.play("boom")
 	return e
 
+# ESPECIAL DE AGUA de Fe (medialuna + Q/W/E): clava la aguja al piso y grita; el géiser
+# brota a 1/2/3 CUERPOS adelante (según el botón) — el jugador adivina dónde está el rival.
+var water_cast_sfx: AudioStream = null
+func _start_water_special(bodies: int) -> void:
+	crouching = false
+	airborne = false
+	walk_dir = 0
+	sprite.play("water_cast")
+	# audio del cast (Fe llama el poder — versión enérgica/gritada)
+	var ruta := "res://imagen-action/favi/Fe-sound-effect/water-cast-fe-energetica.wav"
+	if water_cast_sfx == null and ResourceLoader.exists(ruta):
+		water_cast_sfx = load(ruta)
+	if water_cast_sfx != null:
+		voz_player.stream = water_cast_sfx
+		voz_player.play()
+	var mb := get_parent()
+	if mb and mb.has_method("_fe_water_special"):
+		mb._fe_water_special(self, bodies)
+
+# GÉISER de agua: brota del suelo en la x dada (bajo el rival), sube y se apaga solo.
+var water_geyser_frames: SpriteFrames = null
+func spawn_water_geyser(gx: float) -> Node2D:
+	if water_geyser_frames == null:
+		if not ResourceLoader.exists("res://imagen-action/impact-effect/water-geyser-fe/geyser-1.png"):
+			return null
+		water_geyser_frames = SpriteFrames.new()
+		water_geyser_frames.add_animation("erupt")
+		water_geyser_frames.set_animation_speed("erupt", 26.0)
+		water_geyser_frames.set_animation_loop("erupt", false)
+		for i in range(1, 9):
+			water_geyser_frames.add_frame("erupt", load("res://imagen-action/impact-effect/water-geyser-fe/geyser-%d.png" % i))
+	var g := AnimatedSprite2D.new()
+	g.sprite_frames = water_geyser_frames
+	g.animation = "erupt"
+	g.z_index = 6
+	var s := 0.62 * absf(scale.x)   # tamaño del géiser (~1.5x la nena)
+	g.scale = Vector2(s, s)
+	get_parent().add_child(g)
+	# frames 760x1000 anclados abajo (base del agua ~y=980, centro=500 -> base 480px bajo el centro)
+	var ground_y := to_global(Vector2(0.0, SHADOW_FEET_OFFSET)).y
+	g.global_position = Vector2(gx, ground_y - 480.0 * s)
+	g.animation_finished.connect(g.queue_free)
+	g.play("erupt")
+	# SFX de CHAPOTEO al brotar el agua del suelo. En un player PROPIO para no cortar la
+	# voz del cast (que suena en sfx_player). loop=false -> se libera solo al terminar.
+	if ResourceLoader.exists("res://imagen-action/favi/Fe-sound-effect/water-splahs.mp3"):
+		var strm := load("res://imagen-action/favi/Fe-sound-effect/water-splahs.mp3")
+		if strm is AudioStreamMP3:
+			strm.loop = false
+		var sp := AudioStreamPlayer.new()
+		sp.stream = strm
+		sp.volume_db = -1.0
+		get_parent().add_child(sp)
+		sp.finished.connect(sp.queue_free)
+		sp.play()
+	return g
+
 # PILAR DE FUEGO del INFIERNO: columna VERTICAL de llamas que se alza del piso
 func _spawn_fire_pillar(escala := 1.0) -> void:
 	var f := CPUParticles2D.new()
@@ -596,7 +730,7 @@ func _spawn_fire_pillar(escala := 1.0) -> void:
 	add_child(f)
 	f.finished.connect(f.queue_free)
 
-func _spawn_ghost() -> void:
+func _spawn_ghost(blue := false) -> void:
 	var tex: Texture2D = sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
 	if tex == null:
 		return
@@ -604,13 +738,19 @@ func _spawn_ghost() -> void:
 	g.texture = tex
 	g.flip_h = sprite.flip_h
 	g.z_index = -1
-	# nace ROJO CLARO (HDR) y se apaga hacia ROJO OSCURO mientras se desvanece:
-	# la estela queda clara junto al personaje y oscura en la cola (de claro a oscuro)
-	g.modulate = Color(1.7, 0.42, 0.38, 0.62)
+	# copia el offset del sprite (Fe ancla los pies con sprite.offset; NO va en el transform)
+	g.offset = sprite.offset
+	# nace CLARO (HDR) y se apaga hacia OSCURO/transparente: estela clara junto al cuerpo,
+	# oscura en la cola. AZUL agua para la víctima del poder de Fe / ROJO fuego para el dash.
+	if blue:
+		g.modulate = Color(0.42, 0.78, 1.9, 0.62)
+	else:
+		g.modulate = Color(1.7, 0.42, 0.38, 0.62)
 	get_parent().add_child(g)
 	g.global_transform = sprite.global_transform
 	var tw := g.create_tween()
-	tw.tween_property(g, "modulate", Color(0.34, 0.03, 0.05, 0.0), 0.55)   # perdura más (fade lento)
+	var fin := Color(0.03, 0.09, 0.34, 0.0) if blue else Color(0.34, 0.03, 0.05, 0.0)
+	tw.tween_property(g, "modulate", fin, 0.55)   # perdura más (fade lento)
 	tw.tween_callback(g.queue_free)
 
 func _launch(push_dir: int, mult := 1.0) -> void:
@@ -636,6 +776,8 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	if koed or (is_downed() and not hit_flying):
 		return "ignored"
 	special_t = 0.0  # un golpe recibido corta el dash especial
+	fe_dash_t = 0.0  # ...y también el dash de agujas de Fe
+	fe_dash_active = false
 	# en el aire cualquier golpe lo derriba
 	if airborne:
 		_burst(1.2, false, 1, atk_blue)
@@ -716,10 +858,18 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	burst_t = maxf(0.0, burst_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
-	if breaker_inv_t > 0.0:
-		sprite.modulate.a = 0.5 + 0.5 * absf(sin(breaker_inv_t * 30.0))
-	elif sprite.modulate.a != 1.0:
-		sprite.modulate.a = 1.0
+	if water_bg:
+		# volando por el poder del agua: cuerpo teñido de AZUL todo el vuelo (no se desvanece aún)
+		sprite.modulate = Color(0.5, 0.75, 1.6, 1)
+	elif water_flash_t > 0.0:
+		# ya cayó: la capa azul se desvanece a normal
+		water_flash_t = maxf(0.0, water_flash_t - delta)
+		var wk := water_flash_t / 0.45
+		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.5, 0.75, 1.6, 1), wk)
+	elif breaker_inv_t > 0.0:
+		sprite.modulate = Color(1, 1, 1, 0.5 + 0.5 * absf(sin(breaker_inv_t * 30.0)))
+	elif sprite.modulate != Color(1, 1, 1, 1):
+		sprite.modulate = Color(1, 1, 1, 1)
 
 	# squash del estrellon: conserva el volumen (comprime un eje, estira el otro)
 	if wall_squash_t > 0.0:
@@ -743,6 +893,15 @@ func _physics_process(delta: float) -> void:
 		fwd_recent_t = 0.5
 	else:
 		fwd_recent_t = maxf(0.0, fwd_recent_t - delta)
+	# memoria de ATRÁS (lejos del rival) para el motion ←→ del DASH DE AGUJAS de Fe
+	if is_player and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == -facing:
+		back_recent_t = 0.35
+	else:
+		back_recent_t = maxf(0.0, back_recent_t - delta)
+	# DASH DE AGUJAS de Fe en curso: embiste hacia adelante y deja estela azul
+	if fe_dash_t > 0.0:
+		fe_dash_t = maxf(0.0, fe_dash_t - delta)
+		position.x += float(facing) * FE_DASH_SPEED * delta
 	# EMBER DASH en curso: avanza ardiendo y suelta sombras
 	if special_t > 0.0:
 		special_t = maxf(0.0, special_t - delta)
@@ -762,13 +921,15 @@ func _physics_process(delta: float) -> void:
 			var mb := get_parent()
 			if mb and mb.has_method("_dash_border"):
 				mb._dash_border(self, false)
-	# sombras fantasma: durante el dash especial y durante el mortal del breaker
+	# sombras fantasma: dash especial / mortal del breaker (rojas), volando por el agua o
+	# el DASH DE AGUJAS de Fe (AZULES)
 	breaker_fx_t = maxf(0.0, breaker_fx_t - delta)
-	if special_t > 0.0 or breaker_fx_t > 0.0:
+	if special_t > 0.0 or breaker_fx_t > 0.0 or water_bg or fe_dash_t > 0.0:
 		ghost_timer -= delta
 		if ghost_timer <= 0.0:
 			ghost_timer = 0.038
-			_spawn_ghost()
+			# Fe (fx_blue) SIEMPRE deja sombras AZULES (dash, agua, breaker, ultra); DAM rojas
+			_spawn_ghost(water_bg or fe_dash_t > 0.0 or fx_blue)
 	up_tap_t = maxf(0.0, up_tap_t - delta)
 	double_up_t = maxf(0.0, double_up_t - delta)
 	down_tap_t = maxf(0.0, down_tap_t - delta)
@@ -839,6 +1000,7 @@ func _physics_process(delta: float) -> void:
 			position.y = floor_y
 			airborne = false
 			vel_y = 0.0
+			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
 			if hit_flying:
 				hit_flying = false
 				vel_x = 0.0
@@ -885,8 +1047,13 @@ func _physics_process(delta: float) -> void:
 		sprite.play("jump")
 		return
 
+	# DASH DE AGUJAS de Fe en curso: bloquea locomoción/salto/agacharse para que "walk"
+	# NO pise la animación "dash" (el jugador mantiene ADELANTE durante el comando ←→+Q)
+	if fe_dash_active or special_t > 0.0:
+		return
+
 	# ocupado: golpeando, recibiendo dano o bloqueando
-	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "take_hit", "take_hit_low", "block", "block_low"] \
+	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "take_hit", "take_hit_low", "block", "block_low", "water_cast"] \
 			and sprite.is_playing():
 		return
 
@@ -895,7 +1062,12 @@ func _physics_process(delta: float) -> void:
 		airborne = true
 		vel_y = -JUMP_SPEED
 		_spawn_jump_dust(0.6)   # polvo de despegue
-		sprite.play("jump")
+		# salto hacia ADELANTE (hacia el rival) = MORTAL (neutral_spin); neutro/atrás = jump normal
+		var jdir := Input.get_axis("ui_left", "ui_right")
+		if jdir != 0.0 and int(signf(jdir)) == facing and sprite.sprite_frames.has_animation("neutral_spin"):
+			sprite.play("neutral_spin")
+		else:
+			sprite.play("jump")
 		return
 
 	# agacharse: mantener abajo; al soltar se levanta en reversa
@@ -1057,23 +1229,43 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("take_hit_strong") and not airborne:
 		receive_hit(false, true, -facing)
 		return
-	# comando ANIQUILACIÓN: → R (adelante reciente + R). Solo entra si el escenario
-	# lo aprueba (rival con vida baja y combo de 3+ vivo); si no, es un jab normal.
-	if event.is_action_pressed("weak_punch") and fwd_recent_t > 0.0:
-		var mu := get_parent()
-		if mu and mu.has_method("try_ultra") and mu.try_ultra(self):
-			return
-	# comando INFIERNO (crítico de fuego): ↓↓ + E, tras un combo de 7+.
-	# se revisa ANTES del APOCALIPSIS (que es solo → E)
-	if event.is_action_pressed("spin_kick") and double_down_t > 0.0:
-		var mc := get_parent()
-		if mc and mc.has_method("try_critical") and mc.try_critical(self):
-			return
-	# comando APOCALIPSIS: → E (version larga: dos tandas + cambio de lado)
-	if event.is_action_pressed("spin_kick") and fwd_recent_t > 0.0:
-		var mu2 := get_parent()
-		if mu2 and mu2.has_method("try_ultra") and mu2.try_ultra(self, true):
-			return
+	if sprite.sprite_frames.has_animation("water_cast"):
+		# --- FE: sus propios especiales/ultra. NO hereda los ultras de fuego de DAM. ---
+		# WHIRLPOOL (↓←+E): finisher tras combo (cuesta 1 barra).
+		if event.is_action_pressed("spin_kick") and down_recent_t > 0.0 and back_recent_t > 0.0:
+			var mw := get_parent()
+			if mw and mw.has_method("try_whirlpool") and mw.try_whirlpool(self):
+				return
+		# ULTRA CORTO (↑+E): combo aéreo tras combo de 3 (cuesta 2 barras). El breaker ↑+E
+		# se revisó antes y solo entra si te están pegando, así que el ofensivo queda libre.
+		if event.is_action_pressed("spin_kick") and up_tap_t > 0.0:
+			var mfu := get_parent()
+			if mfu and mfu.has_method("try_fe_ultra") and mfu.try_fe_ultra(self):
+				return
+		# ULTRA LARGO (↓→ + R = cuarto adelante + R): APOCALYPSE (3 barras + combo + rival rojo)
+		if event.is_action_pressed("weak_punch") and down_recent_t > 0.0:
+			var _fd := Input.get_axis("ui_left", "ui_right")
+			if _fd != 0.0 and int(signf(_fd)) == facing:
+				var mfl := get_parent()
+				if mfl and mfl.has_method("try_fe_ultra_long") and mfl.try_fe_ultra_long(self):
+					return
+	else:
+		# --- DAM: sus finishers de fuego ---
+		# comando ANIQUILACIÓN: → R (adelante reciente + R)
+		if event.is_action_pressed("weak_punch") and fwd_recent_t > 0.0:
+			var mu := get_parent()
+			if mu and mu.has_method("try_ultra") and mu.try_ultra(self):
+				return
+		# comando INFIERNO (crítico de fuego): ↓↓ + E
+		if event.is_action_pressed("spin_kick") and double_down_t > 0.0:
+			var mc := get_parent()
+			if mc and mc.has_method("try_critical") and mc.try_critical(self):
+				return
+		# comando APOCALIPSIS: → E (version larga)
+		if event.is_action_pressed("spin_kick") and fwd_recent_t > 0.0:
+			var mu2 := get_parent()
+			if mu2 and mu2.has_method("try_ultra") and mu2.try_ultra(self, true):
+				return
 	var accion := ""
 	for a in ["attack", "kick", "spin_kick", "weak_punch"]:
 		if event.is_action_pressed(a):
@@ -1089,9 +1281,9 @@ func _unhandled_input(event: InputEvent) -> void:
 # intenta ejecutar un boton de ataque respetando ventana, familia y escalera
 func _try_attack(accion: String) -> bool:
 	var anim_actual := String(sprite.animation)
-	if special_t > 0.0:
-		return false  # el dash especial no se cancela
-	if anim_actual in ["take_hit", "take_hit_low", "block", "block_low"] and sprite.is_playing():
+	if special_t > 0.0 or fe_dash_active:
+		return false  # ni el dash especial ni el dash de agujas se cancelan
+	if anim_actual in ["take_hit", "take_hit_low", "block", "block_low", "water_cast"] and sprite.is_playing():
 		return false
 	if anim_actual in ATTACKS and sprite.is_playing():
 		if sprite.frame <= int(ATTACKS[anim_actual]["hit_frame"]):
@@ -1121,29 +1313,64 @@ func _try_attack(accion: String) -> bool:
 			else:
 				var dir := Input.get_axis("ui_left", "ui_right")
 				var adelante := dir != 0.0 and int(signf(dir)) == facing
-				# cuarto adelante (↓ reciente y ya suelto) + Q = EMBER DASH
+				# cuarto adelante (↓ reciente y ya suelto) + Q:
+				#   Fe = ESPECIAL DE AGUA a 1 CUERPO · DAM = EMBER DASH
 				if adelante and down_recent_t > 0.0:
-					_start_special()
+					if sprite.sprite_frames.has_animation("water_cast"):
+						_start_water_special(1)
+					else:
+						_start_special()
+					return true
+				# ←→+Q (atrás luego adelante) = DASH DE AGUJAS de Fe: embiste, si conecta 3 golpes
+				if adelante and back_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
+					_start_fe_dash()
 					return true
 				# →+Q (hacia el rival): doble corte encadenado
 				punch_followup = adelante
 				sprite.play("punch")
 			return true
 		"kick":
+			if not airborne:
+				var kdir := Input.get_axis("ui_left", "ui_right")
+				var kade := kdir != 0.0 and int(signf(kdir)) == facing
+				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
+				if kade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
+					_start_water_special(2)
+					return true
 			sprite.play("jump_kick" if airborne else "kick")
 			return true
 		"spin_kick":
+			if not airborne:
+				var edir := Input.get_axis("ui_left", "ui_right")
+				var eade := edir != 0.0 and int(signf(edir)) == facing
+				# ↓↘→+E (medialuna adelante) = ESPECIAL DE AGUA de Fe a 3 CUERPOS
+				if eade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
+					_start_water_special(3)
+					return true
 			if airborne and sprite.sprite_frames.has_animation("air_spin_kick"):
 				sprite.play("air_spin_kick")
 				return true
 			if sprite.sprite_frames.has_animation("spin_kick"):
 				sprite.play("spin_kick")
-				var mk := get_parent()          # DAM grita al lanzar la patada giratoria (→E)
-				if mk and mk.has_method("_play_kick_voz"):
-					mk._play_kick_voz()
+				if sprite.sprite_frames.has_animation("water_cast"):
+					# Fe grita "Power Twister" al girar (voz furiosa/energética)
+					var ruta := "res://imagen-action/favi/Fe-sound-effect/spin-fe-furiosa.wav"
+					if spin_voz_sfx == null and ResourceLoader.exists(ruta):
+						spin_voz_sfx = load(ruta)
+					if spin_voz_sfx != null:
+						voz_player.stream = spin_voz_sfx
+						voz_player.play()
+				else:
+					var mk := get_parent()          # DAM grita al lanzar la patada giratoria (→E)
+					if mk and mk.has_method("_play_kick_voz"):
+						mk._play_kick_voz()
 				return true
 			return false
 		"weak_punch":
+			# salto + R = PATADA AÉREA DOBLE de Fe (air_jab), exclusiva (DAM no la tiene)
+			if airborne and sprite.sprite_frames.has_animation("air_jab"):
+				sprite.play("air_jab")
+				return true
 			if not airborne and sprite.sprite_frames.has_animation("weak_punch"):
 				sprite.play("weak_punch")
 				return true
@@ -1167,7 +1394,8 @@ func _on_animation_finished() -> void:
 		sprite.play("jump")
 		sprite.frame = sprite.sprite_frames.get_frame_count("jump") - 2
 		return
-	if sprite.animation in ["spin_kick", "air_spin_kick"] and airborne:
+	if sprite.animation in ["spin_kick", "air_spin_kick", "air_jab", "neutral_spin"] and airborne:
+		# al terminar el golpe/mortal aéreo pasa a un frame de CAÍDA del salto normal (más natural)
 		sprite.play("jump")
 		sprite.frame = sprite.sprite_frames.get_frame_count("jump") - 2
 		return
@@ -1362,10 +1590,30 @@ func _draw_swing_trail() -> void:
 	var flat: float = fx["flat"]
 	if stages[stage].size() > 3:
 		r *= float(stages[stage][3])
-	# color de la estela: AZUL-blanco marino (Favi) o naranja de fuego (DAM)
-	var c_out := Color(0.12, 0.42, 1.0, 0.32 * al) if fx_blue else Color(1.0, 0.42, 0.12, 0.32 * al)
-	var c_core := Color(0.5, 0.85, 1.7, 0.55 * al) if fx_blue else Color(1.0, 0.85, 0.4, 0.55 * al)
-	var c_edge := Color(0.7, 1.2, 1.9, 0.75 * al) if fx_blue else Color(1.6, 1.2, 0.55, 0.75 * al)
+	# escalar y reposicionar la estela al tamaño/offset del sprite del personaje:
+	# tuneada para DAM (escala 1.0, offset 0), para Favi (nena, escala < 1 y sprite
+	# corrido hacia abajo) hay que achicarla y bajarla para que siga sus agujas.
+	# DAM queda idéntico (base_scale 1, offset 0).
+	var bs: float = base_scale.y
+	c = Vector2(c.x * bs, (c.y + sprite.offset.y) * bs)
+	r *= bs
+	w *= bs
+	# color de la estela: MORADO+ROSA floral (Aye) · AZUL-blanco marino (Favi) · naranja de fuego (DAM)
+	var c_out: Color
+	var c_core: Color
+	var c_edge: Color
+	if fx_floral:
+		c_out = Color(0.75, 0.20, 1.15, 0.32 * al)   # violeta suave (cuerpo del arco)
+		c_core = Color(1.7, 0.45, 1.25, 0.55 * al)   # rosa magenta caliente (nucleo)
+		c_edge = Color(1.95, 0.95, 1.8, 0.75 * al)   # borde rosa claro/lavanda que florece
+	elif fx_blue:
+		c_out = Color(0.12, 0.42, 1.0, 0.32 * al)
+		c_core = Color(0.5, 0.85, 1.7, 0.55 * al)
+		c_edge = Color(0.7, 1.2, 1.9, 0.75 * al)
+	else:
+		c_out = Color(1.0, 0.42, 0.12, 0.32 * al)
+		c_core = Color(1.0, 0.85, 0.4, 0.55 * al)
+		c_edge = Color(1.6, 1.2, 0.55, 0.75 * al)
 	# capa suave exterior, nucleo caliente y borde de ataque que florece
 	draw_colored_polygon(_swing_poly(a0, a1, w, r, c, flat), c_out)
 	draw_colored_polygon(_swing_poly(a0 + 6.0, a1 - 2.0, w * 0.5, r, c, flat), c_core)

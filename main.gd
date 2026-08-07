@@ -96,6 +96,9 @@ var dummy_ai_mode := true
 var break_practice := false     # modo BREAK PRACTICE: la IA encadena combos y tú rompes
 var menu_panel: ColorRect
 var moves_panel: ColorRect
+var moves_title: Label   # título de la lista (cambia según personaje)
+var moves_col1: Label    # columna de MOVES (cambia según personaje)
+var moves_fin: Label     # bloque SPECIALS & FINISHERS (cambia según personaje)
 var menu_opts := []
 var menu_sel := 0
 # --- SELECCIÓN DE PERSONAJE ---
@@ -103,7 +106,8 @@ var menu_sel := 0
 # Un personaje está "listo" (jugable) sólo si su recurso de frames existe.
 const CHARS := [
 	{"id": "dam",  "name": "DAM",  "arch": "assassin", "avatar": "res://imagen-action/dam/avatar/dam-avatar.png",  "frames": "res://fighter_frames.tres", "scale": 1.0},
-	{"id": "favi", "name": "FAVI", "arch": "assassin", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "frames": "res://favi_frames.tres",   "scale": 0.82},
+	{"id": "favi", "name": "FE",   "arch": "assassin", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "frames": "res://favi_frames.tres",   "scale": 0.82},
+	{"id": "aye",  "name": "AYE",  "arch": "assassin", "avatar": "res://imagen-action/aye/avatar/aye-avatar.png",   "frames": "res://fighter_frames.tres", "scale": 0.78},
 ]
 var char_panel: ColorRect
 var char_cards := []            # [{border, av, name_lbl, wip_lbl, ready}] por personaje
@@ -462,12 +466,14 @@ func _ready() -> void:
 	vt.size = Vector2(1300, 60)
 	vt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vp.add_child(vt)
+	moves_title = vt
 	var col1 := Label.new()
 	col1.add_theme_font_size_override("font_size", 24)
 	col1.position = Vector2(80, 118)
 	col1.size = Vector2(560, 520)
-	col1.text = "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\n\n▲ = launches into the air     ▼ = knocks down"
+	col1.text = "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\nJump + R  —  Air double slash\nJump →  —  forward flip\n\n▲ = launches into the air     ▼ = knocks down"
 	vp.add_child(col1)
+	moves_col1 = col1
 	# divisiones: linea bajo el titulo, columna central y pie
 	for dv in [[80.0, 98.0, 1140.0, 3.0], [648.0, 115.0, 3.0, 660.0], [80.0, 780.0, 1140.0, 3.0]]:
 		var linea := ColorRect.new()
@@ -512,6 +518,7 @@ func _ready() -> void:
 	fin.size = Vector2(600, 190)
 	fin.text = "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP"
 	vp.add_child(fin)
+	moves_fin = fin
 	var vb := Label.new()
 	vb.text = "↑↓ select    Q watch demo    W pin/unpin on screen    ESC back"
 	vb.add_theme_font_size_override("font_size", 26)
@@ -610,8 +617,22 @@ func _hide_announce_soon() -> void:
 	if state == "fight" or state == "demo":
 		announce.visible = false
 
+# pone el título / MOVES / FINISHERS de la lista según el personaje ELEGIDO
+func _set_moves_text() -> void:
+	if moves_title == null:
+		return
+	if selected_char == "favi":
+		moves_title.text = "FE — MOVE LIST"
+		moves_col1.text = "MOVES:\n\nR  —  Quick needle jab (4)\n↓ + R  —  Low needle jab (4)\nQ  —  Scissor slash (10)\n→ + Q  —  Double scissor\nW  —  Heavy scissor (10)\n↓ + Q  —  Crouch scissor (3)\n↓ + W  —  Rising needles (5) ▲\nE  —  Needle spin · 2 hits\n↓ + E  —  Ground sweep (6) ▼\nJump + Q  —  Air scissor (4)\nJump + W  —  Dive needle (4)\nJump + E  —  Air somersault (8) ▲\n\n▲ = launches into the air     ▼ = knocks down"
+		moves_fin.text = "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  WATER GEYSER · 1/2/3 bodies\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick"
+	else:
+		moves_title.text = "DAM — MOVE LIST"
+		moves_col1.text = "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\n\n▲ = launches into the air     ▼ = knocks down"
+		moves_fin.text = "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP"
+
 func _open_moves() -> void:
 	state = "moves"
+	_set_moves_text()          # muestra los movimientos del personaje ELEGIDO (Fe o DAM)
 	player.input_enabled = false
 	dummy.ai_enabled = false
 	player.revive()
@@ -885,6 +906,17 @@ const FAVI_SCALE := 0.85            # ~68% de la altura de DAM (su cabeza a la a
 # para que los pies sigan cayendo en ese MISMO piso (y no floten ni se hundan).
 const FAVI_FEET_FROM_CENTER := 500.0
 
+# AYE (The Blooming Dynamo): NENA de ~5 años -> más baja aún que Fe. Ágil ("dynamo").
+# Pre-cableada con PLACEHOLDER (los frames de DAM) hasta procesar sus hojas verdes.
+const AYE_SPD := 1.25
+const AYE_SCALE := 0.72            # ~5 años: más chica que Fe (0.85)
+const AYE_FEET_FROM_CENTER := 500.0
+
+# DAM un poco más grande (antes 1.0). base_scale también escala sus FX/estelas/sombras,
+# así que sube proporcional. El offset compensa para que los pies sigan en el piso.
+const DAM_SCALE := 1.10
+const DAM_FEET_FROM_CENTER := 500.0
+
 func _build_favi_frames() -> SpriteFrames:
 	var dam := load("res://fighter_frames.tres") as SpriteFrames
 	var sf := SpriteFrames.new()
@@ -904,6 +936,60 @@ func _build_favi_frames() -> SpriteFrames:
 		else:
 			for t in real:
 				sf.add_frame(anim, t)
+	# animación EXCLUSIVA de Fe: water_cast (especial de agua ↓↘→+W). Placeholder = pose
+	# hasta tener water-cast-fe-sheet.png (5 frames) procesado en favi/water_cast/.
+	if not sf.has_animation("water_cast"):
+		sf.add_animation("water_cast")
+	sf.set_animation_loop("water_cast", false)
+	sf.set_animation_speed("water_cast", 15.0)   # cast RÁPIDO para poder encadenar el combo
+	var wc := _favi_action_frames("water_cast")
+	if wc.is_empty():
+		for i in 5:
+			sf.add_frame("water_cast", pose[i % pose.size()])
+	else:
+		for t in wc:
+			sf.add_frame("water_cast", t)
+	# DASH DE AGUJAS (←→+Q): animación EXCLUSIVA de Fe. Se agrega solo cuando existan los
+	# frames reales (dash-strike-sheet); mientras tanto _start_fe_dash usa "punch" de placeholder.
+	var dsh := _favi_action_frames("dash")
+	if not dsh.is_empty():
+		if not sf.has_animation("dash"):
+			sf.add_animation("dash")
+		sf.set_animation_loop("dash", false)
+		sf.set_animation_speed("dash", 18.0)
+		for t in dsh:
+			sf.add_frame("dash", t)
+	# WHIRLPOOL (finisher ↓←E): animación EXCLUSIVA de Fe (giro mortal con vórtice de agua).
+	var whl := _favi_action_frames("whirlpool")
+	if not whl.is_empty():
+		if not sf.has_animation("whirlpool"):
+			sf.add_animation("whirlpool")
+		# HURACÁN: gira MUY RÁPIDO y en LOOP -> muchas vueltas durante el remate (golpea seguido)
+		sf.set_animation_loop("whirlpool", true)
+		sf.set_animation_speed("whirlpool", 34.0)   # 6 frames ~0.18s por vuelta = giro muy veloz
+		for t in whl:
+			sf.add_frame("whirlpool", t)
+	# PATADA AÉREA DOBLE (salto+R): animación EXCLUSIVA de Fe (no existe en DAM).
+	var aj := _favi_action_frames("air_jab")
+	if not aj.is_empty():
+		if not sf.has_animation("air_jab"):
+			sf.add_animation("air_jab")
+		sf.set_animation_loop("air_jab", false)
+		sf.set_animation_speed("air_jab", 16.0)   # 4 frames ~0.25s = doble patadita rápida
+		for t in aj:
+			sf.add_frame("air_jab", t)
+	# MORTAL AÉREO HACIA ADELANTE (salto + alante): flip que rota, EXCLUSIVA de Fe.
+	var nsp := _favi_action_frames("neutral_spin")
+	if not nsp.is_empty():
+		if not sf.has_animation("neutral_spin"):
+			sf.add_animation("neutral_spin")
+		sf.set_animation_loop("neutral_spin", false)   # UN solo giro; luego cae (frame de salto)
+		sf.set_animation_speed("neutral_spin", 18.0)
+		for t in nsp:
+			sf.add_frame("neutral_spin", t)
+	# el mortal aéreo (salto+E) va MÁS RÁPIDO que el resto de las animaciones de Fe
+	if sf.has_animation("air_spin_kick"):
+		sf.set_animation_speed("air_spin_kick", sf.get_animation_speed("air_spin_kick") * 1.5)
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
 	return sf
@@ -915,10 +1001,83 @@ func _char_data(id: String) -> Dictionary:
 	return CHARS[0]
 
 # aplica un personaje a un peleador: frames, arquetipo (vida) y escala de sprite
+# --- FRAMES DE AYE (en código): espeja la estructura de DAM. Usa los frames REALES de Aye
+# donde existan (aye/<accion>/aye-<accion>-N.png); si no, PLACEHOLDER = los frames de DAM.
+func _aye_action_frames(accion: String) -> Array:
+	for variante in [accion, accion.replace("_", "-")]:
+		var out := []
+		var i := 1
+		while true:
+			var p := "res://imagen-action/aye/%s/aye-%s-%d.png" % [variante, variante, i]
+			if ResourceLoader.exists(p):
+				out.append(load(p))
+				i += 1
+			else:
+				break
+		if not out.is_empty():
+			return out
+	return []
+
+func _build_aye_frames() -> SpriteFrames:
+	var dam := load("res://fighter_frames.tres") as SpriteFrames
+	var sf := SpriteFrames.new()
+	for anim in dam.get_animation_names():
+		if not sf.has_animation(anim):
+			sf.add_animation(anim)
+		sf.set_animation_loop(anim, dam.get_animation_loop(anim))
+		sf.set_animation_speed(anim, dam.get_animation_speed(anim) * AYE_SPD)
+		var real := _aye_action_frames(anim)
+		if real.is_empty():
+			for i in dam.get_frame_count(anim):   # placeholder: frame de DAM
+				sf.add_frame(anim, dam.get_frame_texture(anim, i))
+		else:
+			for t in real:
+				sf.add_frame(anim, t)
+	if sf.has_animation("default"):
+		sf.remove_animation("default")
+	return sf
+
+# frames de DAM (fighter_frames.tres) + las animaciones NUEVAS por paridad con Fe (air_jab,
+# neutral_spin) agregadas si ya existen sus frames. Se agrega UNA vez (el .tres es compartido).
+func _dam_action_frames(accion: String) -> Array:
+	var out := []
+	var i := 1
+	while true:
+		var p := "res://imagen-action/dam/%s/dam-%s-%d.png" % [accion, accion, i]
+		if ResourceLoader.exists(p):
+			out.append(load(p))
+			i += 1
+		else:
+			break
+	return out
+
+func _build_dam_frames() -> SpriteFrames:
+	var sf := load("res://fighter_frames.tres") as SpriteFrames
+	# Salto + R = DOBLE CORTE AÉREO (air_jab)
+	if not sf.has_animation("air_jab"):
+		var aj := _dam_action_frames("air_jab")
+		if not aj.is_empty():
+			sf.add_animation("air_jab")
+			sf.set_animation_loop("air_jab", false)
+			sf.set_animation_speed("air_jab", 16.0)
+			for t in aj:
+				sf.add_frame("air_jab", t)
+	# Salto hacia adelante = MORTAL (neutral_spin)
+	if not sf.has_animation("neutral_spin"):
+		var ns := _dam_action_frames("neutral_spin")
+		if not ns.is_empty():
+			sf.add_animation("neutral_spin")
+			sf.set_animation_loop("neutral_spin", false)   # UN solo giro; luego cae
+			sf.set_animation_speed("neutral_spin", 13.0)   # DAM: un poco más lento que Fe
+			for t in ns:
+				sf.add_frame("neutral_spin", t)
+	return sf
+
 func _apply_char(f: Node2D, id: String) -> void:
 	var c := _char_data(id)
 	f.archetype = String(c["arch"])
 	f.fx_blue = id == "favi"   # estela del arma AZUL para Favi (naranja fuego para DAM)
+	f.fx_floral = id == "aye"  # estela MORADA+ROSA para Aye (se resetea para los demas)
 	if id == "favi":
 		f.sprite.sprite_frames = _build_favi_frames()
 		# base_scale (no sprite.scale directo): el efecto squash del fighter reescribe
@@ -928,13 +1087,172 @@ func _apply_char(f: Node2D, id: String) -> void:
 		# anclar los PIES al MISMO piso que DAM (escala 1.0): que no floten ni se hundan.
 		f.sprite.offset = Vector2(0, FAVI_FEET_FROM_CENTER / FAVI_SCALE - FAVI_FEET_FROM_CENTER)
 		f.spd = FAVI_SPD   # desplazamiento más rápido para acompañar la animación ágil
-	else:
-		f.sprite.sprite_frames = load("res://fighter_frames.tres")
-		f.base_scale = Vector2.ONE
+	elif id == "aye":
+		f.sprite.sprite_frames = _build_aye_frames()
+		f.base_scale = Vector2(AYE_SCALE, AYE_SCALE)
 		f.sprite.scale = f.base_scale
-		f.sprite.offset = Vector2(0, 0)
+		f.sprite.offset = Vector2(0, AYE_FEET_FROM_CENTER / AYE_SCALE - AYE_FEET_FROM_CENTER)
+		f.spd = AYE_SPD
+	else:
+		f.sprite.sprite_frames = _build_dam_frames()
+		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
+		f.sprite.scale = f.base_scale
+		f.sprite.offset = Vector2(0, DAM_FEET_FROM_CENTER / DAM_SCALE - DAM_FEET_FROM_CENTER)
 		f.spd = 1.0
 	f.sprite.play("pose")
+
+# ESPECIAL DE AGUA de Fe (medialuna + Q/W/E): brota un géiser a 1/2/3 CUERPOS adelante.
+# JUGGLE: Q lanza bajo, W más alto (rebote), E el más alto y fuerte. El lanzado sube
+# pero casi NO se aleja (poco horizontal) para poder encadenar los tres castes en combo.
+# Golpea en el suelo O en el aire si ya está en juggle (hit_flying), no si saltó a propósito.
+const GEYSER_BODY := 350.0   # 1 "cuerpo" de distancia (clara, adelante de Fe) para el géiser
+const WATER_DMG := [80, 110, 150]     # Q · W · E
+const WATER_LIFT := [1.1, 1.5, 2.0]   # altura de lanzamiento por nivel (más alto = más hang-time)
+
+# efecto visual del cast de Fe: borde AZUL eléctrico brillante + pocas partículas azules
+var _fe_cast_mat: ShaderMaterial = null
+var _fe_cast_particles: CPUParticles2D = null
+func _fe_cast_fx(caster: Node2D, on: bool) -> void:
+	if on:
+		if _fe_cast_mat == null:
+			var sh := Shader.new()
+			sh.code = _OUTLINE_CODE
+			_fe_cast_mat = ShaderMaterial.new()
+			_fe_cast_mat.shader = sh
+			_fe_cast_mat.set_shader_parameter("line_color", Color(0.35, 0.75, 2.0, 1.0))  # azul marino eléctrico
+			_fe_cast_mat.set_shader_parameter("intensity", 0.95)
+		caster.sprite.material = _fe_cast_mat
+		if not is_instance_valid(_fe_cast_particles):
+			var p := CPUParticles2D.new()
+			p.amount = 14                      # pocas
+			p.lifetime = 0.6
+			p.one_shot = false
+			p.local_coords = false
+			p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+			p.emission_rect_extents = Vector2(48.0, 135.0)  # alrededor del cuerpo
+			p.direction = Vector2(0, -1)
+			p.spread = 45.0
+			p.gravity = Vector2(0, -150)
+			p.initial_velocity_min = 40.0
+			p.initial_velocity_max = 140.0
+			p.scale_amount_min = 2.2
+			p.scale_amount_max = 4.5
+			p.color = Color(0.5, 0.85, 1.7, 0.9)   # azul eléctrico marino claro
+			p.z_index = 4
+			add_child(p)
+			_fe_cast_particles = p
+		_fe_cast_particles.global_position = caster.to_global(Vector2(0, 320.0))  # torso de Fe
+		_fe_cast_particles.emitting = true
+	else:
+		if caster.sprite.material == _fe_cast_mat:
+			caster.sprite.material = null
+		if is_instance_valid(_fe_cast_particles):
+			_fe_cast_particles.emitting = false
+			var pp := _fe_cast_particles
+			_fe_cast_particles = null
+			get_tree().create_timer(0.7).timeout.connect(func() -> void:
+				if is_instance_valid(pp): pp.queue_free())
+
+func _fe_water_special(caster: Node2D, bodies: int) -> void:
+	var victima: Node2D = dummy if caster == player else player
+	_fe_cast_fx(caster, true)                            # borde + partículas azules
+	get_tree().create_timer(0.45).timeout.connect(func() -> void:   # se apaga al terminar el cast
+		if is_instance_valid(caster): _fe_cast_fx(caster, false))
+	await get_tree().create_timer(0.18).timeout          # windup corto del cast (grita)
+	if not is_instance_valid(caster) or not is_instance_valid(victima):
+		return
+	# NO auto-apunta: brota a 1/2/3 CUERPOS adelante de Fe (el jugador adivina la posición)
+	var gx: float = caster.position.x + float(caster.facing) * GEYSER_BODY * float(bodies)
+	gx = clampf(gx, 120.0, 1800.0)                        # dentro del escenario
+	caster.spawn_water_geyser(gx)
+	_shake(9.0, 0.14)
+	await get_tree().create_timer(0.10).timeout           # sube el chorro y conecta
+	if not is_instance_valid(victima) or not is_instance_valid(caster):
+		return
+	# alcanzable si está donde brotó el géiser Y (en el suelo, o ya volando en juggle)
+	var alcanzable: bool = (not victima.airborne) or victima.hit_flying
+	if alcanzable and absf(victima.position.x - gx) < 150.0:
+		var dir: int = signi(victima.position.x - caster.position.x)
+		if dir == 0:
+			dir = caster.facing
+		var h: float = WATER_LIFT[bodies - 1]
+		var res: String = victima.receive_hit(false, true, dir, "kick_impact", false, h)
+		if res == "launched":
+			victima.water_flash_t = 0.45                 # capa azul: golpeado por el agua
+			victima.water_bg = true                      # estela de sombras AZULES + cuerpo azul hasta caer
+			# deriva ~1 CUERPO hacia atrás por golpe: pasa de 1→2→3 cuerpos para encadenar Q→W→E
+			victima.vel_x = float(dir) * 450.0
+			var dmg: int = WATER_DMG[bodies - 1]
+			if victima == dummy:
+				dummy_hp = maxi(0, dummy_hp - dmg)
+				if dummy_hp <= 0:
+					if dummy_ai_mode and not break_practice: _end_round(true)
+					else: dummy_hp = hp_max[1]
+			else:
+				player_hp = maxi(0, player_hp - dmg)
+				if player_hp <= 0:
+					if dummy_ai_mode and not break_practice: _end_round(false)
+					else: player_hp = hp_max[0]
+
+# DASH DE AGUJAS de Fe (←→+Q): embiste mostrando la CORRIDA con agua; si alcanza al rival EN EL
+# SUELO, frena en seco (sin atravesarlo) y, AL TERMINAR la animación del dash, suelta el golpe:
+# 3 pinchazos rápidos SIN levantarlo (queda en el sitio para seguir el combo).
+const DASH_DMG := [40, 40, 55]   # 3 golpes (semi-combo)
+const DASH_REACH := 300.0        # distancia a la que alcanza al rival y frena
+const DASH_DISPLAY := 0.24       # deja correr la anim del dash COMPLETA (4 frames @18fps) -> se ve el agua
+func _fe_dash_attack(caster: Node2D) -> void:
+	var victima: Node2D = dummy if caster == player else player
+	var t := 0.0
+	var alcanzo := false
+	# deja correr la EMBESTIDA completa (para que se VEA el agua). Marca si alcanzó al rival y,
+	# en ese momento, FRENA el avance (fe_dash_t=0) sin cortar la animación del dash.
+	while t < DASH_DISPLAY:
+		await get_tree().physics_frame
+		if not is_instance_valid(caster) or not is_instance_valid(victima) or not caster.fe_dash_active:
+			if is_instance_valid(caster): caster.fe_dash_active = false
+			return
+		t += get_physics_process_delta_time()
+		if not alcanzo and not victima.koed and not victima.airborne \
+				and absf(victima.position.x - caster.position.x) < DASH_REACH \
+				and absf(victima.position.y - caster.position.y) < 200.0:
+			alcanzo = true
+			caster.fe_dash_t = 0.0   # frena en seco (no lo atraviesa); la anim del dash sigue
+	caster.fe_dash_t = 0.0
+	if not alcanzo or victima.koed:
+		if is_instance_valid(caster):
+			caster.fe_dash_active = false   # la embestida no conectó: termina el dash
+			if String(caster.sprite.animation) == "dash":
+				caster.sprite.play("pose")  # vuelve a la guardia
+		return
+	# GOLPE que ARRANCA el combo, DESPUÉS del último frame del dash (los 3 pinchazos).
+	# fe_dash_active sigue true -> esta animación no auto-pega; el daño lo meten los 3 hits.
+	caster.sprite.play("punch")
+	var dir: int = signi(victima.position.x - caster.position.x)
+	if dir == 0:
+		dir = caster.facing
+	# 3 pinchazos seguidos, strong=false -> "hit" normal (NO levanta), se queda en el sitio
+	for i in 3:
+		if not is_instance_valid(victima) or victima.koed:
+			break
+		var res: String = victima.receive_hit(false, false, dir, "kick_impact")
+		if res == "hit":
+			victima.water_flash_t = 0.22          # leve toque azul del agua
+			_shake(5.0, 0.08)
+			var dmg: int = DASH_DMG[i]
+			if victima == dummy:
+				dummy_hp = maxi(0, dummy_hp - dmg)
+				if dummy_hp <= 0:
+					if dummy_ai_mode and not break_practice: _end_round(true)
+					else: dummy_hp = hp_max[1]
+			else:
+				player_hp = maxi(0, player_hp - dmg)
+				if player_hp <= 0:
+					if dummy_ai_mode and not break_practice: _end_round(false)
+					else: player_hp = hp_max[0]
+		await get_tree().create_timer(0.09).timeout
+	if is_instance_valid(caster):
+		caster.fe_dash_active = false      # combo del dash terminado
+		caster.sprite.play("pose")         # queda en guardia, lista para seguir combeando
 
 # actualiza nombre + avatar del HUD según los personajes (P1 = jugador, P2 = rival)
 func _refresh_hud_chars() -> void:
@@ -949,6 +1267,7 @@ func _refresh_hud_chars() -> void:
 func _start_round() -> void:
 	state = "intro"
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
+	_apply_char(dummy, "dam")                   # el rival (siempre DAM): misma escala/offset/frames que P1
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
 	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
 	_refresh_hud_chars()
@@ -1058,6 +1377,10 @@ func try_ultra(atacante: Node2D, largo := false) -> bool:
 	# el combo debe estar VIVO (3+ hits y dentro de la ventana): si ya dropeaste
 	# aunque el numero siga apagandose en pantalla, ya NO cuenta
 	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
+		return false
+	# el rival debe estar EN ROJO (vida ≤25%) — como dice la lista y como los ultras de Fe
+	var vhp: int = dummy_hp if idx == 0 else player_hp
+	if float(vhp) > float(hp_max[1 - idx]) * 0.25:
 		return false
 	meter[idx] -= costo
 	_run_ultra(atacante, idx, largo)
@@ -1367,6 +1690,466 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 		player.input_enabled = true
 		dummy.ai_enabled = dummy_ai_mode
 
+# WHIRLPOOL (finisher de Fe, ↓←+E): GIRO MORTAL en el lugar que atrapa al rival en un
+# vórtice de agua y le quita BASTANTE vida. Se habilita tras un combo VIVO de 2+ golpes.
+func try_whirlpool(atacante: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	var idx := 0 if atacante == player else 1
+	if meter[idx] < 1.0:
+		return false          # cuesta 1 BARRA (el "primer poder", como el INFERNO de DAM)
+	if combo_n[idx] < 2 or combo_t[idx] > COMBO_WINDOW:
+		return false          # necesita 2-3 golpes encadenados vivos
+	meter[idx] -= 1.0
+	_run_whirlpool(atacante, idx)
+	return true
+
+func _run_whirlpool(atacante: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var dir := 1 if victima.position.x >= atacante.position.x else -1
+	# SOLO agarra al rival si está EN EL SUELO y CERCA. Si está en el aire o lejos, Fe gira en
+	# VACÍO (whiff): hace el remolino pero NO lo teletransporta ni le pega.
+	var alcanza: bool = (not victima.airborne) and absf(victima.position.x - atacante.position.x) < 450.0
+	ultra_active = true
+	state = "ultra"
+	player.input_enabled = false
+	dummy.ai_enabled = false
+	atacante.buffer_t = 0.0
+	atacante.special_t = 0.0
+	atacante.fe_dash_active = false
+	atacante.airborne = false
+	atacante.position.y = atacante.floor_y
+	atacante.set_facing(dir)
+	_fe_cast_fx(atacante, true)                    # borde AZUL eléctrico + partículas (solo Fe)
+	atacante.sprite.play("whirlpool")
+	if atacante.has_method("_spawn_jump_dust"):
+		atacante._spawn_jump_dust(0.55)   # un toque de polvo al arrancar (sutil, no tapa)
+	# GRITA en su player de VOZ propio (no lo corta el sonido de impacto)
+	var voz = load("res://imagen-action/favi/Fe-sound-effect/whirlpool-fe.wav")
+	if voz != null and atacante.voz_player != null:
+		atacante.voz_player.stream = voz
+		atacante.voz_player.play()
+	# entrada cinemática: congela un instante + velo AZUL marino
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.05, 0.12, 0.35, 0.5)
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(0.28, true, false, true).timeout
+	Engine.time_scale = 1.0
+	# el rival queda atrapado AL LADO de Fe (SOLO si estaba en el suelo y cerca)
+	if alcanza:
+		victima.airborne = false
+		victima.crouching = false
+		victima.position.y = victima.floor_y
+		victima.set_facing(-dir)
+	_shake(20.0, 0.3)
+	# MULTI-HIT del remolino (HURACÁN): golpea repetido y MUY RÁPIDO SIN lanzarlo; ~40% de su vida
+	var n0: int = combo_n[idx]
+	var HITS := 12
+	var PASO := 0.052
+	var total := int(hp_max[1 - idx] * 0.40)
+	var dealt := 0
+	var hit_i := 0
+	var hit_cd := 0.0
+	var t := 0.0
+	var polvo_cd := 0.0   # polvo (dust de salto/caída) que levanta el huracán bajo sus pies
+	var ghost_cd := 0.0   # estela de SOMBRAS azules mientras gira
+	var fin := float(HITS) * PASO + 0.05
+	while t < fin:
+		var dt := get_process_delta_time()
+		if alcanza:
+			victima.position.x = clampf(atacante.position.x + float(dir) * 190.0, 120.0, 1800.0)
+			victima.position.y = victima.floor_y
+		# HURACÁN: suelta SOMBRAS azules y levanta POLVO bajo sus pies mientras gira
+		ghost_cd -= dt
+		if ghost_cd <= 0.0:
+			ghost_cd = 0.04
+			if atacante.has_method("_spawn_ghost"):
+				atacante._spawn_ghost(true)
+		polvo_cd -= dt
+		if polvo_cd <= 0.0:
+			polvo_cd = 0.30   # MUY espaciado: solo un par de puffs chicos (antes se enredaba)
+			if atacante.has_method("_spawn_jump_dust"):
+				atacante._spawn_jump_dust(0.45)
+		hit_cd -= dt
+		if alcanza and hit_cd <= 0.0 and hit_i < HITS:
+			hit_cd = PASO
+			hit_i += 1
+			var d := (total - dealt) if hit_i == HITS else int(total / HITS)
+			dealt += d
+			if idx == 0:
+				dummy_hp = maxi(0, dummy_hp - d)
+			else:
+				player_hp = maxi(0, player_hp - d)
+			_ultra_count(idx, n0 + hit_i)
+			combo_dmg[idx] += d
+			combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+			victima._burst(0.9, false, 1, true)          # chispas AZULES
+			_shake(11.0, 0.09)
+			victima._play_sfx_key("take_hit")            # impacto en SU player (no corta la voz de Fe)
+			victima.sprite.play("pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit")
+			victima.water_flash_t = 0.25                 # tinte azul del agua
+			flash_ms = Time.get_ticks_msec()
+			flash_rect.color = Color(0.3, 0.55, 1.2, 0.35)
+		t += dt
+		await get_tree().process_frame
+	_fe_cast_fx(atacante, false)                         # apaga el borde azul
+	atacante.sprite.play("pose")                         # frena el giro (la anim hacía loop)
+	# REMATE: lo derriba al piso (solo si el remolino lo atrapó)
+	if alcanza:
+		victima.receive_hit(false, false, dir, "", true, 1.0)
+		var vuelo := 0.0
+		while victima.airborne and vuelo < 2.0:
+			await get_tree().process_frame
+			vuelo += get_process_delta_time()
+	ultra_active = false
+	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
+	state = "fight"
+	if dummy_ai_mode and murio:
+		_end_round(idx == 0)
+	else:
+		player.input_enabled = true
+		dummy.ai_enabled = dummy_ai_mode
+
+# ULTRA CORTO de Fe (↑+E): tras un combo VIVO de 3 y con 2 BARRAS (barra roja). Combo aéreo:
+# LANZA al rival arriba y lo mantiene flotando (juggle) golpeándolo con air_spin_kick (salto+E)
+# varias veces + golpes aéreos, y REMATA con una picada que lo estrella. Dropea casi toda la vida.
+# Los ultras se llaman IGUAL en TODOS los personajes: corto = ANNIHILATION, largo = APOCALYPSE.
+# Comparten la MISMA voz que DAM (voz-annihilation / voz-apocalypse), que suena AL FINAL (remate).
+func try_fe_ultra(atacante: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	var idx := 0 if atacante == player else 1
+	if meter[idx] < 2.0:
+		return false          # cuesta 2 BARRAS (ultra corto)
+	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
+		return false          # necesita un combo VIVO de 3+
+	# el rival debe estar EN ROJO: vida ≤25% (como el ultra de DAM). Es un remate, no de arranque.
+	var vhp: int = dummy_hp if idx == 0 else player_hp
+	if float(vhp) > float(hp_max[1 - idx]) * 0.25:
+		return false
+	meter[idx] -= 2.0
+	_run_fe_ultra(atacante, idx)
+	return true
+
+# secuencia del juggle: usa el mortal aéreo (↑E) varias veces + cortes aéreos.
+# 12 golpes -> con el combo inicial (3) y el remate (1) da ~16, como el ANNIHILATION de DAM.
+const FE_ULTRA_JUGGLE := ["air_spin_kick", "jump_punch", "air_spin_kick", "jump_kick", "air_spin_kick", "jump_punch", "air_spin_kick", "jump_kick", "air_spin_kick", "jump_punch", "air_spin_kick", "jump_kick"]
+func _run_fe_ultra(atacante: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var dir := 1 if victima.position.x >= atacante.position.x else -1
+	# PRIMER golpe bloqueable: si lo bloquea, el ultra NO entra
+	var arranque: String = victima.receive_hit(false, false, dir, "kick_impact")
+	if arranque != "hit" and arranque != "launched":
+		return
+	ultra_active = true
+	state = "ultra"
+	player.input_enabled = false
+	dummy.ai_enabled = false
+	atacante.buffer_t = 0.0
+	atacante.special_t = 0.0
+	atacante.fe_dash_active = false
+	_fe_cast_fx(atacante, true)                   # borde AZUL eléctrico (solo Fe)
+	# entrada cinemática: congela + velo azul + grito
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.10, 0.28, 0.75, 0.6)
+	Engine.time_scale = 0.0
+	_shake(24.0, 0.5)
+	await get_tree().create_timer(0.5, true, false, true).timeout
+	Engine.time_scale = 1.0
+	# JUGGLE: ambos FLOTAN (ultra_hover suprime su física; main controla pose y posición)
+	var hp0: float = float(dummy_hp if idx == 0 else player_hp)
+	var n: int = combo_n[idx]
+	var alto: float = victima.floor_y - 540.0
+	atacante.breaker_fx_t = 40.0   # sombras azules continuas
+	victima.ultra_hover = true
+	victima.airborne = true
+	victima.hit_flying = true
+	var total_golpes := FE_ULTRA_JUGGLE.size() + 1
+	var drain := maxi(1, int(round(hp0 * 0.92 / float(total_golpes))))
+	for i in FE_ULTRA_JUGGLE.size():
+		if state != "ultra":
+			break
+		var frac: float = float(i) / float(maxi(1, FE_ULTRA_JUGGLE.size() - 1))
+		var ramp := pow(frac, 1.7)
+		# SUBE POCO A POCO: empieza cerca del piso (donde lo agarra) y trepa hasta arriba
+		var subida: float = lerpf(victima.floor_y - 130.0, alto, frac)
+		# Fe flota al lado del rival, a su altura, y ejecuta el golpe aéreo
+		atacante.ultra_hover = true
+		atacante.airborne = true
+		atacante.set_facing(dir)
+		atacante.position = Vector2(clampf(victima.position.x - float(dir) * 155.0, LEFT_LIMIT, RIGHT_LIMIT), subida)
+		atacante.sprite.speed_scale = lerpf(0.5, 2.8, ramp)
+		atacante.sprite.play(FE_ULTRA_JUGGLE[i])
+		# el rival flota recibiendo el castigo
+		victima.position.y = subida + 20.0
+		victima.set_facing(-dir)
+		victima.sprite.play("pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit")
+		victima._play_sfx_key("take_hit")
+		victima._burst(0.95, false, 1, true)   # chispas AZULES
+		victima.water_flash_t = 0.2
+		_shake(lerpf(10.0, 16.0, ramp), 0.1)
+		n += 1
+		_ultra_count(idx, n)
+		if idx == 0:
+			dummy_hp = maxi(1, dummy_hp - drain)
+		else:
+			player_hp = maxi(1, player_hp - drain)
+		combo_dmg[idx] += drain
+		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+		await get_tree().create_timer(lerpf(0.42, 0.06, ramp)).timeout
+	# FINISHER: PICADA que lo estrella al piso + vacía la vida restante
+	if state == "ultra":
+		n += 1
+		_ultra_count(idx, n, "ANNIHILATION")   # ultra CORTO = ANNIHILATION (igual que DAM)
+		_play_voz("annihilation")              # grita el nombre AL FINAL (misma voz que DAM)
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.35, 0.62, 1.35, 0.85)
+		Engine.time_scale = 0.3
+		if idx == 0:
+			combo_dmg[idx] += dummy_hp
+			dummy_hp = 0
+		else:
+			combo_dmg[idx] += player_hp
+			player_hp = 0
+		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+		atacante.sprite.speed_scale = 1.0
+		atacante.sprite.play("air_spin_kick")
+		victima.ultra_hover = false
+		victima.receive_hit(false, true, dir, "kick_impact", false, 1.7)
+		victima.hard_fall = true
+		atacante.ultra_hover = false
+		atacante.airborne = true
+		atacante.vel_y = 200.0
+		await get_tree().create_timer(0.4, true, false, true).timeout
+		Engine.time_scale = 1.0
+		var vuelo := 0.0
+		while victima.airborne and vuelo < 2.0:
+			await get_tree().process_frame
+			vuelo += get_process_delta_time()
+	# cierre
+	_fe_cast_fx(atacante, false)
+	atacante.ultra_hover = false
+	atacante.airborne = false
+	atacante.position.y = atacante.floor_y
+	atacante.sprite.speed_scale = 1.0
+	atacante.sprite.play("pose")
+	atacante.breaker_fx_t = 0.0
+	ultra_active = false
+	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
+	state = "fight"
+	if dummy_ai_mode and murio:
+		_end_round(idx == 0)
+	else:
+		player.input_enabled = true
+		dummy.ai_enabled = dummy_ai_mode
+
+# helper: aplica UN golpe del ultra al rival (daño + chispas AZULES + sonido + pose de castigo)
+func _fe_ultra_hit(idx: int, victima: Node2D, drain: int) -> void:
+	if idx == 0:
+		dummy_hp = maxi(1, dummy_hp - drain)
+	else:
+		player_hp = maxi(1, player_hp - drain)
+	combo_dmg[idx] += drain
+	combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+	victima._burst(0.95, false, 1, true)          # chispas AZULES
+	victima._play_sfx_key("take_hit")
+	victima.water_flash_t = 0.2
+	victima.sprite.play("pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit")
+
+# ULTRA LARGO de Fe (↓→ + R): APOCALYPSE. Épico: GÉISER de agua ×2 que lo ELEVA -> DASH ->
+# PEONZA (spin_kick) varios golpes -> air_spin_kick ×3 que lo eleva -> remate. 3 barras + combo + rojo.
+func try_fe_ultra_long(atacante: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	var idx := 0 if atacante == player else 1
+	if meter[idx] < 3.0:
+		return false          # cuesta 3 BARRAS (ultra largo)
+	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
+		return false
+	var vhp: int = dummy_hp if idx == 0 else player_hp
+	if float(vhp) > float(hp_max[1 - idx]) * 0.25:
+		return false          # el rival debe estar EN ROJO (≤25%)
+	meter[idx] -= 3.0
+	_run_fe_ultra_long(atacante, idx)
+	return true
+
+func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var dir := 1 if victima.position.x >= atacante.position.x else -1
+	var arranque: String = victima.receive_hit(false, false, dir, "kick_impact")
+	if arranque != "hit" and arranque != "launched":
+		return
+	ultra_active = true
+	state = "ultra"
+	player.input_enabled = false
+	dummy.ai_enabled = false
+	atacante.buffer_t = 0.0
+	atacante.special_t = 0.0
+	atacante.fe_dash_active = false
+	_fe_cast_fx(atacante, true)
+	atacante.breaker_fx_t = 60.0                  # sombras azules toda la duración
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.10, 0.28, 0.75, 0.6)
+	Engine.time_scale = 0.0
+	_shake(26.0, 0.55)
+	await get_tree().create_timer(0.5, true, false, true).timeout
+	Engine.time_scale = 1.0
+	var hp0: float = float(dummy_hp if idx == 0 else player_hp)
+	var n: int = combo_n[idx]
+	var drain := maxi(1, int(round(hp0 * 0.94 / 25.0)))   # ~25 golpes reparten 94%; el remate el resto
+	victima.ultra_hover = true
+	victima.airborne = true
+	victima.hit_flying = true
+	atacante.set_facing(dir)
+	victima.set_facing(-dir)
+	# ---- FASE 1: GÉISER de agua ×2 que lo ELEVA (una vez, después dos veces más alto) ----
+	for g in 2:
+		if state != "ultra":
+			break
+		atacante.ultra_hover = false
+		atacante.airborne = false
+		atacante.position.y = atacante.floor_y
+		atacante.sprite.speed_scale = 1.4
+		atacante.sprite.play("water_cast")
+		if atacante.voz_player != null:
+			atacante.voz_player.stream = load("res://imagen-action/favi/Fe-sound-effect/water-cast-fe-energetica.wav")
+			atacante.voz_player.play()
+		if atacante.has_method("spawn_water_geyser"):
+			atacante.spawn_water_geyser(victima.position.x)
+		_shake(13.0, 0.16)
+		var top1: float = victima.floor_y - (300.0 + 170.0 * float(g))
+		var t0 := 0.0
+		while t0 < 0.30:
+			victima.position.y = lerpf(victima.position.y, top1, 0.32)
+			victima.position.x = clampf(atacante.position.x + float(dir) * 250.0, LEFT_LIMIT, RIGHT_LIMIT)
+			await get_tree().process_frame
+			t0 += get_process_delta_time()
+		n += 1
+		_ultra_count(idx, n)
+		_fe_ultra_hit(idx, victima, drain)
+	# rampa GLOBAL de los golpes (dash+peonza+air): arranca LENTO y ACELERA, como DAM.
+	var k := 0.0
+	var kmax := 20.0
+	# posición FIJA del castigo: ambos anclados aquí para que NO se separen ni deriven
+	var cx: float = clampf(victima.position.x, LEFT_LIMIT + 260.0, RIGHT_LIMIT - 260.0)
+	# ---- FASE 2: DASH que embiste, luego estocadas EN EL LUGAR ----
+	if state == "ultra":
+		atacante.ultra_hover = false
+		atacante.airborne = false
+		atacante.position = Vector2(clampf(cx - float(dir) * 440.0, LEFT_LIMIT, RIGHT_LIMIT), atacante.floor_y)
+		atacante.set_facing(dir)
+		atacante.sprite.speed_scale = 1.7
+		atacante.sprite.play("dash" if atacante.sprite.sprite_frames.has_animation("dash") else "punch")
+		var destino: float = clampf(cx - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
+		var dt2 := 0.0
+		while dt2 < 0.20:
+			atacante.position.x = lerpf(atacante.position.x, destino, 0.4)
+			victima.position = Vector2(cx, victima.floor_y - 60.0)
+			await get_tree().process_frame
+			dt2 += get_process_delta_time()
+		for h in 3:
+			if state != "ultra":
+				break
+			var rp: float = pow(k / kmax, 1.7)
+			victima.position = Vector2(cx, victima.floor_y - 60.0)
+			atacante.position = Vector2(destino, atacante.floor_y)
+			atacante.set_facing(dir)
+			atacante.sprite.speed_scale = lerpf(1.4, 3.2, rp)
+			atacante.sprite.play("punch")
+			n += 1
+			_ultra_count(idx, n)
+			_fe_ultra_hit(idx, victima, drain)
+			_shake(11.0, 0.09)
+			await get_tree().create_timer(lerpf(0.42, 0.045, rp)).timeout
+			k += 1.0
+	# ---- FASE 3: PEONZA (spin_kick) EN EL LUGAR (re-reproduce cada golpe) ----
+	if state == "ultra":
+		for h in 14:
+			if state != "ultra":
+				break
+			var rp: float = pow(k / kmax, 1.7)
+			victima.position = Vector2(cx, victima.floor_y - 40.0)
+			victima.set_facing(-dir)
+			atacante.ultra_hover = false
+			atacante.airborne = false
+			atacante.position = Vector2(clampf(cx - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT), atacante.floor_y)
+			atacante.set_facing(dir)
+			atacante.sprite.speed_scale = lerpf(1.6, 3.4, rp)
+			atacante.sprite.play("spin_kick")
+			n += 1
+			_ultra_count(idx, n)
+			_fe_ultra_hit(idx, victima, drain)
+			_shake(10.0, 0.08)
+			await get_tree().create_timer(lerpf(0.42, 0.045, rp)).timeout
+			k += 1.0
+	# ---- FASE 4: air_spin_kick ×3 EN EL MISMO LUGAR (los 3 golpes ahí, no se mueve) ----
+	if state == "ultra":
+		var ay: float = victima.floor_y - 300.0
+		for h in 3:
+			if state != "ultra":
+				break
+			var rp: float = pow(k / kmax, 1.7)
+			atacante.ultra_hover = true
+			atacante.airborne = true
+			atacante.position = Vector2(clampf(cx - float(dir) * 140.0, LEFT_LIMIT, RIGHT_LIMIT), ay)
+			atacante.set_facing(dir)
+			atacante.sprite.speed_scale = lerpf(1.8, 3.2, rp)
+			atacante.sprite.play("air_spin_kick")
+			victima.position = Vector2(cx, ay + 20.0)
+			victima.set_facing(-dir)
+			n += 1
+			_ultra_count(idx, n)
+			_fe_ultra_hit(idx, victima, drain)
+			_shake(13.0, 0.1)
+			await get_tree().create_timer(lerpf(0.24, 0.09, rp)).timeout
+			k += 1.0
+
+	# ---- FINISHER ÉPICO: remate + KO ----
+	if state == "ultra":
+		n += 1
+		_ultra_count(idx, n, "APOCALYPSE")
+		_play_voz("apocalypse")
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.35, 0.62, 1.35, 0.9)
+		Engine.time_scale = 0.3
+		if idx == 0:
+			combo_dmg[idx] += dummy_hp
+			dummy_hp = 0
+		else:
+			combo_dmg[idx] += player_hp
+			player_hp = 0
+		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+		atacante.sprite.speed_scale = 1.0
+		atacante.sprite.play("air_spin_kick")
+		victima.ultra_hover = false
+		victima.receive_hit(false, true, dir, "kick_impact", false, 1.9)
+		victima.hard_fall = true
+		atacante.ultra_hover = false
+		atacante.airborne = true
+		atacante.vel_y = 220.0
+		await get_tree().create_timer(0.45, true, false, true).timeout
+		Engine.time_scale = 1.0
+		var vuelo := 0.0
+		while victima.airborne and vuelo < 2.0:
+			await get_tree().process_frame
+			vuelo += get_process_delta_time()
+	# cierre
+	_fe_cast_fx(atacante, false)
+	atacante.ultra_hover = false
+	atacante.airborne = false
+	atacante.position.y = atacante.floor_y
+	atacante.sprite.speed_scale = 1.0
+	atacante.sprite.play("pose")
+	atacante.breaker_fx_t = 0.0
+	ultra_active = false
+	var murio2: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
+	state = "fight"
+	if dummy_ai_mode and murio2:
+		_end_round(idx == 0)
+	else:
+		player.input_enabled = true
+		dummy.ai_enabled = dummy_ai_mode
+
 # barra de vida: verde normal; ROJA parpadeante en zona de peligro (<=15%)
 # ---- HUD: reubica barras, meter de 3 segmentos y avatares en las esquinas ----
 # parallelogramo inclinado a la derecha (borde superior corrido por 'sl')
@@ -1570,15 +2353,26 @@ func _update_hp_bar(side: int, hp: int) -> void:
 		fill.color = Color(0.16, 0.46, 0.95)
 
 # frase de victoria de DAM ("my work is done...")
-var _victory_stream = null
-func _play_victory_line() -> void:
-	if _victory_stream == null:
-		var ruta := "res://imagen-action/sound-effect/my-work-is-done-dam.mp3"
-		_victory_stream = load(ruta) if ResourceLoader.exists(ruta) else null
-	if _victory_stream != null and voz_player != null:
+var _victory_stream = null       # voz de victoria de DAM
+var _victory_stream_fe = null    # voz de victoria de Fe (energética, "no was easy")
+func _play_victory_line(who = null) -> void:
+	# Fe se detecta por su animación exclusiva water_cast; si no, es DAM
+	var es_fe: bool = who != null and who.sprite.sprite_frames.has_animation("water_cast")
+	var stream = null
+	if es_fe:
+		if _victory_stream_fe == null:
+			var rfe := "res://imagen-action/favi/Fe-sound-effect/victory-fe-energetica.wav"
+			_victory_stream_fe = load(rfe) if ResourceLoader.exists(rfe) else null
+		stream = _victory_stream_fe
+	else:
+		if _victory_stream == null:
+			var ruta := "res://imagen-action/sound-effect/my-work-is-done-dam.mp3"
+			_victory_stream = load(ruta) if ResourceLoader.exists(ruta) else null
+		stream = _victory_stream
+	if stream != null and voz_player != null:
 		# pequeño delay para que la voz caiga cuando la boca empieza a moverse (frame ~4)
 		await get_tree().create_timer(0.35).timeout
-		voz_player.stream = _victory_stream
+		voz_player.stream = stream
 		voz_player.play()
 
 # grito de finisher: reproduce voz-<nombre>.wav si existe (voz infernal)
@@ -1801,9 +2595,7 @@ func _physics_process(_delta: float) -> void:
 			menu_opts[j].text = ("▶  " if j == menu_sel else "") + ["AI FIGHT", "PRACTICE DUMMY", "BREAK PRACTICE", "MOVES & COMBOS"][j]
 		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
 			if menu_sel == 3:
-				menu_panel.visible = false
-				moves_panel.visible = true
-				state = "moves"
+				_open_moves()          # abre la lista (actualiza el texto según el personaje elegido)
 			else:
 				# guarda el modo y pasa a elegir personaje
 				pending_mode = menu_sel

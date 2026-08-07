@@ -1,9 +1,13 @@
-[gd_resource type="SpriteFrames" load_steps=124 format=3]
+[gd_resource type="SpriteFrames" load_steps=123 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-3.png" id="p3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-4.png" id="p4"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-5.png" id="p5"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-6.png" id="p6"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-7.png" id="p7"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-8.png" id="p8"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/walk/dam-walk-1.png" id="w1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/walk/dam-walk-2.png" id="w2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/walk/dam-walk-3.png" id="w3"]
@@ -17,11 +21,6 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-3.png" id="pn3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-4.png" id="pn4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-5.png" id="pn5"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-6.png" id="pn6"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-7.png" id="pn7"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-8.png" id="pn8"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-9.png" id="pn9"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-10.png" id="pn10"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-1.png" id="kk1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-2.png" id="kk2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-3.png" id="kk3"]
@@ -137,6 +136,18 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("p4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p8")
 }],
 "loop": true,
 "name": &"pose",
@@ -186,27 +197,18 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("pn5")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn6")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn8")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn9")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn10")
 }],
 "loop": false,
 "name": &"punch",
-"speed": 28.0
+"speed": 30.0
 }, {
 "frames": [{
+"duration": 1.0,
+"texture": ExtResource("pn1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pn2")
+}, {
 "duration": 1.0,
 "texture": ExtResource("pn3")
 }, {
@@ -215,25 +217,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("pn5")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn6")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn8")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn9")
-}, {
-"duration": 1.0,
-"texture": ExtResource("pn10")
 }],
 "loop": false,
 "name": &"punch2",
-"speed": 28.0
+"speed": 30.0
 }, {
 "frames": [{
 "duration": 1.0,

@@ -114,28 +114,41 @@ sueltos por masa corporal para que encajen).
    tijeras). Las hojas se mantienen más o menos PARALELAS AL PISO durante todo
    el barrido — NUNCA suben por encima de la cabeza, NO es un corte de arriba
    hacia abajo:
+   **Aplica la CAPA DE KEYFRAME de `GUIA-COMUN.md` (carga comprimida → SMEAR
+   de contacto → overshoot). SOLO el f7 lleva smear; el resto va nítido.**
    - f1: la POSE DE GUARDIA exacta (la misma de pose-sheet): agujas listas
      frente al cuerpo. NO una postura relajada de pie con los brazos colgando
-   - f2: TRANSICIÓN visible: el torso empieza a girar y las dos agujas se
-     recogen CRUZADAS sobre el pecho en X (cargando la tijera), a medio camino
+   - f2: TRANSICIÓN visible: el torso empieza a girar (y a ENCOGERSE) y las dos
+     agujas se recogen CRUZADAS sobre el pecho en X (cargando la tijera), a
+     medio camino
    - f3: carga: las agujas totalmente cruzadas y recogidas contra el pecho, los
      codos atrás, horizontal
-   - f4: carga MÁXIMA: torso girado, brazos comprimidos, las dos agujas listas
-     para abrirse y barrer
+   - f4: CARGA COMPRIMIDA (extremo): torso girado y ENCOGIDO, brazos comprimidos
+     y las dos agujas cruzadas en X apretadas contra el pecho, codos atrás,
+     peso atrás — el cuerpo como RESORTE cargado. Silueta compacta, distinta
+     de la guardia
    - f5: el barrido arranca: los brazos empiezan a abrirse, las agujas entran
      al frente todavía cerca del cuerpo, hojas horizontales
    - f6: a medio camino: las dos hojas cruzan por DELANTE del pecho abriéndose
-     hacia afuera, horizontales, el torso desenroscándose
-   - f7: IMPACTO — las dos agujas COMPLETAMENTE extendidas al frente cruzándose
-     en TIJERA a la altura del pecho, brazos estirados, torso girado
-   - f8: follow-through: las hojas siguen de largo apenas pasadas del frente,
-     el torso acompaña el giro
-   - f9: desaceleración: las agujas frenando y regresando hacia el cuerpo
+     hacia afuera, horizontales, el torso desenroscándose y ganando velocidad
+   - f7: IMPACTO (el frame clave): las dos agujas COMPLETAMENTE extendidas al
+     frente cruzándose en TIJERA a la altura del pecho, con las hojas apenas
+     ALARGADAS/estiradas en la dirección del barrido (motion-blur SUTIL de
+     bordes definidos — NO arcos gigantes: el listón grande lo pone el motor
+     `_draw_swing_trail`). Siguen saliendo de las manos y pegadas al cuerpo.
+     Cuerpo ESTIRADO y volcado adelante, brazos al máximo. SIGUEN SIENDO DOS
+     agujas, nunca una sola
+   - f8: OVERSHOOT (extremo): las dos agujas (ya nítidas otra vez) pasaron de
+     largo abiertas hacia afuera del OTRO lado; el torso SOBRE-GIRADO y
+     DESBALANCEADO hacia adelante, el pie trasero despegando por la inercia —
+     NO vuelve limpio, se pasó del golpe
+   - f9: asienta: desde el overshoot el cuerpo frena y las agujas regresan
+     hacia el cuerpo, recuperando el equilibrio
    - f10: regresa a la POSE DE GUARDIA exacta del f1 (el golpe abre y cierra en
      guardia). NO termina de pie relajado
-     Las dos agujas deben estar en una POSICIÓN CLARAMENTE DISTINTA en cada
-     frame, avanzando de forma PAREJA por el arco: entre frame y frame las hojas
-     se mueven más o menos la misma distancia, sin saltos bruscos.
+     Las dos agujas en POSICIÓN CLARAMENTE DISTINTA en cada frame, avanzando de
+     forma PAREJA por el arco (EXCEPTO el f7, que es el smear de contacto);
+     entre frame y frame las hojas se mueven más o menos la misma distancia.
 
 4. **`kick-sheet.png`** — 10 frames en DOS FILAS de 5 (fila de arriba:
    f1-f5, fila de abajo: f6-f10). CLAVADO DOBLE DESCENDENTE: un remate pesado
@@ -226,18 +239,32 @@ sueltos por masa corporal para que encajen).
     (Nota: evitá las palabras "golpeada/impacto/golpe" en el prompt; el filtro de
     la IA las marca. Describí solo el movimiento del cuerpo.)
 
-13. **`strong-fly-sheet.png`** — 9 frames. Golpe fuerte que la manda a volar:
-    frames 1-4 volando hacia atrás por los aires (cuerpo arqueado, pies
-    despegados), frames 5-7 estrellándose y rodando por el piso, frames 8-9
-    incorporándose hasta quedar en una rodilla. Las dos agujas flojas, sujetas
-    por la anilla, arrastrando.
+13. **Golpe fuerte que la manda a volar — se hace en DOS HOJAS** (mejor calidad:
+    menos frames por hoja = personajes más grandes y limpios, sin invasión).
+
+    **13a. `strong-fly-sheet.png`** — 4 frames, EN UNA SOLA FILA. El VUELO por el
+    aire tras un golpe fuerte: cuerpo arqueado hacia atrás, pies DESPEGADOS del
+    piso, pelo y abrigo al viento. Progresión de izquierda a derecha: (1) recién
+    golpeada, el torso empieza a irse hacia atrás; (2) en pleno vuelo, casi
+    horizontal; (3) punto más alto del arco; (4) empezando a caer. En los CUATRO
+    frames está EN EL AIRE — nada toca el piso. Las dos agujas flojas, colgando de
+    la anilla y arrastrando hacia atrás.
+    → alimenta la animación `hit_fly`.
+
+    **13b. `strong-fly-sheet-2.png`** — 5 frames, EN UNA SOLA FILA. El ATERRIZAJE
+    duro y la recuperación, de izquierda a derecha: (1) toca el piso de espalda o
+    de costado; (2) rodando por el suelo; (3) boca abajo, apoyándose con las manos;
+    (4) empujándose hacia arriba; (5) arrodillada sobre UNA rodilla, casi de pie,
+    lista para volver a guardia. Las dos agujas en las manos (sujetas por la
+    anilla). Deja ESPACIO claro entre frame y frame (no que se pisen las poses).
+    → alimenta la animación `hit_down`.
 
 ### Defensa
 
-14. **`block-sheet.png`** — 1 frame. Bloqueo de pie: cubierta con las dos
+14. **`block-sheet.png`** — 2 frame. Bloqueo de pie: cubierta con las dos
     agujas CRUZADAS en X frente al cuerpo (guardia de tijera), postura firme.
 
-15. **`block-low-sheet.png`** — 1 frame. Bloqueo agachado: en CUCLILLAS
+15. **`block-low-sheet.png`** — 2 frame. Bloqueo agachado: en CUCLILLAS
     PROFUNDAS, cuerpo COMPACTO y encogido (cabeza baja, a la misma altura
     que la postura agachada normal — NO erguida, NO de rodillas con el
     torso vertical), cubriéndose con las dos agujas CRUZADAS en HORIZONTAL por
@@ -249,48 +276,71 @@ sueltos por masa corporal para que encajen).
     se desploma → tendida en el piso boca arriba → inmóvil (las dos agujas
     apagadas a su lado). El último frame se queda en pantalla.
 
-17. **`victory-sheet.png` + `victory-sheet-2.png`** — 8 frames en total
-    (4 por hoja). Victoria, guardando las dos agujas — cada frame una
-    posición claramente distinta:
-    - f1: baja la guardia, las dos agujas sueltas a los costados
-    - f2: hace un FLORISH: gira las dos agujas hacia arriba, en diagonal
-    - f3: las dos agujas COMPLETAMENTE arriba, brazos estirados, pose triunfal,
-      las puntas al máximo brillo azul
-    - f4: mantiene el triunfo, cabeza en alto (ligera variación del f3)
-    - f5: baja las agujas a los costados, empezando a guardarlas
-    - f6: mete las dos agujas en las presillas/correas de su abrigo, a medio
-      camino, el brillo apagándose
-    - f7: agujas guardadas por completo, las manos sueltas
-    - f8: postura final relajada, una mano en el bolsillo, el dije de balón
-      colgando. Este frame se queda en pantalla.
+17. **Victoria — se hace en DOS HOJAS de 4 frames** (8 en total, mejor calidad).
+    Favi gana, cruza las dos agujas en X frente al PECHO (guardia de tijera
+    triunfal) y DICE algo (tipo "nice try") — así que **la BOCA cambia de forma
+    en cada frame**. NO guarda las agujas, NO las levanta por encima de la cabeza:
+    se quedan CRUZADAS a la altura del pecho todo el tiempo.
+
+    > ⚠️ CLAVE: la BOCA se mueve como si HABLARA. En cada frame la boca tiene una
+    > forma DISTINTA (bien abierta, entreabierta, cerrada). NO dejes la boca igual
+    > entre frames — es lo que la hace parecer que dice "nice try".
+
+    **17a. `victory-sheet.png`** — 4 frames, EN UNA SOLA FILA:
+    - f1: baja la guardia tras ganar, las dos agujas sueltas a los costados,
+      cuerpo relajándose, media sonrisa, boca CERRADA
+    - f2: sube las dos agujas y empieza a CRUZARLAS frente al pecho, mirada
+      segura, boca CERRADA
+    - f3: las dos agujas CRUZADAS en X a la altura del PECHO, cabeza en alto,
+      sonrisa confiada, la boca EMPIEZA A ABRIRSE (arranca a hablar); puntas con
+      brillo azul
+    - f4: mantiene la X al pecho, la BOCA BIEN ABIERTA (primera sílaba, tipo
+      "nii-"), cabeza en alto
+
+    **17b. `victory-sheet-2.png`** — 4 frames, EN UNA SOLA FILA:
+    - f5: sigue la X cruzada al pecho, boca ABIERTA en otra forma (segunda
+      palabra, tipo "-try"), mirada pícara
+    - f6: X al pecho, boca ENTREABIERTA terminando de hablar, media sonrisa
+    - f7: X al pecho, boca CERRADA con sonrisa confiada plena, cabeza ligeramente
+      ladeada, segura
+    - f8: pose final: mantiene las dos agujas CRUZADAS al pecho, postura relajada
+      y segura, sonrisa tranquila, el dije de balón colgando, boca CERRADA. Este
+      frame se queda en pantalla.
 
 ---
 
 ## Golpes especiales
 
-18. **`spin-kick-sheet.png`** — 8 frames en DOS FILAS de 4. PATADA
-    GIRATORIA que avanza (estilo tatsumaki): FAVI gira 360° sobre su eje
-    con una pierna extendida horizontal. EXCEPCIÓN ÚNICA a la regla de
-    perfil: como el personaje ROTA, los frames intermedios sí la muestran
-    de frente y de espaldas según el punto del giro. IMPORTANTE: aunque en
-    el juego el movimiento viaja hacia adelante, dibuja TODOS los frames
-    EN EL MISMO SITIO (pies/cadera sobre la misma vertical) — el
-    desplazamiento lo hace el motor:
-    - f1: agazapada en perfil (derecha), brazos recogidos, las dos agujas
-      pegadas al cuerpo — cargando el giro
-    - f2: arranca el giro: semi-frente a la cámara, pierna derecha
-      subiendo, torso rotando
-    - f3: IMPACTO — perfil derecha, PATADA EXTENDIDA horizontal a la
-      altura del pecho, pierna recta al frente
-    - f4: el giro continúa: de espaldas a la cámara, la pierna extendida
-      barriendo al lado contrario
-    - f5: semi-perfil volviendo: la pierna aún extendida
-    - f6: SEGUNDO IMPACTO — perfil derecha otra vez, patada extendida
-      horizontal
-    - f7: aterrizando: la pierna se recoge, el cuerpo baja
-    - f8: pose de guardia (perfil derecha)
-      Las dos agujas permanecen EN LAS MANOS, pegadas al cuerpo, durante todo el
-      giro — nunca se sueltan ni desaparecen.
+18. **`spin-kick-sheet.png`** — 8 frames en DOS FILAS de 4. **PEONZA DE AGUJAS**
+    (giro-taladro, NO una patada): FAVI junta los PIES y gira como un trompo/peonza
+    sobre las puntas, con los **DOS BRAZOS ABIERTOS de par en par** y una aguja
+    extendida en cada mano, de modo que las agujas barren un círculo completo a su
+    alrededor mientras se desliza hacia adelante. Piensa en una bailarina/patinadora
+    girando con los brazos en cruz, pero con una aguja en cada mano. EXCEPCIÓN ÚNICA
+    a la regla de perfil: como el personaje ROTA 360°, los frames intermedios sí la
+    muestran de FRENTE y de ESPALDAS según el punto del giro. Los PIES van JUNTOS y
+    pegados todo el giro (nunca una pierna extendida, NO es patada). Aunque en el
+    juego avanza, dibuja TODOS los frames EN EL MISMO SITIO (cadera sobre la misma
+    vertical) — el desplazamiento lo hace el motor:
+    - f1: perfil (derecha), pies juntándose, se agacha apenas cargando el giro, los
+      brazos EMPEZANDO a abrirse, las dos agujas separándose del cuerpo hacia afuera
+    - f2: arranca el giro, 3/4 hacia la cámara, pies YA JUNTOS sobre las puntas,
+      brazos abriéndose en cruz, las dos agujas apuntando hacia afuera
+    - f3: DE FRENTE a la cámara, pies juntos, BRAZOS TOTALMENTE ABIERTOS en cruz
+      horizontal, una aguja extendida a cada lado (silueta en T), pelo y gabardina
+      abriéndose por la fuerza del giro
+    - f4: 3/4 de espaldas, sigue girando, brazos abiertos, las agujas barriendo hacia
+      el lado contrario, la gabardina volando en abanico
+    - f5: DE ESPALDAS a la cámara, pies juntos, brazos aún abiertos, las agujas
+      barriendo el fondo del círculo
+    - f6: 3/4 volviendo al frente, brazos abiertos, las agujas siguen barriendo
+    - f7: casi de perfil otra vez, pies juntos, el giro desacelera, los brazos
+      empiezan a cerrarse recogiendo las agujas
+    - f8: perfil (derecha), pies juntos aterrizando, agujas recogidas a la guardia
+      Los pies van SIEMPRE juntos y las dos agujas SIEMPRE en las manos (una por mano),
+      con los brazos abiertos hacia afuera durante todo el giro — nunca una pierna
+      extendida, nunca las agujas sueltas ni desaparecidas. Energía/brillo AZUL sutil
+      en las puntas al girar; nada de fuego.
 
 19. **`weak-punch-sheet.png`** — 4 frames en UNA fila. PIQUETE RÁPIDO DE UNA
     AGUJA: el golpe más ligero y veloz del personaje — un piquete corto con
@@ -331,6 +381,72 @@ sueltos por masa corporal para que encajen).
     - f7: sostiene la patada con leve variación (el impulso del golpe)
     - f8: recoge la pierna, postura de caída en el aire (brazos
       equilibrando con las agujas)
+
+21. **`water-cast-fe-sheet.png`** — 5 frames en UNA fila. **ESPECIAL DE AGUA de FE**
+    (animación `water_cast`, exclusiva de Fe; NO es fuego). Comando en el juego:
+    **↓↘→ + W** (medialuna adelante + W). Fe INVOCA un poder de agua: clava una
+    aguja hacia el SUELO, levanta la otra mano y GRITA el nombre del poder → un
+    GÉISER de agua brota del suelo justo bajo el rival y lo lanza hacia arriba.
+    Se queda DE PIE en su sitio todo el tiempo (no avanza ni salta).
+
+    > ⚠️ CLAVE: la BOCA se mueve como si GRITARA/llamara el poder — forma DISTINTA
+    > en cada frame (cerrada, entreabierta, bien abierta). NO la dejes igual.
+
+    - f1: postura de invocación: apunta una aguja hacia ABAJO al piso frente a
+      ella, la otra mano empieza a subir; concentrada, boca CERRADA apretada
+    - f2: la aguja firme apuntando al SUELO, la mano libre subiendo, aura AZUL/agua
+      tenue naciendo alrededor de la aguja; la boca EMPIEZA A ABRIRSE (llama)
+    - f3: la aguja clavando la energía hacia el suelo, la mano ALZADA bien arriba,
+      BOCA MUY ABIERTA gritando, remolino de energía AZUL-agua concentrándose
+    - f4: mantiene: mano arriba, aguja al piso, boca ABIERTA en otra forma (a media
+      palabra), máximo brillo azul, gotas de agua girando a su alrededor
+    - f5: descarga: baja la mano con fuerza hacia el suelo, mirada fiera, boca casi
+      cerrada terminando el grito, la energía azul se hunde en el piso (dispara el
+      géiser). Energía AZUL/agua siempre, NADA de fuego.
+
+    **Efecto que acompaña (ya procesado):** `power-wather-favi-sheet.png` → géiser
+    de agua de 8 frames (`imagen-action/impact-effect/water-geyser-fe/`), anclado al
+    piso: gota → domo → columna → erupción → splash → se dispersa. Brota bajo el rival.
+    **SFX:** al brotar el agua suena `Fe-sound-effect/water-splahs.mp3` (chapoteo).
+
+22. **`fe-dash-sheet.png`** — 4 frames en UNA fila (con espacio entre ellos). **DASH DE
+    AGUJAS de FE** (animación `dash`, exclusiva de Fe). ✅ **YA PROCESADO**
+    (`imagen-action/favi/dash/`, override por ZAPATO 1.53 = zapato de walk ≈107; es un
+    sprint BAJO, la cabeza queda más baja por la inclinación, es normal).
+    Comando en el juego: **← → + Q** (atrás, luego adelante, + Q). Fe hace una
+    **CORRIDA/EMBESTIDA rápida** hacia adelante envuelta en un **remolino de AGUA azul**,
+    dejando **estela de sombras AZULES**. **NO levanta al rival ni lo empuja lejos**: si la
+    embestida **CONECTA** (rival en el suelo), Fe **frena en seco** y suelta el **golpe que
+    arranca el combo** → **3 pinchazos** (semi-combo automático), dejando al rival **en el
+    mismo sitio** para **seguir combeando**. ACERCADOR/abre-combos, no finisher. AZUL/agua.
+
+    **El sheet = la corrida (los 5 frames abajo).** El golpe de arranque del combo lo mete
+    el juego reproduciendo `punch` justo al terminar la embestida (los 3 pinchazos = daño).
+
+    - f1: casi de pie, empieza a impulsarse, remolino de agua naciendo en las agujas
+    - f2: se inclina hacia adelante, remolino de agua azul creciendo alrededor del torso
+    - f3: **plena corrida baja** — torso muy inclinado, pierna estirada, máximo remolino
+    - f4: **estirada al frente** con la aguja adelante (buen enganche para el golpe del combo)
+
+---
+
+23. **`Whirlpool-move.png`** — 6 frames en DOS FILAS de 3. **WHIRLPOOL** (FINISHER de Fe,
+    equivalente al INFERNO de DAM). ✅ **YA PROCESADO** (`imagen-action/favi/whirlpool/`,
+    override por altura 1.54 + keepExtra para el vórtice de agua). Comando: **↓← + E**
+    (abajo-atrás + E), se habilita tras un COMBO VIVO de 2-3 golpes. Fe gira en el LUGAR
+    (peonza) mientras un VÓRTICE de agua azul CRECE a su alrededor y atrapa al rival,
+    golpeándolo repetido SIN lanzarlo por los aires y quitándole ~40% de la vida. Grita
+    "Whirlpool" al ejecutar. Los 6 frames muestran el remolino naciendo → creciendo (de
+    frente, brazos abiertos, rings grandes) → decreciendo. Energía AZUL/agua, nada de fuego.
+
+---
+
+26. **`neutral-spin.png`** — 4 frames en UNA fila. **MORTAL AÉREO HACIA ADELANTE**
+    (animación `neutral_spin`, exclusiva de Fe). ✅ **YA PROCESADO** (override 1.40, vCenter
+    porque rota). Cuando el jugador SALTA hacia ADELANTE (↑ + hacia el rival) hace un
+    FLIP/mortal que gira 360° en el aire (como los juegos de pelea). Si aprieta Q/W/E/R entra
+    el ataque aéreo correspondiente. Los 4 frames son el giro: encogida → horizontal → de
+    cabeza (pies arriba) → saliendo del giro. Vista de perfil, agujas recogidas.
 
 ---
 
@@ -388,6 +504,22 @@ efecto.
     - f3: sostiene la estocada con leve vibración del impacto
     - f4: recoge el brazo y vuelve a la guardia agachada
       El movimiento es PEQUEÑO y seco: no se levanta, no gira, no salta.
+
+25. **`air-jab-sheet.png`** — 4 frames. **PATADA AÉREA DOBLE** (salto + R): en el
+    AIRE se encoge SEMISENTADA (rodillas arriba, como sentada flotando) y agita los
+    pies pateando al frente DOS veces seguidas — un pie y luego el otro (shuffle
+    alante-atrás), rápido. NO usa las agujas para pegar (las lleva recogidas, una en
+    cada mano). Vista de perfil, mirando a la DERECHA, TODO en el aire (nada toca el
+    piso), la MISMA altura de cuerpo en los 4 frames. Es un ataque aéreo ligero y veloz:
+    - f1: en el aire, se ENCOGE semisentada (muslos arriba, rodillas dobladas), las
+      dos agujas recogidas junto al cuerpo; un pie empieza a estirarse
+    - f2: PRIMERA patada — estira un pie al FRENTE (pierna casi recta, patada
+      horizontal), el otro pie recogido bajo el cuerpo
+    - f3: SEGUNDA patada — recoge ese pie y estira el OTRO al frente (cambio
+      alante-atrás, tipo pedaleo/flutter en el aire), se ve el "agitar" de los pies
+    - f4: recoge las dos piernas de nuevo bajo el cuerpo (recuperación en el aire)
+      Movimiento compacto y rápido (doble patadita aérea); el torso semisentado,
+      agujas siempre recogidas, misma altura en los 4 frames.
 
 24. **`sweep-sheet.png` + `sweep-sheet-2.png`** — 6 frames en DOS hojas de
     **3 frames cada una** (f1-f2-f3 en la primera, f4-f5-f6 en la segunda).

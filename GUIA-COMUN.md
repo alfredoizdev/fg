@@ -47,10 +47,91 @@ personaje** adjunta:
 animaciones largas usa DOS FILAS en la misma hoja (mi procesador las lee solas),
 o divide en dos hojas — también las une.
 
+**Conteo PAR de frames (dividen limpio en dos filas/hojas iguales):** preferí
+SIEMPRE un total PAR de frames — 8 = 4+4, 10 = 5+5, 6 = 3+3, 4 = 2+2. Podés
+ponerlos todos en UNA hoja de dos filas, o en DOS hojas separadas (yo las uno).
+Si un movimiento hoy tiene conteo IMPAR, el frame que sobra para volverlo par es
+el lugar IDEAL para meter el keyframe que falta (un OVERSHOOT o el SMEAR de contacto).
+
 **Frames rebeldes:** si un frame sale mal una y otra vez, pídelo SOLO en su
 propia hoja de UN personaje con descripción hiperdetallada. Nómbrala
 `<accion>-f<numero>-sheet.png`; yo lo empalmo con los buenos (escalo por masa
 corporal para que encaje).
+
+---
+
+## Capa de PROPORCIONES — misma estatura y cabeza SIEMPRE (va en TODO prompt)
+
+Esto evita que el personaje "wobblee" de tamaño entre frames y entre movimientos.
+Mi procesador ya iguala la ESTATURA midiendo la CABEZA; si la IA además dibuja
+proporciones consistentes, el resultado queda clavado.
+
+> **La CABEZA es la unidad y es INVARIANTE a la pose.** Mide LO MISMO en TODOS los
+> frames — parado, agachado, saltando, atacando. Si el personaje se agacha, la
+> cabeza NO se achica ni se agranda: solo se ACERCA al piso. Nunca cabeza "chibi"
+> en un frame y realista en otro.
+> **Estatura fija en cabezas:** el personaje mide **[N] cabezas** de alto en TODOS
+> los frames de pie. Puntos de referencia (unidades de cabeza desde la coronilla):
+> hombros ≈1.3, cintura/codo ≈3, cadera ≈3.5, rodilla ≈5, pies = [N]. El brazo
+> relajado llega a mitad del muslo. Mantén estos largos entre frames.
+> **Masa y línea constantes:** el MISMO grosor de cuerpo (torso, brazos, piernas),
+> el MISMO grosor de línea y la MISMA paleta exacta en todos los frames — nada de
+> un frame más "flaco" o "gordo" que otro.
+> **El arma no cambia de tamaño:** la katana / las agujas miden LO MISMO (largo y
+> grosor) en todos los frames (salvo el leve estirón del frame de contacto).
+> **Pies en la misma línea** dentro de cada fila (piso común).
+
+**Lo que MÁS ayuda con GPT-4o (no tiene `--cref` para clavar el personaje):**
+- **EDITA, no regeneres:** cuando puedas, parte de un frame BUENO ya hecho y pide
+  *"mantén IDÉNTICO el personaje (misma cabeza, misma estatura, mismos colores,
+  misma línea), cambia SOLO la pose a X"*. Mucho más consistente que generar de cero.
+- **Adjunta SIEMPRE** la referencia / model-sheet del personaje.
+- **Medidas > adjetivos:** "6.5 cabezas de alto, hombros a 1.3" obedece mejor que
+  "alto y esbelto".
+- **Model sheet con grilla:** ten UNA imagen del personaje con la grilla de cabezas
+  encima y adjúntala — es la regla que la IA copia. (Rangos típicos: adulto
+  esbelto ≈6.5–7 cabezas · joven/adolescente ≈5.5–6 · niño ≈4–5.)
+
+---
+
+## Capa de KEYFRAME — poses PRO (pégala en TODO prompt de ATAQUE)
+
+Va **además** de las reglas de producción. Convierte frames "neutros" en poses
+clave de animación profesional. Referencia mental: un **bateo de béisbol pro**
+(carga coiled → SMEAR del swing → estirón de follow-through → overshoot → asentar).
+
+> **Piensa cada frame como una POSE CLAVE, no un dibujo neutro:**
+> - **SILUETA:** cada pose de ataque con silueta CLARAMENTE distinta de la
+>   guardia y de las demás. Test: tápalo en negro y aún se reconoce qué hace.
+>   Mete TODO el cuerpo (hombros, cadera, piernas), nunca solo el brazo.
+> - **CARGA COMPRIMIDA:** el frame de anticipación va encogido/coiled, como
+>   resorte cargado (torso torcido, peso atrás).
+> - **IMPACTO ESTIRADO:** el frame de contacto va estirado al máximo en la
+>   dirección del golpe, más allá de lo natural (squash & stretch). Cuerpo
+>   volcado, cara de esfuerzo. Es el frame que se SOSTIENE.
+> - **OVERSHOOT:** tras el impacto el cuerpo se pasa de largo y queda
+>   DESBALANCEADO/sobre-extendido; recién el ÚLTIMO frame recupera la guardia.
+> - **ACCIÓN SECUNDARIA:** la ropa y el pelo SIEMPRE trazan el movimiento — la
+>   capa de DAM / la gabardina de Favi / la coleta vuelan y ondean en CADA frame,
+>   nunca quietas. Es lo que da vida (mira cualquier referencia pro).
+> - **Golpe fuerte = carga fuerte:** a más daño, anticipación más grande.
+>
+> **ESTELA / ARCO de corte = LO PONE EL MOTOR, NO la AI.** GPT-4o no dibuja bien el
+> arco deformado (deforma el arma, corta brazos), así que el SPRITE lleva el arma
+> SIEMPRE NÍTIDA (misma forma y tamaño en todos los frames) y el JUEGO agrega el
+> arco/estela de corte por código (`_draw_swing_trail`), sincronizado al swing y
+> fluido. Tú solo dibujas el MOVIMIENTO sólido del cuerpo (windup → swing →
+> follow-through); nada de deformar el arma ni dibujar líneas de velocidad.
+
+**Más keyframes, pero los correctos:** no es "más inbetweens tibios". Es agregar
+las 2 poses que casi siempre faltan — un **frame de SMEAR de contacto** y un
+**frame de OVERSHOOT** — que son las que dan velocidad y peso.
+
+**Glosario para hablarle a la IA:** *pose clave/extremo* = las poses que cuentan
+el golpe (carga, impacto, remate) · *silueta* = test del contorno en negro ·
+*squash/stretch* = aplastar en carga, estirar en impacto · *smear* = frame de
+estela sólida del arma en el golpe rápido · *overshoot* = pasarse de la pose
+antes de asentar.
 
 ---
 

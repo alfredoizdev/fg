@@ -11,15 +11,18 @@
 
 Pega esto al final de cada prompt, junto con la **imagen de referencia del personaje** (la hoja de diseño de DAM) adjunta:
 
-> Mismo personaje exacto de la referencia: abrigo rojo con capucha, camiseta
-> negra, pantalón negro, tenis negros con detalles rojos, guantes sin dedos,
-> pelo negro despeinado, ojos rojos. Su katana NO tiene llamas: es una hoja de
-> metal INCANDESCENTE, al rojo vivo, con degradado de rojo profundo en los
-> bordes a naranja-amarillo brillante en el centro de la hoja, como acero
-> recién salido de la forja. Sin fuego, sin lengüetas de llama, sin partículas,
-> sin brasas. Misma paleta de colores exacta y mismo estilo de línea. Vista
-> lateral de juego de pelea 2D (estilo KOF), personaje mirando a la DERECHA
-> en TODOS los frames — nunca de frente a la cámara, nunca de espaldas.
+> Mismo personaje exacto de la referencia: pelo ROJO intenso en púas (spiky),
+> ojos ROJOS. Lleva una GABARDINA/abrigo ROJO largo y abierto, de cuello alto
+> (en la ESPALDA del abrigo va un emblema negro de cabeza de LOBO — "Fire Wolf");
+> debajo, camiseta/top NEGRO de cuello alto, pantalón NEGRO con correas rojas y
+> negras, guantes NEGROS sin dedos con detalles rojos, y botas/tenis NEGROS
+> chunky con detalles ROJOS. Su arma es una KATANA GRANDE (oversized): hoja
+> ANCHA y pesada de metal NEGRO con el FILO y los detalles al ROJO brillante
+> (borde rojo encendido) — simple e impactante. Sin fuego, sin llamas, sin
+> partículas, sin brasas. Misma paleta exacta (rojos, negros, grises) y mismo
+> estilo de línea. Vista lateral de juego de pelea 2D (estilo KOF), personaje
+> mirando a la DERECHA en TODOS los frames — nunca de frente a la cámara, nunca
+> de espaldas.
 > Los frames van en UNA o DOS filas, ordenados de izquierda a derecha (la
 > fila de ARRIBA primero). Todos los personajes a la MISMA escala; dentro de
 > cada fila los pies en la MISMA línea. Si hay dos filas, deja una franja
@@ -32,8 +35,22 @@ Pega esto al final de cada prompt, junto con la **imagen de referencia del perso
 > cuerpo de espacio vacío.
 > La katana es UNA sola pieza continua sujeta en las manos del personaje:
 > nunca fragmentada, nunca duplicada, nunca tirada en el piso ni debajo de
-> los pies. Cada frame es UN solo personaje completo — jamás dos poses
-> pegadas o fusionadas dentro del mismo frame.
+> los pies. La katana MIDE SIEMPRE LO MISMO (mismo largo y mismo grosor de
+> hoja) en TODOS los frames — no la agrandes ni la achiques entre frames, y va
+> SIEMPRE NÍTIDA (nunca deformada ni hecha arco: el arco de corte lo pone el
+> motor). Cada frame es UN solo personaje completo — jamás dos poses pegadas o
+> fusionadas dentro del mismo frame.
+> PROPORCIONES CONSISTENTES: en TODOS los frames el personaje mide lo MISMO
+> (misma estatura) y su CABEZA mide LO MISMO — la cabeza es la unidad y NO
+> cambia de tamaño con la pose (si se agacha, la cabeza solo se ACERCA al
+> piso, no se achica ni se agranda). Mismo grosor de cuerpo, mismo grosor de
+> línea y misma paleta exacta en todos los frames. Nada de un frame más flaco,
+> más gordo, más alto o más bajo que otro.
+> TAMAÑO GRANDE Y CONSISTENTE: dibuja al personaje GRANDE, ocupando casi toda la
+> ALTURA del frame de la cabeza a los pies (deja solo un margen pequeño y parejo
+> arriba y abajo). NO lo dibujes chico ni flotando en medio del verde. El
+> personaje debe verse IGUAL de grande en TODAS las hojas (pose, walk, golpes…),
+> para que todas las animaciones queden a la misma escala.
 > El abrigo rojo mantiene su borde inferior NORMAL y limpio, exactamente
 > como en la referencia: NO lo dibujes rasgado, roto ni hecho jirones.
 > Fondo VERDE PURO #00FF00 completamente plano y SIN NINGUNA marca: no
@@ -42,6 +59,12 @@ Pega esto al final de cada prompt, junto con la **imagen de referencia del perso
 > líneas de velocidad.
 
 Guarda cada hoja en `imagen-action/dam/sheets/` con el nombre indicado.
+
+**Un solo lado (importante):** dibuja SIEMPRE al personaje mirando a la DERECHA.
+El juego lo ESPEJA (voltea horizontal) solo cuando el rival está del otro lado
+— así que NO hay que crear frames mirando a la izquierda. Con dibujar un lado
+basta; el motor hace el otro. (Si un render sale mirando a la izquierda, lo
+volteo yo al procesarlo.)
 
 **Nitidez:** mientras menos frames por FILA, más grande y nítido sale cada
 personaje. Para animaciones largas usa DOS FILAS en la misma hoja (mi
@@ -64,10 +87,60 @@ sueltos por masa corporal para que encajen).
 
 ### Básicas (empezar por estas 4)
 
-1. **`pose-sheet.png`** — 4 frames. Postura de guardia con la katana lista,
-   respiración sutil: el pecho sube y baja, el brillo incandescente de la
-   hoja varía apenas de intensidad. El loop debe cerrar (frame 4 conecta
-   con frame 1).
+1. **`pose-sheet.png`** — 8 frames en 2 filas de 4 (arriba f1-f4, abajo f5-f8),
+   loop. Postura idle RELAJADA y CON ACTITUD (NO la guardia genérica de espada al
+   frente — esa se ve muy normal). POSE:
+   DAM de PERFIL (o casi de perfil) mirando a la DERECHA, hacia su rival: la CARA
+   y la MIRADA van a la DERECHA (al frente del combate), NUNCA hacia la cámara ni
+   el espectador. El cuerpo puede estar APENAS de 3/4 para dar volumen, pero el
+   hombro delantero y la cara apuntan claramente a la DERECHA. NO de frente a la
+   cámara, NO de espaldas. Peso cargado sobre la pierna trasera, la delantera relajada,
+   cadera ladeada (contrapposto, actitud chula). Lleva la katana con UNA mano
+   RECOSTADA sobre el HOMBRO / apoyada contra la espalda: la HOJA INCANDESCENTE
+   sube en diagonal por DETRÁS del hombro apuntando atrás-arriba, el filo al rojo
+   vivo enmarcando su silueta y tiñendo apenas el hombro y la mejilla. La otra
+   mano suelta y relajada al costado (o el pulgar en la cadera). Cabeza en alto,
+   mirada firme y confiada.
+   RESPIRACIÓN VISIBLE (CLAVE — que de verdad se NOTE que respira, no un cuerpo
+   rígido que solo flota): el PECHO se INFLA y se DESINFLA notoriamente. Al
+   inhalar la CAJA TORÁCICA se EXPANDE (el pecho se ensancha y se levanta, los
+   hombros suben, la espalda se yergue un poco); al exhalar el pecho se DESINFLA
+   y baja, los hombros caen. Es sutil pero CLARAMENTE visible frame a frame. Los
+   pies NO se mueven. Sube DESPACIO de f1 a f5 y baja DESPACIO de f5 a f8
+   (desacelera arriba y abajo, tipo seno):
+   - f1: base — pecho vacío/neutro, cuerpo asentado
+   - f2: empieza a INFLAR el pecho — la caja torácica se abre un poco, hombros suben
+   - f3: inhalando — el pecho ya visiblemente más inflado, a medio camino
+   - f4: casi lleno — pecho bien expandido, subiendo y desacelerando
+   - f5: TOPE del aire — pecho COMPLETAMENTE inflado, hombros arriba, micro-pausa
+     (el punto MÁS ALTO); el brillo incandescente de la hoja en su punto más intenso
+   - f6: empieza a EXHALAR — el pecho se desinfla un poco, hombros empiezan a caer
+   - f7: exhalando — el pecho ya visiblemente más vacío, a medio camino de bajar
+   - f8: casi asentado — pecho casi vacío, bajando y desacelerando; CONECTA con f1 (loop)
+     **ROPA CON BRISA (acción secundaria, MÁS fluida):** el abrigo rojo y el pelo
+     despeinado se mueven SUAVE y CONTINUAMENTE en los 8 frames, como si una LEVE
+     BRISA los meciera todo el tiempo — el faldón/borde inferior del abrigo ondea y
+     flota levemente, los mechones del pelo se agitan apenas, las solapas y mangas
+     ondulan un poco. NUNCA rígidos ni 100% quietos: siempre con un movimiento vivo
+     y fluido (pero suave, no una tormenta). El abrigo mantiene su borde inferior
+     NORMAL y limpio (NO rasgado). MISMA cabeza y MISMA estatura en los 8 frames.
+
+   **Atajo — EDITAR en vez de regenerar:** si ya tienes un sheet de DAM que te
+   gusta, adjúntalo en ChatGPT y pega esto para cambiarle SOLO la pose a esta:
+
+   > Toma este MISMO DAM (idéntica cara, colores, pelo, línea y proporciones) y
+   > cámbiale SOLO la POSE. Nueva pose idle, más cool y con actitud: DAM de
+   > PERFIL (o casi de perfil) mirando a la DERECHA hacia su rival — la CARA y la
+   > MIRADA van a la DERECHA, NUNCA hacia la cámara ni el espectador. Peso en la
+   > pierna trasera, cadera
+   > ladeada (relajado, chulo). Lleva la katana con UNA mano RECOSTADA sobre el
+   > HOMBRO / apoyada en la espalda: la hoja incandescente sube en diagonal por
+   > DETRÁS del hombro (apuntando atrás-arriba), tiñendo de rojo el hombro y la
+   > mejilla. La otra mano suelta al costado. Cabeza en alto, mirada confiada.
+   > Mantén los 8 frames en 2 filas de 4 con RESPIRACIÓN sutil (sube f1→f5, baja
+   > f5→f8): el pecho y los hombros suben/bajan ~3-4%, el abrigo y el pelo
+   > arrastran con retraso, la katana recostada hace un leve bob. Fondo VERDE
+   > PURO #00FF00. Misma cabeza y misma estatura en los 8 frames.
 
 2. **`walk-sheet.png`** — 8 frames en 2 filas de 4. Ciclo de caminata de
    COMBATE: el torso casi quieto en guardia, la katana siempre lista en la
@@ -86,35 +159,28 @@ sueltos por masa corporal para que encajen).
      El f8 conecta perfecto con el f1 (loop infinito). El sube-y-baja del
      cuerpo es SUTIL. Misma altura base en todos los frames.
 
-3. **`punch-sheet.png`** — 10 frames en DOS FILAS de 5 (fila de arriba:
-   f1-f5, fila de abajo: f6-f10). Corte HORIZONTAL de katana, de lado a
-   lado (como abanico a la altura del pecho). La hoja se mantiene más o
-   menos PARALELA AL PISO durante todo el barrido — NUNCA sube por encima
-   de la cabeza, NO es un corte de arriba hacia abajo:
-   - f1: la POSE DE GUARDIA exacta del personaje (la misma de pose-sheet):
-     katana lista frente al cuerpo. NO una postura relajada de pie con la
-     espada colgando
-   - f2: TRANSICIÓN visible: el torso empieza a girar y la katana va
-     VIAJANDO hacia el lado contrario del cuerpo, a MEDIO CAMINO del
-     cruce (se debe ver cómo llega ahí desde la guardia)
-   - f3: la katana ya cruzada sobre el hombro trasero, la hoja apunta
-     hacia atrás, horizontal
-   - f4: carga MÁXIMA: torso completamente girado, katana totalmente
-     cruzada atrás, lista para barrer
-   - f5: el barrido arranca: la katana entra al frente, todavía cerca
-     del cuerpo, hoja horizontal
-   - f6: a medio camino: la hoja cruza por DELANTE del pecho, horizontal,
-     con el torso desenroscándose
-   - f7: IMPACTO — katana completamente extendida hacia adelante,
-     horizontal a la altura del pecho, brazo estirado, torso girado
-   - f8: follow-through: la hoja sigue de largo apenas pasada del frente,
-     el torso acompaña el giro
-   - f9: desaceleración: la katana frenando y regresando hacia el cuerpo
-   - f10: regresa a la POSE DE GUARDIA exacta del f1 (así el golpe abre y
-     cierra en guardia). NO termina de pie relajado
-     La espada debe estar en una POSICIÓN CLARAMENTE DISTINTA en cada frame,
-     avanzando de forma PAREJA por el arco: entre frame y frame la hoja se
-     mueve más o menos la misma distancia, sin saltos bruscos.
+3. **`punch-sheet.png`** — 6 frames en Dos fila. UN SOLO golpe SÓLIDO: corte
+   HORIZONTAL de katana de lado a lado a la altura del pecho (la hoja NO sube por
+   encima de la cabeza).
+   **La katana va SIEMPRE NÍTIDA (hoja normal, sin deformar ni convertir en arco):
+   el arco/estela de corte lo agrega el JUEGO por código (`_draw_swing_trail`).
+   Tú solo dibujas el MOVIMIENTO sólido del cuerpo.** Aplica la CAPA DE KEYFRAME de
+   `GUIA-COMUN.md` (windup → swing → follow-through), pero SIN smear en el sprite.
+   - f1: WINDUP — desde la guardia, el torso se tuerce y ENCOGE, la katana
+     recogida cruzada ATRÁS (resorte cargado, silueta compacta)
+   - f2: ARRANCA el swing — la katana entra al frente barriendo (hoja nítida,
+     horizontal), el cuerpo empezando a desenroscarse
+   - f3: IMPACTO — la katana COMPLETAMENTE extendida al frente, horizontal a la
+     altura del pecho, brazo al máximo; el cuerpo ESTIRADO y volcado adelante,
+     cara de esfuerzo. Es el pico del golpe
+   - f4: FOLLOW-THROUGH / OVERSHOOT — la katana pasó de largo cruzada al OTRO
+     lado; el torso SOBRE-GIRADO y desbalanceado adelante (se pasó del golpe)
+   - f5: RECUPERA — la katana regresa hacia el cuerpo, casi de vuelta a la guardia
+     La katana SIEMPRE NÍTIDA y del MISMO tamaño (mismo largo/grosor) en los 5
+     frames — NUNCA deformada ni hecha arco (eso lo pone el motor).
+     **ANATOMÍA (crítico — la AI suele fallar):** en CADA frame dos brazos completos,
+     dos piernas, dos manos de 5 dedos — NADA cortado ni fuera del frame; personaje
+     COMPLETO con margen.
 
 4. **`kick-sheet.png`** — 10 frames en DOS FILAS de 5 (fila de arriba:
    f1-f5, fila de abajo: f6-f10). Corte pesado descendente, arco completo
@@ -348,20 +414,29 @@ en el efecto.
       Los 5 frames CENTRADOS en el mismo punto (el punto del impacto es
       el centro de cada frame, y desde ahí crece).
 
-22. **`fx-block-sheet.png`** — 5 frames. ANILLO DE BARRERA de bloqueo:
-    un ARO OVALADO VERTICAL (más alto que ancho, como un espejo de
-    cuerpo entero) de energía AZUL brillante con borde blanco-celeste.
-    SOLO se dibuja el BORDE del aro — el interior queda completamente
-    VACÍO (verde puro), para que en el juego se vea a través de él. El
-    borde tiene grosor variable, más luminoso en los laterales, con
-    puntas afiladas tipo swoosh arriba y abajo. Evolución:
-    - f1: el aro se forma — delgado, algo más pequeño, brillo suave
-    - f2: PICO — el aro completo, borde grueso y muy brillante
-    - f3: sostiene — grosor medio, algún destello recorriendo el borde
-    - f4: se abre y debilita — apenas más grande, el borde adelgazando
-    - f5: se disuelve — solo fragmentos tenues del aro
-      Todos los aros CENTRADOS y del mismo tamaño aproximado. Debe leerse
-      claramente DISTINTO al relámpago naranja de daño.
+22. **`fx-block-sheet.png`** — 5 frames en UNA fila. ANILLO DE BARRERA de bloqueo
+    que ROTA sobre su propio eje (estilo 2XKO). Un ARO OVALADO VERTICAL (más alto
+    que ancho, como un escudo frente al cuerpo) de energía AZUL brillante con
+    núcleo BLANCO-CELESTE. El aro se dibuja como un TRAZO tipo SWOOSH — una
+    pincelada GRUESA de bordes DEFINIDOS (cel-anime) que barre en círculo, con las
+    PUNTAS AFILADAS donde el trazo abre y cierra (queda una ABERTURA en el aro,
+    no es un óvalo perfecto cerrado). SOLO se dibuja el BORDE — el interior queda
+    VACÍO (verde puro), para ver a través en el juego.
+    **La ROTACIÓN es la clave:** la abertura y las puntas del trazo GIRAN de
+    posición frame a frame, como si el aro rotara sobre su eje.
+    - f1: NACE — un swoosh azul corto empezando a curvarse (medio aro), brillo suave
+    - f2: FORMA — el trazo barre y cierra casi todo el óvalo, brillo creciendo
+    - f3: PICO — el aro completo, grueso y MUY brillante, núcleo blanco-celeste;
+      la abertura hacia arriba-derecha
+    - f4: ROTA — el mismo aro pero con la abertura/puntas GIRADAS a otro ángulo
+      (se ve que rotó sobre su eje), el borde empezando a adelgazar
+    - f5: SE DISIPA — el aro se abre y se deshace en un swoosh tenue que se desvanece
+      Todos los aros CENTRADOS en el mismo punto y del MISMO tamaño. Estilo
+      cel-anime: bordes de línea DEFINIDOS y núcleo sólido brillante, NADA de bruma
+      translúcida. Colores AZUL brillante + blanco-celeste. PROHIBIDO usar tonos
+      verdes en el efecto (el verde es solo el fondo). Fondo VERDE PURO #00FF00, sin
+      personaje, sin texto ni marcas. Debe leerse claramente DISTINTO al relámpago
+      naranja de daño.
 
 ---
 
@@ -436,8 +511,8 @@ en el efecto.
       adelgazando
     - f5: se disuelve en jirones y nubecitas sueltas
     - f6: casi ido, hilitos tenues de polvo
-    (Después haremos `land-dust-sheet.png` para la caída: más pesado,
-    el polvo se aplasta hacia afuera al golpear el piso.)
+      (Después haremos `land-dust-sheet.png` para la caída: más pesado,
+      el polvo se aplasta hacia afuera al golpear el piso.)
 
 27. **`dash-smoke-sheet.png`** — 6 frames. RÁFAGA DE HUMO DE DASH/GOLPE.
     SOLO el humo, sin personaje. Fondo verde puro #00FF00. Estilo
@@ -469,8 +544,8 @@ en el efecto.
     - f3: torso TORCIDO a un lado (golpe lateral), tambaleándose,
       cabeza volteada
     - f4: SNAPEADO atrás otra vez, a punto de reconectar con f1
-    Cara de dolor, cuerpo suelto de muñeco pero DE PIE. El f4 conecta
-    con el f1 (loop infinito rápido).
+      Cara de dolor, cuerpo suelto de muñeco pero DE PIE. El f4 conecta
+      con el f1 (loop infinito rápido).
 
 29. **`flame-cast-sheet.png`** — 5 frames. DAM LANZA EL INFIERNO (crítico
     de fuego): alza la katana y suelta el poder. Perfil, mira a la
@@ -485,7 +560,7 @@ en el efecto.
       lanzando el poder al frente, torso volcado adelante
     - f5: remate — brazo extendido al frente tras soltar, katana apuntando
       adelante-abajo (postura de recuperación)
-    (Yo sincronizo el proyectil de fuego para que salga en el f4.)
+      (Yo sincronizo el proyectil de fuego para que salga en el f4.)
 
 30. **`fire-wave-sheet.png`** — 6 frames (loop). PROYECTIL DE FUEGO que
     viaja (el INFIERNO). SOLO el fuego, sin personaje. Fondo verde puro
@@ -496,7 +571,7 @@ en el efecto.
     (loop) para que se vea vivo mientras viaja:
     - f1-f6: el remolino de llamas rota, las lenguas de fuego se enroscan
       y se estiran, chispas orbitando. El f6 conecta con el f1 (loop).
-    Centrado en el mismo punto en los 6 frames.
+      Centrado en el mismo punto en los 6 frames.
 
 31. **`fire-wave-sheet-impact.png`** — 6 frames (UNA vez, NO loop). EXPLOSIÓN
     del INFIERNO cuando el vórtice CONECTA con el rival. SOLO el fuego/humo,
@@ -507,9 +582,37 @@ en el efecto.
       enrosca, esquirlas naranjas incandescentes flotando.
     - f4-f5: bola de humo oscuro con brasas naranjas dentro, disipándose.
     - f6: casi todo humo tenue que se desvanece (conecta con "desaparecido").
-    Todos los frames CENTRADOS en el mismo punto (yo recorto uniforme para
-    que la explosión no salte de tamaño). Lo reproduzco 1 vez sobre el torso
-    del rival y se apaga solo.
+      Todos los frames CENTRADOS en el mismo punto (yo recorto uniforme para
+      que la explosión no salte de tamaño). Lo reproduzco 1 vez sobre el torso
+      del rival y se apaga solo.
+
+---
+
+## Paridad con FAVI (Salto+R y mortal neutral)
+
+32. **`air-jab-sheet.png`** — 4 frames en UNA fila. **DOBLE CORTE AÉREO** (salto + R):
+    en el AIRE se encoge un poco (rodillas subidas) y hace DOS cortes rápidos y ligeros
+    de katana al frente, uno y luego el otro (jab aéreo veloz, no un tajo pesado). Vista
+    de perfil, mirando a la DERECHA, TODO en el aire (nada toca el piso), la MISMA altura
+    de cuerpo en los 4 frames:
+    - f1: en el aire, encogido (muslos arriba), katana recogida junto al cuerpo cargando
+    - f2: PRIMER corte — extiende la katana al frente en un tajo horizontal corto y rápido
+    - f3: SEGUNDO corte — recoge y vuelve a cortar al frente (segundo tajo veloz), la hoja
+      incandescente marcando el filo
+    - f4: recoge la katana de nuevo junto al cuerpo (recuperación en el aire)
+      Movimiento compacto y rápido (doble tajo aéreo); torso encogido, misma altura en los 4.
+
+33. **`neutral-spin.png`** — 4 frames en UNA fila. **MORTAL AÉREO HACIA ADELANTE** (salto
+    hacia el rival): un FLIP/mortal que gira 360° en el aire, como los juegos de pelea
+    cuando saltan hacia adelante. La katana va RECOGIDA/pegada al cuerpo durante el giro
+    (no corta, es un movimiento de desplazamiento). EXCEPCIÓN a la vista de perfil: como
+    ROTA, los frames lo muestran de perfil, de cabeza y saliendo del giro:
+    - f1: casi de pie/encogido, empieza a rotar hacia adelante, katana recogida
+    - f2: horizontal a mitad del giro (cabeza hacia adelante-abajo), cuerpo doblado
+    - f3: DE CABEZA (pies arriba, cabeza abajo), en pleno mortal
+    - f4: saliendo del giro, los pies bajando para caer
+      Los 4 frames van EN EL MISMO SITIO (el desplazamiento lo hace el motor). La katana
+      SIEMPRE recogida y en una pieza; energía roja/incandescente sutil, nada de fuego.
 
 ---
 
