@@ -479,30 +479,45 @@ en el efecto.
       NO es una patada: DAM barre con la katana. NO se pone de pie en
       ningún frame.
 
-25. **`wall-bounce-sheet.png`** — 6 frames. VUELO RECTO Y ESTRELLÓN
-    CONTRA LA PARED. TODO de perfil, SIN pared, SIN piso, SIN líneas ni
-    marcas de impacto, SIN efectos (solo el personaje sobre verde).
-    El personaje está NOQUEADO EN EL AIRE: cuerpo suelto de muñeco de
-    trapo, SIN control, ojos cerrados/apretados. Los 4 frames son UNA
-    SOLA caída continua — cada frame continúa el movimiento del
-    anterior.
-    KATANA: una sola mano floja agarrando SOLO el mango por el extremo,
-    el brazo cuelga arrastrado y la hoja apunta hacia atrás-abajo.
-    PROHIBIDO: pose de ataque, dos manos, agarrarla por la hoja,
-    levantarla.
-    - f1: VUELO — cuerpo COMPLETAMENTE HORIZONTAL (paralelo al piso,
-      como acostado en el aire), la espalda va por delante, cabeza
-      atrás, brazos y piernas arrastrando al lado contrario del vuelo,
-      abrigo ondeando fuerte
-    - f2: VUELO 2 — igual de horizontal, las piernas suben un poco y
-      la cabeza baja un poco (leve giro del cuerpo, alterna con f1)
-    - f3: ESTRELLÓN — el cuerpo rota a VERTICAL y se APLASTA de
-      espaldas contra una superficie invisible: columna comprimida en
-      C, hombros y cadera atrás, brazos y piernas LANZADOS hacia
-      adelante por la inercia, el pelo y el abrigo aplastados
-    - f4: DESPEGUE — el cuerpo se despega inclinándose hacia adelante
-      (~45°), cayendo suelto de bruces, extremidades colgando muertas
-      Misma escala en los 4 frames.
+25. **`wall-bounce-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3**
+    (fila de arriba = f1 f2 f3 de izq→der; fila de abajo = f4 f5 f6 de izq→der).
+    Fondo VERDE puro #00FF00. Personaje SIEMPRE de **perfil mirando a la DERECHA**.
+    **NO dibujes:** pared, piso, líneas de velocidad, polvo, chispas ni ningún
+    efecto — SOLO el personaje flotando sobre el verde (la pared y el golpe los
+    pone el motor). Los 6 frames al **MISMO tamaño de personaje** (misma escala).
+
+    ESTADO: DAM está **NOQUEADO en el aire**, cuerpo de **muñeco de trapo** sin
+    control, ojos cerrados/apretados, cara floja. NO hay ninguna pose de fuerza
+    ni de ataque en NINGÚN frame.
+
+    KATANA (regla fija en los 6 frames): **una sola mano floja** sujeta SOLO el
+    **mango por el extremo**; el brazo cuelga muerto y la **hoja apunta hacia
+    abajo-atrás, arrastrada**. PROHIBIDO: dos manos, agarrarla por la hoja,
+    levantarla o cualquier pose de ataque.
+
+    La animación es UN SOLO movimiento continuo: **vuela horizontal → choca y se
+    comprime → se despega cayendo de bruces.** Cada frame CONTINÚA el anterior.
+    Piensa el ángulo del EJE del cuerpo (línea cabeza→pies) en cada frame:
+    - **f1 — VUELO:** cuerpo **totalmente HORIZONTAL** (tumbado en el aire, eje
+      cabeza→pies paralelo al piso). La ESPALDA va por delante, la cabeza cae
+      hacia atrás, brazos y piernas arrastran hacia atrás, el abrigo ondea FUERTE
+      hacia atrás. (Imagínalo acostado boca-arriba sobre una cama invisible.)
+    - **f2 — VUELO 2:** igual de horizontal, leve balanceo de trapo (las piernas
+      suben un poco y la cabeza baja un poco). Mismo cuerpo suelto.
+    - **f3 — IMPACTO:** el cuerpo gira de golpe a **VERTICAL** y se **APLASTA de
+      espaldas** contra una superficie invisible detrás: columna arqueada en "C"
+      (hombros y cadera echados atrás), brazos y piernas **lanzados hacia
+      ADELANTE** por la inercia, pelo y abrigo aplastados hacia adelante.
+    - **f4 — REBOTE:** sigue casi vertical pero ya despegándose; la cabeza cae
+      hacia adelante, hombros vencidos, brazos colgando muertos.
+    - **f5 — DESPEGUE:** el cuerpo se inclina hacia adelante **~45°**, empezando a
+      caer de bruces, extremidades colgando flojas.
+    - **f6 — CAÍDA:** casi HORIZONTAL otra vez pero **boca abajo**, todo el cuerpo
+      flojo cayendo, cabeza, brazos, piernas y abrigo colgando hacia abajo.
+
+    TIP para que la AI lo respete: adjunta el model sheet de DAM como referencia,
+    y si falla, genera SOLO la fila de arriba (f1-f3) y luego SOLO la de abajo
+    (f4-f6) en dos pasadas — le cuesta menos 3 poses que 6 de una.
 
 26. **`jump-dust-sheet.png`** — 6 frames. POLVO DE SALTO (anillo de
     despegue). SOLO el humo, sin personaje ni piso. Fondo verde puro
