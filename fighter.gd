@@ -59,7 +59,7 @@ const SWING_FX := {
 # frame que conecta, alcance y dano de cada ataque (alcances en px de pantalla)
 # daño por TIER:  flojo (R) = 50 · medio (Q) = 90 · fuerte (W/E) = 100
 const ATTACKS := {
-	"punch":        {"hit_frame": 6, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
+	"punch":        {"hit_frame": 2, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
 	"punch2":       {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
 	"kick":         {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 100},
 	"crouch_punch": {"hit_frame": 1, "reach": 620.0 * CHAR_SCALE, "low": true,  "damage": 90},
