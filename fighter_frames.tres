@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=125 format=3]
+[gd_resource type="SpriteFrames" load_steps=129 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -27,6 +27,9 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-3.png" id="kk3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-4.png" id="kk4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-5.png" id="kk5"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-6.png" id="kk6"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-7.png" id="kk7"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-8.png" id="kk8"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-1.png" id="cr1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-2.png" id="cr2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-3.png" id="cr3"]
@@ -39,6 +42,7 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-kick/dam-crouch-kick-3.png" id="ck3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-kick/dam-crouch-kick-4.png" id="ck4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-kick/dam-crouch-kick-5.png" id="ck5"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-kick/dam-crouch-kick-6.png" id="ck6"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-jab/dam-crouch-jab-1.png" id="cj1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-jab/dam-crouch-jab-2.png" id="cj2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-jab/dam-crouch-jab-3.png" id="cj3"]
@@ -320,6 +324,15 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("kk5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("kk6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("kk7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("kk8")
 }],
 "loop": false,
 "name": &"kick",
@@ -419,6 +432,9 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("ck5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ck6")
 }],
 "loop": false,
 "name": &"crouch_kick",

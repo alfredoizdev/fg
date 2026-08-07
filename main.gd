@@ -422,26 +422,26 @@ func _ready() -> void:
 	char_cards = []
 	for i in CHARS.size():
 		var c: Dictionary = CHARS[i]
-		var cardx := 300.0 + i * 340.0
+		var cardx := 195.0 + i * 285.0
 		var border := ColorRect.new()
 		border.color = Color(0, 0, 0)
-		border.position = Vector2(cardx, 160); border.size = Vector2(300, 420)
+		border.position = Vector2(cardx, 165); border.size = Vector2(240, 336)
 		cp.add_child(border)
 		var inner := ColorRect.new()
 		inner.color = Color(0.09, 0.09, 0.13)
-		inner.position = Vector2(cardx + 6, 166); inner.size = Vector2(288, 408)
+		inner.position = Vector2(cardx + 6, 171); inner.size = Vector2(228, 324)
 		cp.add_child(inner)
 		var av := Sprite2D.new()
 		if ResourceLoader.exists(String(c["avatar"])):
 			av.texture = load(String(c["avatar"]))
 		av.centered = true
-		av.scale = Vector2(260.0 / 560.0, 260.0 / 560.0)
-		av.position = Vector2(cardx + 150, 310)
+		_cover_avatar(av, 186, 202)   # las 3 cartas al MISMO tamaño, con margen dentro del marco
+		av.position = Vector2(cardx + 120, 288)
 		cp.add_child(av)
 		var nm := Label.new()
 		nm.text = String(c["name"])
-		nm.add_theme_font_size_override("font_size", 40)
-		nm.position = Vector2(cardx, 480); nm.size = Vector2(300, 50)
+		nm.add_theme_font_size_override("font_size", 34)
+		nm.position = Vector2(cardx, 400); nm.size = Vector2(240, 46)
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cp.add_child(nm)
 		char_cards.append({"border": border, "av": av, "name": nm})
@@ -1263,6 +1263,7 @@ func _refresh_hud_chars() -> void:
 			hud_name[side].text = String(c["name"])
 		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			hud_avatar[side].texture = load(String(c["avatar"]))
+			_cover_avatar(hud_avatar[side], 114, 114)   # reajusta al tamaño real del retrato nuevo
 
 func _start_round() -> void:
 	state = "intro"
@@ -2176,6 +2177,27 @@ const M_MARGIN := 16.0   # separación entre el avatar y la primera barra de car
 func _meter_x(side: int, s: int) -> float:
 	return (P1_BAR_X + M_MARGIN + s * (M_W + M_GAP)) if side == 0 else ((P2_BAR_X + BAR_W) - M_MARGIN - M_W - s * (M_W + M_GAP))
 
+# Ajusta un Sprite2D con retrato para que LLENE una caja de box_w x box_h (modo "cover"):
+# recorta la textura a la proporción de la caja y la escala, sin importar su tamaño real.
+# El recorte vertical va sesgado hacia ARRIBA (0.30) para conservar la cara.
+func _cover_avatar(av: Sprite2D, box_w: float, box_h: float) -> void:
+	if av == null or av.texture == null:
+		return
+	var tw := float(av.texture.get_width())
+	var th := float(av.texture.get_height())
+	if tw <= 0.0 or th <= 0.0:
+		return
+	var box_ar := box_w / box_h
+	var rw := tw
+	var rh := th
+	if tw / th > box_ar:
+		rw = th * box_ar          # textura más ancha que la caja -> recorta los lados
+	else:
+		rh = tw / box_ar          # textura más alta -> recorta arriba/abajo
+	av.region_enabled = true
+	av.region_rect = Rect2((tw - rw) * 0.5, (th - rh) * 0.30, rw, rh)
+	av.scale = Vector2(box_w / rw, box_h / rh)
+
 func _build_hud() -> void:
 	# oculta las barras rectangulares viejas (ahora son polígonos inclinados)
 	for n in ["P1Back", "P1Fill", "P2Back", "P2Fill"]:
@@ -2320,7 +2342,7 @@ func _build_hud() -> void:
 			var av := Sprite2D.new()   # retrato (recorte cuadrado, llena el marco)
 			av.texture = av_tex
 			av.centered = true
-			av.scale = Vector2(0.204, 0.204)   # 560*0.204 ~ 114
+			_cover_avatar(av, 114, 114)   # llena el marco sea cual sea el tamaño de la textura
 			av.position = Vector2(fx + 60, 68)
 			av.flip_h = side == 1
 			av.z_index = 6

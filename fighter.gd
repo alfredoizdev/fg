@@ -29,10 +29,12 @@ const SHADOW_ALPHA := 0.3
 # largo del swing cuando el brazo se va estirando (ej. kick).
 # Angulos: 0 = al frente, -90 = arriba, 180 = atras (y crece hacia abajo).
 const SWING_FX := {
-	"punch": {"base": 4, "c": Vector2(20, 40), "r": 590.0, "w": 340.0, "flat": 0.38,
-		"stages": [[205.0, 255.0, 0.75], [205.0, 300.0, 0.9], [215.0, 350.0, 1.0], [245.0, 355.0, 0.5], [285.0, 355.0, 0.22]]},
-	"punch2": {"base": 2, "c": Vector2(20, 40), "r": 590.0, "w": 340.0, "flat": 0.38,
-		"stages": [[205.0, 255.0, 0.75], [205.0, 300.0, 0.9], [215.0, 350.0, 1.0], [245.0, 355.0, 0.5], [285.0, 355.0, 0.22]]},
+	# punch (Q) = EMPUJE horizontal al FRENTE: la estela sigue la hoja hacia adelante a la
+	# altura del filo (NO un arco sobre la cabeza) y va sincronizada con el empuje (frames 1-4).
+	"punch": {"base": 1, "c": Vector2(10, 150), "r": 610.0, "w": 320.0, "flat": 0.20,
+		"stages": [[110.0, 5.0, 0.7], [120.0, -25.0, 1.0], [125.0, -35.0, 0.55], [95.0, -35.0, 0.25]]},
+	"punch2": {"base": 1, "c": Vector2(10, 150), "r": 610.0, "w": 320.0, "flat": 0.20,
+		"stages": [[110.0, 5.0, 0.7], [120.0, -25.0, 1.0], [125.0, -35.0, 0.55], [95.0, -35.0, 0.25]]},
 	"kick": {"base": 2, "c": Vector2(30, -40), "r": 640.0, "w": 380.0, "flat": 1.0,
 		"stages": [[-130.0, -95.0, 0.45, 0.85], [-120.0, -40.0, 0.9, 0.93], [-110.0, 20.0, 1.0, 1.0]]},
 	"jump_punch": {"base": 1, "c": Vector2(20, 0), "r": 540.0, "w": 310.0, "flat": 0.38,
