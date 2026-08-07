@@ -493,11 +493,17 @@ animations = [{
 "speed": 8.0
 }, {
 "frames": [{
-"duration": 1.0,
-"texture": ExtResource("wb2")
+"duration": 1.5,
+"texture": ExtResource("wb1")
 }, {
 "duration": 1.0,
-"texture": ExtResource("wb3")
+"texture": ExtResource("wb4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wb5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wb6")
 }],
 "loop": false,
 "name": &"wall_splat",
