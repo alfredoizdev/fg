@@ -203,6 +203,7 @@ var hit_flying := false
 var walk_dir := 0
 var spd := 1.0   # multiplicador de velocidad de desplazamiento por personaje (Favi = ágil)
 var base_scale := Vector2.ONE   # escala base del sprite por personaje (Favi = nena, más chica)
+var swing_layer: Node2D   # capa POR DELANTE del sprite para la estela del arma (z alto)
 var vel_y := 0.0
 var vel_x := 0.0
 var floor_y := 0.0
@@ -288,6 +289,11 @@ func _ready() -> void:
 	fire_trail.scale_amount_max = 6.5
 	fire_trail.color = Color(1.5, 0.7, 0.25, 0.9)
 	add_child(fire_trail)
+	# capa de la estela del arma: hija con z alto para dibujar POR DELANTE del cuerpo
+	# (el sprite es hijo y tapa el _draw del peleador; la estela iba detrás del cuerpo)
+	swing_layer = SwingLayer.new()
+	swing_layer.z_index = 4   # delante del sprite (z 0), detrás de los impactos (fx_sprite z 6)
+	add_child(swing_layer)
 	sprite.play("pose")
 	sprite.animation_finished.connect(_on_animation_finished)
 	sprite.animation_changed.connect(_on_animation_changed)
@@ -861,6 +867,8 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 
 func _physics_process(delta: float) -> void:
 	queue_redraw()
+	if swing_layer:
+		swing_layer.queue_redraw()   # la estela se dibuja por delante del cuerpo
 	burst_t = maxf(0.0, burst_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
 	if water_bg:
@@ -1436,8 +1444,7 @@ func _draw() -> void:
 	draw_set_transform(ground_local, 0.0, Vector2(1.0, SHADOW_SQUASH))
 	draw_circle(Vector2.ZERO, SHADOW_RADIUS * t, Color(0, 0, 0, SHADOW_ALPHA * t))
 	draw_set_transform(Vector2.ZERO)
-	_draw_swing_trail()
-	_draw_hit_burst()
+	_draw_hit_burst()   # la estela del arma la dibuja swing_layer (por delante del cuerpo)
 
 # flash de bloqueo: arco de escudo azul-blanco frente al cuerpo + chispas
 # cortas resbalando por el borde — frio y contenido, lo opuesto al dano
@@ -1575,7 +1582,7 @@ func _swing_poly(a0: float, a1: float, w: float, r: float, c: Vector2, flat: flo
 		pts.append(_swing_pt(lerpf(a0, a1, t), _swing_r(r, t) - grosor, c, flat))
 	return pts
 
-func _draw_swing_trail() -> void:
+func _draw_swing_trail_on(ci: CanvasItem) -> void:
 	if not sprite.is_playing():
 		return
 	var anim := String(sprite.animation)
@@ -1620,11 +1627,20 @@ func _draw_swing_trail() -> void:
 		c_core = Color(1.0, 0.85, 0.4, 0.55 * al)
 		c_edge = Color(1.6, 1.2, 0.55, 0.75 * al)
 	# capa suave exterior, nucleo caliente y borde de ataque que florece
-	draw_colored_polygon(_swing_poly(a0, a1, w, r, c, flat), c_out)
-	draw_colored_polygon(_swing_poly(a0 + 6.0, a1 - 2.0, w * 0.5, r, c, flat), c_core)
+	ci.draw_colored_polygon(_swing_poly(a0, a1, w, r, c, flat), c_out)
+	ci.draw_colored_polygon(_swing_poly(a0 + 6.0, a1 - 2.0, w * 0.5, r, c, flat), c_core)
 	# el borde brillante va en la punta delantera del arco, venga de donde venga
 	var dirn := signf(a1 - a0)
 	var edge := PackedVector2Array()
 	for i in 13:
 		edge.append(_swing_pt(lerpf(a1 - 30.0 * dirn, a1, float(i) / 12.0), r, c, flat))
-	draw_polyline(edge, c_edge, 7.0)
+	ci.draw_polyline(edge, c_edge, 7.0)
+
+
+# Capa hija que dibuja la estela del arma POR DELANTE del sprite del cuerpo.
+# (el sprite es hijo del peleador y tapa su _draw; por eso la estela iba detrás)
+class SwingLayer extends Node2D:
+	func _draw() -> void:
+		var p := get_parent()
+		if p and p.has_method("_draw_swing_trail_on"):
+			p._draw_swing_trail_on(self)
