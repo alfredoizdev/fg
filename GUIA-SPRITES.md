@@ -263,10 +263,36 @@ sueltos por masa corporal para que encajen).
 12. **`take-hit-low-sheet.png`** — 2 frames. Golpeado estando agachado: se
     encoge por el impacto sin levantarse → casi recupera la postura agachada.
 
-13. **`strong-fly-sheet.png`** — 9 frames. Golpe fuerte que lo manda a volar:
-    frames 1-4 volando hacia atrás por los aires (cuerpo arqueado, pies
-    despegados), frames 5-7 estrellándose y rodando por el piso, frames 8-9
-    incorporándose hasta quedar en una rodilla.
+13. **`strong-fly-sheet.png`** — **6 frames en 2 filas de 3**. GIRO EN EL AIRE al
+    salir volando por un golpe fuerte: el cuerpo GIRA 360° sobre su eje mientras
+    vuela (de frente → perfil → de espaldas → perfil → de frente). Muñeco de trapo
+    noqueado, ojos cerrados, la katana en UNA sola mano floja. NADA de piso, pared
+    ni efectos, solo el personaje sobre verde. (El estrellón contra la pared y el
+    levantarse del piso son OTRAS hojas: `wall-bounce` y `hit-down`.)
+
+    **`hit-down-sheet.png`** — **5 frames. LEVANTARSE DEL PISO** tras caer noqueado
+    (esto es lo que se ve cuando toca el suelo). TODO de **PERFIL mirando a la
+    DERECHA**. Fondo VERDE #00FF00, **SIN piso, pared, sombra ni efectos** (el suelo
+    lo pone el motor). **Mismo tamaño de personaje en los 5 frames**, y el punto de
+    apoyo contra el piso (cuerpo tendido / rodilla / pies) SIEMPRE en la MISMA línea
+    inferior. Es una progresión CONTINUA de tirado en el suelo → de pie.
+    Katana: al inicio CAÍDA en el piso junto a la mano; la RECOGE al incorporarse
+    (una sola mano floja); recién en el último frame vuelve a empuñarla en guardia.
+    - **f1 — BOCA ABAJO:** tendido de bruces en el piso, cuerpo COMPLETAMENTE
+      HORIZONTAL pegado al suelo, brazos y piernas flojos, cabeza de lado, KO total.
+      La katana en el piso junto a la mano.
+    - **f2 — EMPUJA:** apoya las DOS manos en el piso y arquea la espalda; la cabeza
+      y el pecho se despegan del suelo, las piernas aún tendidas atrás. Cara de
+      aturdido/dolorido.
+    - **f3 — UNA RODILLA:** sube a UNA rodilla (rodilla trasera en el piso, pie
+      delantero apoyado), una mano en el suelo, la otra recogiendo la katana. Torso
+      encorvado, cabeza gacha.
+    - **f4 — LEVANTÁNDOSE:** casi de pie pero encorvado y tambaleante, recuperando
+      el equilibrio, la katana ya en la mano colgando al costado.
+    - **f5 — GUARDIA:** de pie y recuperado, vuelve a su POSTURA DE COMBATE (igual
+      que la pose idle), katana empuñada lista.
+    PROHIBIDO: de espaldas a la cámara (nunca se ve el logo del lobo), pose de
+    salto, pose de ataque, o que el personaje cambie de tamaño entre frames.
 
 ### Defensa
 
