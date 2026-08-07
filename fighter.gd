@@ -997,6 +997,9 @@ func _physics_process(delta: float) -> void:
 		# caida BRUSCA del remate del ULTRA: al pasar el ápice se desploma
 		if hard_fall and hit_flying and vel_y > 0.0:
 			g_mult = 2.6
+		# lanzado normal: una vez que YA va cayendo, cae más rápido (menos flote)
+		elif hit_flying and vel_y > 0.0:
+			g_mult = 1.7
 		vel_y += GRAVITY * g_mult * delta
 		if air_spin:
 			vel_y = minf(vel_y, 300.0 * CHAR_SCALE)
