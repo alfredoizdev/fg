@@ -584,7 +584,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"hit_fly",
-"speed": 40.0
+"speed": 28.0
 }, {
 "frames": [{
 "duration": 1.0,
