@@ -217,59 +217,32 @@ sueltos por masa corporal para que encajen).
 6. **`crouch-punch-sheet.png`** — 3 frames. Corte rápido de katana desde la
    posición agachada, al frente y a media altura: carga → corte → recogida.
 
-7. **`crouch-kick-sheet.png`** — 5 frames. GANCHO ASCENDENTE (anti-aéreo,
-   estilo uppercut de arma pesada): un corte que arranca cargado abajo y
-   termina con la katana arriba tras la espalda. Los pies SIEMPRE tocan el
-   piso (NO es un salto):
-   - f1: CARGA — en cuclillas profundas, el torso volcado sobre la rodilla
-     delantera, la katana agarrada con AMBAS manos AL FRENTE del cuerpo
-     con la hoja apuntando hacia el PISO (cargando el golpe, como un
-     leñador a punto de arrancar el hacha del suelo)
-   - f2: el swing arranca POR ABAJO: aún agachado, la katana barre hacia
-     abajo y atrás pasando RASANTE junto a sus piernas, la hoja cerca
-     del piso
-   - f3: IMPACTO — el corte SUBE: los brazos ESTIRADOS hacia
-     adelante-arriba con la katana EN PLENO BARRIDO frente al cuerpo
-     (hoja en diagonal ascendente, la punta a la altura de la cabeza),
-     el torso inclinado HACIA ADELANTE levantándose en zancada — se debe
-     ver que la espada va EN MOVIMIENTO hacia arriba, NO es una pose de
-     guardia sostenida. Vista LATERAL, perfil hacia la derecha
-   - f4: REMATE — el cuerpo ya levantado en zancada (ambos pies firmes en
-     el piso), la katana terminó el arco: quedó ARRIBA y por DETRÁS del
-     hombro, los brazos cruzados por encima de la cabeza en el
-     follow-through. SIEMPRE de PERFIL mirando a la derecha (se le ve la
-     cara de lado) — NUNCA de espaldas a la cámara
-   - f5: recogida: baja la katana y vuelve a las cuclillas del f1
-     El arco completo de la hoja: frente-abajo → rasante atrás → subiendo
-     al frente → arriba tras el hombro. Posición CLARAMENTE distinta de la
-     hoja en cada frame.
+7. **`crouch-kick-sheet.png`** — **4 frames en 1 fila** (f1 f2 f3 f4 de izq→der).
+   GANCHO ASCENDENTE (uppercut de arma pesada, anti-aéreo): un corte que arranca
+   cargado ABAJO y termina con la katana ARRIBA tras el hombro. Es UN SOLO golpe.
+   **TODO de PERFIL mirando a la DERECHA** — se ve su mejilla y ojo derechos, el
+   pecho apunta a la derecha. **REGLA:** si se ve el logo del LOBO de la espalda del
+   abrigo, el frame está MAL (la espalda NUNCA apunta a la cámara). Los pies SIEMPRE
+   tocan el piso (NO es un salto). Fondo VERDE #00FF00. **Mismo tamaño de personaje
+   en los 4 frames.** Katana bien AGARRADA (dedos cerrados en el mango), nunca suelta.
+   - **f1 — CARGA:** en cuclillas profundas, torso volcado sobre la rodilla
+     delantera, katana con AMBAS manos AL FRENTE, la hoja apuntando al PISO (cargando,
+     como un leñador a punto de arrancar el hacha del suelo).
+   - **f2 — CORTE (impacto):** en zancada baja (rodilla delantera flexionada, pierna
+     trasera estirada), torso inclinado HACIA ADELANTE. Los DOS brazos lanzados hacia
+     adelante-arriba, ESTIRADOS, katana en DIAGONAL ASCENDENTE: empuñadura a la altura
+     del pecho, PUNTA de la hoja a la altura de los ojos, apuntando arriba-adelante.
+     Es el momento EXACTO de un corte hacia arriba EN MOVIMIENTO (NO una guardia
+     quieta), cuerpo tenso, abrigo volando hacia atrás.
+   - **f3 — REMATE (follow-through):** ya de pie en zancada (ambos pies firmes en el
+     piso), los dos brazos CRUZADOS por ENCIMA de la cabeza: la katana terminó el
+     corte y apunta hacia ATRÁS-ARRIBA por detrás del hombro. Pecho y cadera hacia la
+     derecha, abrigo asentándose tras el movimiento.
+   - **f4 — RECOGIDA:** baja la katana y vuelve a las cuclillas del f1.
 
-   **Los f3 y f4 salen mal en secuencia (la IA los pone de espaldas o con
-   la espada quieta). Pedirlos SUELTOS, un personaje por hoja:**
-
-   `crouch-kick-f3-sheet.png` (un solo frame):
-
-   > UN SOLO personaje, frame único. DAM de PERFIL mirando a la DERECHA
-   > (se ve su mejilla y ojo derechos, el pecho apunta a la derecha). En
-   > zancada baja: rodilla delantera flexionada, pierna trasera estirada,
-   > torso inclinado HACIA ADELANTE. Los DOS brazos lanzados hacia
-   > adelante-arriba, estirados, sujetando la katana en DIAGONAL
-   > ASCENDENTE: la empuñadura a la altura del pecho y la PUNTA de la
-   > hoja a la altura de los ojos, apuntando arriba-adelante. Es el
-   > momento EXACTO de un corte hacia arriba en movimiento — cuerpo
-   > tenso, abrigo volando hacia atrás. PROHIBIDO: pose simétrica de
-   > frente, pose de espaldas, espada en vertical de guardia.
-
-   `crouch-kick-f4-sheet.png` (un solo frame):
-
-   > UN SOLO personaje, frame único. de PERFIL mirando a la DERECHA —
-   > su CARA VISIBLE de lado (mejilla y ojo derechos). REGLA: si se ve el
-   > logo del lobo de la espalda del abrigo, el frame está MAL — la
-   > espalda NUNCA apunta a la cámara. De pie en zancada (ambos pies en
-   > el piso), los dos brazos CRUZADOS por ENCIMA de la cabeza en
-   > follow-through: la katana ya terminó el corte y apunta hacia
-   > ATRÁS-ARRIBA por detrás de su hombro. El pecho y la cadera
-   > orientados hacia la derecha, abrigo asentándose tras el movimiento.
+   El arco de la hoja debe quedar CLARAMENTE distinto en cada frame: al piso →
+   diagonal subiendo al frente → arriba tras el hombro → bajando. PROHIBIDO: pose de
+   frente simétrica, pose de espaldas, o la espada quieta en vertical de guardia.
 
 ### Salto
 
