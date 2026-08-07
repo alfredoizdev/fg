@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://chbudja6ciht5"
-path="res://.godot/imported/dam-strong-fly-8.png-cc2ed4786ba238435395cbdcb2e0553e.ctex"
+uid="uid://b056wk5wdrdl1"
+path="res://.godot/imported/dam-hit-down-3.png-18c0c47104f5d0a7a1452e1b54ef54c7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://imagen-action/dam/strong-fly/dam-strong-fly-8.png"
-dest_files=["res://.godot/imported/dam-strong-fly-8.png-cc2ed4786ba238435395cbdcb2e0553e.ctex"]
+source_file="res://imagen-action/dam/hit-down/dam-hit-down-3.png"
+dest_files=["res://.godot/imported/dam-hit-down-3.png-18c0c47104f5d0a7a1452e1b54ef54c7.ctex"]
 
 [params]
 
