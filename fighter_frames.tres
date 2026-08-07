@@ -486,9 +486,6 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.5,
-"texture": ExtResource("wb1")
-}, {
-"duration": 1.0,
 "texture": ExtResource("wb4")
 }, {
 "duration": 1.0,
