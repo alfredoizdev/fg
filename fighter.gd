@@ -73,6 +73,7 @@ const ATTACKS := {
 	"weak_punch":   {"hit_frame": 1, "reach": 480.0 * CHAR_SCALE, "low": false, "damage": 50},
 }
 
+const FLY_TILT_DEG := 34.0   # inclinación del cuerpo al salir volando (se ladea hacia el empujón)
 const SPIN_TRAVEL := 600.0 * CHAR_SCALE  # avance de la patada giratoria (px/s)
 const SPIN_HOVER := 130.0 * CHAR_SCALE   # elevacion durante el giro
 const SPECIAL_SPEED := 1500.0 * CHAR_SCALE  # embestida del EMBER DASH (px/s)
@@ -204,6 +205,7 @@ var walk_dir := 0
 var spd := 1.0   # multiplicador de velocidad de desplazamiento por personaje (Favi = ágil)
 var base_scale := Vector2.ONE   # escala base del sprite por personaje (Favi = nena, más chica)
 var swing_layer: Node2D   # capa POR DELANTE del sprite para la estela del arma (z alto)
+var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar el cuerpo en el aire)
 var vel_y := 0.0
 var vel_x := 0.0
 var floor_y := 0.0
@@ -250,7 +252,7 @@ func _ready() -> void:
 	fx_sprite = AnimatedSprite2D.new()
 	var ff := SpriteFrames.new()
 	var fx_defs := {
-		"hit": ["res://imagen-action/impact-effect/chispas-impat-hit-f/chispas-impat-hit-%d.png", 7, 26.0],
+		"hit": ["res://imagen-action/impact-effect/new-impact-hit/new-impact-hit-%d.png", 4, 22.0],
 		"hit_blue": ["res://imagen-action/impact-effect/chispas-impat-hit-favi/chispas-impat-hit-%d.png", 7, 26.0],
 		# bloqueo: anillo de barrera AZUL de la hoja fx-block (nueva, 5 frames). Si
 		# existe, _draw_hit_burst se salta el destello de codigo (no hay doble efecto).
@@ -769,6 +771,7 @@ func _launch(push_dir: int, mult := 1.0) -> void:
 	# decaimiento de juggle: cada lanzamiento seguido eleva menos (anti-infinito)
 	vel_y = -KNOCKBACK_Y * mult * pow(0.86, float(juggle_hits))
 	vel_x = push_dir * KNOCKBACK_X
+	fly_lean = float(push_dir)   # el cuerpo se ladea hacia donde sale despedido
 	juggle_hits += 1
 	var ya_volaba := String(sprite.animation) == "hit_fly"
 	sprite.play("hit_fly")
@@ -869,6 +872,11 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if swing_layer:
 		swing_layer.queue_redraw()   # la estela se dibuja por delante del cuerpo
+	# inclinación al salir volando: el cuerpo se ladea hacia la dirección del empujón (no vertical)
+	if hit_flying and String(sprite.animation) == "hit_fly":
+		sprite.rotation = deg_to_rad(FLY_TILT_DEG) * fly_lean
+	elif sprite.rotation != 0.0:
+		sprite.rotation = 0.0
 	burst_t = maxf(0.0, burst_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
 	if water_bg:

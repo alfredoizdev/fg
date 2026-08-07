@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cybpjmhclllfu"
-path="res://.godot/imported/dam-kick-4.png-9d6435ddb399d82963f5d0065c9fa973.ctex"
+uid="uid://baccrmbyry6ri"
+path="res://.godot/imported/new-impact-hit-1.png-3917d5fadd321041d424b09b9e97e078.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://imagen-action/dam/kick/dam-kick-4.png"
-dest_files=["res://.godot/imported/dam-kick-4.png-9d6435ddb399d82963f5d0065c9fa973.ctex"]
+source_file="res://imagen-action/impact-effect/new-impact-hit/new-impact-hit-1.png"
+dest_files=["res://.godot/imported/new-impact-hit-1.png-3917d5fadd321041d424b09b9e97e078.ctex"]
 
 [params]
 
