@@ -1430,7 +1430,8 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 				else ("take_hit_low" if i % 2 == 0 else "take_hit")
 		victima.sprite.play(pose)
 		victima._play_sfx_key("take_hit")   # sonido de impacto por golpe
-		victima._burst(0.95)                # chispas de golpe
+		# chispa al PECHO (base_corr sigue el pecho según la escala del personaje)
+		victima._burst(0.95, false, 1, false, 500.0 * (1.0 - victima.base_scale.y))
 		_shake(lerpf(9.0, 16.0, ramp), 0.12)   # temblor por golpe (crece con la ráfaga)
 		victima.position.x = clampf(victima.position.x + float(dir) * 5.0, LEFT_LIMIT, RIGHT_LIMIT)
 		n += 1

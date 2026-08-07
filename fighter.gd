@@ -861,7 +861,11 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	# la chispa se pone a la altura del origen (pecho de DAM). Para Favi (nena, escala
 	# base < 1) el origen queda por encima de su cabeza, así que la bajamos hacia su
 	# cuerpo — más aún en golpe bajo (agachada). DAM (base 1.0) => 0, sin cambio.
-	var chispa_y := 500.0 * (1.0 - base_scale.y) * (3.0 if low else 2.0)
+	# base_corr sigue el PECHO al cambiar de escala (Favi baja, DAM sube un poco);
+	# luego la ZONA baja la chispa a las piernas si el golpe fue BAJO (+ = hacia abajo).
+	var base_corr := 500.0 * (1.0 - base_scale.y)
+	var zona := (220.0 if low else 0.0) * base_scale.y
+	var chispa_y := base_corr + zona
 	_burst(1.0, false, 1, atk_blue, chispa_y)
 	buffer_t = 0.0
 	punch_followup = false  # un golpe recibido corta el combo pendiente
