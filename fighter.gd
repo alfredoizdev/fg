@@ -1014,8 +1014,7 @@ func _physics_process(delta: float) -> void:
 					sprite.play("wall_splat")
 				wall_squash_t = SQUASH_DUR
 				squash_horizontal = true   # choca de lado: comprime el ancho
-				_spawn_wall_debris(1 if position.x >= 960.0 else -1)
-				_burst(1.1, false, -1)
+				# efecto de escombros QUITADO (el usuario hará su propio frame de impacto)
 				_play_sfx_key("wall_bounce")
 		elif is_player:
 			var air_dir := Input.get_axis("ui_left", "ui_right")

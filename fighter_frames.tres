@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=131 format=3]
+[gd_resource type="SpriteFrames" load_steps=133 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -57,6 +57,8 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/wall-bounce/dam-wall-bounce-2.png" id="wb2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/wall-bounce/dam-wall-bounce-3.png" id="wb3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/wall-bounce/dam-wall-bounce-4.png" id="wb4"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/wall-bounce/dam-wall-bounce-5.png" id="wb5"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/wall-bounce/dam-wall-bounce-6.png" id="wb6"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pummeled/dam-pummeled-1.png" id="pm1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pummeled/dam-pummeled-2.png" id="pm2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pummeled/dam-pummeled-3.png" id="pm3"]
@@ -484,7 +486,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("sf3")
+"texture": ExtResource("wb1")
 }],
 "loop": true,
 "name": &"fly_straight",
@@ -492,10 +494,10 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("wb3")
+"texture": ExtResource("wb2")
 }, {
 "duration": 1.0,
-"texture": ExtResource("wb4")
+"texture": ExtResource("wb3")
 }],
 "loop": false,
 "name": &"wall_splat",
