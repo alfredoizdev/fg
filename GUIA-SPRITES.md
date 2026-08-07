@@ -490,10 +490,17 @@ en el efecto.
     control, ojos cerrados/apretados, cara floja. NO hay ninguna pose de fuerza
     ni de ataque en NINGÚN frame.
 
-    KATANA (regla fija en los 6 frames): **una sola mano floja** sujeta SOLO el
-    **mango por el extremo**; el brazo cuelga muerto y la **hoja apunta hacia
-    abajo-atrás, arrastrada**. PROHIBIDO: dos manos, agarrarla por la hoja,
-    levantarla o cualquier pose de ataque.
+    KATANA (regla fija en los 6 frames — SIEMPRE bien AGARRADA):
+    - **La mano NUNCA la suelta.** En CADA UNO de los 6 frames se ven los
+      **dedos cerrados envolviendo el mango**, la mano PEGADA al mango. La katana
+      está SIEMPRE unida a la mano — PROHIBIDO que flote suelta, separada de la
+      mano, o cayéndose aparte (esto pasa mucho, EVÍTALO en todos los frames).
+    - La sujeta con **una sola mano** por el mango, con el brazo estirado **hacia
+      ADELANTE** (en la dirección del vuelo/caída), de modo que la **hoja apunta
+      hacia ADELANTE-abajo**, arrastrándose por DELANTE del cuerpo (no colgando
+      recta hacia abajo ni hacia atrás).
+    - PROHIBIDO: soltarla, que quede flotando separada de la mano, dos manos,
+      agarrarla por la hoja, levantarla, o cualquier pose de ataque.
 
     La animación es UN SOLO movimiento continuo: **vuela horizontal → choca y se
     comprime → se despega cayendo de bruces.** Cada frame CONTINÚA el anterior.
