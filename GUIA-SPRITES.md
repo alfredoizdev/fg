@@ -182,30 +182,37 @@ sueltos por masa corporal para que encajen).
      dos piernas, dos manos de 5 dedos — NADA cortado ni fuera del frame; personaje
      COMPLETO con margen.
 
-4. **`kick-sheet.png`** — 10 frames en DOS FILAS de 5 (fila de arriba:
-   f1-f5, fila de abajo: f6-f10). Corte pesado descendente, arco completo
-   de arriba a abajo — cada frame una posición distinta de la espada:
-   - f1: la POSE DE GUARDIA exacta; las rodillas empiezan a flexionarse
-   - f2: katana alzándose en diagonal sobre el hombro
-   - f3: katana COMPLETAMENTE arriba, sobre la cabeza, cuerpo estirado
-   - f4: máxima tensión: cuerpo arqueado atrás, la hoja apenas empieza
-     a inclinarse hacia adelante
-   - f5: el swing arranca, katana en diagonal delantera alta (45° arriba)
-   - f6: IMPACTO — katana horizontal al frente, cuerpo inclinado adelante
-   - f7: la hoja sigue bajando, en diagonal baja delantera
-   - f8: la hoja casi tocando el piso, con zancada profunda
-   - f9: sostiene la pose baja un instante (peso del golpe)
-   - f10: recupera la POSE DE GUARDIA exacta del f1
-     La espada debe verse en una posición DISTINTA del arco en cada frame,
-     avanzando de forma PAREJA (sin saltos bruscos entre frames). MUCHO
-     CUIDADO en los frames finales (f8-f10): la katana sigue EN LAS MANOS
-     en todo momento — nunca en el piso, nunca debajo del pie, y cada
-     frame es un solo personaje (no dos poses pegadas).
+4. **`kick-sheet.png`** — 6 frames en DOS FILAS de 3 (arriba f1-f3, abajo f4-f6).
+   CORTE PESADO DESCENDENTE: alza la katana grande por encima de la cabeza y la
+   deja caer en un tajo vertical al frente. Movimiento SÓLIDO — la katana va
+   SIEMPRE NÍTIDA (el arco/estela lo pone el MOTOR, no la AI). Aplica la CAPA DE
+   KEYFRAME de `GUIA-COMUN.md` (windup → impacto → follow-through), SIN smear.
+   - f1: WINDUP — desde la guardia, rodillas flexionadas, la katana empieza a
+     alzarse en diagonal sobre el hombro
+   - f2: CARGA ARRIBA — katana COMPLETAMENTE en alto sobre la cabeza, cuerpo
+     arqueado atrás, tenso, listo para descargar (resorte cargado)
+   - f3: EL TAJO ARRANCA — la katana baja rápido en diagonal delantera alta, el
+     cuerpo empieza a volcarse adelante
+   - f4: IMPACTO — la katana llega abajo-al-frente (tajo completo), cuerpo
+     inclinado y volcado adelante en zancada, brazos al máximo. Es el pico del golpe
+   - f5: FOLLOW-THROUGH — la hoja siguió de largo hacia abajo, el cuerpo
+     sobre-comprometido en la zancada baja (el peso del golpe)
+   - f6: RECUPERA — se endereza y vuelve casi a la guardia, la katana subiendo de vuelta
+   **⚠️ CRÍTICO — TAMAÑO CONSISTENTE (esto FALLÓ antes):** el PERSONAJE (cuerpo y
+   cabeza) mide EXACTAMENTE LO MISMO en los 6 frames. Aunque en el f2 la katana
+   se alce por encima de la cabeza, NO agrandes al personaje en ese frame — SOLO
+   la KATANA se extiende hacia arriba; el CUERPO y la CABEZA quedan del mismo
+   tamaño y con los PIES en la misma línea que en los demás frames. Grilla PAREJA
+   (las 6 celdas del MISMO tamaño), personaje centrado en su celda con margen.
+   **ANATOMÍA:** dos brazos completos, dos piernas, dos manos de 5 dedos, NADA
+   cortado por el borde. La katana SIEMPRE nítida y del mismo largo y grosor.
 
 ### Agachado
 
-5. **`crouch-sheet.png`** — 3 frames. Se agacha progresivamente hasta quedar
+5. **`crouch-sheet.png`** — 4 frames. Se agacha progresivamente hasta quedar
    en cuclillas con la katana lista: de pie → semiagachado → agachado firme.
+   La ropa se mueve acorde al movimiento si se agacha la cola del sobretodo va hacia arriva ligeramnte y
+   cuando ya se agacha cae
 
 6. **`crouch-punch-sheet.png`** — 3 frames. Corte rápido de katana desde la
    posición agachada, al frente y a media altura: carga → corte → recogida.

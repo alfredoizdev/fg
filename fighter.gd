@@ -454,7 +454,7 @@ func _burst(escala: float, block := false, lado := 1, blue := false, alto := 0.0
 		fx_sprite.flip_h = facing < 0
 		fx_sprite.rotation = 0.0 if block else randf_range(-0.25, 0.25)
 		fx_sprite.flip_v = false if block else randf() < 0.5
-		var esc := (1.6 if block else 0.75) * escala * randf_range(0.9, 1.12)
+		var esc := (1.2 if block else 0.75) * escala * randf_range(0.9, 1.12)
 		fx_sprite.scale = Vector2(esc, esc)
 		fx_sprite.visible = true
 		fx_sprite.play(anim)
@@ -778,6 +778,9 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	special_t = 0.0  # un golpe recibido corta el dash especial
 	fe_dash_t = 0.0  # ...y también el dash de agujas de Fe
 	fe_dash_active = false
+	# encara al ATACANTE al recibir (push_dir = empuje del golpe; el atacante está
+	# del lado contrario). Así el escudo de bloqueo (flip_h = facing<0) mira al golpe.
+	set_facing(-push_dir)
 	# en el aire cualquier golpe lo derriba
 	if airborne:
 		_burst(1.2, false, 1, atk_blue)

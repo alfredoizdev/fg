@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=123 format=3]
+[gd_resource type="SpriteFrames" load_steps=125 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -21,6 +21,7 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-3.png" id="pn3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-4.png" id="pn4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-5.png" id="pn5"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/punch/dam-punch-6.png" id="pn6"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-1.png" id="kk1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-2.png" id="kk2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/kick/dam-kick-3.png" id="kk3"]
@@ -29,6 +30,7 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-1.png" id="cr1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-2.png" id="cr2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-3.png" id="cr3"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/crouch/dam-crouch-4.png" id="cr4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-punch/dam-crouch-punch-1.png" id="cp1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-punch/dam-crouch-punch-2.png" id="cp2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/crouch-punch/dam-crouch-punch-3.png" id="cp3"]
@@ -197,10 +199,13 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("pn5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pn6")
 }],
 "loop": false,
 "name": &"punch",
-"speed": 30.0
+"speed": 14.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -217,10 +222,13 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("pn5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pn6")
 }],
 "loop": false,
 "name": &"punch2",
-"speed": 30.0
+"speed": 14.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -326,6 +334,9 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("cr3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cr4")
 }],
 "loop": false,
 "name": &"crouch",
