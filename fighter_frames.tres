@@ -522,7 +522,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"pummeled",
-"speed": 16.0
+"speed": 11.0
 }, {
 "frames": [{
 "duration": 1.0,

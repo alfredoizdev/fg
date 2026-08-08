@@ -93,6 +93,8 @@ const SFX_FILES := {
 	"jump_punch": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"jump_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"spin_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
+	"air_spin_kick": "res://imagen-action/sound-effect/dam_furious_kicking.mp3",
+	"air_jab": "res://imagen-action/sound-effect/weak-sound-sword.mp3",
 	"take_hit": "res://imagen-action/sound-effect/kick-impact.mp3",
 	"take_hit_low": "res://imagen-action/sound-effect/kick-impact.mp3",
 	"hit_fly": "res://imagen-action/sound-effect/kick-impact.mp3",
@@ -363,13 +365,19 @@ func current_attack() -> Dictionary:
 	# aunque la animación sea rápida (no depende de acertar un frame intermedio exacto).
 	if sprite.animation == "air_jab" and sprite.is_playing():
 		var afr := int(sprite.frame)
-		if afr < 2:
-			return {"name": "air_jab", "frame": afr, "hit_frame": 0,
+		if fx_blue:
+			# Favi: PATADA AÉREA DOBLE (2 golpes ligeros)
+			if afr < 2:
+				return {"name": "air_jab", "frame": afr, "hit_frame": 0,
+					"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
+					"damage": 35, "impact_sfx": "kick_impact"}
+			return {"name": "air_jab_2", "frame": afr, "hit_frame": 2,
 				"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
 				"damage": 35, "impact_sfx": "kick_impact"}
-		return {"name": "air_jab_2", "frame": afr, "hit_frame": 2,
+		# DAM: JAB AÉREO de UN SOLO golpe (aunque la animación muestre dos jabs)
+		return {"name": "air_jab", "frame": afr, "hit_frame": 1,
 			"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
-			"damage": 35, "impact_sfx": "kick_impact"}
+			"damage": 50, "impact_sfx": "kick_impact"}
 	if sprite.animation in ATTACKS and sprite.is_playing():
 		var a: Dictionary = ATTACKS[sprite.animation].duplicate()
 		a["name"] = sprite.animation
