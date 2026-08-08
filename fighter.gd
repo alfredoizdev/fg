@@ -991,9 +991,12 @@ func _physics_process(delta: float) -> void:
 	# en el aire: gravedad; con control solo si es jugador y no va despedido
 	if airborne:
 		var air_spin: bool = sprite.animation in ["spin_kick", "air_spin_kick"] and sprite.is_playing()
+		# TODOS los ataques aéreos flotan: mientras golpeas en el aire, bajas
+		# poco a poco (feel de combo aéreo de fighting game), no caes en picada.
+		var air_atk: bool = air_spin or (sprite.animation in ["jump_punch", "jump_kick", "air_jab"] and sprite.is_playing())
 		position.y += vel_y * delta
-		# girando en el aire cae flotando (tatsumaki) y avanza solo
-		var g_mult := 0.35 if air_spin else 1.0
+		# atacando en el aire cae flotando y (el giro) avanza solo
+		var g_mult := 0.35 if air_atk else 1.0
 		# caida BRUSCA del remate del ULTRA: al pasar el ápice se desploma
 		if hard_fall and hit_flying and vel_y > 0.0:
 			g_mult = 2.6
@@ -1001,9 +1004,10 @@ func _physics_process(delta: float) -> void:
 		elif hit_flying and vel_y > 0.0:
 			g_mult = 1.7
 		vel_y += GRAVITY * g_mult * delta
-		if air_spin:
-			vel_y = minf(vel_y, 300.0 * CHAR_SCALE)
-			position.x += facing * SPIN_TRAVEL * 0.8 * delta
+		if air_atk:
+			vel_y = minf(vel_y, 300.0 * CHAR_SCALE)   # descenso lento y parejo mientras golpea
+			if air_spin:
+				position.x += facing * SPIN_TRAVEL * 0.8 * delta
 		elif hit_flying:
 			position.x += vel_x * delta
 			# rebote contra el limite del escenario (una vez por vuelo)
