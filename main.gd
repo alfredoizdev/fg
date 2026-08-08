@@ -1420,14 +1420,16 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 		atacante.set_facing(dir)
 		atacante.sprite.speed_scale = lerpf(0.4, 3.0, ramp)
 		atacante.sprite.play(ULTRA_FLURRY[i])
-		# el rival se tambalea de pie recibiendo golpes (usa "pummeled" si existe)
+		# el rival se tambalea de pie recibiendo golpes.
+		# NOTA: "pummeled" sigue con arte VIEJO (pelo negro) -> por ahora usamos
+		# take_hit/take_hit_low (arte nuevo) alternados. Cuando pummeled se
+		# regenere, volver a: "pummeled" if ...has_animation("pummeled") else ...
 		victima.crouching = false
 		victima.airborne = false
 		victima.ultra_hover = false
 		# SIEMPRE mira hacia el atacante para que el recular sea acorde al golpe
 		victima.set_facing(1 if atacante.position.x > victima.position.x else -1)
-		var pose := "pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") \
-				else ("take_hit_low" if i % 2 == 0 else "take_hit")
+		var pose := "take_hit_low" if i % 2 == 0 else "take_hit"
 		victima.sprite.play(pose)
 		victima._play_sfx_key("take_hit")   # sonido de impacto por golpe
 		# chispa al PECHO (base_corr sigue el pecho según la escala del personaje)
