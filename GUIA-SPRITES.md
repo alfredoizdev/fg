@@ -276,8 +276,14 @@ sueltos por masa corporal para que encajen).
 11. **`take-hit-sheet.png`** — 4 frames. Golpeado de pie: impacto en el
     rostro/pecho, cabeza hacia atrás, retrocede encorvado, casi recupera guardia.
 
-12. **`take-hit-low-sheet.png`** — 2 frames. Golpeado estando agachado: se
-    encoge por el impacto sin levantarse → casi recupera la postura agachada.
+12. **`take-hit-low-sheet.png`** — 2 frames. Recibe un GOLPE BAJO estando DE PIE
+    (NO agachado): un ataque bajo le pega en las piernas / parte baja y DAM se
+    DOBLA por el impacto — la pierna delantera cede, el torso se va hacia
+    ADELANTE-ABAJO y la cabeza baja del golpe, pero SIGUE DE PIE (no se agacha a
+    propósito, es la reacción de dolor a un golpe bajo). La katana en la mano.
+    - f1: el golpe bajo impacta: la pierna cede y el torso se dobla
+      adelante-abajo, gesto de dolor, cabeza baja.
+    - f2: empieza a recuperar la postura de pie (aún ligeramente doblado).
 
 13. **`strong-fly-sheet.png`** — **6 frames en 2 filas de 3**. GIRO EN EL AIRE al
     salir volando por un golpe fuerte: el cuerpo GIRA 360° sobre su eje mientras
@@ -325,7 +331,7 @@ sueltos por masa corporal para que encajen).
 
 16. **`ko-sheet.png`** — 5 frames. Derrota: tambalea → cae de rodillas →
     se desploma → tendido en el piso boca arriba → inmóvil (la katana
-    apagada a su lado). El último frame se queda en pantalla.
+    eagada a su lado). El último frame se queda en pantalla.
 
 17. **`victory-sheet.png` + `victory-sheet-2.png`** — 8 frames en total
     (4 por hoja). Victoria, con la envainada COMPLETA — cada frame una
@@ -404,8 +410,8 @@ sueltos por masa corporal para que encajen).
       que son dos golpes). Katana igual.
     - f5: recoge la pierna, el torso se endereza un poco (fin del segundo golpe).
     - f6: postura de caída en el aire, piernas recogiéndose. Katana igual.
-    NUNCA muevas la katana entre frames: va SIEMPRE abajo-al frente, idéntica.
-    Nada de giro, voltereta ni katana en alto.
+      NUNCA muevas la katana entre frames: va SIEMPRE abajo-al frente, idéntica.
+      Nada de giro, voltereta ni katana en alto.
 
 ---
 
