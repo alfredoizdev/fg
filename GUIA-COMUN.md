@@ -327,16 +327,26 @@ barridos. Archivo: `impact-slash-sheet.png` en `imagen-action/impact-effect/`.
 - **SIN personaje, sin escenario, sin texto.** Solo el efecto sobre el verde.
 - Estilo **cel-shaded PLANO, bordes NÍTIDOS, NADA borroso.**
 
-**Qué dibujar (el look de la referencia):**
-- **UN solo TAJO diagonal grande:** una franja/rayo de corte LARGA y curvada,
-  AFILADA en las dos puntas (GRUESA al medio, adelgazando a puntas finas en los
-  extremos), como el rastro de una espada o un relámpago grueso. Va en DIAGONAL
-  (de abajo-izquierda a arriba-derecha). (El motor la rota al azar.)
-- **Color:** el filo/centro BLANCO-AMARILLO incandescente → cuerpo NARANJA →
-  bordes ROJO. En CAPAS planas, sin degradado suave.
-- **Bordes ANGULARES/dentados** (gráfico tipo tinta), NO suaves ni redondeados.
-- **Acompañantes:** trocitos NEGROS de escombro + brasas/chispas naranjas
-  volando a lo largo del tajo, y alguna salpicadura de tinta negra.
+**IMPORTANTE — es un CORTE de espada, NO fuego:** debe leerse como un TAJO
+limpio y afilado (un slash que rasga el aire), NO como una llama, antorcha,
+chorro de fuego ni plasma. NADA de flecos de fuego, lengüetas de llama ni
+explosión de color en las puntas.
+
+**Qué dibujar:**
+- **UN solo TAJO en forma de MEDIA LUNA (crescent):** una hoja de corte
+  CURVA (arco suave, NO una línea recta), delgada, que va de una punta a la
+  otra. GRUESA/brillante SOLO en el centro y adelgazando a **puntas MUY FINAS,
+  afiladas y LIMPIAS** en los dos extremos (como los cuernos de una media luna).
+  Diagonal (abajo-izq → arriba-der). (El motor la rota al azar.)
+- **Color CONTENIDO (poco color, sobre todo en las puntas):** un filo/centro
+  BLANCO incandescente FINO, con un borde DELGADO amarillo→naranja pegado al
+  centro, y apenas un hilo ROJO en el borde exterior. Capas planas. Las PUNTAS
+  son casi solo la línea blanca fina — SIN halo naranja grande, SIN llamarada.
+  El cuerpo del tajo es DELGADO, no un chorro grueso.
+- **Bordes ANGULARES/afilados** (gráfico, filo de navaja), NO suaves,
+  NO redondeados, NO plumosos/flamígeros.
+- **Acompañantes MÍNIMOS:** unos pocos trocitos NEGROS de escombro cerca del
+  centro y alguna chispa suelta. NADA de nube de brasas ni partículas de fuego.
 
 **Ciclo por frames (se va haciendo DELGADO hasta desaparecer, NO se encoge de
 largo — se mantiene largo pero cada vez más FINO):**
