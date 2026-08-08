@@ -211,7 +211,7 @@ func _ready() -> void:
 	combo_font.font_weight = 900
 	for i in 2:
 		var c := Node2D.new()
-		c.position = Vector2(270, 300) if i == 0 else Vector2(1650, 300)
+		c.position = Vector2(270, 335) if i == 0 else Vector2(1650, 335)
 		c.visible = false
 		$UI.add_child(c)
 		# NÚMERO FANTASMA gigante detrás (estilo GG Strive): semitransparente, enorme,
@@ -253,7 +253,7 @@ func _ready() -> void:
 		n.add_theme_color_override("font_color", Color(1, 1, 1))
 		n.add_theme_color_override("font_outline_color", Color(0.05, 0.07, 0.02))
 		n.add_theme_constant_override("outline_size", 12)
-		n.position = Vector2(-HW, -110)
+		n.position = Vector2(-HW, -134)
 		n.size = Vector2(2.0 * HW, 128)
 		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		n.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
