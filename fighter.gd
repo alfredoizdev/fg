@@ -914,8 +914,8 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 
 const BURN_DUR := 5.0
 var burned_t := 0.0
-var burn_smoke: AnimatedSprite2D = null
-var burn_smoke_frames: SpriteFrames = null
+var burn_smoke: AnimatedSprite2D = null          # DETRÁS del cuerpo (humo-1..5)
+var burn_smoke_front: AnimatedSprite2D = null    # DELANTE del pecho, tenue (humo2-1..6)
 # estado QUEMADO: el cuerpo se ve oscuro/carbonizado y se recupera de a poco.
 # General: cualquier poder de fuego (inferno de DAM, etc.) lo puede aplicar.
 func start_burn(dur := BURN_DUR) -> void:
@@ -923,31 +923,42 @@ func start_burn(dur := BURN_DUR) -> void:
 	_ensure_burn_smoke()
 	if burn_smoke != null:
 		burn_smoke.visible = true
+	if burn_smoke_front != null:
+		burn_smoke_front.visible = true
 
-# HUMO de ropa quemada: animación (humo-1..5) DETRÁS del personaje, gris y tenue,
-# en loop mientras arde. Se desvanece al recuperarse.
-func _ensure_burn_smoke() -> void:
-	if burn_smoke != null:
-		return
-	if not ResourceLoader.exists("res://imagen-action/impact-effect/humo/humo-1.png"):
-		return
-	if burn_smoke_frames == null:
-		burn_smoke_frames = SpriteFrames.new()
-		burn_smoke_frames.add_animation("humo")
-		burn_smoke_frames.set_animation_speed("humo", 7.0)
-		burn_smoke_frames.set_animation_loop("humo", true)
-		for i in range(1, 6):
-			burn_smoke_frames.add_frame("humo", load("res://imagen-action/impact-effect/humo/humo-%d.png" % i))
+func _make_smoke(path_fmt: String, n: int, speed: float, pos: Vector2, scl: float, col: Color) -> AnimatedSprite2D:
+	var sf := SpriteFrames.new()
+	sf.add_animation("humo")
+	sf.set_animation_speed("humo", speed)
+	sf.set_animation_loop("humo", true)
+	for i in range(1, n + 1):
+		sf.add_frame("humo", load(path_fmt % i))
 	var sm := AnimatedSprite2D.new()
-	sm.sprite_frames = burn_smoke_frames
+	sm.sprite_frames = sf
 	sm.animation = "humo"
-	sm.modulate = Color(0.42, 0.40, 0.42, 0.0)   # humo GRIS, arranca invisible
-	sm.position = Vector2(0.0, 90.0)              # sobre el torso, sube por encima
-	sm.scale = Vector2(0.8, 0.8)
-	burn_smoke = sm
-	add_child(sm)
-	move_child(sm, sprite.get_index())            # justo DETRÁS del cuerpo
-	sm.play("humo")
+	sm.modulate = col
+	sm.position = pos
+	sm.scale = Vector2(scl, scl)
+	return sm
+
+# HUMO de ropa quemada: DOS capas grises en loop mientras arde, que se desvanecen al
+# recuperarse. (1) DETRÁS del cuerpo (sube por el torso). (2) DELANTE del pecho, MÁS
+# TENUE, para que no tape al personaje.
+func _ensure_burn_smoke() -> void:
+	if burn_smoke != null or burn_smoke_front != null:
+		return
+	if ResourceLoader.exists("res://imagen-action/impact-effect/humo/humo-1.png"):
+		burn_smoke = _make_smoke("res://imagen-action/impact-effect/humo/humo-%d.png", 5, 7.0,
+				Vector2(0.0, 90.0), 0.8, Color(0.42, 0.40, 0.42, 0.0))
+		add_child(burn_smoke)
+		move_child(burn_smoke, sprite.get_index())    # DETRÁS del cuerpo
+		burn_smoke.play("humo")
+	if ResourceLoader.exists("res://imagen-action/impact-effect/humo2/humo2-1.png"):
+		burn_smoke_front = _make_smoke("res://imagen-action/impact-effect/humo2/humo2-%d.png", 6, 8.0,
+				Vector2(0.0, 120.0), 0.55, Color(0.52, 0.50, 0.52, 0.0))
+		burn_smoke_front.z_index = 1                  # DELANTE del cuerpo (sobre el pecho)
+		add_child(burn_smoke_front)
+		burn_smoke_front.play("humo")
 
 func _physics_process(delta: float) -> void:
 	queue_redraw()
@@ -975,15 +986,24 @@ func _physics_process(delta: float) -> void:
 		burned_t = maxf(0.0, burned_t - delta)
 		var bt := burned_t / BURN_DUR   # 1 (recién quemado) -> 0 (recuperado)
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.30, 0.23, 0.24, 1), bt)
+		var smk := clampf(burned_t, 0.0, 1.0)          # se disipa en el último seg
 		if burn_smoke != null:
 			burn_smoke.visible = true
-			burn_smoke.modulate.a = 0.7 * clampf(burned_t, 0.0, 1.0)   # se disipa en el último seg
+			burn_smoke.modulate.a = 0.7 * smk           # DETRÁS: normal
+		if burn_smoke_front != null:
+			burn_smoke_front.visible = true
+			burn_smoke_front.modulate.a = 0.3 * smk     # DELANTE: MÁS TENUE (no tapa)
 	elif sprite.modulate != Color(1, 1, 1, 1):
 		sprite.modulate = Color(1, 1, 1, 1)
 		if burn_smoke != null:
 			burn_smoke.visible = false
-	elif burn_smoke != null and burn_smoke.visible:
-		burn_smoke.visible = false
+		if burn_smoke_front != null:
+			burn_smoke_front.visible = false
+	elif (burn_smoke != null and burn_smoke.visible) or (burn_smoke_front != null and burn_smoke_front.visible):
+		if burn_smoke != null:
+			burn_smoke.visible = false
+		if burn_smoke_front != null:
+			burn_smoke_front.visible = false
 
 	# squash del estrellon: conserva el volumen (comprime un eje, estira el otro)
 	if wall_squash_t > 0.0:
