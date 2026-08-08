@@ -229,12 +229,16 @@ dramático (el que sale al conectar un golpe). Archivo: `impact-hit-sheet.png`
 en `imagen-action/impact-effect/`.
 
 **Formato técnico (OBLIGATORIO para que entre al juego):**
-- 1 hoja, **4 frames en UNA fila** de izquierda a derecha (o 6 en 2 filas de 3,
-  fila de arriba primero) = el efecto avanzando en el tiempo.
+- 1 hoja, **8 frames en 2 filas de 4** (fila de arriba f1-f4 izq→der, fila de
+  abajo f5-f8 izq→der) = el efecto avanzando en el tiempo. 8 frames hacen la
+  animación FLUIDA/sólida (no a saltos).
 - Fondo **VERDE puro #00FF00** (se recorta a transparente; el verde NO puede
   tocar el efecto — deja aire verde alrededor de cada frame).
-- El efecto **CENTRADO**, con el **MISMO centro y el MISMO tamaño** en todos los
-  frames (si salta de posición o tamaño, se ve mal).
+- El efecto **CENTRADO en el MISMO punto** en los 8 frames (el destello nace y
+  se expande siempre desde ese mismo centro). El TAMAÑO SÍ cambia por diseño
+  (crece hasta el pico y luego se expande al disiparse) — pero el CENTRO no se
+  mueve. Deja MARGEN verde de sobra alrededor para que el frame más expandido
+  (f8) no toque el borde.
 - **SIN personaje, sin escenario, sin barras, sin texto, sin números.** Solo el
   efecto flotando sobre el verde.
 - Estilo **cel-shaded PLANO, alto contraste, bordes NÍTIDOS y duros, colores
@@ -277,16 +281,25 @@ a evitar SÍ o SÍ:
    afuera, y unas pocas gotas de tinta salpicando lejos.
 6. (Opcional, más pop) **chispitas eléctricas CIAN** finas cerca del centro.
 
-**Ciclo por frames (un impacto es INSTANTÁNEO: estalla temprano y se disipa):**
-- **f1 — NACE:** núcleo blanco chico ultra-brillante, 3-4 púas cortas asomando,
-  1-2 flecos de tinta.
-- **f2 — ESTALLA:** la estrella explota a casi el tamaño máximo: muchas púas,
-  primeras esquirlas diagonales, manchones de tinta arriba, escombros saliendo.
-- **f3 — PICO:** lo más grande y caótico: estrella completa, esquirlas largas,
-  vacíos de tinta, escombros y (opcional) chispas cian.
-- **f4 — SE DISIPA:** las púas se acortan, la tinta y los escombros se alejan y
-  adelgazan, queda un destello tenue.
-  *(Con 6 frames: alarga el pico — f3 y f4 = pico, f5-f6 = disipación.)*
+**Ciclo por frames — 8 frames. El impacto ESTALLA rápido y luego, para
+desaparecer, se DESHACE EXPANDIÉNDOSE Y VACIÁNDOSE POR EL CENTRO (NO se encoge:
+se abre como una onda hueca dentada que crece y se desvanece):**
+- **f1 — NACE:** núcleo blanco chico ultra-brillante, 2-3 púas cortas.
+- **f2 — CRECE:** más púas y las primeras esquirlas, 1 fleco de tinta.
+- **f3 — ESTALLA:** casi tamaño máximo — muchas púas + esquirlas diagonales +
+  manchas de tinta arriba + escombros saliendo.
+- **f4 — PICO:** lo más grande, SÓLIDO y caótico: estrella completa, núcleo
+  blanco intenso, tinta y escombros al máximo, esquirlas largas.
+- **f5 — SE ABRE:** el núcleo blanco empieza a VACIARSE (se abre un hueco en el
+  centro) y la estrella se EXPANDE un poco más allá del pico.
+- **f6 — HUECO:** el centro ya está claramente HUECO (transparente en el medio);
+  queda un ANILLO DENTADO de púas expandiéndose hacia afuera, con las esquirlas y
+  los escombros alejándose del centro.
+- **f7 — SE DESHACE:** el anillo dentado se expande AÚN MÁS y se adelgaza, más
+  tenue; la tinta y los escombros se dispersan lejos.
+- **f8 — DESAPARECE:** un aro dentado grande, muy tenue y casi transparente,
+  disipándose por completo.
+  *(La clave: del f4 al f8 el efecto CRECE y se VACÍA por dentro; nunca encoge.)*
 
 **Variantes de color (MISMO diseño, solo cambia el tinte del núcleo/púas; la
 tinta negra y los escombros quedan negros en las tres):**
