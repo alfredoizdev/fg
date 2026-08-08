@@ -122,6 +122,8 @@ var pinned_combo := -1
 # BREAK epico: baner gigante + fogonazo de pantalla
 var break_node: Node2D
 var flash_rect: ColorRect
+var ultra_panel: TextureRect          # paneles manga a pantalla completa durante el ultra
+var ultra_panels: Array = []          # texturas ultra-1..6 (líneas de acción)
 var break_t := 0.0
 var flash_t := 0.0
 var code_stage: Node2D = null  # escenario activo (para el tinte de combo)
@@ -293,6 +295,19 @@ func _ready() -> void:
 	flash_rect.color = Color(1, 1, 1, 0.0)
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$UI.add_child(flash_rect)
+	# paneles manga (líneas de acción) a pantalla completa durante el ULTRA:
+	# van SOBRE los peleadores pero DEBAJO del contador de combo (se agregan antes)
+	ultra_panel = TextureRect.new()
+	ultra_panel.size = Vector2(1920, 1080)
+	ultra_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ultra_panel.stretch_mode = TextureRect.STRETCH_SCALE
+	ultra_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ultra_panel.visible = false
+	$UI.add_child(ultra_panel)
+	for i in range(1, 7):
+		var t := load("res://imagen-action/impact-effect/ultra/ultra-%d.png" % i)
+		if t != null:
+			ultra_panels.append(t)
 	# aviso "→ R  ULTRA!" cuando el comando esta habilitado (rival en rojo + combo)
 	ultra_hint = Label.new()
 	ultra_hint.text = "→ R   ANNIHILATION"
@@ -1434,6 +1449,11 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 				victima.sprite.play("pummeled")
 		else:
 			victima.sprite.play("take_hit_low" if i % 2 == 0 else "take_hit")
+		# panel manga a pantalla completa: avanza 1->6 conforme progresa la ráfaga
+		if ultra_panels.size() > 0:
+			var pidx := clampi(int(float(i) / float(ULTRA_FLURRY.size()) * ultra_panels.size()), 0, ultra_panels.size() - 1)
+			ultra_panel.texture = ultra_panels[pidx]
+			ultra_panel.visible = true
 		victima._play_sfx_key("take_hit")   # sonido de impacto por golpe
 		# chispa al PECHO (base_corr sigue el pecho según la escala del personaje)
 		victima._burst(0.95, false, 1, false, 500.0 * (1.0 - victima.base_scale.y))
@@ -2493,6 +2513,8 @@ func _focus_end() -> void:
 	focus_cur = 0.0
 	focus_target = 0.0
 	modulate = Color(1, 1, 1)
+	if ultra_panel != null:
+		ultra_panel.visible = false   # quita los paneles manga al terminar el ultra
 
 func _focus_apply() -> void:
 	if _outline_mat != null:
