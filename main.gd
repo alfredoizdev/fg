@@ -89,6 +89,7 @@ var combo_ghost := []   # numero FANTASMA gigante detras (estilo GG Strive)
 var combo_nom := []     # nombre del rango
 var combo_font: SystemFont   # fuente heavy del contador
 var combo_band := []    # banda de color del número (verde -> rojo según el combo)
+var combo_face := []    # cara/ojos del ATACANTE como fondo del panel del número
 var combo_rest_x := [270.0, 1650.0]   # x de reposo del cartel (izq / der)
 var combo_show_ms := [-100000, -100000]  # reloj REAL del inicio de la entrada deslizada
 var combo_was_vis := [false, false]   # para detectar cuando aparece (y disparar el slide)
@@ -278,6 +279,12 @@ func _ready() -> void:
 		nb.color = Color(0.62, 0.86, 0.16)
 		c.add_child(nb)
 		combo_band.append(nb)   # se recolorea (verde->rojo) según crece el combo
+		# CARA/OJOS del atacante como fondo del panel (encima del color, bajo el número)
+		var fc := Polygon2D.new()
+		fc.polygon = nb_poly
+		fc.color = Color(1, 1, 1, 0.62)   # se blend con la banda de color de abajo
+		c.add_child(fc)
+		combo_face.append(fc)
 		# número gigante BLANCO con contorno oscuro (resalta sobre el verde), centrado
 		var n := Label.new()
 		n.add_theme_font_override("font", combo_font)
@@ -1340,6 +1347,14 @@ func _refresh_hud_chars() -> void:
 		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			hud_avatar[side].texture = load(String(c["avatar"]))
 			_cover_avatar(hud_avatar[side], 114, 114)   # reajusta al tamaño real del retrato nuevo
+		# cara/ojos del atacante como fondo del panel del combo (mapea la franja de los ojos)
+		if side < combo_face.size() and combo_face[side] != null and ResourceLoader.exists(String(c["avatar"])):
+			var ftex: Texture2D = load(String(c["avatar"]))
+			combo_face[side].texture = ftex
+			var ts: Vector2 = ftex.get_size()
+			combo_face[side].uv = PackedVector2Array([
+				Vector2(ts.x * 0.12, ts.y * 0.24), Vector2(ts.x * 0.88, ts.y * 0.24),
+				Vector2(ts.x * 0.88, ts.y * 0.55), Vector2(ts.x * 0.12, ts.y * 0.55)])
 
 func _start_round() -> void:
 	state = "intro"
@@ -3191,6 +3206,11 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		return done
 	done = String(atk["name"])
 	if def.koed or (def.is_downed() and not def.hit_flying):
+		return done
+	# el AIR JAB (arriba R) es AIRE-A-AIRE: SOLO conecta si el rival está EN EL AIRE
+	# (si el rival está en el suelo, pasa de largo aunque el atacante haya saltado)
+	if String(atk["name"]) in ["air_jab", "air_jab_2"] \
+			and not (def.airborne and (def.floor_y - def.position.y) > 40.0):
 		return done
 	# los golpes BAJOS raspan el piso: fallan contra un rival en el aire
 	if bool(atk.get("low", false)) and def.airborne \
