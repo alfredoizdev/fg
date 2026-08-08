@@ -140,6 +140,21 @@ var flash_ms := -100000
 var shake_end_ms := -100000
 var shake_amp := 0.0
 var shake_dur_ms := 1
+# CUT-IN cinemático del INFIERNO: retrato de DAM que ENTRA desde un lado (según el
+# facing) sobre una banda roja diagonal con líneas de velocidad. Estilo P4A.
+var cutin_root: Control = null
+var cutin_dark: ColorRect
+var cutin_band: ColorRect
+var cutin_lines := []
+var cutin_portrait: TextureRect
+var cutin_flash: ColorRect
+var cutin_ms := -100000
+var cutin_side := -1
+const CUTIN_IN := 0.20
+const CUTIN_HOLD := 0.36
+const CUTIN_OUT := 0.22
+const CUTIN_PW := 776.0
+const CUTIN_PH := 1150.0
 # ENFOQUE épico del ULTRA: borde rojo eléctrico en el atacante + escena oscurecida
 var _outline_mat: ShaderMaterial = null
 var pin_panel: ColorRect
@@ -347,6 +362,7 @@ func _ready() -> void:
 	ultra_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ultra_hint.visible = false
 	$UI.add_child(ultra_hint)
+	_build_cutin()   # cut-in cinemático del INFIERNO (retrato de DAM)
 	# BREAK estilo carteles: dos BANDAS INCLINADAS que ENTRAN deslizándose desde
 	# el borde izquierdo, con palabras distintas (animadas con reloj REAL en _process)
 	break_node = Node2D.new()
@@ -1677,6 +1693,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	else:
 		atacante.sprite.play("pose")           # respaldo: pose NUEVA (nunca flame_cast viejo)
 	_play_voz("inferno")                   # GRITA el poder al alzar la katana (ANTES de la bola)
+	_play_cutin(dir)                       # CUT-IN épico: retrato de DAM entra desde su lado
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(0.10, 0.01, 0.0, 0.55)   # velo OSCURO rojizo (no fogonazo)
 	Engine.time_scale = 0.0                # pausa dramática
@@ -2607,6 +2624,102 @@ func _dash_border(atacante: Node2D, on: bool) -> void:
 		atacante.sprite.material = null   # solo lo quita si es el del dash (no pisa el del ultra)
 
 # suaviza focus_cur hacia focus_target con reloj REAL (llamado desde _process)
+# ---- CUT-IN del INFIERNO: retrato de DAM que entra desde un lado (estilo P4A) ----
+func _build_cutin() -> void:
+	cutin_root = Control.new()
+	cutin_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cutin_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutin_root.z_index = 60
+	cutin_root.visible = false
+	$UI.add_child(cutin_root)
+	# velo oscuro para que el cut-in resalte
+	cutin_dark = ColorRect.new()
+	cutin_dark.color = Color(0.06, 0.0, 0.02, 0.0)
+	cutin_dark.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cutin_dark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutin_root.add_child(cutin_dark)
+	# banda roja DIAGONAL
+	cutin_band = ColorRect.new()
+	cutin_band.color = Color(0.85, 0.11, 0.05, 0.0)
+	cutin_band.size = Vector2(2800.0, 560.0)
+	cutin_band.pivot_offset = cutin_band.size * 0.5
+	cutin_band.rotation = deg_to_rad(-18.0)
+	cutin_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutin_root.add_child(cutin_band)
+	# líneas de velocidad naranjas (mismo ángulo)
+	for i in 8:
+		var ln := ColorRect.new()
+		ln.color = Color(1.5, 0.55, 0.18, 0.0)
+		ln.size = Vector2(2800.0, 6.0 + float(i % 3) * 5.0)
+		ln.pivot_offset = ln.size * 0.5
+		ln.rotation = deg_to_rad(-18.0)
+		ln.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cutin_root.add_child(ln)
+		cutin_lines.append(ln)
+	# retrato de DAM (encima de la banda)
+	cutin_portrait = TextureRect.new()
+	if ResourceLoader.exists("res://imagen-action/dam/cutin/dam-cutin.png"):
+		cutin_portrait.texture = load("res://imagen-action/dam/cutin/dam-cutin.png")
+	cutin_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cutin_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	cutin_portrait.size = Vector2(CUTIN_PW, CUTIN_PH)
+	cutin_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutin_root.add_child(cutin_portrait)
+	# flash blanco de entrada
+	cutin_flash = ColorRect.new()
+	cutin_flash.color = Color(1, 1, 1, 0)
+	cutin_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cutin_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutin_root.add_child(cutin_flash)
+
+func _play_cutin(face: int) -> void:
+	if cutin_root == null:
+		return
+	cutin_side = -face                     # el retrato entra por el lado del atacante
+	cutin_ms = Time.get_ticks_msec()
+	cutin_root.visible = true
+
+func _cutin_tick() -> void:
+	if cutin_root == null or not cutin_root.visible:
+		return
+	var t := float(Time.get_ticks_msec() - cutin_ms) / 1000.0
+	var total := CUTIN_IN + CUTIN_HOLD + CUTIN_OUT
+	if t < 0.0 or t > total:
+		cutin_root.visible = false
+		return
+	var pin := clampf(t / CUTIN_IN, 0.0, 1.0)
+	var pout := clampf((t - CUTIN_IN - CUTIN_HOLD) / CUTIN_OUT, 0.0, 1.0)
+	# posición horizontal del retrato: entra con rebote, sale deslizando de vuelta
+	var rest_x: float
+	var off_x: float
+	if cutin_side < 0:                      # retrato a la IZQUIERDA
+		rest_x = -CUTIN_PW * 0.18
+		off_x = -CUTIN_PW - 120.0
+	else:                                   # a la DERECHA
+		rest_x = 1920.0 - CUTIN_PW * 0.82
+		off_x = 1920.0 + 120.0
+	var x := lerpf(off_x, rest_x, _ease_out_back(pin))
+	if pout > 0.0:
+		x = lerpf(rest_x, off_x, pout * pout)
+	var y := 1080.0 - CUTIN_PH + 30.0
+	cutin_portrait.position = Vector2(x, y)
+	# banda + líneas siguen el mismo desplazamiento del retrato
+	var shift := x - rest_x
+	var base_bx := 560.0 if cutin_side < 0 else 1360.0
+	var bcx := base_bx + shift
+	cutin_band.position = Vector2(bcx - cutin_band.size.x * 0.5, 540.0 - cutin_band.size.y * 0.5)
+	for i in cutin_lines.size():
+		var ln: ColorRect = cutin_lines[i]
+		ln.position = Vector2(bcx - ln.size.x * 0.5, 150.0 + float(i) * 118.0 - ln.size.y * 0.5)
+	# alfa: aparece con la entrada y se apaga con la salida
+	var vis := minf(pin, 1.0 - pout)
+	cutin_dark.color.a = 0.5 * vis
+	cutin_band.color.a = 0.85 * vis
+	for lc in cutin_lines:
+		lc.color.a = 0.45 * vis
+	cutin_portrait.modulate.a = clampf(vis * 1.3, 0.0, 1.0)
+	cutin_flash.color.a = maxf(0.0, 0.8 * (1.0 - t / 0.12))
+
 func _focus_tick() -> void:
 	if focus_atk == null:
 		return
@@ -2868,6 +2981,7 @@ func _process(_dt: float) -> void:
 	elif position != Vector2.ZERO:
 		position = Vector2.ZERO
 	_focus_tick()   # suaviza el borde rojo hacia su intensidad objetivo
+	_cutin_tick()   # anima el cut-in del INFIERNO (entrada/salida, reloj REAL)
 	var t := float(ahora - break_ms) / 1000.0
 	if t >= 0.0 and t < 1.7:
 		break_node.visible = true
