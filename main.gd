@@ -151,10 +151,10 @@ var cutin_portrait: TextureRect
 var cutin_flash: ColorRect
 var cutin_ms := -100000
 var cutin_side := -1
-const CUTIN_BG := 0.16     # las líneas de fondo SUBEN de abajo hacia arriba
-const CUTIN_IN := 0.18     # ...y DESPUÉS entra el personaje
-const CUTIN_HOLD := 0.26
-const CUTIN_OUT := 0.20
+const CUTIN_BG := 0.22     # el panel/líneas SUBEN de abajo hacia arriba
+const CUTIN_IN := 0.24     # ...y DESPUÉS entra el personaje
+const CUTIN_HOLD := 0.72   # se queda un buen rato (antes se iba muy rápido)
+const CUTIN_OUT := 0.30
 const CUTIN_PW := 776.0
 const CUTIN_PH := 1150.0
 # ENFOQUE épico del ULTRA: borde rojo eléctrico en el atacante + escena oscurecida
@@ -1695,7 +1695,9 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	else:
 		atacante.sprite.play("pose")           # respaldo: pose NUEVA (nunca flame_cast viejo)
 	_play_voz("inferno")                   # GRITA el poder al alzar la katana (ANTES de la bola)
-	_play_cutin(dir)                       # CUT-IN épico: retrato de DAM entra desde su lado
+	# CUT-IN: el retrato sale en el lado OPUESTO al contador de combo (para no chocar).
+	var combo_x: float = float(combo_rest_x[idx])
+	_play_cutin(-1 if combo_x >= 960.0 else 1)   # combo a la derecha -> retrato a la izquierda
 	flash_ms = Time.get_ticks_msec()
 	# velo TENUE: el cut-in va DETRÁS de la acción y del velo, así que lo dejamos
 	# suave para que el retrato/banda se vean brillantes (el drama lo da el cut-in).
@@ -2647,24 +2649,15 @@ func _build_cutin() -> void:
 	cutin_dark.size = Vector2(1920, 1080)
 	cutin_dark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cutin_root.add_child(cutin_dark)
-	# banda roja DIAGONAL
+	# PANEL rojo que cubre TODO el ancho de la pantalla por abajo (sube desde abajo).
+	# Ancho de sobra (2400) para que aún rotado cubra los 1920 sin cortarse.
 	cutin_band = ColorRect.new()
 	cutin_band.color = Color(0.85, 0.11, 0.05, 0.0)
-	cutin_band.size = Vector2(2800.0, 560.0)
+	cutin_band.size = Vector2(2400.0, 860.0)
 	cutin_band.pivot_offset = cutin_band.size * 0.5
-	cutin_band.rotation = deg_to_rad(-18.0)
+	cutin_band.rotation = deg_to_rad(-9.0)
 	cutin_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cutin_root.add_child(cutin_band)
-	# líneas de velocidad naranjas (mismo ángulo)
-	for i in 8:
-		var ln := ColorRect.new()
-		ln.color = Color(1.5, 0.55, 0.18, 0.0)
-		ln.size = Vector2(2800.0, 6.0 + float(i % 3) * 5.0)
-		ln.pivot_offset = ln.size * 0.5
-		ln.rotation = deg_to_rad(-18.0)
-		ln.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cutin_root.add_child(ln)
-		cutin_lines.append(ln)
 	# LÍNEAS DE ACCIÓN MANGA (como el ultra): ciclan ultra-1..6 para dar la vibración
 	cutin_manga = TextureRect.new()
 	cutin_manga.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -2693,12 +2686,11 @@ func _build_cutin() -> void:
 	cutin_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cutin_root.add_child(cutin_flash)
 
-func _play_cutin(face: int) -> void:
+func _play_cutin(side: int) -> void:
 	if cutin_root == null:
 		return
-	# El combo aparece en el lado OPUESTO al que mira el atacante (atrás). El cut-in
-	# sale del lado hacia donde MIRA (adelante) para NO chocar con el combo.
-	cutin_side = face
+	# side = -1 (retrato a la IZQUIERDA) o +1 (DERECHA). Se pasa el OPUESTO al combo.
+	cutin_side = side
 	cutin_ms = Time.get_ticks_msec()
 	cutin_root.visible = true
 
@@ -2710,19 +2702,15 @@ func _cutin_tick() -> void:
 	if t < 0.0 or t > total:
 		cutin_root.visible = false
 		return
-	# fases: (1) el fondo (banda+líneas) SUBE de abajo hacia arriba, (2) entra el
-	# personaje, (3) hold, (4) salida.
-	var pbg := clampf(t / CUTIN_BG, 0.0, 1.0)                       # subida del fondo
+	# fases: (1) el PANEL sube de abajo hacia arriba (full-width), (2) entra el
+	# personaje, (3) hold largo, (4) salida.
+	var pbg := clampf(t / CUTIN_BG, 0.0, 1.0)                       # subida del panel
 	var pin := clampf((t - CUTIN_BG) / CUTIN_IN, 0.0, 1.0)          # entrada del personaje
 	var pout := clampf((t - CUTIN_BG - CUTIN_IN - CUTIN_HOLD) / CUTIN_OUT, 0.0, 1.0)
-	# --- FONDO: banda + líneas suben desde abajo (y_off de +1080 a 0) ---
+	# --- PANEL: cubre TODO el ancho por abajo y sube desde abajo (y_off +1080 -> 0) ---
 	var rise := lerpf(1080.0, 0.0, _ease_out_cubic(pbg))
-	var base_bx := 1360.0 if cutin_side > 0 else 560.0             # lado hacia donde mira
-	cutin_band.position = Vector2(base_bx - cutin_band.size.x * 0.5, 540.0 - cutin_band.size.y * 0.5 + rise)
-	for i in cutin_lines.size():
-		var ln: ColorRect = cutin_lines[i]
-		ln.position = Vector2(base_bx - ln.size.x * 0.5, 150.0 + float(i) * 118.0 - ln.size.y * 0.5 + rise)
-	# --- PERSONAJE: entra desde el lado hacia donde mira, con rebote ---
+	cutin_band.position = Vector2(960.0 - cutin_band.size.x * 0.5, 760.0 - cutin_band.size.y * 0.5 + rise)
+	# --- PERSONAJE: entra desde su lado (OPUESTO al combo), con rebote ---
 	var rest_x: float
 	var off_x: float
 	if cutin_side < 0:                      # retrato a la IZQUIERDA
@@ -2739,11 +2727,10 @@ func _cutin_tick() -> void:
 	var vis := 1.0 - pout
 	cutin_dark.color.a = 0.4 * minf(pbg, vis)
 	cutin_band.color.a = 0.85 * minf(pbg, vis)
-	for lc in cutin_lines:
-		lc.color.a = 0.5 * minf(pbg, vis)
-	# líneas de acción MANGA: ciclan rápido (vibración) y aparecen con el fondo
+	# líneas de acción MANGA: ciclan rápido (vibración) y suben con el panel
 	if cutin_manga != null and ultra_panels.size() > 0:
 		cutin_manga.texture = ultra_panels[int(t * 16.0) % ultra_panels.size()]
+		cutin_manga.position = Vector2(0.0, rise * 0.6)
 		cutin_manga.modulate.a = 0.8 * minf(pbg, vis)
 	cutin_portrait.modulate.a = clampf(pin * 1.4, 0.0, 1.0) * vis
 	# flash blanco cuando el personaje ENTRA (no al principio)
