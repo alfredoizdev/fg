@@ -252,7 +252,7 @@ func _ready() -> void:
 	fx_sprite = AnimatedSprite2D.new()
 	var ff := SpriteFrames.new()
 	var fx_defs := {
-		"hit": ["res://imagen-action/impact-effect/chispas-impact-3/chispas-impact-3-%d.png", 6, 26.0],
+		"hit": ["res://imagen-action/impact-effect/chispas-impact-3/chispas-impact-3-%d.png", 8, 30.0],
 		"hit_blue": ["res://imagen-action/impact-effect/chispas-impat-hit-favi/chispas-impat-hit-%d.png", 7, 26.0],
 		# bloqueo: anillo de barrera AZUL de la hoja fx-block (nueva, 5 frames). Si
 		# existe, _draw_hit_burst se salta el destello de codigo (no hay doble efecto).
