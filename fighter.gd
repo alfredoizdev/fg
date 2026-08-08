@@ -986,12 +986,14 @@ func _physics_process(delta: float) -> void:
 		burned_t = maxf(0.0, burned_t - delta)
 		var bt := burned_t / BURN_DUR   # 1 (recién quemado) -> 0 (recuperado)
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.30, 0.23, 0.24, 1), bt)
-		var smk := clampf(burned_t, 0.0, 1.0)          # se disipa en el último seg
+		# el HUMO solo sale al PRINCIPIO (~1.3s) y se disipa; el oscurecido sí dura todo
+		var smk := clampf((burned_t - (BURN_DUR - 1.3)) / 1.3, 0.0, 1.0)
+		var showing := smk > 0.01
 		if burn_smoke != null:
-			burn_smoke.visible = true
+			burn_smoke.visible = showing
 			burn_smoke.modulate.a = 0.7 * smk           # DETRÁS: normal
 		if burn_smoke_front != null:
-			burn_smoke_front.visible = true
+			burn_smoke_front.visible = showing
 			burn_smoke_front.modulate.a = 0.3 * smk     # DELANTE: MÁS TENUE (no tapa)
 	elif sprite.modulate != Color(1, 1, 1, 1):
 		sprite.modulate = Color(1, 1, 1, 1)

@@ -157,6 +157,13 @@ const CUTIN_HOLD := 0.52   # aguanta durante el FRAME CONGELADO (freeze largo)
 const CUTIN_OUT := 0.40    # ...y se va mientras corren los frames del rayo
 const CUTIN_PW := 776.0
 const CUTIN_PH := 1150.0
+# ANUNCIOS épicos (READY / FIGHT / K.O.) con fuente gruesa + SOMBRA PLANA + animación
+var anno_root: Control = null
+var anno_main: Label
+var anno_sh: Label
+var anno_ms := -100000
+var anno_dur := 0.0
+var ko_red: ColorRect = null   # velo ROJO del KO (control manual)
 # ENFOQUE épico del ULTRA: borde rojo eléctrico en el atacante + escena oscurecida
 var _outline_mat: ShaderMaterial = null
 var pin_panel: ColorRect
@@ -357,6 +364,7 @@ func _ready() -> void:
 		var t := load("res://imagen-action/impact-effect/ultra/ultra-%d.png" % i)
 		if t != null:
 			ultra_panels.append(t)
+	_build_announce()   # anuncios épicos READY/FIGHT/K.O. + velo rojo del KO
 	# aviso "→ R  ULTRA!" cuando el comando esta habilitado (rival en rojo + combo)
 	ultra_hint = Label.new()
 	ultra_hint.text = "→ R   ANNIHILATION"
@@ -1354,12 +1362,12 @@ func _start_round() -> void:
 		combo_ui[i].visible = false
 	meter = [1.0, 1.0]        # arranca con 1 barra (solo INFERNO); las otras 2 se ganan
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
-	announce.visible = true
-	announce.text = "ROUND %d" % round_num
-	await get_tree().create_timer(1.4).timeout
-	announce.text = "FIGHT!"
-	await get_tree().create_timer(0.7).timeout
 	announce.visible = false
+	# READY grande (sombra plana) -> FIGHT! épico
+	_show_announce("READY", Color(1.6, 1.35, 0.35), 1.05)
+	await get_tree().create_timer(0.95).timeout
+	_show_announce("FIGHT!", Color(1.85, 0.4, 0.28), 0.85)
+	await get_tree().create_timer(0.5).timeout
 	state = "fight"
 	player.input_enabled = true
 	dummy.ai_enabled = dummy_ai_mode
@@ -2635,6 +2643,72 @@ func _dash_border(atacante: Node2D, on: bool) -> void:
 		atacante.sprite.material = null   # solo lo quita si es el del dash (no pisa el del ultra)
 
 # suaviza focus_cur hacia focus_target con reloj REAL (llamado desde _process)
+# ---- ANUNCIOS épicos (READY / FIGHT / K.O.): fuente gruesa + SOMBRA PLANA atrás ----
+func _mk_anno_label(col: Color, outline: int) -> Label:
+	var l := Label.new()
+	l.size = Vector2(1920, 300)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_font_override("font", combo_font)
+	l.add_theme_font_size_override("font_size", 210)
+	l.add_theme_color_override("font_color", col)
+	if outline > 0:
+		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+		l.add_theme_constant_override("outline_size", outline)
+	l.pivot_offset = Vector2(960, 150)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+func _build_announce() -> void:
+	# velo ROJO del KO (debajo del texto, encima del juego)
+	ko_red = ColorRect.new()
+	ko_red.color = Color(1.3, 0.06, 0.05, 0.0)
+	ko_red.size = Vector2(1920, 1080)
+	ko_red.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ko_red.z_index = 2   # velo rojo POR DEBAJO de las líneas del ultra (z=3), sobre el juego
+	$UI.add_child(ko_red)
+	# grupo del anuncio grande
+	anno_root = Control.new()
+	anno_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	anno_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anno_root.z_index = 46
+	anno_root.visible = false
+	$UI.add_child(anno_root)
+	anno_sh = _mk_anno_label(Color(0.05, 0.04, 0.07, 1.0), 0)   # SOMBRA plana (offset, sin borde)
+	anno_sh.position = Vector2(18, 374)
+	anno_root.add_child(anno_sh)
+	anno_main = _mk_anno_label(Color(1, 1, 1, 1), 12)           # texto principal
+	anno_main.position = Vector2(0, 356)
+	anno_root.add_child(anno_main)
+
+func _show_announce(txt: String, col: Color, dur: float) -> void:
+	if anno_root == null:
+		return
+	anno_main.text = txt
+	anno_sh.text = txt
+	anno_main.add_theme_color_override("font_color", col)
+	anno_dur = dur
+	anno_ms = Time.get_ticks_msec()
+	anno_root.visible = true
+
+func _announce_tick() -> void:
+	if anno_root == null or not anno_root.visible:
+		return
+	var t := float(Time.get_ticks_msec() - anno_ms) / 1000.0
+	if t < 0.0 or t > anno_dur:
+		anno_root.visible = false
+		return
+	var pin := clampf(t / 0.18, 0.0, 1.0)                       # entra grande y asienta (rebote)
+	var pout := clampf((t - (anno_dur - 0.22)) / 0.22, 0.0, 1.0)  # sale creciendo + fade
+	var sc := lerpf(1.7, 1.0, _ease_out_back(pin))
+	if pout > 0.0:
+		sc = lerpf(1.0, 1.4, pout)
+	var a := minf(pin, 1.0 - pout)
+	anno_main.scale = Vector2(sc, sc)
+	anno_sh.scale = Vector2(sc, sc)
+	anno_main.modulate.a = a
+	anno_sh.modulate.a = a * 0.85
+
 # ---- CUT-IN del INFIERNO: retrato de DAM que entra desde un lado (estilo P4A) ----
 func _build_cutin() -> void:
 	# El cut-in va en el MUNDO, DETRÁS de los peleadores (z=-1, sobre el escenario):
@@ -3024,6 +3098,7 @@ func _process(_dt: float) -> void:
 		position = Vector2.ZERO
 	_focus_tick()   # suaviza el borde rojo hacia su intensidad objetivo
 	_cutin_tick()   # anima el cut-in del INFIERNO (entrada/salida, reloj REAL)
+	_announce_tick()  # anima el anuncio grande (READY/FIGHT/K.O.)
 	var t := float(ahora - break_ms) / 1000.0
 	if t >= 0.0 and t < 1.7:
 		break_node.visible = true
@@ -3139,8 +3214,24 @@ func _end_round(player_won: bool) -> void:
 	state = "round_end"
 	player.input_enabled = false
 	dummy.ai_enabled = false
-	announce.visible = true
-	announce.text = "K.O."
+	announce.visible = false
+	# CINEMÁTICO del KO: CONGELA la pantalla, sale K.O. GRANDE, la pantalla se pone
+	# ROJA con las líneas del ultra... y luego se va todo y siguen los frames normales.
+	_show_announce("K.O.", Color(1.95, 0.2, 0.16), 2.0)
+	if ultra_panels.size() > 0:
+		ultra_panel.texture = ultra_panels[0]
+	ultra_panel.modulate = Color(1.7, 0.28, 0.28, 1.0)     # líneas TINTADAS de rojo
+	ultra_panel.visible = true
+	_shake(26.0, 0.5)
+	Engine.time_scale = 0.0                                  # FREEZE
+	var ks := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - ks < 550:
+		var kt := float(Time.get_ticks_msec() - ks) / 1000.0
+		if ultra_panels.size() > 0:
+			ultra_panel.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
+		ko_red.color.a = 0.62                                # pantalla ROJA
+		await get_tree().process_frame
+	Engine.time_scale = 1.0                                  # ...y SIGUEN los frames normales
 	if player_won:
 		wins_p1 += 1
 		dummy.do_ko()
@@ -3148,14 +3239,27 @@ func _end_round(player_won: bool) -> void:
 		wins_p2 += 1
 		player.do_ko()
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
-	await get_tree().create_timer(1.6).timeout
+	# se VA todo: el rojo y las líneas se desvanecen mientras el KO cae
+	var fsm := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - fsm < 800:
+		var k := 1.0 - float(Time.get_ticks_msec() - fsm) / 800.0
+		ko_red.color.a = 0.62 * k
+		ultra_panel.modulate.a = k
+		if ultra_panels.size() > 0:
+			ultra_panel.texture = ultra_panels[int(float(Time.get_ticks_msec() - fsm) / 60.0) % ultra_panels.size()]
+		await get_tree().process_frame
+	ko_red.color.a = 0.0
+	ultra_panel.visible = false
+	ultra_panel.modulate = Color(1, 1, 1, 1)               # restaura (para el ultra normal)
+	await get_tree().create_timer(0.7).timeout
 	if player_won:
 		player.celebrate()
 	else:
 		dummy.celebrate()
-	announce.text = "DAM WINS"
+	_show_announce("DAM WINS", Color(1.5, 1.25, 0.4), 3.0)
 	await get_tree().create_timer(3.0).timeout
 	if wins_p1 >= WINS_NEEDED or wins_p2 >= WINS_NEEDED:
+		announce.visible = true
 		announce.text = "MATCH WINNER:\nDAM"
 		await get_tree().create_timer(3.0).timeout
 		wins_p1 = 0
