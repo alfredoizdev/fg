@@ -146,6 +146,7 @@ var cutin_root: Control = null
 var cutin_dark: ColorRect
 var cutin_band: ColorRect
 var cutin_lines := []
+var cutin_manga: TextureRect          # líneas de acción manga (ultra-1..6) que ciclan
 var cutin_portrait: TextureRect
 var cutin_flash: ColorRect
 var cutin_ms := -100000
@@ -2664,7 +2665,18 @@ func _build_cutin() -> void:
 		ln.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cutin_root.add_child(ln)
 		cutin_lines.append(ln)
-	# retrato de DAM (encima de la banda)
+	# LÍNEAS DE ACCIÓN MANGA (como el ultra): ciclan ultra-1..6 para dar la vibración
+	cutin_manga = TextureRect.new()
+	cutin_manga.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cutin_manga.stretch_mode = TextureRect.STRETCH_SCALE
+	cutin_manga.position = Vector2.ZERO
+	cutin_manga.size = Vector2(1920, 1080)
+	cutin_manga.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutin_manga.modulate = Color(1, 1, 1, 0)
+	if ultra_panels.size() > 0:
+		cutin_manga.texture = ultra_panels[0]
+	cutin_root.add_child(cutin_manga)
+	# retrato de DAM (encima de la banda y las líneas)
 	cutin_portrait = TextureRect.new()
 	if ResourceLoader.exists("res://imagen-action/dam/cutin/dam-cutin.png"):
 		cutin_portrait.texture = load("res://imagen-action/dam/cutin/dam-cutin.png")
@@ -2729,6 +2741,10 @@ func _cutin_tick() -> void:
 	cutin_band.color.a = 0.85 * minf(pbg, vis)
 	for lc in cutin_lines:
 		lc.color.a = 0.5 * minf(pbg, vis)
+	# líneas de acción MANGA: ciclan rápido (vibración) y aparecen con el fondo
+	if cutin_manga != null and ultra_panels.size() > 0:
+		cutin_manga.texture = ultra_panels[int(t * 16.0) % ultra_panels.size()]
+		cutin_manga.modulate.a = 0.8 * minf(pbg, vis)
 	cutin_portrait.modulate.a = clampf(pin * 1.4, 0.0, 1.0) * vis
 	# flash blanco cuando el personaje ENTRA (no al principio)
 	var ft := t - CUTIN_BG
