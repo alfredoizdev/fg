@@ -303,6 +303,7 @@ func _ready() -> void:
 	ultra_panel.stretch_mode = TextureRect.STRETCH_SCALE
 	ultra_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ultra_panel.visible = false
+	ultra_panel.z_index = 3   # POR ENCIMA del flash (z=0) para que el fogonazo no lo lave
 	$UI.add_child(ultra_panel)
 	for i in range(1, 7):
 		var t := load("res://imagen-action/impact-effect/ultra/ultra-%d.png" % i)
@@ -1485,6 +1486,10 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
 	_focus_start(atacante)         # borde rojo eléctrico (aparece gradual con el combo)
+	# paneles manga a pantalla completa: se muestran desde YA y durante TODO el ultra
+	if ultra_panels.size() > 0:
+		ultra_panel.texture = ultra_panels[0]
+		ultra_panel.visible = true
 	# arranque dramatico: congelado + fogonazo (el rotulo va en el contador de combo)
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.0, 0.4, 0.15, 0.6)
