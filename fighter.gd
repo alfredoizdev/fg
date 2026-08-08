@@ -877,6 +877,13 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	position.x += push_dir * 20
 	return "hit"
 
+const BURN_DUR := 2.8
+var burned_t := 0.0
+# estado QUEMADO: el cuerpo se ve oscuro/carbonizado y se recupera de a poco.
+# General: cualquier poder de fuego (inferno de DAM, etc.) lo puede aplicar.
+func start_burn(dur := BURN_DUR) -> void:
+	burned_t = maxf(burned_t, dur)
+
 func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if swing_layer:
@@ -898,6 +905,11 @@ func _physics_process(delta: float) -> void:
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.5, 0.75, 1.6, 1), wk)
 	elif breaker_inv_t > 0.0:
 		sprite.modulate = Color(1, 1, 1, 0.5 + 0.5 * absf(sin(breaker_inv_t * 30.0)))
+	elif burned_t > 0.0:
+		# QUEMADO: oscurecido/carbonizado que se aclara de a poco hasta normal
+		burned_t = maxf(0.0, burned_t - delta)
+		var bt := burned_t / BURN_DUR   # 1 (recién quemado) -> 0 (recuperado)
+		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.30, 0.23, 0.24, 1), bt)
 	elif sprite.modulate != Color(1, 1, 1, 1):
 		sprite.modulate = Color(1, 1, 1, 1)
 

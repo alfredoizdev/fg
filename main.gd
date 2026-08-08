@@ -1701,6 +1701,8 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	victima.position.y = victima.floor_y
 	victima._burst(1.3)
 	victima.spawn_fire_impact()                           # estallido de fuego sobre el rival
+	if victima.has_method("start_burn"):
+		victima.start_burn()                             # queda QUEMADO (oscuro) y se recupera de a poco
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.6, 0.6, 0.15, 0.85)
 	_shake(28.0, 0.45)                                    # sacudón del estallido

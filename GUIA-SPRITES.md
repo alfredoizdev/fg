@@ -621,16 +621,32 @@ en el efecto.
       adelante-abajo (postura de recuperación)
       (Yo sincronizo el proyectil de fuego para que salga en el f4.)
 
-30. **`fire-wave-sheet.png`** — 6 frames (loop). PROYECTIL DE FUEGO que
-    viaja (el INFIERNO). SOLO el fuego, sin personaje. Fondo verde puro
-    #00FF00. Estilo cel-anime: VÓRTICE/ola de fuego girando, núcleo
-    blanco-amarillo ardiente, cuerpo naranja, bordes de línea definidos,
-    con esquirlas y chispas saltando. Apunta/avanza hacia la DERECHA
-    (yo lo espejo). Los 6 frames son el mismo vórtice GIRANDO en su sitio
-    (loop) para que se vea vivo mientras viaja:
-    - f1-f6: el remolino de llamas rota, las lenguas de fuego se enroscan
-      y se estiran, chispas orbitando. El f6 conecta con el f1 (loop).
-      Centrado en el mismo punto en los 6 frames.
+30. **`fire-wave-sheet.png`** — 6 frames en 2 filas de 3. GRAN OLA DE FUEGO que
+    BARRE el carril hacia adelante (el INFIERNO) — como una MURALLA/ola de fuego
+    ancha y alta que erupciona y se estira a lo LARGO, NO un vórtice compacto.
+    SOLO el fuego, sin personaje. Fondo verde puro #00FF00. Estilo cel-anime,
+    líneas definidas, con lenguas de fuego, esquirlas y chispas saltando.
+    **COLOR = FUEGO ROJO:** núcleo BLANCO-AMARILLO ardiente en la base → cuerpo
+    NARANJA → lenguas y puntas ROJO intenso (NADA de azul ni morado). La ola es
+    más ANCHA que alta (barre horizontal), naciendo a la IZQUIERDA y estirándose
+    a la DERECHA (yo la espejo).
+    - f1: NACE — una lengua de fuego baja y ancha brota desde la izquierda.
+    - f2: CRECE — la ola se estira a la derecha, ganando alto, lenguas
+      enroscándose hacia arriba.
+    - f3: casi extendida — la muralla de fuego cubre gran parte del ancho.
+    - f4: PICO — la ola LLENA todo el ancho a máxima altura, muralla de fuego
+      dramática con chispas volando.
+    - f5: empieza a bajar, las llamas se acuestan y se separan en jirones.
+    - f6: se disuelve dejando brasas y humo tenue (deja el terreno ardiendo).
+    Dibuja la ola LARGA (ocupa casi todo el ancho del frame en el pico); deja
+    margen verde de sobra.
+
+30b. **`fire-floor-sheet.png`** — 4 frames (loop). FUEGO EN EL PISO que QUEDA
+    tras el inferno (un charco de llamas ardiendo en el suelo). SOLO el fuego,
+    sin personaje. Fondo verde #00FF00. Una franja BAJA y ancha de llamas ROJO-
+    naranja lamiendo el piso, con lenguas que suben y ondean; núcleo amarillo en
+    la base, puntas rojas. Los 4 frames son el fuego ONDULANDO en su sitio (loop
+    suave: f4 conecta con f1). Más ancho que alto, pegado al piso.
 
 31. **`fire-wave-sheet-impact.png`** — 6 frames (UNA vez, NO loop). EXPLOSIÓN
     del INFIERNO cuando el vórtice CONECTA con el rival. SOLO el fuego/humo,
