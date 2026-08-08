@@ -384,30 +384,28 @@ sueltos por masa corporal para que encajen).
       Es un movimiento CORTO y SECO: poca extensión, nada de barridos
       amplios ni giros de torso — pura velocidad de brazo.
 
-20. **`air-spin-kick-sheet.png`** — 8 frames en DOS FILAS de 4. SALTO
-    MORTAL HACIA ADELANTE con remate de patada (para usar en el aire):
-    DAM gira de cabeza a pies EN EL PLANO DE LA PANTALLA (voltereta
-    frontal, como una rueda que avanza) y termina lanzando una patada
-    diagonal. TODOS los frames en vista de PERFIL (la voltereta rota el
-    cuerpo, no la cámara — siempre se le ve el costado derecho). Dibuja
-    todos los frames EN EL MISMO SITIO y a la MISMA escala — el vuelo lo
-    pone el motor. La katana va EN LA MANO, pegada al cuerpo, todo el giro:
-    - f1: en el aire, encogiéndose: rodillas al pecho, el cuerpo empieza
-      a rotar hacia adelante (cabeza inclinándose adelante)
-    - f2: rotado ~90°: cuerpo HORIZONTAL en bola, cabeza apuntando hacia
-      adelante, espalda arriba
-    - f3: INVERTIDO (~180°): completamente boca abajo, en bola, la cabeza
-      apuntando al piso
-    - f4: rotado ~270°: la cabeza apunta hacia atrás-abajo, el cuerpo
-      empieza a abrirse
-    - f5: la voltereta termina: el cuerpo casi vertical otra vez, la
-      pierna derecha empezando a lanzarse hacia adelante
-    - f6: PATADA — pierna derecha COMPLETAMENTE extendida en diagonal
-      hacia abajo-adelante, torso ligeramente inclinado atrás, el remate
-      del mortal
-    - f7: sostiene la patada con leve variación (el impulso del golpe)
-    - f8: recoge la pierna, postura de caída en el aire (brazos
-      equilibrando)
+20. **`air-spin-kick-sheet.png`** — 6 frames en DOS FILAS de 3. DOBLE PATADA
+    AÉREA (arriba+E): DAM salta y lanza DOS patadas rectas al FRENTE mientras
+    sostiene la katana ABAJO-al frente, QUIETA. Todo en PERFIL mirando a la
+    DERECHA, en el aire, dibujado EN EL MISMO SITIO y a la MISMA escala (el
+    vuelo lo pone el motor). NADA de voltereta ni giro.
+    **LA KATANA (clave para que salga consistente):** va en la mano de ATRÁS,
+    con el brazo BAJO y la HOJA apuntando hacia ABAJO-ADELANTE (diagonal, la
+    punta hacia adelante-abajo), COMPLETAMENTE QUIETA e IDÉNTICA en los 6
+    frames — NO gira, NO sube, NO se mueve, NO cambia de forma ni de tamaño.
+    Es solo un apoyo visual; lo único que se mueve son las PIERNAS.
+    - f1: en el aire, rodillas recogidas y cadera cargada atrás, listo para
+      la primera patada. Katana abajo-al frente.
+    - f2: PRIMERA PATADA — la pierna delantera se dispara RECTA al FRENTE
+      (horizontal), extendida al máximo. Katana igual, abajo-al frente.
+    - f3: recoge esa pierna (rodilla al pecho), transición entre patadas.
+    - f4: SEGUNDA PATADA — la OTRA pierna se dispara RECTA al FRENTE,
+      extendida al máximo (un pelín más alta que la primera para que se note
+      que son dos golpes). Katana igual.
+    - f5: recoge la pierna, el torso se endereza un poco (fin del segundo golpe).
+    - f6: postura de caída en el aire, piernas recogiéndose. Katana igual.
+    NUNCA muevas la katana entre frames: va SIEMPRE abajo-al frente, idéntica.
+    Nada de giro, voltereta ni katana en alto.
 
 ---
 
