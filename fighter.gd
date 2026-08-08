@@ -208,6 +208,7 @@ var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar 
 var vel_y := 0.0
 var vel_x := 0.0
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
+var air_float_t := 0.0 # flote aéreo SOLO tras conectar un golpe en el aire (juggle)
 var base_material: Material = null   # material base del sprite (color alterno del P2, etc.)
 
 # HITSTOP: al conectar un golpe, este peleador se CONGELA 'dur' segundos (no se mueve
@@ -987,6 +988,7 @@ func _physics_process(delta: float) -> void:
 	elif sprite.rotation != 0.0:
 		sprite.rotation = 0.0
 	burst_t = maxf(0.0, burst_t - delta)
+	air_float_t = maxf(0.0, air_float_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
 	if water_bg:
 		# volando por el poder del agua: cuerpo teñido de AZUL todo el vuelo (no se desvanece aún)
@@ -1123,8 +1125,9 @@ func _physics_process(delta: float) -> void:
 		# poco a poco (feel de combo aéreo de fighting game), no caes en picada.
 		var air_atk: bool = air_spin or (sprite.animation in ["jump_punch", "jump_kick", "air_jab"] and sprite.is_playing())
 		position.y += vel_y * delta
-		# atacando en el aire cae flotando y (el giro) avanza solo
-		var g_mult := 0.35 if air_atk else 1.0
+		# FLOTA solo si el golpe aéreo CONECTÓ (juggle). Si falla, cae NORMAL.
+		var floating: bool = air_atk and air_float_t > 0.0
+		var g_mult := 0.35 if floating else 1.0
 		# caida BRUSCA del remate del ULTRA: al pasar el ápice se desploma
 		if hard_fall and hit_flying and vel_y > 0.0:
 			g_mult = 2.6
@@ -1133,7 +1136,8 @@ func _physics_process(delta: float) -> void:
 			g_mult = 1.7
 		vel_y += GRAVITY * g_mult * delta
 		if air_atk:
-			vel_y = minf(vel_y, 300.0 * CHAR_SCALE)   # descenso lento y parejo mientras golpea
+			if floating:
+				vel_y = minf(vel_y, 300.0 * CHAR_SCALE)   # descenso lento SOLO si conectó
 			if air_spin:
 				position.x += facing * SPIN_TRAVEL * 0.8 * delta
 		elif hit_flying:

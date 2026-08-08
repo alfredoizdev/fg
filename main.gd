@@ -2665,30 +2665,19 @@ func _dash_border(atacante: Node2D, on: bool) -> void:
 # COLOR ALTERNO del P2 (mirror match): cambia el TONO de los colores SATURADOS
 # (abrigo/pelo) sin tocar piel/negros, para distinguir P1 de P2. Respeta el modulate
 # (quemadura/agua) y se restaura tras el ultra/dash vía base_material.
-const P2_HUE_SHIFT := 0.55   # 0.5=cian, 0.55=azul, 0.33=verde... (0..1)
+# Método simple y a prueba de negro: INTERCAMBIA rojo<->azul SOLO en el rojo profundo
+# (abrigo/pelo de DAM). Piel (naranja, g/b más altos) y negros quedan intactos. NO
+# toca el brillo, así que nunca sale silueta negra.
 const _HUE_CODE := """
 shader_type canvas_item;
 render_mode unshaded;
-uniform float hue_shift = 0.55;
-vec3 rgb2hsv(vec3 c){
-	vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
-	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-	float d = q.x - min(q.w, q.y);
-	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1.0e-10)), d / (q.x + 1.0e-10), q.x);
-}
-vec3 hsv2rgb(vec3 c){
-	vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
+uniform float amount = 1.0;
 void fragment(){
-	vec4 tex = texture(TEXTURE, UV);
-	vec3 hsv = rgb2hsv(tex.rgb);
-	float amt = hue_shift * smoothstep(0.42, 0.68, hsv.y);   // solo colores MUY saturados (abrigo/pelo)
-	hsv.x = fract(hsv.x + amt);
-	vec3 rgb = hsv2rgb(hsv);
-	COLOR = vec4(rgb, tex.a) * COLOR;   // respeta el modulate (quemadura/agua)
+	vec4 c = texture(TEXTURE, UV);
+	float mask = smoothstep(0.25, 0.35, c.r) * (1.0 - smoothstep(0.32, 0.47, max(c.g, c.b)));
+	vec3 swapped = vec3(c.b, c.g, c.r);   // rojo -> AZUL (intercambio de canal)
+	c.rgb = mix(c.rgb, swapped, mask * amount);
+	COLOR = c * COLOR;   // respeta el modulate (quemadura/agua)
 }
 """
 var _p2_mat: ShaderMaterial = null
@@ -2699,7 +2688,7 @@ func _apply_alt_colors() -> void:
 		sh.code = _HUE_CODE
 		_p2_mat = ShaderMaterial.new()
 		_p2_mat.shader = sh
-		_p2_mat.set_shader_parameter("hue_shift", P2_HUE_SHIFT)
+		_p2_mat.set_shader_parameter("amount", 1.0)
 	player.base_material = null
 	player.sprite.material = null                # P1: color normal
 	dummy.base_material = _p2_mat
@@ -3293,6 +3282,10 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		var hs := 0.11 if bool(atk.get("strong", false)) else 0.07
 		att.apply_hitstop(hs)
 		def.apply_hitstop(hs)
+		# si el atacante golpea EN EL AIRE, flota un poco para seguir el juggle (si
+		# falla en el aire NO flota: cae normal)
+		if att.airborne:
+			att.air_float_t = 0.45
 		var hidx := 0 if att_is_player else 1
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
 				String(atk["name"]), att.airborne or def.airborne)
