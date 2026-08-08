@@ -634,6 +634,36 @@ func spawn_fire_wave() -> Node2D:
 	w.play("spin")
 	return w
 
+# SUPER combinado del INFIERNO: DAM + la GRAN OLA de fuego en una sola animación
+# (5 frames). Se muestra ocultando el sprite normal de DAM; los pies de DAM del
+# super (local 80,219) se anclan a los pies reales del fighter. La ola sale al
+# frente y se espeja según el lado.
+const INFERNO_SUPER_SCALE := 3.2   # ~iguala la altura de DAM real (ajustable)
+var inferno_super_frames: SpriteFrames = null
+func spawn_inferno_super() -> AnimatedSprite2D:
+	if inferno_super_frames == null:
+		if not ResourceLoader.exists("res://imagen-action/dam/inferno-full/dam-inferno-full-1.png"):
+			return null
+		inferno_super_frames = SpriteFrames.new()
+		inferno_super_frames.add_animation("cast")
+		inferno_super_frames.set_animation_speed("cast", 5.0)   # 5 frames ~1s
+		inferno_super_frames.set_animation_loop("cast", false)
+		for i in range(1, 6):
+			inferno_super_frames.add_frame("cast", load("res://imagen-action/dam/inferno-full/dam-inferno-full-%d.png" % i))
+	var e := AnimatedSprite2D.new()
+	e.sprite_frames = inferno_super_frames
+	e.animation = "cast"
+	e.centered = false
+	e.z_index = 6
+	var s := INFERNO_SUPER_SCALE
+	e.scale = Vector2(float(facing) * s, s)   # espeja por el signo de x
+	get_parent().add_child(e)
+	var feet := to_global(Vector2(0.0, SHADOW_FEET_OFFSET))
+	# anclar los pies del super (local 80,219) a los pies reales del fighter
+	e.global_position = Vector2(feet.x - float(facing) * 80.0 * s, feet.y - 219.0 * s)
+	e.play("cast")
+	return e
+
 # EXPLOSIÓN de impacto del INFIERNO (6 frames dibujados): estalla UNA vez sobre el
 # rival cuando el vórtice conecta y luego se apaga sola
 var fireimpact_frames: SpriteFrames = null

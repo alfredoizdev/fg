@@ -1678,23 +1678,15 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.3, 0.5, 0.12, 0.5)
 	await get_tree().create_timer(0.12).timeout   # remata la pose antes de soltar
-	# LANZA el vórtice de fuego que RUEDA por el suelo hacia el rival (veloz)
-	var w: Node2D = atacante.spawn_fire_wave()
-	var meta_x := victima.position.x - float(dir) * 60.0
-	if w != null:
-		var viaje := 0.0
-		# vuela como bala de cañón: veloz, pero con un mínimo visible
-		while viaje < 0.22 or float(dir) * (meta_x - w.global_position.x) > 0.0:
-			var dt := get_process_delta_time()
-			if float(dir) * (meta_x - w.global_position.x) > 0.0:   # aun no llega
-				w.global_position.x += float(dir) * 1700.0 * dt
-			viaje += dt
-			if viaje > 0.6:   # tope de seguridad
-				break
-			await get_tree().process_frame
-	# IMPACTO: el vórtice ALCANZA al rival -> EXPLOSIÓN dibujada + primer golpe
-	if w != null:
-		w.global_position.x = victima.global_position.x   # el vórtice llega al rival
+	# SUPER pre-animado: OCULTA a DAM y muestra la animación combinada (DAM
+	# casteando + GRAN OLA de fuego roja) como una sola pieza.
+	var sup: AnimatedSprite2D = atacante.spawn_inferno_super()
+	if sup != null:
+		atacante.sprite.visible = false
+	var w: Node2D = null   # ya no se usa el vórtice viejo (la ola va dentro del super)
+	# espera a que la ola crezca y alcance al rival antes del impacto
+	await get_tree().create_timer(0.42).timeout
+	# IMPACTO: la ola ALCANZA al rival -> EXPLOSIÓN dibujada + primer golpe
 	victima.set_facing(-dir)                              # encara al atacante
 	victima.airborne = false
 	victima.crouching = false
@@ -1759,6 +1751,9 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 		await get_tree().process_frame
 	if w != null:
 		w.queue_free()                                   # el vórtice desaparece al correrse
+	if sup != null:
+		sup.queue_free()                                 # quita el super pre-animado
+	atacante.sprite.visible = true                       # DAM vuelve a su sprite normal
 	# REMATE: el estallido lo derriba al piso
 	victima.hard_fall = false
 	victima.receive_hit(false, false, dir, "", true, 1.0)   # trip -> derribo corto
