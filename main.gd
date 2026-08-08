@@ -2668,6 +2668,7 @@ func _dash_border(atacante: Node2D, on: bool) -> void:
 const P2_HUE_SHIFT := 0.55   # 0.5=cian, 0.55=azul, 0.33=verde... (0..1)
 const _HUE_CODE := """
 shader_type canvas_item;
+render_mode unshaded;
 uniform float hue_shift = 0.55;
 vec3 rgb2hsv(vec3 c){
 	vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
