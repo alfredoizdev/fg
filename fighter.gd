@@ -93,7 +93,7 @@ const SFX_FILES := {
 	"jump_punch": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"jump_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"spin_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
-	"air_spin_kick": "res://imagen-action/sound-effect/dam_furious_kicking.mp3",
+	"air_spin_kick": "res://imagen-action/sound-effect/dam-kick-shout.wav",
 	"air_jab": "res://imagen-action/sound-effect/weak-sound-sword.mp3",
 	"take_hit": "res://imagen-action/sound-effect/kick-impact.mp3",
 	"take_hit_low": "res://imagen-action/sound-effect/kick-impact.mp3",
