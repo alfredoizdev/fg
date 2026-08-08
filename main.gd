@@ -1228,7 +1228,7 @@ func _fe_cast_fx(caster: Node2D, on: bool) -> void:
 		_fe_cast_particles.emitting = true
 	else:
 		if caster.sprite.material == _fe_cast_mat:
-			caster.sprite.material = null
+			caster.sprite.material = caster.base_material   # restaura el color alterno (P2)
 		if is_instance_valid(_fe_cast_particles):
 			_fe_cast_particles.emitting = false
 			var pp := _fe_cast_particles
@@ -1361,6 +1361,7 @@ func _start_round() -> void:
 	state = "intro"
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, "dam")                   # el rival (siempre DAM): misma escala/offset/frames que P1
+	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
 	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
 	_refresh_hud_chars()
@@ -2634,7 +2635,7 @@ func _focus_set(level: float) -> void:   # objetivo de intensidad (0..1)
 
 func _focus_end() -> void:
 	if focus_atk != null:
-		focus_atk.sprite.material = null
+		focus_atk.sprite.material = focus_atk.base_material   # restaura el color alterno (P2)
 	focus_atk = null
 	focus_cur = 0.0
 	focus_target = 0.0
@@ -2659,7 +2660,49 @@ func _dash_border(atacante: Node2D, on: bool) -> void:
 			_dash_mat.set_shader_parameter("intensity", 0.9)
 		atacante.sprite.material = _dash_mat
 	elif atacante.sprite.material == _dash_mat:
-		atacante.sprite.material = null   # solo lo quita si es el del dash (no pisa el del ultra)
+		atacante.sprite.material = atacante.base_material   # restaura el color alterno (P2)
+
+# COLOR ALTERNO del P2 (mirror match): cambia el TONO de los colores SATURADOS
+# (abrigo/pelo) sin tocar piel/negros, para distinguir P1 de P2. Respeta el modulate
+# (quemadura/agua) y se restaura tras el ultra/dash vía base_material.
+const P2_HUE_SHIFT := 0.55   # 0.5=cian, 0.55=azul, 0.33=verde... (0..1)
+const _HUE_CODE := """
+shader_type canvas_item;
+uniform float hue_shift = 0.55;
+vec3 rgb2hsv(vec3 c){
+	vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1.0e-10)), d / (q.x + 1.0e-10), q.x);
+}
+vec3 hsv2rgb(vec3 c){
+	vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+void fragment(){
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 hsv = rgb2hsv(tex.rgb);
+	float amt = hue_shift * smoothstep(0.42, 0.68, hsv.y);   // solo colores MUY saturados (abrigo/pelo)
+	hsv.x = fract(hsv.x + amt);
+	vec3 rgb = hsv2rgb(hsv);
+	COLOR = vec4(rgb, tex.a) * COLOR;   // respeta el modulate (quemadura/agua)
+}
+"""
+var _p2_mat: ShaderMaterial = null
+
+func _apply_alt_colors() -> void:
+	if _p2_mat == null:
+		var sh := Shader.new()
+		sh.code = _HUE_CODE
+		_p2_mat = ShaderMaterial.new()
+		_p2_mat.shader = sh
+		_p2_mat.set_shader_parameter("hue_shift", P2_HUE_SHIFT)
+	player.base_material = null
+	player.sprite.material = null                # P1: color normal
+	dummy.base_material = _p2_mat
+	dummy.sprite.material = _p2_mat              # P2: tono cambiado (mismo char, otro color)
 
 # suaviza focus_cur hacia focus_target con reloj REAL (llamado desde _process)
 # ---- ANUNCIOS épicos (READY / FIGHT / K.O.): fuente gruesa + SOMBRA PLANA atrás ----

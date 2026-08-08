@@ -208,6 +208,7 @@ var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar 
 var vel_y := 0.0
 var vel_x := 0.0
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
+var base_material: Material = null   # material base del sprite (color alterno del P2, etc.)
 
 # HITSTOP: al conectar un golpe, este peleador se CONGELA 'dur' segundos (no se mueve
 # ni avanza su animación). Le da PESO al golpe y esa pausa entre golpe y golpe pro.
