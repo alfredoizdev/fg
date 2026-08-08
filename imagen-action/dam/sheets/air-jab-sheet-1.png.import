@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxcn32mf5e72v"
-path="res://.godot/imported/air-jab-sheet.png-4474b4ed81d727d72f826459c7f8ab49.ctex"
+uid="uid://bdoovncxros01"
+path="res://.godot/imported/air-jab-sheet-1.png-35d78c0302792e5f173c7ba70fc6c623.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://imagen-action/dam/sheets/air-jab-sheet.png"
-dest_files=["res://.godot/imported/air-jab-sheet.png-4474b4ed81d727d72f826459c7f8ab49.ctex"]
+source_file="res://imagen-action/dam/sheets/air-jab-sheet-1.png"
+dest_files=["res://.godot/imported/air-jab-sheet-1.png-35d78c0302792e5f173c7ba70fc6c623.ctex"]
 
 [params]
 
