@@ -1687,16 +1687,33 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	flash_rect.color = Color(1.3, 0.5, 0.12, 0.5)
 	if sup != null:
 		sup.play("cast")                   # AHORA sí: DAM suelta la GRAN OLA de fuego
-	var w: Node2D = null   # ya no se usa el vórtice viejo (la ola va dentro del super)
 	# espera a que la ola crezca y alcance al rival antes del impacto
 	await get_tree().create_timer(0.42).timeout
-	# IMPACTO: la ola ALCANZA al rival -> EXPLOSIÓN dibujada + primer golpe
+	# ¿el FUEGO toca de verdad al rival? Debe estar DELANTE de DAM, dentro del alcance
+	# del rayo y NO demasiado alto. Si saltó por encima o está lejos, el poder PASA DE
+	# LARGO: se ve la gran ola pero NO golpea (nada de golpes "fantasma").
+	var REACH_X := 1400.0            # alcance horizontal del rayo
+	var REACH_UP := 430.0            # alto máx (sobre el piso) que toca el fuego
+	var to_v: float = (victima.position.x - atacante.position.x) * float(dir)
+	var alto: float = victima.floor_y - victima.position.y     # >0 si el rival está en el aire
+	var connects: bool = to_v >= -140.0 and to_v <= REACH_X and alto <= REACH_UP and alto >= -60.0
+	if not connects:
+		await get_tree().create_timer(0.5).timeout       # deja terminar la ola (whiff)
+		if sup != null:
+			sup.queue_free()
+		atacante.sprite.visible = true
+		_focus_end()
+		ultra_active = false
+		state = "fight"
+		player.input_enabled = true
+		dummy.ai_enabled = dummy_ai_mode
+		return
+	# CONECTA: golpea al rival DONDE el fuego lo tocó (en el aire o en el suelo), SIN
+	# arrastrarlo al piso. Guarda esa altura para mantenerlo dentro de la ola.
+	var hit_y: float = victima.position.y
 	victima.set_facing(-dir)                              # encara al atacante
-	victima.airborne = false
 	victima.crouching = false
-	victima.position.y = victima.floor_y
 	victima._burst(1.3)
-	victima.spawn_fire_impact()                           # estallido de fuego sobre el rival
 	if victima.has_method("start_burn"):
 		victima.start_burn()                             # queda QUEMADO (oscuro) y se recupera de a poco
 	flash_ms = Time.get_ticks_msec()
@@ -1705,9 +1722,8 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	Engine.time_scale = 0.30
 	await get_tree().create_timer(0.14, true, false, true).timeout   # cámara lenta del impacto
 	Engine.time_scale = 1.0
-	# EMPUJE + MULTI-HIT: mientras la bola ENVUELVE y arrastra al rival por el
-	# suelo, lo golpea una y otra vez (un hit cada PASO seg), subiendo el contador
-	# como una ráfaga. El daño total del INFIERNO (CRIT_DMG) se reparte entre golpes.
+	# EMPUJE + MULTI-HIT: el fuego ENVUELVE y arrastra al rival (a la ALTURA donde lo
+	# tocó, aire o suelo), golpeándolo una y otra vez. El daño se reparte entre golpes.
 	var n0: int = combo_n[idx]
 	var HITS := 8
 	var PASO := 0.07
@@ -1722,15 +1738,12 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 		var dt := get_process_delta_time()
 		var avance := float(dir) * 1050.0 * dt           # empujón veloz
 		victima.position.x = clampf(victima.position.x + avance, 120.0, 1800.0)
-		victima.position.y = victima.floor_y             # pegado al piso
-		if w != null:
-			w.global_position.x += avance                # el vórtice corre junto al rival
-			w.modulate.a = clampf(1.0 - empuje / fin, 0.12, 1.0)   # se disipa al correrse
+		victima.position.y = hit_y                        # a la ALTURA donde lo tocó el fuego
 		polvo_cd -= dt
-		if polvo_cd <= 0.0:
-			victima._spawn_dash_smoke(0.55, 40.0)        # polvo brotando del rival empujado
+		if polvo_cd <= 0.0 and hit_y >= victima.floor_y - 20.0:
+			victima._spawn_dash_smoke(0.55, 40.0)        # polvo solo si va por el suelo
 			polvo_cd = 0.10
-		# GOLPE periódico mientras la bola dure e impacte al rival
+		# GOLPE periódico mientras la ola dure e impacte al rival
 		hit_cd -= dt
 		if hit_cd <= 0.0 and hit_i < HITS:
 			hit_cd = PASO
@@ -1753,8 +1766,6 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 			flash_rect.color = Color(1.4, 0.55, 0.15, 0.5)
 		empuje += dt
 		await get_tree().process_frame
-	if w != null:
-		w.queue_free()                                   # el vórtice desaparece al correrse
 	if sup != null:
 		sup.queue_free()                                 # quita el super pre-animado
 	atacante.sprite.visible = true                       # DAM vuelve a su sprite normal
