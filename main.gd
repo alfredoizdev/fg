@@ -85,7 +85,9 @@ var _voz_cache := {}                        # streams de voz cacheados por nombr
 var ding_stream = null
 var combo_ui := []      # contenedor por lado
 var combo_num := []     # numero gigante
+var combo_ghost := []   # numero FANTASMA gigante detras (estilo GG Strive)
 var combo_nom := []     # nombre del rango
+var combo_font: SystemFont   # fuente heavy del contador
 var combo_band := []    # banda de color del número (verde -> rojo según el combo)
 var combo_rest_x := [270.0, 1650.0]   # x de reposo del cartel (izq / der)
 var combo_show_ms := [-100000, -100000]  # reloj REAL del inicio de la entrada deslizada
@@ -203,11 +205,32 @@ func _ready() -> void:
 			bg_stream.loop = true          # repite sin cortes
 		music_player.stream = bg_stream
 		music_player.play()
+	# fuente heavy para el contador de combo (Arial Black: la mejor display del Mac)
+	combo_font = SystemFont.new()
+	combo_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
+	combo_font.font_weight = 900
 	for i in 2:
 		var c := Node2D.new()
 		c.position = Vector2(270, 300) if i == 0 else Vector2(1650, 300)
 		c.visible = false
 		$UI.add_child(c)
+		# NÚMERO FANTASMA gigante detrás (estilo GG Strive): semitransparente, enorme,
+		# se agrega PRIMERO para quedar por detrás de las bandas/número nítido
+		var gh := Label.new()
+		gh.add_theme_font_override("font", combo_font)
+		gh.add_theme_font_size_override("font_size", 340)
+		gh.add_theme_color_override("font_color", Color(1, 1, 1, 0.13))
+		gh.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.18))
+		gh.add_theme_constant_override("outline_size", 10)
+		gh.position = Vector2(-260, -330)
+		gh.size = Vector2(520, 440)
+		gh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		gh.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		gh.rotation_degrees = -8.0
+		gh.pivot_offset = Vector2(260, 220)
+		gh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.add_child(gh)
+		combo_ghost.append(gh)
 		var slant := 18.0
 		var HW := 186.0   # medio ancho: las dos bandas comparten el MISMO centro y bordes
 		# --- BANDA del número: cartel VERDE inclinado (mismo estilo del BREAK) ---
@@ -225,7 +248,8 @@ func _ready() -> void:
 		combo_band.append(nb)   # se recolorea (verde->rojo) según crece el combo
 		# número gigante BLANCO con contorno oscuro (resalta sobre el verde), centrado
 		var n := Label.new()
-		n.add_theme_font_size_override("font_size", 112)
+		n.add_theme_font_override("font", combo_font)
+		n.add_theme_font_size_override("font_size", 128)
 		n.add_theme_color_override("font_color", Color(1, 1, 1))
 		n.add_theme_color_override("font_outline_color", Color(0.05, 0.07, 0.02))
 		n.add_theme_constant_override("outline_size", 12)
@@ -240,6 +264,7 @@ func _ready() -> void:
 		# (mismo estilo: blanco con contorno oscuro)
 		var g := Label.new()
 		g.text = "HITS"
+		g.add_theme_font_override("font", combo_font)
 		g.add_theme_font_size_override("font_size", 26)
 		g.add_theme_color_override("font_color", Color(1, 1, 1))
 		g.add_theme_color_override("font_outline_color", Color(0.05, 0.07, 0.02))
@@ -263,6 +288,7 @@ func _ready() -> void:
 		rb.color = Color(0.13, 0.14, 0.17, 0.97)
 		c.add_child(rb)
 		var nm := Label.new()
+		nm.add_theme_font_override("font", combo_font)
 		nm.add_theme_font_size_override("font_size", 42)
 		nm.add_theme_color_override("font_color",
 				Color(1.0, 0.9, 0.35) if i == 0 else Color(1.0, 0.55, 0.4))
@@ -1366,6 +1392,7 @@ func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 	if combo_n[idx] >= 2:
 		var c: Node2D = combo_ui[idx]
 		combo_num[idx].text = str(combo_n[idx])
+		combo_ghost[idx].text = str(combo_n[idx])
 		var nombre := _combo_name(combo_n[idx])
 		combo_nom[idx].text = nombre
 		combo_nom[idx].visible = nombre != ""
@@ -1407,6 +1434,7 @@ func _ultra_count(idx: int, n: int, nombre := "") -> void:
 	combo_n[idx] = n
 	combo_t[idx] = 0.0
 	combo_num[idx].text = str(n)
+	combo_ghost[idx].text = str(n)
 	# sin nombre forzado, usa el RANGO normal (DOUBLE, TRIPLE, ...); el nombre del
 	# ultra (APOCALYPSE, etc.) solo se muestra en el remate
 	var rango := nombre if nombre != "" else _combo_name(n)
