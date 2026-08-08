@@ -240,22 +240,41 @@ en `imagen-action/impact-effect/`.
 - Estilo **cel-shaded PLANO, alto contraste, bordes NÍTIDOS y duros, colores
   saturados. NADA borroso, NADA de glow suave difuso tipo Photoshop.**
 
+**CONCEPTO CLAVE (leer primero):** esto es un **DIBUJO GRÁFICO PLANO 2D estilo
+manga/anime hit-spark** (como Guilty Gear / 2XKO), **NO una explosión realista
+ni una bola de fuego renderizada**. Piensa en TINTA y PAPEL: formas planas de
+color liso recortadas con filo, no volumen ni humo ni fuego 3D. Los tres errores
+a evitar SÍ o SÍ:
+- ❌ **NO circular / NO simétrico:** la silueta es DESBALANCEADA e IRREGULAR —
+  más grande y con más púas de un lado, torcida, como una SALPICADURA de pintura,
+  NUNCA una rueda de fuegos artificiales redonda ni un óvalo.
+- ❌ **NO sólido / NO relleno:** entre las púas y los rayos queda **AIRE (fondo
+  verde) visible** — son lengüetas y esquirlas SEPARADAS con huecos entre ellas,
+  NO una masa naranja rellena y continua. Se debe poder "ver a través" en varios
+  puntos.
+- ❌ **NO sombreado interno / NO volumen:** colores en **3-4 capas planas duras**
+  (blanco → amarillo → naranja), sin degradados suaves, sin sombras adentro, sin
+  aspecto de esfera 3D. Es plano como una calcomanía.
+
 **Qué dibujar (el look de la referencia 2XKO), por capas:**
-1. **Estrella de choque:** una silueta de destello EXPLOSIVA con MUCHAS púas
-   afiladas, largas y DESIGUALES saliendo del centro en todas direcciones — NO
-   un círculo ni un óvalo suave, sino bordes en ZIGZAG agresivo.
-2. **Núcleo incandescente:** el centro es BLANCO puro cegador → alrededor
-   AMARILLO brillante → puntas y bordes finos en NARANJA. Degradado por CAPAS
-   planas de color (cel-shading), no difuminado.
-3. **Tinta negra sumi-e (LA FIRMA del look):** manchones y VACÍOS de tinta
-   NEGRA irregulares pegados al borde de arriba y a un costado, como
-   salpicaduras de pincel japonés. El negro le da peso y contraste — sin él el
-   golpe se ve "barato". IMPORTANTE: la tinta va NEGRA sólida (sobrevive al
-   recorte del verde).
-4. **Esquirlas de luz:** varias lanzas FINAS y LARGAS blanco-amarillas
-   disparadas en diagonal hacia afuera, más allá de las púas de la estrella.
+1. **Estrella de choque ASIMÉTRICA:** un destello de MUCHAS púas afiladas,
+   largas y de LARGOS DISTINTOS, saliendo torcidas en direcciones IRREGULARES
+   (unas cortas, otras larguísimas) — bordes en ZIGZAG agresivo, silueta
+   lopsided (desbalanceada), con **huecos de fondo verde entre las púas**.
+2. **Núcleo incandescente EN FORMA DE ESTRELLA (no bola):** el centro es una
+   estrella filosa BLANCA cegadora → un aro AMARILLO brillante → puntas y bordes
+   finos en NARANJA. Todo en CAPAS planas de color, cero difuminado. El centro es
+   puntiagudo/irregular, NO un círculo blanco.
+3. **Tinta negra sumi-e (LA FIRMA del look):** una o dos MANCHAS grandes de
+   tinta NEGRA sólida, con forma irregular tipo salpicadura de pincel, colocadas
+   DESCENTRADAS (arriba y a un costado, comiéndose parte de la estrella) — esto
+   crea el "hueco" negro que rompe la simetría. El negro le da peso; sin él se ve
+   "barato". La tinta va NEGRA sólida (sobrevive al recorte del verde).
+4. **Esquirlas de luz:** varias lanzas MUY FINAS y LARGAS blanco-amarillas
+   disparadas en diagonal hacia afuera, SEPARADAS del cuerpo de la estrella
+   (aisladas, con verde alrededor), a distintos largos.
 5. **Escombros:** trocitos negros angulares + motitas/puntos volando hacia
-   afuera, y unas pocas gotas de tinta salpicando.
+   afuera, y unas pocas gotas de tinta salpicando lejos.
 6. (Opcional, más pop) **chispitas eléctricas CIAN** finas cerca del centro.
 
 **Ciclo por frames (un impacto es INSTANTÁNEO: estalla temprano y se disipa):**
