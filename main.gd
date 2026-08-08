@@ -3244,6 +3244,11 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		var didx := 1 if att_is_player else 0
 		meter[didx] = maxf(0.0, meter[didx] - float(atk.get("damage", 50)) * BLOCK_DRAIN)
 	if result == "hit" or result == "launched":
+		# HITSTOP: ambos se CONGELAN unos frames en el impacto (peso + pausa entre golpes,
+		# como los juegos pro). Golpe fuerte = congela más.
+		var hs := 0.11 if bool(atk.get("strong", false)) else 0.07
+		att.apply_hitstop(hs)
+		def.apply_hitstop(hs)
 		var hidx := 0 if att_is_player else 1
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
 				String(atk["name"]), att.airborne or def.airborne)

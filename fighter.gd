@@ -207,6 +207,13 @@ var swing_layer: Node2D   # capa POR DELANTE del sprite para la estela del arma 
 var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar el cuerpo en el aire)
 var vel_y := 0.0
 var vel_x := 0.0
+var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
+
+# HITSTOP: al conectar un golpe, este peleador se CONGELA 'dur' segundos (no se mueve
+# ni avanza su animación). Le da PESO al golpe y esa pausa entre golpe y golpe pro.
+func apply_hitstop(dur: float) -> void:
+	hitstop_t = maxf(hitstop_t, dur)
+	sprite.speed_scale = 0.0   # congela la animación en el frame del impacto
 var floor_y := 0.0
 var punch_followup := false  # →+Q: segundo corte encadenado pendiente
 var buffer_action := ""      # boton guardado esperando ventana de cancel
@@ -964,6 +971,15 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if swing_layer:
 		swing_layer.queue_redraw()   # la estela se dibuja por delante del cuerpo
+	# HITSTOP: mientras dure, el cuerpo queda CONGELADO (frame del impacto). Solo
+	# redibuja; no avanza física, animación ni timers. Los efectos (chispas, temblor)
+	# y el buffer de input sí siguen (van por su cuenta).
+	if hitstop_t > 0.0:
+		hitstop_t -= delta
+		if hitstop_t <= 0.0:
+			sprite.speed_scale = 1.0   # reanuda la animación
+		else:
+			return
 	# inclinación al salir volando: el cuerpo se ladea hacia la dirección del empujón (no vertical)
 	if hit_flying and String(sprite.animation) == "hit_fly":
 		sprite.rotation = deg_to_rad(FLY_TILT_DEG) * fly_lean
