@@ -214,12 +214,13 @@ func _ready() -> void:
 	music_player = AudioStreamPlayer.new()
 	music_player.volume_db = -20.0
 	add_child(music_player)
-	# OGG en vez de MP3: el MP3 tiene un leak conocido del AudioServer de Godot al salir
-	var ruta_bg := "res://imagen-action/sound-effect/tunetank-emotional-classical.ogg"
+	var ruta_bg := "res://imagen-action/sound-effect/sound-guitar.mp3"
 	if ResourceLoader.exists(ruta_bg):
 		var bg_stream = load(ruta_bg)
 		if bg_stream is AudioStreamOggVorbis:
 			bg_stream.loop = true          # repite sin cortes
+		elif bg_stream is AudioStreamMP3:
+			bg_stream.loop = true          # loop del MP3 (sound-guitar)
 		music_player.stream = bg_stream
 		music_player.play()
 	# fuente heavy para el contador de combo (Arial Black: la mejor display del Mac)

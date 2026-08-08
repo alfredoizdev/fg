@@ -914,55 +914,10 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 
 const BURN_DUR := 5.0
 var burned_t := 0.0
-var burn_smoke: CPUParticles2D = null
 # estado QUEMADO: el cuerpo se ve oscuro/carbonizado y se recupera de a poco.
 # General: cualquier poder de fuego (inferno de DAM, etc.) lo puede aplicar.
 func start_burn(dur := BURN_DUR) -> void:
 	burned_t = maxf(burned_t, dur)
-	_ensure_burn_smoke()
-	burn_smoke.emitting = true
-
-# HUMO de quemadura: columna suave que SUBE, se ensancha y se disipa (textura
-# difuminada + crece con la vida + degradado a transparente). Nada de bolas grises.
-func _ensure_burn_smoke() -> void:
-	if burn_smoke != null:
-		return
-	var sm := CPUParticles2D.new()
-	sm.texture = _soft_texture()
-	sm.local_coords = false            # el humo sube por su cuenta (no sigue al cuerpo)
-	sm.emitting = false
-	sm.amount = 26
-	sm.lifetime = 1.9
-	sm.preprocess = 0.4
-	sm.position = Vector2(0.0, 190.0)  # torso (los pies están en y=SHADOW_FEET_OFFSET)
-	sm.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	sm.emission_rect_extents = Vector2(55.0, 150.0)
-	sm.direction = Vector2(0, -1)
-	sm.spread = 22.0
-	sm.gravity = Vector2(0, -55)        # SUBE
-	sm.initial_velocity_min = 28.0
-	sm.initial_velocity_max = 70.0
-	sm.damping_min = 8.0
-	sm.damping_max = 26.0               # se frena arriba (se queda flotando y se disipa)
-	sm.angular_velocity_min = -35.0
-	sm.angular_velocity_max = 35.0
-	sm.tangential_accel_min = -28.0     # se enrosca (voluta), no sube recto
-	sm.tangential_accel_max = 28.0
-	sm.scale_amount_min = 4.0
-	sm.scale_amount_max = 8.0
-	var sc := Curve.new()
-	sc.add_point(Vector2(0.0, 0.35))    # nace pequeño
-	sc.add_point(Vector2(1.0, 1.9))     # se ENSANCHA al subir
-	sm.scale_amount_curve = sc
-	var g := Gradient.new()
-	g.set_color(0, Color(0.16, 0.14, 0.14, 0.0))   # aparece tenue
-	g.add_point(0.18, Color(0.20, 0.19, 0.18, 0.55))
-	g.add_point(0.6, Color(0.28, 0.27, 0.28, 0.32))
-	g.set_color(1, Color(0.34, 0.34, 0.36, 0.0))   # se disipa
-	sm.color_ramp = g
-	sm.z_index = 5
-	burn_smoke = sm
-	add_child(sm)
 
 func _physics_process(delta: float) -> void:
 	queue_redraw()
@@ -990,14 +945,8 @@ func _physics_process(delta: float) -> void:
 		burned_t = maxf(0.0, burned_t - delta)
 		var bt := burned_t / BURN_DUR   # 1 (recién quemado) -> 0 (recuperado)
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.30, 0.23, 0.24, 1), bt)
-		if burn_smoke != null:
-			burn_smoke.emitting = burned_t > 0.7   # el humo se apaga antes de recuperarse
 	elif sprite.modulate != Color(1, 1, 1, 1):
 		sprite.modulate = Color(1, 1, 1, 1)
-		if burn_smoke != null:
-			burn_smoke.emitting = false
-	elif burn_smoke != null and burn_smoke.emitting:
-		burn_smoke.emitting = false
 
 	# squash del estrellon: conserva el volumen (comprime un eje, estira el otro)
 	if wall_squash_t > 0.0:
