@@ -642,8 +642,8 @@ func spawn_fire_wave() -> Node2D:
 # NORMALIZAN a un lienzo comun 2934x1110 con DAM del MISMO tamaño en los 5 (pies en
 # local (612,1078)); solo el FUEGO crece de la mano hacia el rival. A esta escala
 # DAM queda ~igual que su tamaño real (imponente, no encogido).
-const INFERNO_SUPER_SCALE := 0.59   # DAM a su tamaño NORMAL de pelea (~416px en pantalla)
-const INFERNO_FEET := Vector2(612.0, 1078.0)   # pies de DAM dentro del frame
+const INFERNO_SUPER_SCALE := 0.65   # DAM a su tamaño NORMAL de pelea (~416px en pantalla)
+const INFERNO_FEET := Vector2(559.0, 978.0)   # pies de DAM dentro del frame (lienzo 2663x1010)
 var inferno_super_frames: SpriteFrames = null
 func spawn_inferno_super() -> AnimatedSprite2D:
 	if inferno_super_frames == null:
