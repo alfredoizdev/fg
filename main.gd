@@ -206,7 +206,11 @@ func _ready() -> void:
 	kick_voz_player.volume_db = 0.0
 	add_child(kick_voz_player)
 	_build_hud()                              # meter de 3 segmentos + avatares
-	if ResourceLoader.exists("res://imagen-action/sound-effect/combo-ding.wav"):
+	# nota de GUITARRA aguda (guitar-hit) en vez de la campana; sube por la escala
+	# pentatónica con cada golpe (via pitch_scale en cada hit del combo).
+	if ResourceLoader.exists("res://imagen-action/sound-effect/guitar-hit.wav"):
+		ding_stream = load("res://imagen-action/sound-effect/guitar-hit.wav")
+	elif ResourceLoader.exists("res://imagen-action/sound-effect/combo-ding.wav"):
 		ding_stream = load("res://imagen-action/sound-effect/combo-ding.wav")
 	# el cierre de ventana lo maneja _notification (para apagar el audio antes de quit)
 	get_tree().set_auto_accept_quit(false)
