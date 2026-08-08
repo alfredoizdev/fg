@@ -399,11 +399,16 @@ func current_attack() -> Dictionary:
 func do_ko() -> void:
 	koed = true
 	crouching = false
-	hit_flying = false
-	airborne = false
 	water_bg = false
 	fe_dash_t = 0.0
 	fe_dash_active = false
+	# KO EN EL AIRE: no teletransporta ni activa la anim de KO todavía; deja que CAIGA
+	# por su arco y quede TENDIDO al tocar el piso (lo maneja el aterrizaje).
+	if airborne or hit_flying:
+		return
+	# KO en el suelo: cae de espaldas con la animación completa
+	hit_flying = false
+	airborne = false
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
@@ -1170,6 +1175,15 @@ func _physics_process(delta: float) -> void:
 			vel_y = 0.0
 			air_move_used = false   # tocó el piso: puede volver a atacar en el aire
 			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
+			if koed:
+				# cayó noqueado desde el aire: queda TENDIDO (último frame del ko)
+				vel_x = 0.0
+				hit_flying = false
+				hard_fall = false
+				_spawn_jump_dust(0.9)
+				sprite.play("ko")
+				sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
+				return
 			if hit_flying:
 				hit_flying = false
 				vel_x = 0.0
