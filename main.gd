@@ -163,6 +163,7 @@ var anno_main: Label
 var anno_sh: Label
 var anno_ms := -100000
 var anno_dur := 0.0
+var anno_side := -1            # lado por el que ENTRA (-1 izq, +1 der); sale por el opuesto
 var ko_red: ColorRect = null   # velo ROJO del KO (control manual)
 # ENFOQUE épico del ULTRA: borde rojo eléctrico en el atacante + escena oscurecida
 var _outline_mat: ShaderMaterial = null
@@ -1363,11 +1364,11 @@ func _start_round() -> void:
 	meter = [1.0, 1.0]        # arranca con 1 barra (solo INFERNO); las otras 2 se ganan
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	announce.visible = false
-	# READY grande (sombra plana) -> FIGHT! épico
-	_show_announce("READY", Color(1.6, 1.35, 0.35), 1.05)
-	await get_tree().create_timer(0.95).timeout
-	_show_announce("FIGHT!", Color(1.85, 0.4, 0.28), 0.85)
-	await get_tree().create_timer(0.5).timeout
+	# READY cruza desde la IZQUIERDA -> FIGHT! entra desde la DERECHA casi cuando READY se va
+	_show_announce("READY", Color(1.6, 1.35, 0.35), 1.0, -1)
+	await get_tree().create_timer(0.82).timeout
+	_show_announce("FIGHT!", Color(1.85, 0.4, 0.28), 0.9, 1)
+	await get_tree().create_timer(0.55).timeout
 	state = "fight"
 	player.input_enabled = true
 	dummy.ai_enabled = dummy_ai_mode
@@ -2681,13 +2682,14 @@ func _build_announce() -> void:
 	anno_main.position = Vector2(0, 356)
 	anno_root.add_child(anno_main)
 
-func _show_announce(txt: String, col: Color, dur: float) -> void:
+func _show_announce(txt: String, col: Color, dur: float, side := -1) -> void:
 	if anno_root == null:
 		return
 	anno_main.text = txt
 	anno_sh.text = txt
 	anno_main.add_theme_color_override("font_color", col)
 	anno_dur = dur
+	anno_side = side
 	anno_ms = Time.get_ticks_msec()
 	anno_root.visible = true
 
@@ -2698,16 +2700,28 @@ func _announce_tick() -> void:
 	if t < 0.0 or t > anno_dur:
 		anno_root.visible = false
 		return
-	var pin := clampf(t / 0.18, 0.0, 1.0)                       # entra grande y asienta (rebote)
-	var pout := clampf((t - (anno_dur - 0.22)) / 0.22, 0.0, 1.0)  # sale creciendo + fade
-	var sc := lerpf(1.7, 1.0, _ease_out_back(pin))
+	var pin := clampf(t / 0.17, 0.0, 1.0)                        # ENTRA desde un lado (rápido)
+	var pout := clampf((t - (anno_dur - 0.20)) / 0.20, 0.0, 1.0)  # SALE por el lado opuesto
+	# CRUZA la pantalla: entra desde 'anno_side', reposa al centro, sale al opuesto
+	var enter_off := 2100.0 * float(anno_side)     # fuera de pantalla del lado de entrada
+	var x := lerpf(enter_off, 0.0, _ease_out_cubic(pin))
 	if pout > 0.0:
-		sc = lerpf(1.0, 1.4, pout)
-	var a := minf(pin, 1.0 - pout)
+		x = lerpf(0.0, -enter_off, _ease_in_cubic(pout))
+	# ligero rebote de escala al asentar + estela de la sombra en el sentido del movimiento
+	var sc := lerpf(1.22, 1.0, _ease_out_back(pin))
+	var vx := 0.0                                    # velocidad horizontal aprox (para la estela)
+	if pin < 1.0: vx = -enter_off * (1.0 - pin) * 0.05
+	elif pout > 0.0: vx = enter_off * pout * 0.05
+	var a := clampf(pin * 3.0, 0.0, 1.0) * (1.0 - pout * 0.6)
+	anno_main.position = Vector2(x, 356.0)
+	anno_sh.position = Vector2(x + 18.0 + vx, 374.0)   # sombra plana + estela de velocidad
 	anno_main.scale = Vector2(sc, sc)
 	anno_sh.scale = Vector2(sc, sc)
 	anno_main.modulate.a = a
 	anno_sh.modulate.a = a * 0.85
+
+func _ease_in_cubic(p: float) -> float:
+	return p * p * p
 
 # ---- CUT-IN del INFIERNO: retrato de DAM que entra desde un lado (estilo P4A) ----
 func _build_cutin() -> void:
@@ -3217,15 +3231,15 @@ func _end_round(player_won: bool) -> void:
 	announce.visible = false
 	# CINEMÁTICO del KO: CONGELA la pantalla, sale K.O. GRANDE, la pantalla se pone
 	# ROJA con las líneas del ultra... y luego se va todo y siguen los frames normales.
-	_show_announce("K.O.", Color(1.95, 0.2, 0.16), 2.0)
+	_show_announce("K.O.", Color(1.95, 0.2, 0.16), 2.4, -1)
 	if ultra_panels.size() > 0:
 		ultra_panel.texture = ultra_panels[0]
 	ultra_panel.modulate = Color(1.7, 0.28, 0.28, 1.0)     # líneas TINTADAS de rojo
 	ultra_panel.visible = true
 	_shake(26.0, 0.5)
-	Engine.time_scale = 0.0                                  # FREEZE
+	Engine.time_scale = 0.0                                  # FREEZE (largo)
 	var ks := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - ks < 550:
+	while Time.get_ticks_msec() - ks < 1050:
 		var kt := float(Time.get_ticks_msec() - ks) / 1000.0
 		if ultra_panels.size() > 0:
 			ultra_panel.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
