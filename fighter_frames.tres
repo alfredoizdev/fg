@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=132 format=3]
+[gd_resource type="SpriteFrames" load_steps=136 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -104,6 +104,10 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/air_jab/dam-air_jab-2.png" id="aj2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/air_jab/dam-air_jab-3.png" id="aj3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/air_jab/dam-air_jab-4.png" id="aj4"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/neutral_spin/dam-neutral_spin-1.png" id="ns1"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/neutral_spin/dam-neutral_spin-2.png" id="ns2"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/neutral_spin/dam-neutral_spin-3.png" id="ns3"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/neutral_spin/dam-neutral_spin-4.png" id="ns4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/strong-fly/dam-strong-fly-1.png" id="sf1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/strong-fly/dam-strong-fly-2.png" id="sf2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/strong-fly/dam-strong-fly-3.png" id="sf3"]
@@ -316,6 +320,23 @@ animations = [{
 "loop": false,
 "name": &"air_jab",
 "speed": 16.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("ns1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ns2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ns3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ns4")
+}],
+"loop": false,
+"name": &"neutral_spin",
+"speed": 14.0
 }, {
 "frames": [{
 "duration": 1.0,
