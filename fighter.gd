@@ -209,6 +209,8 @@ var vel_y := 0.0
 var vel_x := 0.0
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
 var air_float_t := 0.0 # flote aéreo SOLO tras conectar un golpe en el aire (juggle)
+var air_move_used := false   # ya se hizo UN golpe aéreo este salto (hasta caer o conectar)
+const AIR_MOVES := ["jump_punch", "jump_kick", "air_jab", "air_jab_2", "air_spin_kick"]
 var base_material: Material = null   # material base del sprite (color alterno del P2, etc.)
 
 # HITSTOP: al conectar un golpe, este peleador se CONGELA 'dur' segundos (no se mueve
@@ -1166,6 +1168,7 @@ func _physics_process(delta: float) -> void:
 			position.y = floor_y
 			airborne = false
 			vel_y = 0.0
+			air_move_used = false   # tocó el piso: puede volver a atacar en el aire
 			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
 			if hit_flying:
 				hit_flying = false
@@ -1439,7 +1442,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			break
 	if accion == "":
 		return
-	if not _try_attack(accion):
+	# UN solo golpe aéreo por salto (hasta CAER o hasta que CONECTE). Corta el spam
+	# de golpes aéreos (y el sonido agudo repetido).
+	if airborne and air_move_used:
+		return
+	if _try_attack(accion):
+		if airborne and String(sprite.animation) in AIR_MOVES:
+			air_move_used = true
+	else:
 		# aun no se abre la ventana: se guarda y dispara solo en cuanto abra
 		buffer_action = accion
 		buffer_t = 0.3

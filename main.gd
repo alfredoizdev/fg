@@ -279,12 +279,6 @@ func _ready() -> void:
 		nb.color = Color(0.62, 0.86, 0.16)
 		c.add_child(nb)
 		combo_band.append(nb)   # se recolorea (verde->rojo) según crece el combo
-		# CARA/OJOS del atacante como fondo del panel (encima del color, bajo el número)
-		var fc := Polygon2D.new()
-		fc.polygon = nb_poly
-		fc.color = Color(1, 1, 1, 0.62)   # se blend con la banda de color de abajo
-		c.add_child(fc)
-		combo_face.append(fc)
 		# número gigante BLANCO con contorno oscuro (resalta sobre el verde), centrado
 		var n := Label.new()
 		n.add_theme_font_override("font", combo_font)
@@ -1347,15 +1341,6 @@ func _refresh_hud_chars() -> void:
 		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			hud_avatar[side].texture = load(String(c["avatar"]))
 			_cover_avatar(hud_avatar[side], 114, 114)   # reajusta al tamaño real del retrato nuevo
-		# cara/ojos del atacante como fondo del panel del combo (mapea la franja de los ojos)
-		if side < combo_face.size() and combo_face[side] != null and ResourceLoader.exists(String(c["avatar"])):
-			var ftex: Texture2D = load(String(c["avatar"]))
-			combo_face[side].texture = ftex
-			var ts: Vector2 = ftex.get_size()
-			# franja a la ALTURA DE LOS OJOS (no el pelo): ~0.46..0.66 del alto
-			combo_face[side].uv = PackedVector2Array([
-				Vector2(ts.x * 0.14, ts.y * 0.46), Vector2(ts.x * 0.86, ts.y * 0.46),
-				Vector2(ts.x * 0.86, ts.y * 0.66), Vector2(ts.x * 0.14, ts.y * 0.66)])
 
 func _start_round() -> void:
 	state = "intro"
@@ -3282,10 +3267,12 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		var hs := 0.11 if bool(atk.get("strong", false)) else 0.07
 		att.apply_hitstop(hs)
 		def.apply_hitstop(hs)
-		# si el atacante golpea EN EL AIRE, flota un poco para seguir el juggle (si
-		# falla en el aire NO flota: cae normal)
+		# si el atacante golpea EN EL AIRE, flota un poco para seguir el juggle y puede
+		# encadenar OTRO golpe aéreo (distinto, por la regla de oro). Si falla NO flota
+		# ni puede repetir: cae normal.
 		if att.airborne:
 			att.air_float_t = 0.45
+			att.air_move_used = false
 		var hidx := 0 if att_is_player else 1
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
 				String(atk["name"]), att.airborne or def.airborne)
