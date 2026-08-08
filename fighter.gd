@@ -47,9 +47,7 @@ const SWING_FX := {
 		"stages": [[150.0, 220.0, 0.5], [200.0, 340.0, 1.0], [340.0, 460.0, 0.7], [460.0, 560.0, 0.7], [560.0, 700.0, 1.0]]},
 	"weak_punch": {"base": 1, "c": Vector2(20, 40), "r": 520.0, "w": 180.0, "flat": 0.38,
 		"stages": [[325.0, 358.0, 0.9], [335.0, 358.0, 0.35]]},
-	"air_spin_kick": {"base": 1, "c": Vector2(0, 230), "r": 380.0, "w": 260.0, "flat": 1.0,
-		"stages": [[-150.0, -60.0, 0.5, 0.85], [-70.0, 30.0, 0.7, 0.85], [10.0, 110.0, 0.7, 0.85],
-			[90.0, 190.0, 0.7, 0.9], [150.0, 320.0, 1.0, 1.2], [250.0, 325.0, 0.4, 1.2]]},
+	# air_spin_kick = DOBLE PATADA (sin estela de blade: la katana va quieta)
 	"crouch_jab": {"base": 1, "c": Vector2(20, 300), "r": 560.0, "w": 170.0, "flat": 0.38,
 		"stages": [[325.0, 358.0, 0.9], [335.0, 358.0, 0.35]]},
 	"sweep": {"base": 1, "c": Vector2(10, 380), "r": 620.0, "w": 300.0, "flat": 0.38,
@@ -95,7 +93,6 @@ const SFX_FILES := {
 	"jump_punch": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"jump_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"spin_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
-	"air_spin_kick": "res://imagen-action/sound-effect/sword-slash-and-swing.mp3",
 	"take_hit": "res://imagen-action/sound-effect/kick-impact.mp3",
 	"take_hit_low": "res://imagen-action/sound-effect/kick-impact.mp3",
 	"hit_fly": "res://imagen-action/sound-effect/kick-impact.mp3",
