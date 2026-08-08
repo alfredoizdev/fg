@@ -1352,9 +1352,10 @@ func _refresh_hud_chars() -> void:
 			var ftex: Texture2D = load(String(c["avatar"]))
 			combo_face[side].texture = ftex
 			var ts: Vector2 = ftex.get_size()
+			# franja a la ALTURA DE LOS OJOS (no el pelo): ~0.46..0.66 del alto
 			combo_face[side].uv = PackedVector2Array([
-				Vector2(ts.x * 0.12, ts.y * 0.24), Vector2(ts.x * 0.88, ts.y * 0.24),
-				Vector2(ts.x * 0.88, ts.y * 0.55), Vector2(ts.x * 0.12, ts.y * 0.55)])
+				Vector2(ts.x * 0.14, ts.y * 0.46), Vector2(ts.x * 0.86, ts.y * 0.46),
+				Vector2(ts.x * 0.86, ts.y * 0.66), Vector2(ts.x * 0.14, ts.y * 0.66)])
 
 func _start_round() -> void:
 	state = "intro"
@@ -1382,9 +1383,9 @@ func _start_round() -> void:
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	announce.visible = false
 	# READY cruza desde la IZQUIERDA -> FIGHT! entra desde la DERECHA casi cuando READY se va
-	_show_announce("READY", Color(1.6, 1.35, 0.35), 1.0, -1)
+	_show_announce("READY", Color(0.88, 0.74, 0.20), 1.0, -1)   # sólido, bajo el umbral de glow
 	await get_tree().create_timer(0.82).timeout
-	_show_announce("FIGHT!", Color(1.85, 0.4, 0.28), 0.9, 1)
+	_show_announce("FIGHT!", Color(0.88, 0.31, 0.18), 0.9, 1)
 	await get_tree().create_timer(0.55).timeout
 	state = "fight"
 	player.input_enabled = true
@@ -3280,7 +3281,7 @@ func _end_round(player_won: bool) -> void:
 	announce.visible = false
 	# CINEMÁTICO del KO: CONGELA la pantalla, sale K.O. GRANDE, la pantalla se pone
 	# ROJA con las líneas del ultra... y luego se va todo y siguen los frames normales.
-	_show_announce("K.O.", Color(1.95, 0.2, 0.16), 2.4, -1)
+	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
 	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
 	ko_lines.visible = true
 	_shake(26.0, 0.5)
@@ -3324,7 +3325,7 @@ func _end_round(player_won: bool) -> void:
 	var woff_x := wrest_x - 240.0 * float(wside)
 	win_portrait.position = Vector2(woff_x, 1080.0 - CUTIN_PH + 30.0)
 	win_portrait.visible = true
-	_show_announce("DAM WINS", Color(1.5, 1.25, 0.4), 3.3, wside)
+	_show_announce("DAM WINS", Color(0.88, 0.75, 0.28), 3.3, wside)
 	var ws := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - ws < 340:
 		var wp := float(Time.get_ticks_msec() - ws) / 340.0
