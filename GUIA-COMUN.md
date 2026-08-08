@@ -309,3 +309,46 @@ tinta negra y los escombros quedan negros en las tres):**
 
 Cuando tengas la hoja, dime "**ya está impact-hit-sheet**" y la proceso (recorte
 verde + centrado) y la conecto como efecto de impacto de golpes de todos.
+
+---
+
+## Chispa de CORTE para golpes bajos (slash streak, estilo 2XKO) — prompt para la AI
+
+Un SEGUNDO tipo de impacto, distinto a la estrella: un **TAJO largo** (rastro de
+corte) que **se va haciendo DELGADO hasta desaparecer**. Para golpes bajos /
+barridos. Archivo: `impact-slash-sheet.png` en `imagen-action/impact-effect/`.
+
+**Formato técnico:**
+- 1 hoja, **6 frames en 2 filas de 3** (arriba f1-f3, abajo f4-f6) = el corte
+  avanzando en el tiempo.
+- Fondo **VERDE puro #00FF00**, con MARGEN verde de sobra (el tajo es largo).
+- **CENTRADO en el mismo punto** en los 6 frames (mismo centro; cambia el grosor,
+  no la posición).
+- **SIN personaje, sin escenario, sin texto.** Solo el efecto sobre el verde.
+- Estilo **cel-shaded PLANO, bordes NÍTIDOS, NADA borroso.**
+
+**Qué dibujar (el look de la referencia):**
+- **UN solo TAJO diagonal grande:** una franja/rayo de corte LARGA y curvada,
+  AFILADA en las dos puntas (GRUESA al medio, adelgazando a puntas finas en los
+  extremos), como el rastro de una espada o un relámpago grueso. Va en DIAGONAL
+  (de abajo-izquierda a arriba-derecha). (El motor la rota al azar.)
+- **Color:** el filo/centro BLANCO-AMARILLO incandescente → cuerpo NARANJA →
+  bordes ROJO. En CAPAS planas, sin degradado suave.
+- **Bordes ANGULARES/dentados** (gráfico tipo tinta), NO suaves ni redondeados.
+- **Acompañantes:** trocitos NEGROS de escombro + brasas/chispas naranjas
+  volando a lo largo del tajo, y alguna salpicadura de tinta negra.
+
+**Ciclo por frames (se va haciendo DELGADO hasta desaparecer, NO se encoge de
+largo — se mantiene largo pero cada vez más FINO):**
+- **f1 — APARECE:** el tajo entra fino y veloz (una línea brillante formándose).
+- **f2 — PICO:** el tajo más GRUESO y brillante, con más escombros y brasas.
+- **f3 — ADELGAZA:** empieza a afinarse, aún brillante.
+- **f4 — MÁS FINO:** más delgado, tono más naranja/rojo, brasas alejándose.
+- **f5 — TENUE:** muy delgado y semitransparente.
+- **f6 — DESAPARECE:** un hilo fino y tenue disipándose.
+
+**Variantes de color:** DAM fuego (naranja/rojo), Favi agua (cian/azul), Aye
+floral (rosa/magenta).
+
+Cuando tengas la hoja, dime "**ya está impact-slash-sheet**" y la proceso y la
+conecto como efecto de **golpes bajos** (barrido, agachados, take_hit_low).
