@@ -219,3 +219,61 @@ sola vez y todos los usan. Ya están en el juego:
 
 Si un personaje nuevo quiere un efecto propio (ej. otro color de chispa), se
 genera aparte; si no, reutiliza estos tal cual.
+
+---
+
+## Chispas de impacto ÉPICAS (estilo 2XKO) — prompt para la AI
+
+Para reemplazar las chispas actuales por un DESTELLO DE IMPACTO grande y
+dramático (el que sale al conectar un golpe). Archivo: `impact-hit-sheet.png`
+en `imagen-action/impact-effect/`.
+
+**Formato técnico (OBLIGATORIO para que entre al juego):**
+- 1 hoja, **4 frames en UNA fila** de izquierda a derecha (o 6 en 2 filas de 3,
+  fila de arriba primero) = el efecto avanzando en el tiempo.
+- Fondo **VERDE puro #00FF00** (se recorta a transparente; el verde NO puede
+  tocar el efecto — deja aire verde alrededor de cada frame).
+- El efecto **CENTRADO**, con el **MISMO centro y el MISMO tamaño** en todos los
+  frames (si salta de posición o tamaño, se ve mal).
+- **SIN personaje, sin escenario, sin barras, sin texto, sin números.** Solo el
+  efecto flotando sobre el verde.
+- Estilo **cel-shaded PLANO, alto contraste, bordes NÍTIDOS y duros, colores
+  saturados. NADA borroso, NADA de glow suave difuso tipo Photoshop.**
+
+**Qué dibujar (el look de la referencia 2XKO), por capas:**
+1. **Estrella de choque:** una silueta de destello EXPLOSIVA con MUCHAS púas
+   afiladas, largas y DESIGUALES saliendo del centro en todas direcciones — NO
+   un círculo ni un óvalo suave, sino bordes en ZIGZAG agresivo.
+2. **Núcleo incandescente:** el centro es BLANCO puro cegador → alrededor
+   AMARILLO brillante → puntas y bordes finos en NARANJA. Degradado por CAPAS
+   planas de color (cel-shading), no difuminado.
+3. **Tinta negra sumi-e (LA FIRMA del look):** manchones y VACÍOS de tinta
+   NEGRA irregulares pegados al borde de arriba y a un costado, como
+   salpicaduras de pincel japonés. El negro le da peso y contraste — sin él el
+   golpe se ve "barato". IMPORTANTE: la tinta va NEGRA sólida (sobrevive al
+   recorte del verde).
+4. **Esquirlas de luz:** varias lanzas FINAS y LARGAS blanco-amarillas
+   disparadas en diagonal hacia afuera, más allá de las púas de la estrella.
+5. **Escombros:** trocitos negros angulares + motitas/puntos volando hacia
+   afuera, y unas pocas gotas de tinta salpicando.
+6. (Opcional, más pop) **chispitas eléctricas CIAN** finas cerca del centro.
+
+**Ciclo por frames (un impacto es INSTANTÁNEO: estalla temprano y se disipa):**
+- **f1 — NACE:** núcleo blanco chico ultra-brillante, 3-4 púas cortas asomando,
+  1-2 flecos de tinta.
+- **f2 — ESTALLA:** la estrella explota a casi el tamaño máximo: muchas púas,
+  primeras esquirlas diagonales, manchones de tinta arriba, escombros saliendo.
+- **f3 — PICO:** lo más grande y caótico: estrella completa, esquirlas largas,
+  vacíos de tinta, escombros y (opcional) chispas cian.
+- **f4 — SE DISIPA:** las púas se acortan, la tinta y los escombros se alejan y
+  adelgazan, queda un destello tenue.
+  *(Con 6 frames: alarga el pico — f3 y f4 = pico, f5-f6 = disipación.)*
+
+**Variantes de color (MISMO diseño, solo cambia el tinte del núcleo/púas; la
+tinta negra y los escombros quedan negros en las tres):**
+- **DAM (fuego):** blanco → AMARILLO → naranja (igual que la referencia).
+- **Favi (agua):** blanco → CIAN → azul marino.
+- **Aye (naturaleza/floral):** blanco → ROSA → magenta/lavanda.
+
+Cuando tengas la hoja, dime "**ya está impact-hit-sheet**" y la proceso (recorte
+verde + centrado) y la conecto como efecto de impacto de golpes de todos.
