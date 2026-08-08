@@ -1449,10 +1449,9 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 				victima.sprite.play("pummeled")
 		else:
 			victima.sprite.play("take_hit_low" if i % 2 == 0 else "take_hit")
-		# panel manga a pantalla completa: avanza 1->6 conforme progresa la ráfaga
+		# panel manga a pantalla completa: CAMBIA en cada golpe (cicla 1->6 rápido)
 		if ultra_panels.size() > 0:
-			var pidx := clampi(int(float(i) / float(ULTRA_FLURRY.size()) * ultra_panels.size()), 0, ultra_panels.size() - 1)
-			ultra_panel.texture = ultra_panels[pidx]
+			ultra_panel.texture = ultra_panels[i % ultra_panels.size()]
 			ultra_panel.visible = true
 		victima._play_sfx_key("take_hit")   # sonido de impacto por golpe
 		# chispa al PECHO (base_corr sigue el pecho según la escala del personaje)
