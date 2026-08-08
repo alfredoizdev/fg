@@ -1486,10 +1486,8 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
 	_focus_start(atacante)         # borde rojo eléctrico (aparece gradual con el combo)
-	# paneles manga a pantalla completa: se muestran desde YA y durante TODO el ultra
-	if ultra_panels.size() > 0:
-		ultra_panel.texture = ultra_panels[0]
-		ultra_panel.visible = true
+	# NOTA: los paneles manga NO se muestran aquí (en la activación). Salen RETRASADOS,
+	# con la ráfaga (cuando la pantalla ya se oscureció) — ver _ultra_flurry.
 	# arranque dramatico: congelado + fogonazo (el rotulo va en el contador de combo)
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.0, 0.4, 0.15, 0.6)
