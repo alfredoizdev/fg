@@ -1516,10 +1516,39 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 			cruz += get_process_delta_time()
 		victima.set_facing(-dir)
 		n = await _ultra_flurry(atacante, victima, idx, dir, n, drain)
+	# APOCALIPSIS (largo): pre-remate = PATADA GIRATORIA (→E) EN EL SITIO, sin empujar.
+	# El rival se queda en el lugar y recibe el impacto. Luego viene el mortal (arriba E).
+	if largo and state == "ultra":
+		atacante.set_facing(dir)
+		atacante.position.x = clampf(victima.position.x - float(dir) * 200.0, LEFT_LIMIT, RIGHT_LIMIT)
+		var spx := atacante.position.x
+		var svx := victima.position.x
+		atacante.airborne = false
+		atacante.sprite.speed_scale = 1.5
+		atacante.sprite.play("spin_kick")
+		victima.set_facing(-dir)
+		victima.receive_hit(false, false, dir, "kick_impact")   # impacto EN EL SITIO (no lanza)
+		if victima.sprite.sprite_frames.has_animation("pummeled"):
+			victima.sprite.play("pummeled")
+		n += 1
+		_ultra_count(idx, n)
+		_shake(14.0, 0.18)
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(1.0, 0.5, 0.2, 0.5)
+		var st := 0.0
+		while st < 0.40 and state == "ultra":
+			atacante.position.x = spx          # el spin_kick NO empuja: fijo en el sitio
+			victima.position.x = svx           # el rival se queda en el lugar
+			await get_tree().process_frame
+			st += get_process_delta_time()
+		atacante.sprite.speed_scale = 1.0
 	# FINISHER: mortal aereo (E arriba) que manda al rival MUY alto + caida brusca
 	if state == "ultra":
 		victima.ultra_hover = false   # libera el juggle: ahora el remate lo lanza
 		atacante.sprite.speed_scale = 1.0
+		# arrima el atacante a distancia de patada para que la DOBLE PATADA conecte
+		atacante.position.x = clampf(victima.position.x - float(dir) * 165.0, LEFT_LIMIT, RIGHT_LIMIT)
+		atacante.set_facing(dir)
 		atacante.airborne = true
 		atacante.vel_y = -atacante.JUMP_SPEED
 		atacante.sprite.play("air_spin_kick")
