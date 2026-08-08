@@ -164,7 +164,9 @@ var anno_sh: Label
 var anno_ms := -100000
 var anno_dur := 0.0
 var anno_side := -1            # lado por el que ENTRA (-1 izq, +1 der); sale por el opuesto
-var ko_red: ColorRect = null   # velo ROJO del KO (control manual)
+var ko_red: ColorRect = null       # velo ROJO del KO (detrás de los peleadores)
+var ko_lines: TextureRect = null   # líneas del ultra en el KO (detrás, tintadas rojo)
+var win_portrait: TextureRect = null   # retrato del GANADOR (estilo cut-in del inferno)
 # ENFOQUE épico del ULTRA: borde rojo eléctrico en el atacante + escena oscurecida
 var _outline_mat: ShaderMaterial = null
 var pin_panel: ColorRect
@@ -365,7 +367,6 @@ func _ready() -> void:
 		var t := load("res://imagen-action/impact-effect/ultra/ultra-%d.png" % i)
 		if t != null:
 			ultra_panels.append(t)
-	_build_announce()   # anuncios épicos READY/FIGHT/K.O. + velo rojo del KO
 	# aviso "→ R  ULTRA!" cuando el comando esta habilitado (rival en rojo + combo)
 	ultra_hint = Label.new()
 	ultra_hint.text = "→ R   ANNIHILATION"
@@ -448,7 +449,8 @@ func _ready() -> void:
 		esc.name = "CodeStage"
 		add_child(esc)
 		code_stage = esc
-	_build_cutin()   # cut-in del INFIERNO: detrás de la acción, delante del escenario
+	_build_cutin()      # cut-in del INFIERNO: detrás de la acción, delante del escenario
+	_build_announce()   # anuncios + KO + retrato del ganador: DETRÁS de los peleadores
 	var mp := ColorRect.new()
 	mp.color = Color(0.03, 0.03, 0.07, 0.88)
 	mp.position = Vector2(610, 300)
@@ -2661,20 +2663,47 @@ func _mk_anno_label(col: Color, outline: int) -> Label:
 	return l
 
 func _build_announce() -> void:
-	# velo ROJO del KO (debajo del texto, encima del juego)
+	# TODO va en el MUNDO, DETRÁS de los peleadores (z=-1, sobre el escenario): así los
+	# PLAYERS SOBRESALEN por encima de las letras / rojo / retrato del ganador.
+	# velo ROJO del KO
 	ko_red = ColorRect.new()
 	ko_red.color = Color(1.3, 0.06, 0.05, 0.0)
+	ko_red.position = Vector2.ZERO
 	ko_red.size = Vector2(1920, 1080)
 	ko_red.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ko_red.z_index = 2   # velo rojo POR DEBAJO de las líneas del ultra (z=3), sobre el juego
-	$UI.add_child(ko_red)
-	# grupo del anuncio grande
+	ko_red.z_index = -1
+	add_child(ko_red)
+	# líneas del ultra para el KO (ciclan ultra-1..6, tintadas de rojo)
+	ko_lines = TextureRect.new()
+	ko_lines.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ko_lines.stretch_mode = TextureRect.STRETCH_SCALE
+	ko_lines.position = Vector2.ZERO
+	ko_lines.size = Vector2(1920, 1080)
+	ko_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)
+	ko_lines.z_index = -1
+	if ultra_panels.size() > 0:
+		ko_lines.texture = ultra_panels[0]
+	add_child(ko_lines)
+	# retrato del GANADOR (por ahora DAM; Fe/otros luego) estilo cut-in del inferno
+	win_portrait = TextureRect.new()
+	if ResourceLoader.exists("res://imagen-action/dam/cutin/dam-cutin.png"):
+		win_portrait.texture = load("res://imagen-action/dam/cutin/dam-cutin.png")
+	win_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	win_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	win_portrait.size = Vector2(CUTIN_PW, CUTIN_PH)
+	win_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	win_portrait.modulate = Color(1, 1, 1, 0.0)
+	win_portrait.z_index = -1
+	add_child(win_portrait)
+	# grupo del texto grande (sombra plana) — encima del rojo/líneas pero DETRÁS de players
 	anno_root = Control.new()
-	anno_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	anno_root.position = Vector2.ZERO
+	anno_root.size = Vector2(1920, 1080)
 	anno_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	anno_root.z_index = 46
+	anno_root.z_index = -1
 	anno_root.visible = false
-	$UI.add_child(anno_root)
+	add_child(anno_root)
 	anno_sh = _mk_anno_label(Color(0.05, 0.04, 0.07, 1.0), 0)   # SOMBRA plana (offset, sin borde)
 	anno_sh.position = Vector2(18, 374)
 	anno_root.add_child(anno_sh)
@@ -3232,18 +3261,17 @@ func _end_round(player_won: bool) -> void:
 	# CINEMÁTICO del KO: CONGELA la pantalla, sale K.O. GRANDE, la pantalla se pone
 	# ROJA con las líneas del ultra... y luego se va todo y siguen los frames normales.
 	_show_announce("K.O.", Color(1.95, 0.2, 0.16), 2.4, -1)
-	if ultra_panels.size() > 0:
-		ultra_panel.texture = ultra_panels[0]
-	ultra_panel.modulate = Color(1.7, 0.28, 0.28, 1.0)     # líneas TINTADAS de rojo
-	ultra_panel.visible = true
+	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
+	ko_lines.visible = true
 	_shake(26.0, 0.5)
 	Engine.time_scale = 0.0                                  # FREEZE (largo)
 	var ks := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - ks < 1050:
 		var kt := float(Time.get_ticks_msec() - ks) / 1000.0
 		if ultra_panels.size() > 0:
-			ultra_panel.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
-		ko_red.color.a = 0.62                                # pantalla ROJA
+			ko_lines.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
+		ko_lines.modulate.a = 1.0
+		ko_red.color.a = 0.62                                # pantalla ROJA (detrás, players sobresalen)
 		await get_tree().process_frame
 	Engine.time_scale = 1.0                                  # ...y SIGUEN los frames normales
 	if player_won:
@@ -3258,20 +3286,40 @@ func _end_round(player_won: bool) -> void:
 	while Time.get_ticks_msec() - fsm < 800:
 		var k := 1.0 - float(Time.get_ticks_msec() - fsm) / 800.0
 		ko_red.color.a = 0.62 * k
-		ultra_panel.modulate.a = k
+		ko_lines.modulate.a = k
 		if ultra_panels.size() > 0:
-			ultra_panel.texture = ultra_panels[int(float(Time.get_ticks_msec() - fsm) / 60.0) % ultra_panels.size()]
+			ko_lines.texture = ultra_panels[int(float(Time.get_ticks_msec() - fsm) / 60.0) % ultra_panels.size()]
 		await get_tree().process_frame
 	ko_red.color.a = 0.0
-	ultra_panel.visible = false
-	ultra_panel.modulate = Color(1, 1, 1, 1)               # restaura (para el ultra normal)
+	ko_lines.visible = false
 	await get_tree().create_timer(0.7).timeout
 	if player_won:
 		player.celebrate()
 	else:
 		dummy.celebrate()
-	_show_announce("DAM WINS", Color(1.5, 1.25, 0.4), 3.0)
-	await get_tree().create_timer(3.0).timeout
+	# GANADOR: su retrato (estilo cut-in del inferno) entra DETRÁS de los peleadores;
+	# el player celebra ENCIMA y SOBRESALE. Por ahora siempre DAM (Fe/otros luego).
+	var wside := -1 if player_won else 1
+	var wrest_x := (-CUTIN_PW * 0.14) if wside < 0 else (1920.0 - CUTIN_PW * 0.86)
+	var woff_x := wrest_x - 240.0 * float(wside)
+	win_portrait.position = Vector2(woff_x, 1080.0 - CUTIN_PH + 30.0)
+	win_portrait.visible = true
+	_show_announce("DAM WINS", Color(1.5, 1.25, 0.4), 3.3, wside)
+	var ws := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - ws < 340:
+		var wp := float(Time.get_ticks_msec() - ws) / 340.0
+		win_portrait.position.x = lerpf(woff_x, wrest_x, _ease_out_cubic(wp))
+		win_portrait.modulate.a = wp
+		await get_tree().process_frame
+	win_portrait.position.x = wrest_x
+	win_portrait.modulate.a = 1.0
+	await get_tree().create_timer(2.55).timeout
+	var wf := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - wf < 430:
+		win_portrait.modulate.a = 1.0 - float(Time.get_ticks_msec() - wf) / 430.0
+		await get_tree().process_frame
+	win_portrait.modulate.a = 0.0
+	win_portrait.visible = false
 	if wins_p1 >= WINS_NEEDED or wins_p2 >= WINS_NEEDED:
 		announce.visible = true
 		announce.text = "MATCH WINNER:\nDAM"
