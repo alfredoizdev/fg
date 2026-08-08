@@ -140,6 +140,14 @@ var flash_ms := -100000
 var shake_end_ms := -100000
 var shake_amp := 0.0
 var shake_dur_ms := 1
+# CÁMARA de juego + ZOOM OUT cinemático (para el INFIERNO): a zoom 1.0 y centrada
+# muestra exactamente 1920x1080 (idéntico a antes). Menor zoom = cámara MÁS lejos.
+const INFERNO_ZOOM := 0.72         # cuánto se aleja en el INFIERNO (ajustable)
+const ZOOM_SPEED := 0.9            # velocidad del alejar/acercar (unid. de zoom / s)
+var game_cam: Camera2D = null
+var zoom_cur := 1.0
+var zoom_tgt := 1.0
+var _zoom_last_ms := 0
 # ENFOQUE épico del ULTRA: borde rojo eléctrico en el atacante + escena oscurecida
 var _outline_mat: ShaderMaterial = null
 var pin_panel: ColorRect
@@ -417,6 +425,22 @@ func _ready() -> void:
 		esc.name = "CodeStage"
 		add_child(esc)
 		code_stage = esc
+	# TELÓN OSCURO detrás de TODO: solo se asoma cuando la cámara se ALEJA (borde
+	# cinemático del INFIERNO). Sin esto, el zoom out mostraría el gris del vacío.
+	var void_bg := ColorRect.new()
+	void_bg.color = Color(0.02, 0.01, 0.02, 1.0)
+	void_bg.position = Vector2(-900, -650)
+	void_bg.size = Vector2(3720, 2380)
+	void_bg.z_index = -100
+	void_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(void_bg)
+	# CÁMARA de juego: centrada, zoom 1.0 => encuadre idéntico al de siempre.
+	game_cam = Camera2D.new()
+	game_cam.position = Vector2(960, 540)
+	game_cam.zoom = Vector2(1, 1)
+	game_cam.ignore_rotation = true
+	add_child(game_cam)
+	game_cam.make_current()
 	var mp := ColorRect.new()
 	mp.color = Color(0.03, 0.03, 0.07, 0.88)
 	mp.position = Vector2(610, 300)
@@ -1664,25 +1688,30 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	atacante.set_facing(dir)
 	_focus_start(atacante)         # borde rojo eléctrico (aparece gradual)
 	_focus_set(0.35)               # arranca tenue mientras carga la katana
-	# ENTRADA CINEMÁTICA (como el ULTRA): CONGELA el tiempo + la pantalla se
-	# OSCURECE (velo rojo) + DAM alza la katana rodeado de SOMBRAS DE PODER
-	atacante.sprite.play("flame_cast")
+	# SUPER pre-animado DESDE EL ARRANQUE: OCULTA por completo a DAM (nada de arte
+	# viejo, nada de doble DAM) y muestra la animación combinada (DAM casteando +
+	# GRAN OLA de fuego roja) como UNA sola pieza. El frame 1 (DAM cargando) queda
+	# CONGELADO durante la pausa dramática; el rayo se suelta al reanudar el tiempo.
+	var sup: AnimatedSprite2D = atacante.spawn_inferno_super()
+	if sup != null:
+		atacante.sprite.visible = false        # esconde el DAM vivo (no más doble)
+		atacante.fx_sprite.visible = false     # sin fantasma de arte viejo
+		# el super queda en su frame 0 (DAM cargando) durante el freeze: entre el
+		# spawn y el time_scale=0 no se dibuja ningún frame, así que no avanza.
+	else:
+		atacante.sprite.play("pose")           # respaldo: pose NUEVA (nunca flame_cast viejo)
 	_play_voz("inferno")                   # GRITA el poder al alzar la katana (ANTES de la bola)
-	atacante.breaker_fx_t = 1.3            # sombras fantasma durante la carga
+	_zoom_to(INFERNO_ZOOM)                 # la CÁMARA se ALEJA: se ve todo el poder
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(0.10, 0.01, 0.0, 0.55)   # velo OSCURO rojizo (no fogonazo)
 	Engine.time_scale = 0.0                # pausa dramática
 	await get_tree().create_timer(0.32, true, false, true).timeout
 	Engine.time_scale = 1.0                # vuelve a velocidad NORMAL...
-	# ...y AHÍ suelta la descarga: fogonazo naranja de ignición
+	# ...y AHÍ suelta la descarga: fogonazo naranja de ignición + DISPARA el rayo
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.3, 0.5, 0.12, 0.5)
-	await get_tree().create_timer(0.12).timeout   # remata la pose antes de soltar
-	# SUPER pre-animado: OCULTA a DAM y muestra la animación combinada (DAM
-	# casteando + GRAN OLA de fuego roja) como una sola pieza.
-	var sup: AnimatedSprite2D = atacante.spawn_inferno_super()
 	if sup != null:
-		atacante.sprite.visible = false
+		sup.play("cast")                   # AHORA sí: DAM suelta la GRAN OLA de fuego
 	var w: Node2D = null   # ya no se usa el vórtice viejo (la ola va dentro del super)
 	# espera a que la ola crezca y alcance al rival antes del impacto
 	await get_tree().create_timer(0.42).timeout
@@ -1754,6 +1783,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	if sup != null:
 		sup.queue_free()                                 # quita el super pre-animado
 	atacante.sprite.visible = true                       # DAM vuelve a su sprite normal
+	_zoom_to(1.0)                                        # la cámara vuelve al encuadre normal
 	# REMATE: el estallido lo derriba al piso
 	victima.hard_fall = false
 	victima.receive_hit(false, false, dir, "", true, 1.0)   # trip -> derribo corto
@@ -2601,6 +2631,24 @@ func _focus_tick() -> void:
 	focus_cur = move_toward(focus_cur, focus_target, 2.2 * dt)   # ~0.45s de 0 a full
 	_focus_apply()
 
+# ZOOM de cámara: fija el objetivo (menor = más lejos). Suavizado en _zoom_tick.
+func _zoom_to(z: float) -> void:
+	zoom_tgt = z
+	_zoom_last_ms = Time.get_ticks_msec()
+
+# suaviza el zoom hacia su objetivo con reloj REAL (inmune a Engine.time_scale,
+# así el alejar arranca aunque el tiempo esté congelado en la pausa dramática)
+func _zoom_tick() -> void:
+	if game_cam == null:
+		return
+	if is_equal_approx(zoom_cur, zoom_tgt):
+		return
+	var ahora := Time.get_ticks_msec()
+	var dt := float(ahora - _zoom_last_ms) / 1000.0
+	_zoom_last_ms = ahora
+	zoom_cur = move_toward(zoom_cur, zoom_tgt, ZOOM_SPEED * dt)
+	game_cam.zoom = Vector2(zoom_cur, zoom_cur)
+
 # color de la banda del combo: VERDE (pocos hits) -> rojo CLARO -> rojo INTENSO
 func _combo_band_color(n: int) -> Color:
 	var t := clampf((float(n) - 2.0) / 8.0, 0.0, 1.0)   # 0 en 2 hits, 1 en 10+
@@ -2853,6 +2901,7 @@ func _process(_dt: float) -> void:
 	elif position != Vector2.ZERO:
 		position = Vector2.ZERO
 	_focus_tick()   # suaviza el borde rojo hacia su intensidad objetivo
+	_zoom_tick()    # suaviza el zoom de cámara (alejar/acercar del INFIERNO)
 	var t := float(ahora - break_ms) / 1000.0
 	if t >= 0.0 and t < 1.7:
 		break_node.visible = true
