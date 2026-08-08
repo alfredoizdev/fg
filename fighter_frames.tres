@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=130 format=3]
+[gd_resource type="SpriteFrames" load_steps=128 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -84,8 +84,6 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/air-spin-kick/dam-air-spin-kick-4.png" id="ask4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/air-spin-kick/dam-air-spin-kick-5.png" id="ask5"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/air-spin-kick/dam-air-spin-kick-6.png" id="ask6"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/air-spin-kick/dam-air-spin-kick-7.png" id="ask7"]
-[ext_resource type="Texture2D" path="res://imagen-action/dam/air-spin-kick/dam-air-spin-kick-8.png" id="ask8"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/jump/dam-jump-1.png" id="jp1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/jump/dam-jump-2.png" id="jp2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/jump/dam-jump-3.png" id="jp3"]
@@ -293,12 +291,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("ask6")
-}, {
-"duration": 1.0,
-"texture": ExtResource("ask7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("ask8")
 }],
 "loop": false,
 "name": &"air_spin_kick",
