@@ -413,6 +413,21 @@ sueltos por masa corporal para que encajen).
       NUNCA muevas la katana entre frames: va SIEMPRE abajo-al frente, idéntica.
       Nada de giro, voltereta ni katana en alto.
 
+20b. **`air-jab-sheet.png`** — 4 frames en UNA fila. JAB AÉREO DOBLE (arriba+R):
+    DAM da DOS puñetazos rápidos al FRENTE con el PUÑO LIBRE (la mano que NO tiene
+    la katana) mientras sostiene la katana ABAJO-al frente, QUIETA. Perfil mirando
+    a la DERECHA, en el aire, dibujado EN EL MISMO SITIO y a la MISMA escala.
+    **LA KATANA (clave para que salga consistente):** igual que en la doble patada
+    — en la mano de ATRÁS, brazo BAJO, la HOJA apuntando ABAJO-ADELANTE, QUIETA e
+    IDÉNTICA en los 4 frames (no gira, no sube, no se mueve). Lo único que se
+    mueve es el BRAZO LIBRE que da los jabs.
+    - f1: en el aire, puño libre cargado atrás (junto al mentón), listo.
+    - f2: PRIMER JAB — el puño libre sale RECTO al frente, brazo extendido.
+    - f3: recoge el puño (vuelve junto al mentón).
+    - f4: SEGUNDO JAB — el puño libre sale RECTO al frente otra vez, extendido.
+    Es un golpe LIGERO y RÁPIDO (jab), poca extensión del cuerpo. La katana
+    SIEMPRE abajo-al frente, idéntica. Nada de katana en alto ni girando.
+
 ---
 
 ## Efectos de combate (sin personaje: SOLO el efecto sobre verde)
