@@ -1099,8 +1099,9 @@ func _physics_process(delta: float) -> void:
 	ultra_r_t = maxf(0.0, ultra_r_t - delta)
 	dash_smoke_cd = maxf(0.0, dash_smoke_cd - delta)
 
-	# noqueado: tendido, no responde a nada
-	if koed:
+	# noqueado: si está EN EL AIRE, deja que CAIGA y aterrice tendido (el aterrizaje lo
+	# pone en "ko"); ya en el SUELO queda tendido y no responde a nada.
+	if koed and not airborne and not hit_flying:
 		return
 
 	# juggle aereo del ULTRA: se queda flotando donde lo pusieron (sin gravedad
