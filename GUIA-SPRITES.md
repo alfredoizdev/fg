@@ -43,9 +43,13 @@ Pega esto al final de cada prompt, junto con la **imagen de referencia del perso
 > ANATOMÍA de la katana, SIEMPRE en este orden de atrás hacia la punta:
 > (1) un POMO con ANILLO metálico al extremo trasero, (2) el MANGO envuelto
 > (empuñadura larga, la ÚNICA parte por donde se agarra), (3) una pequeña
-> GUARDA (tsuba) que separa el mango de la hoja, (4) la HOJA negra ancha y
-> larga con el FILO ROJO. El pomo de anillo va SIEMPRE en el extremo de atrás
+> GUARDA (tsuba) que separa el mango de la hoja, (4) la HOJA negra ancha con el
+> FILO ROJO. El pomo de anillo va SIEMPRE en el extremo de atrás
 > (detrás de la mano), nunca junto a la hoja.
+> TAMAÑO DE LA HOJA — REGLA FIJA: largo NORMAL/razonable (aprox. el largo del
+> brazo o un poco más), NUNCA una hoja enorme ni larguísima. El personaje NUNCA se
+> achica para que la katana quepa en el lienzo: si algo se ajusta, es la katana
+> (más corta y proporcionada), jamás encoger al personaje.
 > AGARRE — REGLA FIJA: la(s) mano(s) sujetan la katana SIEMPRE por el MANGO
 > envuelto (entre el pomo de anillo y la guarda), con los dedos CERRADOS
 > alrededor del mango. La mano NUNCA toca la HOJA ni el filo, NUNCA la sujeta
@@ -329,9 +333,30 @@ sueltos por masa corporal para que encajen).
 
 ### Final de ronda (¡nuevas — completan el juego!)
 
-16. **`ko-sheet.png`** — 5 frames. Derrota: tambalea → cae de rodillas →
-    se desploma → tendido en el piso boca arriba → inmóvil (la katana
-    eagada a su lado). El último frame se queda en pantalla.
+16. **`ko-sheet.png`** — **5 frames. DERROTA: UNA sola caída HACIA ATRÁS, continua y
+    FLUIDA, hasta quedar TENDIDO BOCA ARRIBA en el piso.** Vista lateral mirando a la
+    DERECHA, fondo VERDE #00FF00, SIN piso/sombra/efectos (el suelo lo pone el motor).
+    **Mismo tamaño de personaje en los 5 frames** (no se achica ni agranda). Es UNA
+    sola dirección: se cae **de espaldas**. PROHIBIDO agacharse/arrodillarse boca
+    ABAJO o en cuatro patas, y PROHIBIDO cambiar de sentido a mitad de la caída
+    (si termina boca arriba, TODA la caída es hacia atrás).
+    - **f1 — TAMBALEA:** de pie pero perdiendo el equilibrio HACIA ATRÁS; rodillas
+      cediendo, torso y cabeza inclinándose atrás, brazos empezando a soltarse.
+    - **f2 — SE VA DE ESPALDAS:** más inclinado hacia atrás, un pie se despega del
+      piso, cuerpo arqueado cayendo de espaldas (aún en diagonal alta).
+    - **f3 — EN PLENA CAÍDA:** cuerpo a ~45° cayendo de espaldas hacia el suelo,
+      brazos y piernas flojos (muñeco de trapo), cabeza hacia atrás.
+    - **f4 — TOCA EL PISO:** la espalda llega al suelo, cuerpo ya casi HORIZONTAL
+      boca arriba, piernas y brazos asentándose.
+    - **f5 — TENDIDO BOCA ARRIBA:** completamente horizontal en el suelo, boca arriba,
+      inmóvil, ojos cerrados, KO total. La katana caída en el piso junto a la mano.
+      Este frame se queda en pantalla.
+    Los frames 4-5 apoyan el cuerpo en la MISMA línea inferior (piso).
+    **TAMAÑO DE LA KATANA (importante):** hoja de LARGO NORMAL/razonable (tipo espada,
+    aprox. el largo del brazo o un poco más), NUNCA una hoja enorme ni muy larga. El
+    PERSONAJE nunca se debe achicar para que la katana quepa en el lienzo: si algo se
+    ajusta, es la katana (mantenla proporcionada y más corta), jamás encoger al
+    personaje. El personaje ocupa el lienzo a tamaño completo y consistente.
 
 17. **`victory-sheet.png` + `victory-sheet-2.png`** — 8 frames en total
     (4 por hoja). Victoria, con la envainada COMPLETA — cada frame una
