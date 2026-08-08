@@ -40,6 +40,20 @@ Pega esto al final de cada prompt, junto con la **imagen de referencia del perso
 > SIEMPRE NÍTIDA (nunca deformada ni hecha arco: el arco de corte lo pone el
 > motor). Cada frame es UN solo personaje completo — jamás dos poses pegadas o
 > fusionadas dentro del mismo frame.
+> ANATOMÍA de la katana, SIEMPRE en este orden de atrás hacia la punta:
+> (1) un POMO con ANILLO metálico al extremo trasero, (2) el MANGO envuelto
+> (empuñadura larga, la ÚNICA parte por donde se agarra), (3) una pequeña
+> GUARDA (tsuba) que separa el mango de la hoja, (4) la HOJA negra ancha y
+> larga con el FILO ROJO. El pomo de anillo va SIEMPRE en el extremo de atrás
+> (detrás de la mano), nunca junto a la hoja.
+> AGARRE — REGLA FIJA: la(s) mano(s) sujetan la katana SIEMPRE por el MANGO
+> envuelto (entre el pomo de anillo y la guarda), con los dedos CERRADOS
+> alrededor del mango. La mano NUNCA toca la HOJA ni el filo, NUNCA la sujeta
+> por el medio de la hoja. La GUARDA siempre queda ENTRE la mano y la hoja.
+> La HOJA es un objeto RÍGIDO y RECTO (con su leve curva natural): no se dobla,
+> no se derrite, no se tuerce, no cambia de forma ni de largo. Si una pose no
+> deja ver la hoja completa, dibújala COMPLETA igual — nunca la recortes,
+> borres ni la hagas desaparecer.
 > PROPORCIONES CONSISTENTES: en TODOS los frames el personaje mide lo MISMO
 > (misma estatura) y su CABEZA mide LO MISMO — la cabeza es la unidad y NO
 > cambia de tamaño con la pose (si se agacha, la cabeza solo se ACERCA al
@@ -57,6 +71,8 @@ Pega esto al final de cada prompt, junto con la **imagen de referencia del perso
 > pongas números, letras, rótulos ni líneas guía en la hoja — solo los
 > personajes sobre el verde. Sin sombra en el piso. Sin desenfoque ni
 > líneas de velocidad.
+> por favor no cambies la katana de tamano no la cambies de mano no hagas
+> extremidades estras manten la porpocion no hagas el personaje muy cabezon
 
 Guarda cada hoja en `imagen-action/dam/sheets/` con el nombre indicado.
 
@@ -198,14 +214,14 @@ sueltos por masa corporal para que encajen).
    - f5: FOLLOW-THROUGH — la hoja siguió de largo hacia abajo, el cuerpo
      sobre-comprometido en la zancada baja (el peso del golpe)
    - f6: RECUPERA — se endereza y vuelve casi a la guardia, la katana subiendo de vuelta
-   **⚠️ CRÍTICO — TAMAÑO CONSISTENTE (esto FALLÓ antes):** el PERSONAJE (cuerpo y
-   cabeza) mide EXACTAMENTE LO MISMO en los 6 frames. Aunque en el f2 la katana
-   se alce por encima de la cabeza, NO agrandes al personaje en ese frame — SOLO
-   la KATANA se extiende hacia arriba; el CUERPO y la CABEZA quedan del mismo
-   tamaño y con los PIES en la misma línea que en los demás frames. Grilla PAREJA
-   (las 6 celdas del MISMO tamaño), personaje centrado en su celda con margen.
-   **ANATOMÍA:** dos brazos completos, dos piernas, dos manos de 5 dedos, NADA
-   cortado por el borde. La katana SIEMPRE nítida y del mismo largo y grosor.
+     **⚠️ CRÍTICO — TAMAÑO CONSISTENTE (esto FALLÓ antes):** el PERSONAJE (cuerpo y
+     cabeza) mide EXACTAMENTE LO MISMO en los 6 frames. Aunque en el f2 la katana
+     se alce por encima de la cabeza, NO agrandes al personaje en ese frame — SOLO
+     la KATANA se extiende hacia arriba; el CUERPO y la CABEZA quedan del mismo
+     tamaño y con los PIES en la misma línea que en los demás frames. Grilla PAREJA
+     (las 6 celdas del MISMO tamaño), personaje centrado en su celda con margen.
+     **ANATOMÍA:** dos brazos completos, dos piernas, dos manos de 5 dedos, NADA
+     cortado por el borde. La katana SIEMPRE nítida y del mismo largo y grosor.
 
 ### Agachado
 
@@ -291,8 +307,8 @@ sueltos por masa corporal para que encajen).
       el equilibrio, la katana ya en la mano colgando al costado.
     - **f5 — GUARDIA:** de pie y recuperado, vuelve a su POSTURA DE COMBATE (igual
       que la pose idle), katana empuñada lista.
-    PROHIBIDO: de espaldas a la cámara (nunca se ve el logo del lobo), pose de
-    salto, pose de ataque, o que el personaje cambie de tamaño entre frames.
+      PROHIBIDO: de espaldas a la cámara (nunca se ve el logo del lobo), pose de
+      salto, pose de ataque, o que el personaje cambie de tamaño entre frames.
 
 ### Defensa
 
