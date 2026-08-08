@@ -638,7 +638,12 @@ func spawn_fire_wave() -> Node2D:
 # (5 frames). Se muestra ocultando el sprite normal de DAM; los pies de DAM del
 # super (local 80,219) se anclan a los pies reales del fighter. La ola sale al
 # frente y se espeja según el lado.
-const INFERNO_SUPER_SCALE := 3.2   # ~iguala la altura de DAM real (ajustable)
+# Frames NUEVOS (inferno-1..5): DAM de espaldas casteando + la ola creciendo. Ya
+# vienen normalizados a un lienzo comun 2211x1050 con los PIES en local (580,1019).
+# DAM se planta y se ENCOGE mientras el fuego crece: el "alejarse" va horneado en
+# el arte (sin cámara). A esta escala el F1 iguala el tamaño real de DAM.
+const INFERNO_SUPER_SCALE := 0.42
+const INFERNO_FEET := Vector2(580.0, 1019.0)   # pies de DAM dentro del frame
 var inferno_super_frames: SpriteFrames = null
 func spawn_inferno_super() -> AnimatedSprite2D:
 	if inferno_super_frames == null:
@@ -659,8 +664,8 @@ func spawn_inferno_super() -> AnimatedSprite2D:
 	e.scale = Vector2(float(facing) * s, s)   # espeja por el signo de x
 	get_parent().add_child(e)
 	var feet := to_global(Vector2(0.0, SHADOW_FEET_OFFSET))
-	# anclar los pies del super (local 80,219) a los pies reales del fighter
-	e.global_position = Vector2(feet.x - float(facing) * 80.0 * s, feet.y - 219.0 * s)
+	# anclar los pies del super a los pies reales del fighter (espejo incluido)
+	e.global_position = Vector2(feet.x - float(facing) * INFERNO_FEET.x * s, feet.y - INFERNO_FEET.y * s)
 	e.play("cast")
 	return e
 
