@@ -216,7 +216,7 @@ func _ready() -> void:
 	get_tree().set_auto_accept_quit(false)
 	# musica de fondo en loop, bajita
 	music_player = AudioStreamPlayer.new()
-	music_player.volume_db = -20.0
+	music_player.volume_db = -14.0   # ambiente (sound-guitar) un poco más alto
 	add_child(music_player)
 	var ruta_bg := "res://imagen-action/sound-effect/sound-guitar.mp3"
 	if ResourceLoader.exists(ruta_bg):
