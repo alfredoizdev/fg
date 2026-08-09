@@ -351,12 +351,18 @@ sueltos por masa corporal para que encajen).
     - **f5 — TENDIDO BOCA ARRIBA:** completamente horizontal en el suelo, boca arriba,
       inmóvil, ojos cerrados, KO total. La katana caída en el piso junto a la mano.
       Este frame se queda en pantalla.
-    Los frames 4-5 apoyan el cuerpo en la MISMA línea inferior (piso).
-    **TAMAÑO DE LA KATANA (importante):** hoja de LARGO NORMAL/razonable (tipo espada,
-    aprox. el largo del brazo o un poco más), NUNCA una hoja enorme ni muy larga. El
-    PERSONAJE nunca se debe achicar para que la katana quepa en el lienzo: si algo se
-    ajusta, es la katana (mantenla proporcionada y más corta), jamás encoger al
-    personaje. El personaje ocupa el lienzo a tamaño completo y consistente.
+    - **NOTA — dos KO distintos:** este `ko` (boca ARRIBA, caída de espaldas) es para el
+      KO **en el suelo**. El KO **en el aire** (cuando el golpe mortal lo lanzó) usa la
+      anim `ko_air` = frame 1 de `hit-down` (tendido BOCA ABAJO, de bruces): el rival cae
+      ya en esa pose y queda tendido boca abajo, coherente con salir despedido hacia
+      adelante. Si algún día quieres un frame dedicado de "muerto boca abajo" más pulido,
+      hazlo con la misma regla de f1 de hit-down (horizontal, brazos/piernas flojos).
+      Los frames 4-5 apoyan el cuerpo en la MISMA línea inferior (piso).
+      **TAMAÑO DE LA KATANA (importante):** hoja de LARGO NORMAL/razonable (tipo espada,
+      aprox. el largo del brazo o un poco más), NUNCA una hoja enorme ni muy larga. El
+      PERSONAJE nunca se debe achicar para que la katana quepa en el lienzo: si algo se
+      ajusta, es la katana (mantenla proporcionada y más corta), jamás encoger al
+      personaje. El personaje ocupa el lienzo a tamaño completo y consistente.
 
 17. **`victory-sheet.png` + `victory-sheet-2.png`** — 8 frames en total
     (4 por hoja). Victoria, con la envainada COMPLETA — cada frame una
@@ -373,6 +379,7 @@ sueltos por masa corporal para que encajen).
     - f7: katana envainada por completo, la mano suelta la empuñadura
     - f8: postura final relajada, mano en el bolsillo. Este frame se
       queda en pantalla.
+      dice como dos palabras tiene que hacer moviendo la boca por como dos plabras
 
 ---
 
@@ -663,15 +670,15 @@ en el efecto.
       dramática con chispas volando.
     - f5: empieza a bajar, las llamas se acuestan y se separan en jirones.
     - f6: se disuelve dejando brasas y humo tenue (deja el terreno ardiendo).
-    Dibuja la ola LARGA (ocupa casi todo el ancho del frame en el pico); deja
-    margen verde de sobra.
+      Dibuja la ola LARGA (ocupa casi todo el ancho del frame en el pico); deja
+      margen verde de sobra.
 
 30b. **`fire-floor-sheet.png`** — 4 frames (loop). FUEGO EN EL PISO que QUEDA
-    tras el inferno (un charco de llamas ardiendo en el suelo). SOLO el fuego,
-    sin personaje. Fondo verde #00FF00. Una franja BAJA y ancha de llamas ROJO-
-    naranja lamiendo el piso, con lenguas que suben y ondean; núcleo amarillo en
-    la base, puntas rojas. Los 4 frames son el fuego ONDULANDO en su sitio (loop
-    suave: f4 conecta con f1). Más ancho que alto, pegado al piso.
+tras el inferno (un charco de llamas ardiendo en el suelo). SOLO el fuego,
+sin personaje. Fondo verde #00FF00. Una franja BAJA y ancha de llamas ROJO-
+naranja lamiendo el piso, con lenguas que suben y ondean; núcleo amarillo en
+la base, puntas rojas. Los 4 frames son el fuego ONDULANDO en su sitio (loop
+suave: f4 conecta con f1). Más ancho que alto, pegado al piso.
 
 31. **`fire-wave-sheet-impact.png`** — 6 frames (UNA vez, NO loop). EXPLOSIÓN
     del INFIERNO cuando el vórtice CONECTA con el rival. SOLO el fuego/humo,

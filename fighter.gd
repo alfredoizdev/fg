@@ -198,6 +198,7 @@ var ai_break_drill := false   # modo BREAK PRACTICE: se lanza a encadenar combos
 var facing := 1
 var crouching := false
 var koed := false
+var ko_facedown := false   # KO recibido EN EL AIRE: cae y queda TENDIDO BOCA ABAJO (ko_air)
 var airborne := false
 var hit_flying := false
 var walk_dir := 0
@@ -406,7 +407,8 @@ func do_ko() -> void:
 	# por su arco y quede TENDIDO al tocar el piso (lo maneja el aterrizaje).
 	if airborne or hit_flying:
 		return
-	# KO en el suelo: cae de espaldas con la animación completa
+	# KO en el suelo: cae de espaldas con la animación completa (boca ARRIBA)
+	ko_facedown = false
 	hit_flying = false
 	airborne = false
 	vel_x = 0.0
@@ -414,8 +416,25 @@ func do_ko() -> void:
 	position.y = floor_y
 	sprite.play("ko")
 
-# fuerza el estado TENDIDO en el piso (usado por el cinematográfico del KO para
-# garantizar que el perdedor NO quede flotando/grande en el aire antes del freeze).
+# KO EN EL AIRE: en vez de girar grande y flotar, se le corta el impulso, cae RÁPIDO
+# ya en pose BOCA ABAJO (ko_air) y al aterrizar queda TENDIDO boca abajo. Coherente
+# con haber salido despedido hacia adelante (no la caída de espaldas del ko de suelo).
+func begin_ko_air() -> void:
+	koed = true
+	ko_facedown = true
+	crouching = false
+	water_bg = false
+	airborne = true
+	hit_flying = true      # usa la rama de caída sin control de input
+	hard_fall = true       # desplome rápido
+	wall_bounced = true    # nada de rebote de pared
+	vel_x = 0.0
+	vel_y = maxf(vel_y, 0.0)   # corta cualquier impulso hacia arriba
+	if sprite.sprite_frames.has_animation("ko_air"):
+		sprite.play("ko_air")   # cae YA boca abajo (sin la pose de vuelo grande)
+
+# fuerza el estado TENDIDO en el piso (red de seguridad del cinematográfico del KO
+# aéreo: garantiza que quede boca abajo en el suelo si la caída no terminó a tiempo).
 func force_grounded_ko() -> void:
 	koed = true
 	airborne = false
@@ -425,8 +444,11 @@ func force_grounded_ko() -> void:
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
-	sprite.play("ko")
-	sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
+	if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
+		sprite.play("ko_air")   # TENDIDO boca abajo
+	else:
+		sprite.play("ko")
+		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
 
 func do_breaker() -> bool:
 	if not breaker_ready or koed:
@@ -460,6 +482,7 @@ func do_breaker() -> bool:
 
 func revive() -> void:
 	koed = false
+	ko_facedown = false
 	crouching = false
 	hit_flying = false
 	airborne = false
@@ -1191,13 +1214,16 @@ func _physics_process(delta: float) -> void:
 			air_move_used = false   # tocó el piso: puede volver a atacar en el aire
 			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
 			if koed:
-				# cayó noqueado desde el aire: queda TENDIDO (último frame del ko)
+				# cayó noqueado desde el aire: queda TENDIDO
 				vel_x = 0.0
 				hit_flying = false
 				hard_fall = false
 				_spawn_jump_dust(0.9)
-				sprite.play("ko")
-				sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
+				if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
+					sprite.play("ko_air")   # BOCA ABAJO (coherente con el despedido)
+				else:
+					sprite.play("ko")        # boca arriba (caída de espaldas)
+					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
 				return
 			if hit_flying:
 				hit_flying = false
@@ -1587,8 +1613,8 @@ func _on_animation_finished() -> void:
 		# ya se levanto: el castigo termino, se reinician los frenos de combo
 		juggle_hits = 0
 		wall_bounced = false
-	if sprite.animation == "ko":
-		return  # se queda tendido
+	if sprite.animation == "ko" or sprite.animation == "ko_air":
+		return  # se queda tendido (ko_air = boca abajo del KO aéreo)
 	if sprite.animation == "victory":
 		return  # sostiene la pose final
 	if sprite.animation == "jump_kick" and airborne:

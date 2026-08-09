@@ -3306,16 +3306,15 @@ func _end_round(player_won: bool) -> void:
 	announce.visible = false
 	var loser: Node = dummy if player_won else player
 	# 1) el perdedor CAE y queda TENDIDO en el piso ANTES del freeze. Si el golpe
-	# mortal lo lanzó, nada de congelar una pose de vuelo grande y flotante: se le
-	# corta el impulso hacia arriba y se desploma rápido hasta aterrizar tendido.
+	# mortal lo lanzó por el aire, NADA de congelar la pose de vuelo grande/flotante:
+	# se desploma RÁPIDO ya en pose BOCA ABAJO (ko_air) y aterriza tendido boca abajo.
 	loser.do_ko()
 	if loser.airborne or loser.hit_flying:
-		loser.vel_y = maxf(loser.vel_y, 0.0)   # corta el vuelo hacia arriba
-		loser.hard_fall = true                 # caída acelerada
+		loser.begin_ko_air()                   # cae boca abajo, rápido, sin girar
 		var fs := Time.get_ticks_msec()
 		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 1200:
 			await get_tree().process_frame
-		loser.force_grounded_ko()              # garantiza piso + frame tendido
+		loser.force_grounded_ko()              # garantiza tendido boca abajo en el piso
 	# CINEMÁTICO del KO: CONGELA la pantalla (con el perdedor YA tendido), sale K.O.
 	# GRANDE, la pantalla se pone ROJA con las líneas del ultra... y luego se va todo.
 	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow

@@ -674,6 +674,14 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("hd1")
+}],
+"loop": false,
+"name": &"ko_air",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("vc1")
 }, {
 "duration": 1.0,
