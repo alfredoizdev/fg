@@ -104,6 +104,23 @@ var moves_col1: Label    # columna de MOVES (cambia según personaje)
 var moves_fin: Label     # bloque SPECIALS & FINISHERS (cambia según personaje)
 var menu_opts := []
 var menu_sel := 0
+# --- PANTALLA PRINCIPAL (title) y submenú TRAINER ---
+var title_panel: Control          # pantalla principal: banner + VS CPU / TRAINER / VS ONLINE
+var title_opts := []              # labels de las 3 opciones
+var title_sel := 0
+var trainer_panel: ColorRect      # submenú de TRAINER (práctica / break / moves)
+var trainer_opts := []
+var trainer_sel := 0
+# char-select de DOS pasos: el jugador elige SU personaje (P1) y luego el del rival/CPU (P2)
+var cpu_char := "dam"             # personaje del rival (P2 / CPU)
+var picking := 0                  # en char_select: 0 = eligiendo P1, 1 = eligiendo P2
+var char_sel_p1 := 0
+var char_sel_p2 := 1
+var vs_from_trainer := false      # el char-select vino de TRAINER (no de VS CPU)
+var char_side_l: TextureRect      # retrato grande del lado IZQUIERDO (P1)
+var char_side_r: TextureRect      # retrato grande del lado DERECHO (P2)
+var char_vs_label: Label          # "VS" en el centro
+var char_pick_label: Label        # "PLAYER 1 — CHOOSE YOUR FIGHTER" / "SELECT CPU"
 # --- SELECCIÓN DE PERSONAJE ---
 # cada personaje: id, nombre, arquetipo (vida), avatar, frames de pelea, escala de sprite.
 # Un personaje está "listo" (jugable) sólo si su recurso de frames existe.
@@ -452,36 +469,94 @@ func _ready() -> void:
 		code_stage = esc
 	_build_cutin()      # cut-in del INFIERNO: detrás de la acción, delante del escenario
 	_build_announce()   # anuncios + KO + retrato del ganador: DETRÁS de los peleadores
-	var mp := ColorRect.new()
-	mp.color = Color(0.03, 0.03, 0.07, 0.88)
-	mp.position = Vector2(610, 300)
-	mp.size = Vector2(700, 540)
-	mp.visible = false
-	$UI.add_child(mp)
-	menu_panel = mp
-	var ti := Label.new()
-	ti.text = "OPPONENT MODE"
-	ti.add_theme_font_size_override("font_size", 46)
-	ti.position = Vector2(0, 30)
-	ti.size = Vector2(700, 60)
-	ti.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mp.add_child(ti)
-	for j in 4:
+	# ===== PANTALLA PRINCIPAL (title): banner + VS CPU / TRAINER / VS ONLINE =====
+	var tp := Control.new()
+	tp.position = Vector2.ZERO
+	tp.size = Vector2(1920, 1080)
+	tp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tp.visible = false
+	$UI.add_child(tp)
+	title_panel = tp
+	menu_panel = null
+	# velo oscuro para que resalte el menú sobre el escenario
+	var veil := ColorRect.new()
+	veil.color = Color(0.02, 0.02, 0.05, 0.72)
+	veil.position = Vector2.ZERO; veil.size = Vector2(1920, 1080)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tp.add_child(veil)
+	# BANNER (placeholder): si existe un PNG de banner lo usa; si no, título estilizado
+	if ResourceLoader.exists("res://imagen-action/ui/banner.png"):
+		var bn := TextureRect.new()
+		bn.texture = load("res://imagen-action/ui/banner.png")
+		bn.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bn.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		bn.position = Vector2(360, 90); bn.size = Vector2(1200, 300)
+		bn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tp.add_child(bn)
+	else:
+		var bshadow := Label.new()
+		bshadow.text = "FG FIGHTER"
+		bshadow.add_theme_font_size_override("font_size", 190)
+		bshadow.add_theme_color_override("font_color", Color(0.06, 0.0, 0.0, 0.9))
+		bshadow.position = Vector2(14, 132); bshadow.size = Vector2(1920, 260)
+		bshadow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		bshadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tp.add_child(bshadow)
+		var banner := Label.new()
+		banner.text = "FG FIGHTER"
+		banner.add_theme_font_size_override("font_size", 190)
+		banner.add_theme_color_override("font_color", Color(0.86, 0.16, 0.13))
+		banner.position = Vector2(0, 120); banner.size = Vector2(1920, 260)
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tp.add_child(banner)
+	# opciones (abajo del banner)
+	for j in 3:
 		var o := Label.new()
-		o.add_theme_font_size_override("font_size", 38)
-		o.position = Vector2(0, 120 + j * 80)
-		o.size = Vector2(700, 60)
+		o.add_theme_font_size_override("font_size", 62)
+		o.position = Vector2(0, 470 + j * 118)
+		o.size = Vector2(1920, 90)
 		o.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		mp.add_child(o)
-		menu_opts.append(o)
-	var hint := Label.new()
-	hint.text = "↑ ↓  select      Q  confirm      (ESC in fight: back to menu)"
-	hint.add_theme_font_size_override("font_size", 20)
-	hint.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
-	hint.position = Vector2(0, 480)
-	hint.size = Vector2(700, 40)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mp.add_child(hint)
+		o.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tp.add_child(o)
+		title_opts.append(o)
+	var thint := Label.new()
+	thint.text = "↑ ↓  select        Q / Enter  confirm"
+	thint.add_theme_font_size_override("font_size", 26)
+	thint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.78))
+	thint.position = Vector2(0, 960); thint.size = Vector2(1920, 40)
+	thint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	thint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tp.add_child(thint)
+	# ===== SUBMENÚ TRAINER: práctica / break practice / moves & combos =====
+	var trp := ColorRect.new()
+	trp.color = Color(0.03, 0.03, 0.07, 0.9)
+	trp.position = Vector2(610, 300)
+	trp.size = Vector2(700, 560)
+	trp.visible = false
+	$UI.add_child(trp)
+	trainer_panel = trp
+	var trt := Label.new()
+	trt.text = "TRAINER"
+	trt.add_theme_font_size_override("font_size", 52)
+	trt.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+	trt.position = Vector2(0, 34); trt.size = Vector2(700, 64)
+	trt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	trp.add_child(trt)
+	for j in 3:
+		var o := Label.new()
+		o.add_theme_font_size_override("font_size", 40)
+		o.position = Vector2(0, 160 + j * 92); o.size = Vector2(700, 60)
+		o.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		trp.add_child(o)
+		trainer_opts.append(o)
+	var trh := Label.new()
+	trh.text = "↑ ↓  select      Q  confirm      ESC  back"
+	trh.add_theme_font_size_override("font_size", 20)
+	trh.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
+	trh.position = Vector2(0, 496); trh.size = Vector2(700, 40)
+	trh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	trp.add_child(trh)
 	# --- PANEL DE SELECCIÓN DE PERSONAJE ---
 	var cp := ColorRect.new()
 	cp.color = Color(0.03, 0.03, 0.07, 0.92)
@@ -491,11 +566,12 @@ func _ready() -> void:
 	$UI.add_child(cp)
 	char_panel = cp
 	var ct := Label.new()
-	ct.text = "SELECT YOUR FIGHTER"
-	ct.add_theme_font_size_override("font_size", 48)
+	ct.text = "PLAYER 1 — CHOOSE YOUR FIGHTER"
+	ct.add_theme_font_size_override("font_size", 44)
 	ct.position = Vector2(0, 40); ct.size = Vector2(1200, 60)
 	ct.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cp.add_child(ct)
+	char_pick_label = ct
 	char_cards = []
 	for i in CHARS.size():
 		var c: Dictionary = CHARS[i]
@@ -529,6 +605,33 @@ func _ready() -> void:
 	chint.position = Vector2(0, 690); chint.size = Vector2(1200, 40)
 	chint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cp.add_child(chint)
+	# retratos GRANDES a los lados (estilo VS): P1 a la izquierda, P2 (CPU) a la derecha.
+	# Van en $UI (fuera del panel central) y se muestran solo en char_select.
+	char_side_l = TextureRect.new()
+	char_side_l.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	char_side_l.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	char_side_l.position = Vector2(-30, 250); char_side_l.size = Vector2(430, 760)
+	char_side_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	char_side_l.visible = false
+	$UI.add_child(char_side_l)
+	char_side_r = TextureRect.new()
+	char_side_r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	char_side_r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	char_side_r.flip_h = true                    # el lado derecho mira hacia adentro
+	char_side_r.position = Vector2(1520, 250); char_side_r.size = Vector2(430, 760)
+	char_side_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	char_side_r.visible = false
+	$UI.add_child(char_side_r)
+	# "VS" grande entre los dos retratos (aparece cuando ya elegiste P1)
+	char_vs_label = Label.new()
+	char_vs_label.text = "VS"
+	char_vs_label.add_theme_font_size_override("font_size", 120)
+	char_vs_label.add_theme_color_override("font_color", Color(0.92, 0.2, 0.15))
+	char_vs_label.position = Vector2(0, 930); char_vs_label.size = Vector2(1920, 140)
+	char_vs_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	char_vs_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	char_vs_label.visible = false
+	$UI.add_child(char_vs_label)
 	var vp := ColorRect.new()
 	vp.color = Color(0.03, 0.03, 0.07, 0.93)
 	vp.position = Vector2(310, 110)
@@ -625,7 +728,8 @@ func _ready() -> void:
 		_open_menu()
 
 func _open_menu() -> void:
-	state = "menu"
+	# PANTALLA PRINCIPAL (title): banner + VS CPU / TRAINER / VS ONLINE
+	state = "title"
 	break_practice = false
 	dummy.ai_break_drill = false
 	player.input_enabled = false
@@ -642,7 +746,64 @@ func _open_menu() -> void:
 		combo_ui[i].visible = false
 	if moves_panel:
 		moves_panel.visible = false
-	menu_panel.visible = true
+	if trainer_panel:
+		trainer_panel.visible = false
+	if char_panel:
+		char_panel.visible = false
+	_hide_char_vs()
+	title_panel.visible = true
+
+func _open_trainer() -> void:
+	state = "trainer"
+	title_panel.visible = false
+	trainer_panel.visible = true
+
+func _hide_char_vs() -> void:
+	if char_side_l: char_side_l.visible = false
+	if char_side_r: char_side_r.visible = false
+	if char_vs_label: char_vs_label.visible = false
+
+# arranca el char-select de DOS pasos. from_trainer: vino de TRAINER (no de VS CPU).
+# mode: 0 = VS CPU (IA), 1 = práctica libre, 2 = break practice.
+func _begin_char_select(from_trainer: bool, mode: int) -> void:
+	vs_from_trainer = from_trainer
+	pending_mode = mode
+	picking = 0
+	char_sel_p1 = 0
+	char_sel_p2 = 1
+	title_panel.visible = false
+	trainer_panel.visible = false
+	char_panel.visible = true
+	state = "char_select"
+	_refresh_char_select()
+
+func _refresh_char_select() -> void:
+	# título dinámico: primero elige el JUGADOR, luego el rival (CPU)
+	char_pick_label.text = "PLAYER 1 — CHOOSE YOUR FIGHTER" if picking == 0 else "SELECT CPU FIGHTER"
+	var cur := char_sel_p1 if picking == 0 else char_sel_p2
+	var cur_col := Color(1.0, 0.3, 0.25) if picking == 0 else Color(0.35, 0.55, 1.0)  # P1 rojo, P2 azul
+	for i in char_cards.size():
+		var col := Color(0, 0, 0)
+		if picking == 1 and i == char_sel_p1:
+			col = Color(0.85, 0.22, 0.18)   # marca fija del que eligió P1
+		if i == cur:
+			col = cur_col
+		char_cards[i]["border"].color = col
+	# retratos laterales estilo VS: P1 fijo a la izquierda (una vez elegido) + preview P2 a la derecha
+	if picking == 0:
+		char_side_l.visible = false
+		char_side_r.visible = false
+		char_vs_label.visible = false
+	else:
+		var p1av := String(CHARS[char_sel_p1]["avatar"])
+		if ResourceLoader.exists(p1av):
+			char_side_l.texture = load(p1av)
+		char_side_l.visible = true
+		char_vs_label.visible = true
+		var p2av := String(CHARS[char_sel_p2]["avatar"])
+		if ResourceLoader.exists(p2av):
+			char_side_r.texture = load(p2av)
+		char_side_r.visible = true
 
 func _enter_training() -> void:
 	state = "training"
@@ -719,7 +880,8 @@ func _open_moves() -> void:
 	player.set_facing(1)
 	dummy.set_facing(-1)
 	announce.visible = false
-	menu_panel.visible = false
+	if title_panel: title_panel.visible = false
+	if trainer_panel: trainer_panel.visible = false
 	moves_panel.visible = true
 
 func _dt(sec: float) -> Signal:
@@ -747,7 +909,8 @@ func _run_demo(id: String) -> void:
 	pinned_combo = moves_sel  # ver un demo lo deja fijado en pantalla
 	state = "demo"
 	moves_panel.visible = false
-	menu_panel.visible = false
+	if title_panel: title_panel.visible = false
+	if trainer_panel: trainer_panel.visible = false
 	player.input_enabled = false
 	dummy.ai_enabled = false
 	var prev_mode := dummy_ai_mode
@@ -1333,7 +1496,7 @@ func _fe_dash_attack(caster: Node2D) -> void:
 
 # actualiza nombre + avatar del HUD según los personajes (P1 = jugador, P2 = rival)
 func _refresh_hud_chars() -> void:
-	var ids := [selected_char, "dam"]
+	var ids := [selected_char, cpu_char]
 	for side in 2:
 		var c := _char_data(ids[side])
 		if hud_name[side] != null:
@@ -1345,7 +1508,7 @@ func _refresh_hud_chars() -> void:
 func _start_round() -> void:
 	state = "intro"
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
-	_apply_char(dummy, "dam")                   # el rival (siempre DAM): misma escala/offset/frames que P1
+	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
 	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
 	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
@@ -2989,25 +3152,48 @@ func _physics_process(_delta: float) -> void:
 	world_env.environment.glow_intensity = 1.1 + 0.18 * sin(glow_time * 1.4) + 0.08 * sin(glow_time * 3.7)
 
 	# menu de modo de rival
-	if state == "menu":
+	if state == "title":
 		var dirm := 0
 		if Input.is_action_just_pressed("ui_up"):
 			dirm = -1
 		if Input.is_action_just_pressed("ui_down"):
 			dirm = 1
-		menu_sel = posmod(menu_sel + dirm, 4)
-		for j in 4:
-			menu_opts[j].modulate = Color(1.0, 0.85, 0.25) if j == menu_sel else Color(0.62, 0.62, 0.68)
-			menu_opts[j].text = ("▶  " if j == menu_sel else "") + ["AI FIGHT", "PRACTICE DUMMY", "BREAK PRACTICE", "MOVES & COMBOS"][j]
+		title_sel = posmod(title_sel + dirm, 3)
+		for j in 3:
+			var disabled := j == 2   # VS ONLINE aún no disponible
+			var base := Color(0.42, 0.42, 0.48) if disabled else Color(0.62, 0.62, 0.68)
+			title_opts[j].modulate = Color(1.0, 0.85, 0.25) if j == title_sel else base
+			var lbl: String = ["VS CPU", "TRAINER", "VS ONLINE"][j]
+			if disabled:
+				lbl += "   (coming soon)"
+			title_opts[j].text = ("▶  " if j == title_sel else "") + lbl
 		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
-			if menu_sel == 3:
-				_open_moves()          # abre la lista (actualiza el texto según el personaje elegido)
+			if title_sel == 0:
+				_begin_char_select(false, 0)     # VS CPU: pelea con IA
+			elif title_sel == 1:
+				_open_trainer()
+			# title_sel == 2 (VS ONLINE): deshabilitado, no hace nada
+		return
+	if state == "trainer":
+		var dirt := 0
+		if Input.is_action_just_pressed("ui_up"):
+			dirt = -1
+		if Input.is_action_just_pressed("ui_down"):
+			dirt = 1
+		trainer_sel = posmod(trainer_sel + dirt, 3)
+		for j in 3:
+			trainer_opts[j].modulate = Color(1.0, 0.85, 0.25) if j == trainer_sel else Color(0.62, 0.62, 0.68)
+			trainer_opts[j].text = ("▶  " if j == trainer_sel else "") + ["FREE PRACTICE", "BREAK PRACTICE", "MOVES & COMBOS"][j]
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
+			if trainer_sel == 0:
+				_begin_char_select(true, 1)      # práctica libre (dummy sin IA)
+			elif trainer_sel == 1:
+				_begin_char_select(true, 2)      # break practice
 			else:
-				# guarda el modo y pasa a elegir personaje
-				pending_mode = menu_sel
-				menu_panel.visible = false
-				char_panel.visible = true
-				state = "char_select"
+				trainer_panel.visible = false
+				_open_moves()
+		elif Input.is_action_just_pressed("ui_cancel"):
+			_open_menu()
 		return
 	if state == "char_select":
 		var dc := 0
@@ -3015,20 +3201,35 @@ func _physics_process(_delta: float) -> void:
 			dc = -1
 		if Input.is_action_just_pressed("ui_right"):
 			dc = 1
-		char_sel = posmod(char_sel + dc, CHARS.size())
-		for i in char_cards.size():
-			char_cards[i]["border"].color = Color(1.0, 0.85, 0.25) if i == char_sel else Color(0, 0, 0)
+		if picking == 0:
+			char_sel_p1 = posmod(char_sel_p1 + dc, CHARS.size())
+		else:
+			char_sel_p2 = posmod(char_sel_p2 + dc, CHARS.size())
+		_refresh_char_select()
 		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
-			selected_char = String(CHARS[char_sel]["id"])
-			# 0=AI FIGHT, 1=PRACTICE DUMMY, 2=BREAK PRACTICE
-			break_practice = pending_mode == 2
-			dummy_ai_mode = pending_mode == 0 or pending_mode == 2
-			char_panel.visible = false
-			_start_round()
+			if picking == 0:
+				# el jugador ya eligió SU personaje -> ahora elige el del rival (CPU)
+				selected_char = String(CHARS[char_sel_p1]["id"])
+				picking = 1
+				_refresh_char_select()
+			else:
+				cpu_char = String(CHARS[char_sel_p2]["id"])
+				break_practice = pending_mode == 2
+				dummy_ai_mode = pending_mode == 0 or pending_mode == 2
+				char_panel.visible = false
+				_hide_char_vs()
+				_start_round()
 		elif Input.is_action_just_pressed("ui_cancel"):
-			char_panel.visible = false
-			menu_panel.visible = true
-			state = "menu"
+			if picking == 1:
+				picking = 0                       # vuelve a elegir P1
+				_refresh_char_select()
+			else:
+				char_panel.visible = false
+				_hide_char_vs()
+				if vs_from_trainer:
+					state = "trainer"; trainer_panel.visible = true
+				else:
+					_open_menu()
 		return
 	if state == "moves":
 		var dirm2 := 0
@@ -3047,8 +3248,8 @@ func _physics_process(_delta: float) -> void:
 			_run_demo(String(DEMO_COMBOS[moves_sel][1]))
 		elif Input.is_action_just_pressed("ui_cancel"):
 			moves_panel.visible = false
-			menu_panel.visible = true
-			state = "menu"
+			state = "trainer"
+			trainer_panel.visible = true
 		return
 	if state == "demo":
 		if Input.is_action_just_pressed("ui_cancel"):
