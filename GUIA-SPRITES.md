@@ -353,10 +353,13 @@ sueltos por masa corporal para que encajen).
       Este frame se queda en pantalla.
     - **NOTA — dos KO distintos:** este `ko` (boca ARRIBA, caída de espaldas) es para el
       KO **en el suelo**. El KO **en el aire** (cuando el golpe mortal lo lanzó) usa la
-      anim `ko_air` = frame 1 de `hit-down` (tendido BOCA ABAJO, de bruces): el rival cae
-      ya en esa pose y queda tendido boca abajo, coherente con salir despedido hacia
-      adelante. Si algún día quieres un frame dedicado de "muerto boca abajo" más pulido,
-      hazlo con la misma regla de f1 de hit-down (horizontal, brazos/piernas flojos).
+      anim `ko_air` (sheet `ok-2-sheet.png`, 3 frames): cae de BRUCES → se estrella →
+      queda TENDIDO BOCA ABAJO. Coherente con salir despedido hacia adelante. Al morir
+      lanzado, el rival pasa directo a `ko_air` (no gira ni flota) y aterriza boca abajo.
+    - **`ok-2-sheet.png`** — 3 frames, KO aéreo boca abajo, vista lateral a la DERECHA,
+      fondo VERDE, mismo tamaño de personaje en los 3. f1: cayendo de bruces en el aire
+      (cuerpo diagonal, cabeza hacia abajo-adelante). f2: casi horizontal, estrellándose.
+      f3: tendido completamente horizontal boca abajo en el piso, brazos/piernas flojos.
       Los frames 4-5 apoyan el cuerpo en la MISMA línea inferior (piso).
       **TAMAÑO DE LA KATANA (importante):** hoja de LARGO NORMAL/razonable (tipo espada,
       aprox. el largo del brazo o un poco más), NUNCA una hoja enorme ni muy larga. El

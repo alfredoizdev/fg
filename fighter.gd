@@ -446,6 +446,7 @@ func force_grounded_ko() -> void:
 	position.y = floor_y
 	if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
 		sprite.play("ko_air")   # TENDIDO boca abajo
+		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)
 	else:
 		sprite.play("ko")
 		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
@@ -1221,6 +1222,7 @@ func _physics_process(delta: float) -> void:
 				_spawn_jump_dust(0.9)
 				if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
 					sprite.play("ko_air")   # BOCA ABAJO (coherente con el despedido)
+					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)  # tendido
 				else:
 					sprite.play("ko")        # boca arriba (caída de espaldas)
 					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)

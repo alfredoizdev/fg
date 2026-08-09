@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=136 format=3]
+[gd_resource type="SpriteFrames" load_steps=139 format=3]
 
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-1.png" id="p1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/pose/dam-pose-2.png" id="p2"]
@@ -119,6 +119,9 @@
 [ext_resource type="Texture2D" path="res://imagen-action/dam/hit-down/dam-hit-down-3.png" id="hd3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/hit-down/dam-hit-down-4.png" id="hd4"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/hit-down/dam-hit-down-5.png" id="hd5"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/ko-air/dam-ko-air-1.png" id="ka1"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/ko-air/dam-ko-air-2.png" id="ka2"]
+[ext_resource type="Texture2D" path="res://imagen-action/dam/ko-air/dam-ko-air-3.png" id="ka3"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/block/dam-block-1.png" id="bl1"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/block-low/dam-block-low-1.png" id="bl2"]
 [ext_resource type="Texture2D" path="res://imagen-action/dam/ko/dam-ko-1.png" id="ko1"]
@@ -674,11 +677,17 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("hd1")
+"texture": ExtResource("ka1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ka2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ka3")
 }],
 "loop": false,
 "name": &"ko_air",
-"speed": 1.0
+"speed": 8.0
 }, {
 "frames": [{
 "duration": 1.0,
