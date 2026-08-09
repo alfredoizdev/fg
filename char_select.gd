@@ -13,8 +13,15 @@ var t := 0.0
 var big_font: SystemFont    # fuente pesada del juego (la del combo)
 var fx: Control             # capa de cursores/glow (encima de las cartas)
 var cards := []             # [{x, y, w, h, av}]
-var stand_l: TextureRect
-var stand_r: TextureRect
+var stand_l: TextureRect    # imagen del cuadro-póster izquierdo (P1)
+var stand_r: TextureRect    # imagen del cuadro-póster derecho (P2)
+# marco del cuadro-póster (mismo para ambos lados)
+const FRAME_L := Rect2(48, 176, 432, 748)
+const FRAME_R := Rect2(1440, 176, 432, 748)
+var appear_l := 0.0         # animación de aparición del cuadro P1 (0→1 al hacer hover)
+var appear_r := 0.0         # animación de aparición del cuadro P2
+var shown1 := -1            # último personaje mostrado en el cuadro P1 (para detectar hover)
+var shown2 := -1
 var name_l: Label
 var name_r: Label
 var data_l: Label
@@ -32,9 +39,9 @@ func _ready() -> void:
 	big_font = SystemFont.new()
 	big_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
 	big_font.font_weight = 900
-	# retratos de pie (se dibujan sobre los paneles laterales, debajo de las cartas)
-	stand_l = _mk_stand(Vector2(-40, 150), false)
-	stand_r = _mk_stand(Vector2(1500, 150), true)
+	# cuadros-póster enmarcados (imagen -2 con fondo artístico), debajo de las cartas
+	stand_l = _mk_portrait(FRAME_L)
+	stand_r = _mk_portrait(FRAME_R)
 	# ---- CARTAS (grid central) ----
 	var n := roster.size()
 	var cw := 176.0
@@ -99,12 +106,13 @@ func _ready() -> void:
 	_refresh()
 
 # ---------- construcción de nodos ----------
-func _mk_stand(pos: Vector2, flip: bool) -> TextureRect:
+func _mk_portrait(box: Rect2) -> TextureRect:
+	# cuadro-póster: la imagen (con su fondo) llena el marco (COVER) y se recorta al cuadro
 	var s := TextureRect.new()
 	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	s.flip_h = flip
-	s.position = pos; s.size = Vector2(560, 900)
+	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	s.clip_contents = true
+	s.position = box.position; s.size = box.size
 	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(s)
 	return s
@@ -204,9 +212,27 @@ func _draw() -> void:
 
 # ---------- CURSORES + GLOW (capa fx, encima de las cartas) ----------
 func _draw_fx() -> void:
+	# marcos de los cuadros-póster (siguen la animación de aparición)
+	_portrait_frame(FRAME_L, appear_l, -1.0, RED)
+	_portrait_frame(FRAME_R, appear_r, 1.0, BLU)
 	var pulse := 0.6 + 0.4 * sin(t * 7.0)
 	_cursor(sel1, RED, "1P", picking == 0, pulse, -1)
 	_cursor(sel2, BLU, "2P", picking == 1, pulse, 1)
+
+func _portrait_frame(box: Rect2, ap: float, dir: float, col: Color) -> void:
+	var e := _ease_out(ap)
+	var off := (1.0 - e) * 46.0 * dir
+	var r := Rect2(box.position.x + off, box.position.y, box.size.x, box.size.y)
+	# sombra/base del marco
+	fx.draw_rect(Rect2(r.position.x - 5, r.position.y - 5, r.size.x + 10, r.size.y + 10), Color(0, 0, 0, 0.7 * e), false, 8.0)
+	# borde de color; con FLASH extra mientras aparece (e<1)
+	var flash := 1.0 + (1.0 - e) * 1.4
+	fx.draw_rect(r.grow(2.0), Color(col.r * flash, col.g * flash, col.b * flash, e), false, 6.0)
+	# esquinas doradas (acento)
+	var cs := 22.0
+	for corner in [r.position, Vector2(r.end.x - cs, r.position.y), Vector2(r.position.x, r.end.y - cs), Vector2(r.end.x - cs, r.end.y - cs)]:
+		fx.draw_rect(Rect2(corner.x, corner.y, cs, 5), Color(GOLD.r, GOLD.g, GOLD.b, e))
+		fx.draw_rect(Rect2(corner.x, corner.y, 5, cs), Color(GOLD.r, GOLD.g, GOLD.b, e))
 
 func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side: int) -> void:
 	if idx < 0 or idx >= cards.size():
@@ -231,10 +257,15 @@ func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side
 func _refresh() -> void:
 	var c1: Dictionary = roster[sel1]
 	var c2: Dictionary = roster[sel2]
-	_set_stand(stand_l, c1)
-	_set_stand(stand_r, c2)
-	stand_l.modulate = Color(1, 1, 1, 1.0 if picking == 0 else 0.5)
-	stand_r.modulate = Color(1, 1, 1, 1.0 if picking == 1 else 0.5)
+	# al cambiar de personaje (hover), reinicia la animación de aparición del cuadro
+	if sel1 != shown1:
+		shown1 = sel1
+		_set_stand(stand_l, c1)
+		appear_l = 0.0
+	if sel2 != shown2:
+		shown2 = sel2
+		_set_stand(stand_r, c2)
+		appear_r = 0.0
 	name_l.text = String(c1["name"])
 	name_r.text = String(c2["name"])
 	data_l.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c1["arch"], c1["weapon"], c1["power"]]
@@ -244,15 +275,31 @@ func _refresh() -> void:
 	queue_redraw()
 
 func _set_stand(node: TextureRect, c: Dictionary) -> void:
-	var path := String(c.get("stand", ""))
-	if not ResourceLoader.exists(path):
-		path = String(c.get("stand_fallback", ""))
+	# usa el retrato-póster CON FONDO (portrait / -2); cae a stand / pose si no existe
+	var path := Sel.portrait_of(String(c["id"]))
 	node.texture = load(path) if ResourceLoader.exists(path) else null
+
+func _ease_out(x: float) -> float:
+	return 1.0 - pow(1.0 - clampf(x, 0.0, 1.0), 3.0)
 
 func _process(delta: float) -> void:
 	t += delta
+	# avanza la animación de aparición de los cuadros (hover)
+	appear_l = minf(1.0, appear_l + delta * 5.0)   # ~0.2s
+	appear_r = minf(1.0, appear_r + delta * 5.0)
+	_anim_portrait(stand_l, FRAME_L, appear_l, -1.0, picking == 0)
+	_anim_portrait(stand_r, FRAME_R, appear_r, 1.0, picking == 1)
 	if fx:
 		fx.queue_redraw()
+
+func _anim_portrait(node: TextureRect, box: Rect2, ap: float, dir: float, active: bool) -> void:
+	if node == null:
+		return
+	var e := _ease_out(ap)
+	# entra deslizando desde afuera (dir) + fade-in; atenuado si NO es el lado activo
+	var off := (1.0 - e) * 46.0 * dir
+	node.position = Vector2(box.position.x + off, box.position.y)
+	node.modulate = Color(1, 1, 1, e * (1.0 if active else 0.6))
 
 func _unhandled_input(_e: InputEvent) -> void:
 	var dc := 0
