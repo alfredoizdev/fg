@@ -3293,50 +3293,51 @@ func _end_round(player_won: bool) -> void:
 	else:
 		wins_p2 += 1
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
-	# 1) K.O. A TIEMPO: el texto + shake salen YA, en el momento del golpe mortal.
-	# NADA de freeze todavía: así el rival COMPLETA su vuelo por los aires (no se ve
-	# congelado/flotando) y luego cae. Fondo rojo tenue mientras cae.
-	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
+	# 1) el golpe mortal manda al rival por los aires; al llegar al ÁPICE se CONGELA todo
+	# de golpe con el K.O. (el "slam" clásico) y luego se descongela y sigue normal: cae y
+	# queda tendido. Así el K.O. y el freeze COINCIDEN con el rival MID-AIR (no flota).
+	loser.die_ko()                                          # marca la muerte (mantiene su vuelo)
 	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
+	# SUBE hasta cerca del ápice (rojo tenue, aún SIN K.O.); si ya venía cayendo, sigue
+	var ps := Time.get_ticks_msec()
+	while (loser.airborne or loser.hit_flying) and loser.vel_y < -100.0 and Time.get_ticks_msec() - ps < 600:
+		ko_red.color.a = 0.35
+		await get_tree().process_frame
+	# SLAM en el ápice: CONGELA + K.O. + shake juntos (víctima MID-AIR, instante dramático)
+	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
 	ko_lines.visible = true
 	_shake(26.0, 0.5)
-	loser.die_ko()
-	if loser.airborne or loser.hit_flying:
-		# muerte AÉREA: deja que complete el VUELO y caiga (sin congelar); al bajar se
-		# pone boca abajo y al aterrizar queda tendido boca abajo.
-		var fs := Time.get_ticks_msec()
-		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 2500:
-			var ft := float(Time.get_ticks_msec() - fs) / 1000.0
-			if ultra_panels.size() > 0:
-				ko_lines.texture = ultra_panels[int(ft * 16.0) % ultra_panels.size()]
-			ko_lines.modulate.a = 1.0
-			ko_red.color.a = 0.30                            # rojo TENUE mientras cae (sin freeze)
-			await get_tree().process_frame
-		loser.force_grounded_ko()                            # tendido BOCA ABAJO en el piso
-	else:
-		# muerte PARADO en el suelo: deja correr la caída de espaldas (ko) un momento
-		var gs := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - gs < 700:
-			ko_red.color.a = 0.30
-			ko_lines.modulate.a = 1.0
-			await get_tree().process_frame
-	# 2) CINEMÁTICO del KO: ahora sí CONGELA (con el perdedor YA tendido en el piso, no
-	# flota), pantalla ROJA con las líneas del ultra... y luego se va todo.
-	Engine.time_scale = 0.0                                  # FREEZE
+	Engine.time_scale = 0.0                                  # CONGELA (víctima mid-air)
 	var ks := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - ks < 900:
+	while Time.get_ticks_msec() - ks < 850:
 		var kt := float(Time.get_ticks_msec() - ks) / 1000.0
 		if ultra_panels.size() > 0:
 			ko_lines.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
 		ko_lines.modulate.a = 1.0
 		ko_red.color.a = 0.62                                # pantalla ROJA (detrás, players sobresalen)
 		await get_tree().process_frame
-	Engine.time_scale = 1.0                                  # ...y SIGUEN los frames normales
+	Engine.time_scale = 1.0                                  # ...y AHORA sigue normal: cae y se tiende
+	if loser.airborne or loser.hit_flying:
+		var fs := Time.get_ticks_msec()
+		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 2500:
+			var ft := float(Time.get_ticks_msec() - fs) / 1000.0
+			if ultra_panels.size() > 0:
+				ko_lines.texture = ultra_panels[int(ft * 16.0) % ultra_panels.size()]
+			ko_lines.modulate.a = 1.0
+			ko_red.color.a = 0.55                            # rojo mientras cae
+			await get_tree().process_frame
+		loser.force_grounded_ko()                            # tendido BOCA ABAJO en el piso
+	else:
+		var gs := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - gs < 600:
+			ko_red.color.a = 0.55
+			ko_lines.modulate.a = 1.0
+			await get_tree().process_frame
 	# se VA todo: el rojo y las líneas se desvanecen mientras el KO cae
 	var fsm := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - fsm < 800:
 		var k := 1.0 - float(Time.get_ticks_msec() - fsm) / 800.0
-		ko_red.color.a = 0.62 * k
+		ko_red.color.a = 0.55 * k
 		ko_lines.modulate.a = k
 		if ultra_panels.size() > 0:
 			ko_lines.texture = ultra_panels[int(float(Time.get_ticks_msec() - fsm) / 60.0) % ultra_panels.size()]

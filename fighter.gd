@@ -1225,7 +1225,7 @@ func _physics_process(delta: float) -> void:
 			var air_dir := Input.get_axis("ui_left", "ui_right")
 			if air_dir != 0.0:
 				position.x += air_dir * WALK_SPEED * spd * delta
-		if position.y >= floor_y:
+		if position.y >= floor_y and vel_y >= 0.0:   # solo aterriza si NO va subiendo
 			position.y = floor_y
 			airborne = false
 			vel_y = 0.0
