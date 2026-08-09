@@ -3293,21 +3293,30 @@ func _end_round(player_won: bool) -> void:
 	else:
 		wins_p2 += 1
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
-	# 1) el golpe mortal manda al rival por los aires; al llegar al ÁPICE se CONGELA todo
-	# de golpe con el K.O. (el "slam" clásico) y luego se descongela y sigue normal: cae y
-	# queda tendido. Así el K.O. y el freeze COINCIDEN con el rival MID-AIR (no flota).
-	loser.die_ko()                                          # marca la muerte (mantiene su vuelo)
+	# el rival muere: si el golpe lo LANZÓ, sube por los aires y al llegar al ÁPICE se
+	# CONGELA todo con el K.O. (slam mid-air); si murió PARADO, cae de espaldas y se
+	# congela YA TENDIDO en el piso. En ambos casos, tras el freeze sigue normal.
+	var aerial: bool = loser.airborne or loser.hit_flying
+	loser.die_ko()
 	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
-	# SUBE hasta cerca del ápice (rojo tenue, aún SIN K.O.); si ya venía cayendo, sigue
-	var ps := Time.get_ticks_msec()
-	while (loser.airborne or loser.hit_flying) and loser.vel_y < -100.0 and Time.get_ticks_msec() - ps < 600:
-		ko_red.color.a = 0.35
-		await get_tree().process_frame
-	# SLAM en el ápice: CONGELA + K.O. + shake juntos (víctima MID-AIR, instante dramático)
+	if aerial:
+		# SUBE hasta cerca del ápice (rojo tenue, aún SIN K.O.)
+		var ps := Time.get_ticks_msec()
+		while (loser.airborne or loser.hit_flying) and loser.vel_y < -100.0 and Time.get_ticks_msec() - ps < 600:
+			ko_red.color.a = 0.35
+			await get_tree().process_frame
+	else:
+		# muerte parada: deja correr la caída de espaldas hasta quedar TENDIDO (sin K.O. aún)
+		var gs := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - gs < 750:
+			ko_red.color.a = 0.35
+			await get_tree().process_frame
+		loser.force_grounded_ko()                            # asegura el frame TENDIDO
+	# SLAM: CONGELA + K.O. + shake (rival mid-air si fue aéreo, o ya tendido si de suelo)
 	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
 	ko_lines.visible = true
 	_shake(26.0, 0.5)
-	Engine.time_scale = 0.0                                  # CONGELA (víctima mid-air)
+	Engine.time_scale = 0.0                                  # CONGELA
 	var ks := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - ks < 850:
 		var kt := float(Time.get_ticks_msec() - ks) / 1000.0
@@ -3316,8 +3325,9 @@ func _end_round(player_won: bool) -> void:
 		ko_lines.modulate.a = 1.0
 		ko_red.color.a = 0.62                                # pantalla ROJA (detrás, players sobresalen)
 		await get_tree().process_frame
-	Engine.time_scale = 1.0                                  # ...y AHORA sigue normal: cae y se tiende
-	if loser.airborne or loser.hit_flying:
+	Engine.time_scale = 1.0                                  # ...y AHORA sigue normal
+	if aerial:
+		# tras el freeze CAE y queda tendido BOCA ABAJO en el piso
 		var fs := Time.get_ticks_msec()
 		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 2500:
 			var ft := float(Time.get_ticks_msec() - fs) / 1000.0
@@ -3327,12 +3337,6 @@ func _end_round(player_won: bool) -> void:
 			ko_red.color.a = 0.55                            # rojo mientras cae
 			await get_tree().process_frame
 		loser.force_grounded_ko()                            # tendido BOCA ABAJO en el piso
-	else:
-		var gs := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - gs < 600:
-			ko_red.color.a = 0.55
-			ko_lines.modulate.a = 1.0
-			await get_tree().process_frame
 	# se VA todo: el rojo y las líneas se desvanecen mientras el KO cae
 	var fsm := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - fsm < 800:
