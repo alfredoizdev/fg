@@ -266,7 +266,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("wp1")
+"texture": ExtResource("wp4")
 }, {
 "duration": 1.0,
 "texture": ExtResource("wp2")

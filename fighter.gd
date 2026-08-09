@@ -414,6 +414,20 @@ func do_ko() -> void:
 	position.y = floor_y
 	sprite.play("ko")
 
+# fuerza el estado TENDIDO en el piso (usado por el cinematográfico del KO para
+# garantizar que el perdedor NO quede flotando/grande en el aire antes del freeze).
+func force_grounded_ko() -> void:
+	koed = true
+	airborne = false
+	hit_flying = false
+	hard_fall = false
+	crouching = false
+	vel_x = 0.0
+	vel_y = 0.0
+	position.y = floor_y
+	sprite.play("ko")
+	sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
+
 func do_breaker() -> bool:
 	if not breaker_ready or koed:
 		return false

@@ -2668,16 +2668,12 @@ void fragment(){
 var _p2_mat: ShaderMaterial = null
 
 func _apply_alt_colors() -> void:
-	if _p2_mat == null:
-		var sh := Shader.new()
-		sh.code = _HUE_CODE
-		_p2_mat = ShaderMaterial.new()
-		_p2_mat.shader = sh
-		_p2_mat.set_shader_parameter("amount", 1.0)
+	# color alterno de P2 DESACTIVADO (el usuario lo pidió quitar: no se veía bien).
+	# ambos peleadores quedan con su color normal.
 	player.base_material = null
-	player.sprite.material = null                # P1: color normal
-	dummy.base_material = _p2_mat
-	dummy.sprite.material = _p2_mat              # P2: tono cambiado (mismo char, otro color)
+	player.sprite.material = null
+	dummy.base_material = null
+	dummy.sprite.material = null
 
 # suaviza focus_cur hacia focus_target con reloj REAL (llamado desde _process)
 # ---- ANUNCIOS épicos (READY / FIGHT / K.O.): fuente gruesa + SOMBRA PLANA atrás ----
@@ -3308,8 +3304,20 @@ func _end_round(player_won: bool) -> void:
 	player.input_enabled = false
 	dummy.ai_enabled = false
 	announce.visible = false
-	# CINEMÁTICO del KO: CONGELA la pantalla, sale K.O. GRANDE, la pantalla se pone
-	# ROJA con las líneas del ultra... y luego se va todo y siguen los frames normales.
+	var loser: Node = dummy if player_won else player
+	# 1) el perdedor CAE y queda TENDIDO en el piso ANTES del freeze. Si el golpe
+	# mortal lo lanzó, nada de congelar una pose de vuelo grande y flotante: se le
+	# corta el impulso hacia arriba y se desploma rápido hasta aterrizar tendido.
+	loser.do_ko()
+	if loser.airborne or loser.hit_flying:
+		loser.vel_y = maxf(loser.vel_y, 0.0)   # corta el vuelo hacia arriba
+		loser.hard_fall = true                 # caída acelerada
+		var fs := Time.get_ticks_msec()
+		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 1200:
+			await get_tree().process_frame
+		loser.force_grounded_ko()              # garantiza piso + frame tendido
+	# CINEMÁTICO del KO: CONGELA la pantalla (con el perdedor YA tendido), sale K.O.
+	# GRANDE, la pantalla se pone ROJA con las líneas del ultra... y luego se va todo.
 	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
 	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
 	ko_lines.visible = true
@@ -3326,10 +3334,8 @@ func _end_round(player_won: bool) -> void:
 	Engine.time_scale = 1.0                                  # ...y SIGUEN los frames normales
 	if player_won:
 		wins_p1 += 1
-		dummy.do_ko()
 	else:
 		wins_p2 += 1
-		player.do_ko()
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	# se VA todo: el rojo y las líneas se desvanecen mientras el KO cae
 	var fsm := Time.get_ticks_msec()
