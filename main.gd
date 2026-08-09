@@ -3248,11 +3248,13 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# siente el control), técnica clásica de fighting games.
 		var strong := bool(atk.get("strong", false))
 		var dmg := float(atk.get("damage", 50))
-		var hs := 0.05 + clampf(dmg / 100.0, 0.0, 1.0) * 0.09   # 0.05 (jab) .. 0.14 (100 dmg)
+		# valores tipo STREET FIGHTER (~11-16 frames): jab ~0.11s, golpe fuerte ~0.20s,
+		# lanzador ~0.26s. El freeze sólido da ese "peso" pesado de SF sin sentirse lento.
+		var hs := 0.11 + clampf(dmg / 100.0, 0.0, 1.0) * 0.09   # 0.11 (jab) .. 0.20 (100 dmg)
 		if result == "launched":
-			hs += 0.05                                          # el lanzador pega MÁS fuerte
+			hs += 0.06                                          # el lanzador pega MÁS fuerte
 		def.apply_hitstop(hs)
-		att.apply_hitstop(hs * 0.82)                            # el atacante recupera antes
+		att.apply_hitstop(hs * 0.85)                            # el atacante recupera un pelín antes
 		# micro-shake proporcional al golpe: le da "punch" al impacto sin marear
 		_shake(lerpf(4.0, 13.0, clampf(dmg / 110.0, 0.0, 1.0)) + (5.0 if strong else 0.0), hs)
 		# si el atacante golpea EN EL AIRE, flota un poco para seguir el juggle y puede
