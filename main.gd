@@ -724,7 +724,20 @@ func _ready() -> void:
 	pin_label = pl
 	if TRAINING:
 		_enter_training()
+	elif Sel.configured:
+		# vino del char-select (escena separada): aplica modo + personajes y a PELEAR directo
+		selected_char = Sel.p1
+		cpu_char = Sel.p2
+		match Sel.mode:
+			"practice":
+				dummy_ai_mode = false; break_practice = false
+			"break":
+				dummy_ai_mode = true; break_practice = true
+			_:
+				dummy_ai_mode = true; break_practice = false   # vs_cpu
+		_start_round()
 	else:
+		# main.tscn ejecutado directo (sin pasar por el menú): fallback interno
 		_open_menu()
 
 func _open_menu() -> void:
@@ -3256,7 +3269,9 @@ func _physics_process(_delta: float) -> void:
 			_open_moves()
 			return
 	if state == "fight" and Input.is_action_just_pressed("ui_cancel"):
-		_open_menu()
+		# ESC en pelea: vuelve a la PANTALLA PRINCIPAL (escena separada)
+		Sel.configured = false
+		get_tree().change_scene_to_file("res://title.tscn")
 		return
 
 	# en entrenamiento solo existe el jugador: sin empuje, sin golpes, sin barras
@@ -3609,12 +3624,18 @@ func _end_round(player_won: bool) -> void:
 	ko_lines.visible = false
 	ko_lines.modulate.a = 0.0
 	if wins_p1 >= WINS_NEEDED or wins_p2 >= WINS_NEEDED:
+		var winner_name := String(Sel.data(selected_char if player_won else cpu_char)["name"])
 		announce.visible = true
-		announce.text = "MATCH WINNER:\nDAM"
+		announce.text = "MATCH WINNER:\n" + winner_name
 		await get_tree().create_timer(3.0).timeout
 		wins_p1 = 0
 		wins_p2 = 0
 		round_num = 1
+		# fin del combate: vuelve a la PANTALLA PRINCIPAL (escena separada)
+		if Sel.configured:
+			Sel.configured = false
+			get_tree().change_scene_to_file("res://title.tscn")
+			return
 	else:
 		round_num += 1
 	_start_round()

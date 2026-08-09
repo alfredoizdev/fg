@@ -11,8 +11,12 @@ config_version=5
 [application]
 
 config/name="FG Fighter"
-run/main_scene="res://main.tscn"
+run/main_scene="res://title.tscn"
 config/features=PackedStringArray("4.7")
+
+[autoload]
+
+Sel="*res://game_sel.gd"
 
 [display]
 
