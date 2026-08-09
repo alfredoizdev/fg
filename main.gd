@@ -3242,10 +3242,19 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		meter[didx] = maxf(0.0, meter[didx] - float(atk.get("damage", 50)) * BLOCK_DRAIN)
 	if result == "hit" or result == "launched":
 		# HITSTOP: ambos se CONGELAN unos frames en el impacto (peso + pausa entre golpes,
-		# como los juegos pro). Golpe fuerte = congela más.
-		var hs := 0.11 if bool(atk.get("strong", false)) else 0.07
-		att.apply_hitstop(hs)
+		# como los juegos pro). La duración escala con el PESO del golpe: jab ligero =
+		# congelamiento corto y ágil; golpe fuerte / lanzador = largo y con más impacto. El
+		# atacante congela un pelín MENOS que la víctima (el que pega recupera antes y se
+		# siente el control), técnica clásica de fighting games.
+		var strong := bool(atk.get("strong", false))
+		var dmg := float(atk.get("damage", 50))
+		var hs := 0.05 + clampf(dmg / 100.0, 0.0, 1.0) * 0.09   # 0.05 (jab) .. 0.14 (100 dmg)
+		if result == "launched":
+			hs += 0.05                                          # el lanzador pega MÁS fuerte
 		def.apply_hitstop(hs)
+		att.apply_hitstop(hs * 0.82)                            # el atacante recupera antes
+		# micro-shake proporcional al golpe: le da "punch" al impacto sin marear
+		_shake(lerpf(4.0, 13.0, clampf(dmg / 110.0, 0.0, 1.0)) + (5.0 if strong else 0.0), hs)
 		# si el atacante golpea EN EL AIRE, flota un poco para seguir el juggle y puede
 		# encadenar OTRO golpe aéreo (distinto, por la regla de oro). Si falla NO flota
 		# ni puede repetir: cae normal.
@@ -3360,22 +3369,42 @@ func _end_round(player_won: bool) -> void:
 	var woff_x := wrest_x - 240.0 * float(wside)
 	win_portrait.position = Vector2(woff_x, 1080.0 - CUTIN_PH + 30.0)
 	win_portrait.visible = true
+	# PANELES ROJOS MANGA (como el inferno) DETRÁS del ganador: ciclan ultra-1..6 tintados
+	# de rojo durante la celebración (el retrato y el peleador van por encima, z mayor).
+	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)
+	ko_lines.visible = true
+	ko_red.color.a = 0.0
 	_show_announce("DAM WINS", Color(0.88, 0.75, 0.28), 3.3, wside)
 	var ws := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - ws < 340:
 		var wp := float(Time.get_ticks_msec() - ws) / 340.0
 		win_portrait.position.x = lerpf(woff_x, wrest_x, _ease_out_cubic(wp))
 		win_portrait.modulate.a = wp
+		if ultra_panels.size() > 0:
+			ko_lines.texture = ultra_panels[int(wp * 16.0) % ultra_panels.size()]
+		ko_lines.modulate.a = 0.9 * wp
 		await get_tree().process_frame
 	win_portrait.position.x = wrest_x
 	win_portrait.modulate.a = 1.0
-	await get_tree().create_timer(2.55).timeout
+	# HOLD: retrato fijo + líneas manga vibrando (ciclando) 2.55s
+	var wh := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - wh < 2550:
+		if ultra_panels.size() > 0:
+			ko_lines.texture = ultra_panels[int(float(Time.get_ticks_msec() - wh) / 62.0) % ultra_panels.size()]
+		ko_lines.modulate.a = 0.9
+		await get_tree().process_frame
 	var wf := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - wf < 430:
-		win_portrait.modulate.a = 1.0 - float(Time.get_ticks_msec() - wf) / 430.0
+		var wk := 1.0 - float(Time.get_ticks_msec() - wf) / 430.0
+		win_portrait.modulate.a = wk
+		ko_lines.modulate.a = 0.9 * wk
+		if ultra_panels.size() > 0:
+			ko_lines.texture = ultra_panels[int(float(Time.get_ticks_msec() - wf) / 62.0) % ultra_panels.size()]
 		await get_tree().process_frame
 	win_portrait.modulate.a = 0.0
 	win_portrait.visible = false
+	ko_lines.visible = false
+	ko_lines.modulate.a = 0.0
 	if wins_p1 >= WINS_NEEDED or wins_p2 >= WINS_NEEDED:
 		announce.visible = true
 		announce.text = "MATCH WINNER:\nDAM"
