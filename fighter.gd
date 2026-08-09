@@ -416,22 +416,34 @@ func do_ko() -> void:
 	position.y = floor_y
 	sprite.play("ko")
 
-# KO EN EL AIRE: en vez de girar grande y flotar, se le corta el impulso, cae RÁPIDO
-# ya en pose BOCA ABAJO (ko_air) y al aterrizar queda TENDIDO boca abajo. Coherente
-# con haber salido despedido hacia adelante (no la caída de espaldas del ko de suelo).
-func begin_ko_air() -> void:
+# MUERTE (llamado por _end_round). NO corta el vuelo: si el golpe mortal lo lanzó,
+# COMPLETA su arco por los aires; al empezar a bajar se pone BOCA ABAJO (ko_air) y al
+# aterrizar queda tendido boca abajo (sin levantarse). Si muere PARADO en el suelo,
+# cae de espaldas (boca arriba) con la animación normal de "ko".
+func die_ko() -> void:
 	koed = true
-	ko_facedown = true
 	crouching = false
 	water_bg = false
-	airborne = true
-	hit_flying = true      # usa la rama de caída sin control de input
-	hard_fall = true       # desplome rápido
-	wall_bounced = true    # nada de rebote de pared
-	vel_x = 0.0
-	vel_y = maxf(vel_y, 0.0)   # corta cualquier impulso hacia arriba
-	if sprite.sprite_frames.has_animation("ko_air"):
-		sprite.play("ko_air")   # cae YA boca abajo (sin la pose de vuelo grande)
+	fe_dash_t = 0.0
+	fe_dash_active = false
+	ultra_hover = false   # libera el hover del ultra para que CAIGA de verdad (no flote)
+	if airborne or hit_flying:
+		# muerte EN EL AIRE: deja que complete el vuelo y caiga. hard_fall = baja decidido.
+		ko_facedown = true
+		hit_flying = true
+		hard_fall = true
+		wall_bounced = true   # sin rebote de pared en la muerte
+		vel_x = 0.0
+		# NO se toca vel_y: que complete el vuelo por los aires
+	else:
+		# muerte PARADO en el suelo: cae de espaldas (boca arriba), animación completa
+		ko_facedown = false
+		hit_flying = false
+		airborne = false
+		vel_x = 0.0
+		vel_y = 0.0
+		position.y = floor_y
+		sprite.play("ko")
 
 # fuerza el estado TENDIDO en el piso (red de seguridad del cinematográfico del KO
 # aéreo: garantiza que quede boca abajo en el suelo si la caída no terminó a tiempo).
@@ -1166,6 +1178,11 @@ func _physics_process(delta: float) -> void:
 
 	# en el aire: gravedad; con control solo si es jugador y no va despedido
 	if airborne:
+		# MUERTE AÉREA: sube con la pose de vuelo (el "vuelo por los aires"); en cuanto
+		# EMPIEZA A BAJAR, pasa a BOCA ABAJO (ko_air) para caer y estrellarse de bruces.
+		if koed and ko_facedown and vel_y > 0.0 and String(sprite.animation) != "ko_air" \
+				and sprite.sprite_frames.has_animation("ko_air"):
+			sprite.play("ko_air")
 		var air_spin: bool = sprite.animation in ["spin_kick", "air_spin_kick"] and sprite.is_playing()
 		# TODOS los ataques aéreos flotan: mientras golpeas en el aire, bajas
 		# poco a poco (feel de combo aéreo de fighting game), no caes en picada.

@@ -1640,12 +1640,8 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 		victima.hard_fall = true
 		await get_tree().create_timer(0.4, true, false, true).timeout
 		Engine.time_scale = 1.0
-		# esperar a que el rival suba, caiga brusco y se estrelle en el piso
-		var vuelo := 0.0
-		while victima.airborne and vuelo < 3.0:
-			await get_tree().process_frame
-			vuelo += get_process_delta_time()
-		await get_tree().create_timer(0.35).timeout
+		# NO se espera el aterrizaje: _end_round maneja el vuelo→caída→boca abajo→freeze
+		# (K.O. a tiempo y el rival completa su vuelo por los aires, sin flotar).
 	atacante.breaker_fx_t = 0.0
 	atacante.sprite.speed_scale = 1.0
 	victima.ultra_hover = false   # por si el ultra se interrumpio en pleno juggle
@@ -1813,11 +1809,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	# REMATE: el estallido lo derriba al piso
 	victima.hard_fall = false
 	victima.receive_hit(false, false, dir, "", true, 1.0)   # trip -> derribo corto
-	# esperar a que el rival caiga
-	var vuelo := 0.0
-	while victima.airborne and vuelo < 2.0:
-		await get_tree().process_frame
-		vuelo += get_process_delta_time()
+	# NO se espera el aterrizaje: si murió, _end_round maneja la caída→boca abajo→freeze
 	_focus_end()                  # quita el borde rojo y restaura el brillo
 	ultra_active = false
 	# cierre: KO si murió, si no vuelve a la pelea
@@ -1936,10 +1928,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	# REMATE: lo derriba al piso (solo si el remolino lo atrapó)
 	if alcanza:
 		victima.receive_hit(false, false, dir, "", true, 1.0)
-		var vuelo := 0.0
-		while victima.airborne and vuelo < 2.0:
-			await get_tree().process_frame
-			vuelo += get_process_delta_time()
+		# NO se espera el aterrizaje: _end_round maneja el vuelo→caída→boca abajo→freeze
 	ultra_active = false
 	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
 	state = "fight"
@@ -2061,10 +2050,7 @@ func _run_fe_ultra(atacante: Node2D, idx: int) -> void:
 		atacante.vel_y = 200.0
 		await get_tree().create_timer(0.4, true, false, true).timeout
 		Engine.time_scale = 1.0
-		var vuelo := 0.0
-		while victima.airborne and vuelo < 2.0:
-			await get_tree().process_frame
-			vuelo += get_process_delta_time()
+		# NO se espera el aterrizaje: _end_round maneja el vuelo→caída→boca abajo→freeze
 	# cierre
 	_fe_cast_fx(atacante, false)
 	atacante.ultra_hover = false
@@ -2268,10 +2254,7 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 		atacante.vel_y = 220.0
 		await get_tree().create_timer(0.45, true, false, true).timeout
 		Engine.time_scale = 1.0
-		var vuelo := 0.0
-		while victima.airborne and vuelo < 2.0:
-			await get_tree().process_frame
-			vuelo += get_process_delta_time()
+		# NO se espera el aterrizaje: _end_round maneja el vuelo→caída→boca abajo→freeze
 	# cierre
 	_fe_cast_fx(atacante, false)
 	atacante.ultra_hover = false
@@ -3305,25 +3288,43 @@ func _end_round(player_won: bool) -> void:
 	dummy.ai_enabled = false
 	announce.visible = false
 	var loser: Node = dummy if player_won else player
-	# 1) el perdedor CAE y queda TENDIDO en el piso ANTES del freeze. Si el golpe
-	# mortal lo lanzó por el aire, NADA de congelar la pose de vuelo grande/flotante:
-	# se desploma RÁPIDO ya en pose BOCA ABAJO (ko_air) y aterriza tendido boca abajo.
-	loser.do_ko()
-	if loser.airborne or loser.hit_flying:
-		loser.begin_ko_air()                   # cae boca abajo, rápido, sin girar
-		var fs := Time.get_ticks_msec()
-		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 1200:
-			await get_tree().process_frame
-		loser.force_grounded_ko()              # garantiza tendido boca abajo en el piso
-	# CINEMÁTICO del KO: CONGELA la pantalla (con el perdedor YA tendido), sale K.O.
-	# GRANDE, la pantalla se pone ROJA con las líneas del ultra... y luego se va todo.
+	if player_won:
+		wins_p1 += 1
+	else:
+		wins_p2 += 1
+	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
+	# 1) K.O. A TIEMPO: el texto + shake salen YA, en el momento del golpe mortal.
+	# NADA de freeze todavía: así el rival COMPLETA su vuelo por los aires (no se ve
+	# congelado/flotando) y luego cae. Fondo rojo tenue mientras cae.
 	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
 	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
 	ko_lines.visible = true
 	_shake(26.0, 0.5)
-	Engine.time_scale = 0.0                                  # FREEZE (largo)
+	loser.die_ko()
+	if loser.airborne or loser.hit_flying:
+		# muerte AÉREA: deja que complete el VUELO y caiga (sin congelar); al bajar se
+		# pone boca abajo y al aterrizar queda tendido boca abajo.
+		var fs := Time.get_ticks_msec()
+		while (loser.airborne or loser.hit_flying) and Time.get_ticks_msec() - fs < 2500:
+			var ft := float(Time.get_ticks_msec() - fs) / 1000.0
+			if ultra_panels.size() > 0:
+				ko_lines.texture = ultra_panels[int(ft * 16.0) % ultra_panels.size()]
+			ko_lines.modulate.a = 1.0
+			ko_red.color.a = 0.30                            # rojo TENUE mientras cae (sin freeze)
+			await get_tree().process_frame
+		loser.force_grounded_ko()                            # tendido BOCA ABAJO en el piso
+	else:
+		# muerte PARADO en el suelo: deja correr la caída de espaldas (ko) un momento
+		var gs := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - gs < 700:
+			ko_red.color.a = 0.30
+			ko_lines.modulate.a = 1.0
+			await get_tree().process_frame
+	# 2) CINEMÁTICO del KO: ahora sí CONGELA (con el perdedor YA tendido en el piso, no
+	# flota), pantalla ROJA con las líneas del ultra... y luego se va todo.
+	Engine.time_scale = 0.0                                  # FREEZE
 	var ks := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - ks < 1050:
+	while Time.get_ticks_msec() - ks < 900:
 		var kt := float(Time.get_ticks_msec() - ks) / 1000.0
 		if ultra_panels.size() > 0:
 			ko_lines.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
@@ -3331,11 +3332,6 @@ func _end_round(player_won: bool) -> void:
 		ko_red.color.a = 0.62                                # pantalla ROJA (detrás, players sobresalen)
 		await get_tree().process_frame
 	Engine.time_scale = 1.0                                  # ...y SIGUEN los frames normales
-	if player_won:
-		wins_p1 += 1
-	else:
-		wins_p2 += 1
-	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	# se VA todo: el rojo y las líneas se desvanecen mientras el KO cae
 	var fsm := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - fsm < 800:
