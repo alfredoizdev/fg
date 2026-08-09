@@ -22,7 +22,7 @@ func _ready() -> void:
 	glow.position = Vector2(0, 300); glow.size = Vector2(1920, 480)
 	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(glow)
-	# BANNER (placeholder): usa res://imagen-action/ui/banner.png si existe
+	# BANNER: usa res://imagen-action/ui/banner.png si existe; si no, un LOGO temporal
 	if ResourceLoader.exists("res://imagen-action/ui/banner.png"):
 		var bn := TextureRect.new()
 		bn.texture = load("res://imagen-action/ui/banner.png")
@@ -32,9 +32,44 @@ func _ready() -> void:
 		bn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(bn)
 	else:
-		_banner_label("FG FIGHTER", Vector2(16, 132), Color(0.07, 0.0, 0.0, 0.9), 200)  # sombra
-		_banner_label("FG FIGHTER", Vector2(0, 116), Color(0.88, 0.16, 0.13), 200)       # frente
-		_banner_label("F I G H T E R", Vector2(0, 350), Color(0.85, 0.78, 0.35), 40)     # subtítulo
+		_placeholder_banner()
+
+func _placeholder_banner() -> void:
+	# LOGO TEMPORAL (hasta poner el banner real): marco rojo con brillo + título + tagline.
+	var frame := ColorRect.new()
+	frame.color = Color(0.75, 0.13, 0.11, 0.16)
+	frame.position = Vector2(500, 96); frame.size = Vector2(920, 300)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(frame)
+	# líneas decorativas arriba y abajo del marco
+	for yy in [96.0, 392.0]:
+		var bar := ColorRect.new()
+		bar.color = Color(0.88, 0.18, 0.14)
+		bar.position = Vector2(500, yy); bar.size = Vector2(920, 6)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(bar)
+	# esquinas (acento tipo marco de fighting game)
+	for cx in [500.0, 1414.0]:
+		for cy in [96.0, 386.0]:
+			var corner := ColorRect.new()
+			corner.color = Color(0.95, 0.8, 0.3)
+			corner.position = Vector2(cx, cy); corner.size = Vector2(6, 10)
+			corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(corner)
+	# título con sombra
+	_banner_label("FG FIGHTER", Vector2(16, 148), Color(0.06, 0.0, 0.0, 0.85), 168)
+	_banner_label("FG FIGHTER", Vector2(0, 134), Color(0.90, 0.17, 0.14), 168)
+	# tagline
+	_banner_label("— T E M P L E   D U E L —", Vector2(0, 322), Color(0.9, 0.82, 0.4), 34)
+	# nota de placeholder (chiquita, para recordar que va tu arte)
+	var note := Label.new()
+	note.text = "(logo temporal — reemplazar con res://imagen-action/ui/banner.png)"
+	note.add_theme_font_size_override("font_size", 18)
+	note.add_theme_color_override("font_color", Color(0.55, 0.5, 0.55))
+	note.position = Vector2(0, 410); note.size = Vector2(1920, 30)
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(note)
 	# opciones
 	for i in OPTS.size():
 		var o := Label.new()
