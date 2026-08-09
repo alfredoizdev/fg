@@ -1,8 +1,8 @@
 extends Control
-# PANTALLA DE SELECCIÓN DE PERSONAJE (escena separada, estilo UNI/BlazBlue).
-# El jugador elige PRIMERO su personaje (1P, cursor rojo) y luego el del rival/CPU
-# (2P, cursor azul). Retratos de pie a los lados, grid central, nombres grandes.
-# Al confirmar 2P guarda en Sel y entra a la pelea (main.tscn).
+# PANTALLA DE SELECCIÓN DE PERSONAJE (escena separada, estilo UNI/BlazBlue) — versión ÉPICA:
+# fondo en capas con diagonales, paneles inclinados P1(rojo)/P2(azul), cartas con marco y
+# glow, tipografía PESADA (Arial Black 900) con outline. El jugador elige PRIMERO su
+# personaje (1P) y luego el de la CPU (2P). Al confirmar 2P guarda en Sel y entra a la pelea.
 
 var roster: Array = []
 var picking := 0            # 0 = eligiendo 1P, 1 = eligiendo 2P
@@ -10,8 +10,9 @@ var sel1 := 0
 var sel2 := 1
 var t := 0.0
 
-# nodos
-var cards := []             # [{border, av, name}]
+var big_font: SystemFont    # fuente pesada del juego (la del combo)
+var fx: Control             # capa de cursores/glow (encima de las cartas)
+var cards := []             # [{x, y, w, h, av}]
 var stand_l: TextureRect
 var stand_r: TextureRect
 var name_l: Label
@@ -20,172 +21,238 @@ var data_l: Label
 var data_r: Label
 var prompt: Label
 
+const RED := Color(0.95, 0.24, 0.20)
+const BLU := Color(0.36, 0.56, 1.0)
+const GOLD := Color(0.98, 0.84, 0.32)
+
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	roster = Sel.ROSTER
 	sel2 = 1 % roster.size()
-	# ---- FONDO ----
-	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.03, 0.06)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
-	# medios teñidos: izquierda rojo (1P), derecha azul (2P)
-	var half_l := ColorRect.new()
-	half_l.color = Color(0.28, 0.04, 0.06, 0.55)
-	half_l.position = Vector2(0, 0); half_l.size = Vector2(560, 1080)
-	half_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(half_l)
-	var half_r := ColorRect.new()
-	half_r.color = Color(0.05, 0.08, 0.30, 0.55)
-	half_r.position = Vector2(1360, 0); half_r.size = Vector2(560, 1080)
-	half_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(half_r)
-	# ---- RETRATOS DE PIE A LOS LADOS ----
-	stand_l = _mk_stand(Vector2(-40, 210), false)
-	stand_r = _mk_stand(Vector2(1500, 210), true)
-	# ---- CABECERAS ----
-	_hdr("1 PLAYER CHARACTER", Vector2(30, 22), Color(0.95, 0.3, 0.28), HORIZONTAL_ALIGNMENT_LEFT, 30)
-	_hdr("2 PLAYER CHARACTER", Vector2(-30, 22), Color(0.4, 0.6, 1.0), HORIZONTAL_ALIGNMENT_RIGHT, 30)
-	_hdr("CHARACTER SELECT", Vector2(0, 20), Color(0.95, 0.85, 0.35), HORIZONTAL_ALIGNMENT_CENTER, 52)
-	# ---- GRID DE CARTAS (centrado) ----
+	big_font = SystemFont.new()
+	big_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
+	big_font.font_weight = 900
+	# retratos de pie (se dibujan sobre los paneles laterales, debajo de las cartas)
+	stand_l = _mk_stand(Vector2(-40, 150), false)
+	stand_r = _mk_stand(Vector2(1500, 150), true)
+	# ---- CARTAS (grid central) ----
 	var n := roster.size()
-	var cw := 200.0
-	var gap := 34.0
+	var cw := 176.0
+	var ch := 224.0
+	var gap := 26.0
 	var total := n * cw + (n - 1) * gap
 	var x0 := 960.0 - total / 2.0
+	var gy := 268.0
 	for i in n:
 		var cx := x0 + i * (cw + gap)
-		var border := ColorRect.new()
-		border.color = Color(0, 0, 0)
-		border.position = Vector2(cx, 300); border.size = Vector2(cw, cw * 1.3)
-		border.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(border)
-		var inner := ColorRect.new()
-		inner.color = Color(0.1, 0.1, 0.14)
-		inner.position = Vector2(cx + 6, 306); inner.size = Vector2(cw - 12, cw * 1.3 - 12)
-		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(inner)
 		var av := TextureRect.new()
 		var apath := String(roster[i]["avatar"])
 		if ResourceLoader.exists(apath):
 			av.texture = load(apath)
 		av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		av.position = Vector2(cx + 8, 308); av.size = Vector2(cw - 16, cw * 1.3 - 16)
+		av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		av.position = Vector2(cx + 7, gy + 7); av.size = Vector2(cw - 14, ch - 14)
+		av.clip_contents = true
 		av.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(av)
+		cards.append({"x": cx, "y": gy, "w": cw, "h": ch, "av": av})
+	# ---- CAPA FX (cursores + glow, encima de las cartas) ----
+	fx = Control.new()
+	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fx)
+	fx.draw.connect(_draw_fx)
+	# ---- TEXTOS (encima de todo) ----
+	_hdr_big("CHARACTER SELECT", 24, GOLD, 56)
+	_hdr("1 PLAYER CHARACTER", Vector2(34, 30), RED, HORIZONTAL_ALIGNMENT_LEFT, 28)
+	_hdr("2 PLAYER CHARACTER", Vector2(-34, 30), BLU, HORIZONTAL_ALIGNMENT_RIGHT, 28)
+	# nombres grandes abajo (fuente pesada + outline)
+	name_l = _big_name(true)
+	name_r = _big_name(false)
+	# nombres de cada carta
+	for i in cards.size():
 		var nm := Label.new()
+		nm.add_theme_font_override("font", big_font)
+		nm.add_theme_font_size_override("font_size", 22)
+		nm.add_theme_constant_override("outline_size", 6)
+		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 		nm.text = String(roster[i]["name"])
-		nm.add_theme_font_size_override("font_size", 26)
-		nm.position = Vector2(cx, 300 + cw * 1.3 + 6); nm.size = Vector2(cw, 34)
+		nm.position = Vector2(cards[i]["x"], cards[i]["y"] + cards[i]["h"] + 4)
+		nm.size = Vector2(cards[i]["w"], 30)
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(nm)
-		cards.append({"border": border, "av": av, "name": nm, "x": cx})
-	# ---- NOMBRES GRANDES ABAJO ----
-	name_l = _big_name(Vector2(40, 900), Color(0.95, 0.3, 0.28), HORIZONTAL_ALIGNMENT_LEFT)
-	name_r = _big_name(Vector2(-40, 900), Color(0.45, 0.62, 1.0), HORIZONTAL_ALIGNMENT_RIGHT)
-	# ---- DATA ----
-	data_l = _data_label(Vector2(600, 640), HORIZONTAL_ALIGNMENT_LEFT)
-	data_r = _data_label(Vector2(1020, 640), HORIZONTAL_ALIGNMENT_RIGHT)
-	# ---- PROMPT ----
+	# character data
+	data_l = _data_label(Vector2(560, 560))
+	data_r = _data_label(Vector2(1040, 560))
+	# prompt
 	prompt = Label.new()
-	prompt.add_theme_font_size_override("font_size", 30)
-	prompt.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35))
-	prompt.position = Vector2(0, 1030); prompt.size = Vector2(1920, 40)
+	prompt.add_theme_font_override("font", big_font)
+	prompt.add_theme_font_size_override("font_size", 26)
+	prompt.add_theme_constant_override("outline_size", 6)
+	prompt.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	prompt.add_theme_color_override("font_color", GOLD)
+	prompt.position = Vector2(0, 1024); prompt.size = Vector2(1920, 40)
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(prompt)
 	_refresh()
 
+# ---------- construcción de nodos ----------
 func _mk_stand(pos: Vector2, flip: bool) -> TextureRect:
 	var s := TextureRect.new()
 	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	s.flip_h = flip
-	s.position = pos; s.size = Vector2(500, 820)
+	s.position = pos; s.size = Vector2(560, 900)
 	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(s)
 	return s
 
-func _hdr(txt: String, pos: Vector2, col: Color, align: int, size: int) -> Label:
+func _hdr_big(txt: String, y: float, col: Color, size: int) -> void:
 	var l := Label.new()
-	l.text = txt
+	l.add_theme_font_override("font", big_font)
 	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_constant_override("outline_size", 10)
+	l.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
 	l.add_theme_color_override("font_color", col)
-	l.position = Vector2(pos.x, pos.y); l.size = Vector2(1920 - abs(pos.x) if align != HORIZONTAL_ALIGNMENT_CENTER else 1920, 64)
-	if align == HORIZONTAL_ALIGNMENT_CENTER:
-		l.position = Vector2(0, pos.y); l.size = Vector2(1920, 64)
-	l.horizontal_alignment = align
+	l.text = txt
+	l.position = Vector2(0, y); l.size = Vector2(1920, 70)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
-	return l
 
-func _big_name(pos: Vector2, col: Color, align: int) -> Label:
+func _hdr(txt: String, pos: Vector2, col: Color, align: int, size: int) -> void:
 	var l := Label.new()
-	l.add_theme_font_size_override("font_size", 88)
+	l.add_theme_font_override("font", big_font)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_constant_override("outline_size", 6)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	l.add_theme_color_override("font_color", col)
+	l.text = txt
 	if align == HORIZONTAL_ALIGNMENT_LEFT:
-		l.position = Vector2(pos.x, pos.y); l.size = Vector2(560, 110)
+		l.position = Vector2(pos.x, pos.y); l.size = Vector2(700, 40)
 	else:
-		l.position = Vector2(1920 - 560 - 40, pos.y); l.size = Vector2(560, 110)
+		l.position = Vector2(1920 - 700 - 34, pos.y); l.size = Vector2(700, 40)
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
-	return l
 
-func _data_label(pos: Vector2, align: int) -> Label:
+func _big_name(left: bool) -> Label:
 	var l := Label.new()
-	l.add_theme_font_size_override("font_size", 24)
-	l.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
-	l.position = pos; l.size = Vector2(320, 180)
-	l.horizontal_alignment = align
+	l.add_theme_font_override("font", big_font)
+	l.add_theme_font_size_override("font_size", 92)
+	l.add_theme_constant_override("outline_size", 12)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_color_override("font_color", RED if left else BLU)
+	if left:
+		l.position = Vector2(40, 906); l.size = Vector2(600, 120)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	else:
+		l.position = Vector2(1280, 906); l.size = Vector2(600, 120)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
 	return l
 
+func _data_label(pos: Vector2) -> Label:
+	var l := Label.new()
+	l.add_theme_font_override("font", big_font)
+	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_constant_override("outline_size", 5)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_color_override("font_color", Color(0.9, 0.9, 0.94))
+	l.position = pos; l.size = Vector2(320, 200)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(l)
+	return l
+
+# ---------- FONDO (capas con diagonales) ----------
+func _draw() -> void:
+	var w := 1920.0
+	var h := 1080.0
+	# base
+	draw_rect(Rect2(0, 0, w, h), Color(0.06, 0.03, 0.07))
+	# glow radial central (vino)
+	for i in range(9, 0, -1):
+		var r := 115.0 * i
+		draw_circle(Vector2(960, 560), r, Color(0.34, 0.05, 0.13, 0.055))
+	# líneas de acción diagonales FINAS y sutiles (speedlines), no bandas anchas
+	for i in range(-2, 22):
+		var x := i * 96.0
+		draw_line(Vector2(x, 0), Vector2(x - 210, h), Color(0.85, 0.3, 0.3, 0.05), 2.0)
+	# PANEL DIAGONAL izquierdo (P1 rojo) y derecho (P2 azul)
+	var pl_active: float = 1.0 if picking == 0 else 0.55
+	var pr_active: float = 1.0 if picking == 1 else 0.55
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(560, 0), Vector2(470, h), Vector2(0, h)]),
+			Color(0.35, 0.05, 0.08, 0.55 * pl_active + 0.2))
+	draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(1360, 0), Vector2(1450, h), Vector2(w, h)]),
+			Color(0.06, 0.10, 0.36, 0.55 * pr_active + 0.2))
+	# borde interno de cada panel (línea de color)
+	draw_line(Vector2(560, 0), Vector2(470, h), RED, 4.0)
+	draw_line(Vector2(1360, 0), Vector2(1450, h), BLU, 4.0)
+	# BARRA superior e inferior (negras con filo dorado, en diagonal)
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 96), Vector2(0, 78)]), Color(0.03, 0.02, 0.04, 0.92))
+	draw_line(Vector2(0, 78), Vector2(w, 96), GOLD, 3.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 890), Vector2(w, 872), Vector2(w, h), Vector2(0, h)]), Color(0.03, 0.02, 0.04, 0.92))
+	draw_line(Vector2(0, 890), Vector2(w, 872), Color(0.6, 0.1, 0.12), 3.0)
+	# marco de cada carta (bisel oscuro) — el glow/cursor va en la capa fx
+	for c in cards:
+		var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
+		draw_rect(Rect2(x - 3, y - 3, cw + 6, chh + 6), Color(0, 0, 0, 0.85))
+		draw_rect(Rect2(x, y, cw, chh), Color(0.10, 0.10, 0.14))
+
+# ---------- CURSORES + GLOW (capa fx, encima de las cartas) ----------
+func _draw_fx() -> void:
+	var pulse := 0.6 + 0.4 * sin(t * 7.0)
+	_cursor(sel1, RED, "1P", picking == 0, pulse, -1)
+	_cursor(sel2, BLU, "2P", picking == 1, pulse, 1)
+
+func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side: int) -> void:
+	if idx < 0 or idx >= cards.size():
+		return
+	var c: Dictionary = cards[idx]
+	var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
+	var a := 1.0 if active else 0.7
+	var gl := (pulse if active else 0.5)
+	# glow exterior
+	for k in range(4, 0, -1):
+		var e := k * 4.0
+		fx.draw_rect(Rect2(x - e, y - e, cw + e * 2, chh + e * 2), Color(col.r, col.g, col.b, 0.08 * gl * a), false, 3.0)
+	# borde grueso
+	fx.draw_rect(Rect2(x - 4, y - 4, cw + 8, chh + 8), Color(col.r, col.g, col.b, a), false, 5.0)
+	# etiqueta 1P/2P sobre una plaquita
+	var tx := x - 6 if side < 0 else x + cw - 44
+	fx.draw_rect(Rect2(tx, y - 40, 50, 34), Color(col.r * 0.7, col.g * 0.7, col.b * 0.7, a))
+	fx.draw_rect(Rect2(tx, y - 40, 50, 34), Color(0, 0, 0, a), false, 2.0)
+	fx.draw_string(big_font, Vector2(tx + 8, y - 14), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1, 1, 1, a))
+
+# ---------- estado ----------
 func _refresh() -> void:
-	# cartas: cursor 1P (rojo) sobre sel1, 2P (azul) sobre sel2; el activo late
-	for i in cards.size():
-		var col := Color(0.0, 0.0, 0.0)
-		if i == sel1:
-			col = Color(0.95, 0.25, 0.22)
-		if i == sel2:
-			col = Color(0.35, 0.55, 1.0) if i != sel1 else Color(0.7, 0.4, 0.7)  # ambos = morado
-		cards[i]["border"].color = col
-	# retratos de pie + nombres + data
 	var c1: Dictionary = roster[sel1]
 	var c2: Dictionary = roster[sel2]
 	_set_stand(stand_l, c1)
 	_set_stand(stand_r, c2)
+	stand_l.modulate = Color(1, 1, 1, 1.0 if picking == 0 else 0.5)
+	stand_r.modulate = Color(1, 1, 1, 1.0 if picking == 1 else 0.5)
 	name_l.text = String(c1["name"])
 	name_r.text = String(c2["name"])
 	data_l.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c1["arch"], c1["weapon"], c1["power"]]
 	data_r.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c2["arch"], c2["weapon"], c2["power"]]
-	prompt.text = "1P: elige TU personaje   (← →  ·  ENTER confirmar  ·  ESC atrás)" if picking == 0 \
-		else "2P: elige el personaje de la CPU   (← →  ·  ENTER confirmar  ·  ESC atrás)"
+	prompt.text = "1P:  ELIGE TU PERSONAJE   ( ← →   ENTER  ·  ESC )" if picking == 0 \
+		else "2P:  ELIGE EL RIVAL (CPU)   ( ← →   ENTER  ·  ESC )"
+	queue_redraw()
 
 func _set_stand(node: TextureRect, c: Dictionary) -> void:
-	# usa el retrato de pie DEDICADO del char-select; si no existe, cae al pose full-body
 	var path := String(c.get("stand", ""))
 	if not ResourceLoader.exists(path):
 		path = String(c.get("stand_fallback", ""))
-	if ResourceLoader.exists(path):
-		node.texture = load(path)
-	else:
-		node.texture = null
+	node.texture = load(path) if ResourceLoader.exists(path) else null
 
 func _process(delta: float) -> void:
 	t += delta
-	var pulse := 0.65 + 0.35 * sin(t * 7.0)
-	# el cursor ACTIVO late
-	var active := sel1 if picking == 0 else sel2
-	if active < cards.size():
-		cards[active]["border"].modulate.a = pulse
-	# el retrato activo resalta un poco
-	stand_l.modulate = Color(1, 1, 1, 1.0 if picking == 0 else 0.55)
-	stand_r.modulate = Color(1, 1, 1, 1.0 if picking == 1 else 0.55)
+	if fx:
+		fx.queue_redraw()
 
 func _unhandled_input(_e: InputEvent) -> void:
 	var dc := 0
