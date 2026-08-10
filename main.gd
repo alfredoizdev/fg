@@ -1177,11 +1177,16 @@ func _build_favi_frames() -> SpriteFrames:
 	if pose.is_empty():
 		pose = [load("res://imagen-action/favi/avatar/favi-avatar.png")]
 	for anim in dam.get_animation_names():
+		var real := _favi_action_frames(anim)
+		# ko_air (KO aéreo BOCA ABAJO) es exclusivo del arte de DAM. Si Fe no tiene el suyo,
+		# se OMITE (no placeholder de pose): así su KO aéreo cae con "ko" (boca arriba), sus
+		# propios favi-ko, en vez de quedarse "de pie como si nada".
+		if real.is_empty() and anim == "ko_air":
+			continue
 		if not sf.has_animation(anim):
 			sf.add_animation(anim)
 		sf.set_animation_loop(anim, dam.get_animation_loop(anim))
 		sf.set_animation_speed(anim, dam.get_animation_speed(anim) * FAVI_SPD)
-		var real := _favi_action_frames(anim)
 		if real.is_empty():
 			var n: int = maxi(1, dam.get_frame_count(anim))   # placeholder pose, mismo conteo
 			for i in n:
