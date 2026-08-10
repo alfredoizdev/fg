@@ -102,6 +102,7 @@ const SFX_FILES := {
 	"kick_impact": "res://imagen-action/sound-effect/kick-impact.mp3",
 	"hit_down": "res://imagen-action/sound-effect/impact-sword.mp3",
 	"wall_bounce": "res://imagen-action/sound-effect/hard-impact-2.mp3",
+	"kick_effect": "res://imagen-action/impact-effect/kick-effect.mp3",
 }
 var sfx := {}
 # arranque por sonido (medido): salta silencio/aire para que el golpe caiga al instante
@@ -319,14 +320,31 @@ func _on_animation_changed() -> void:
 	var es_impacto := nombre in ["take_hit", "take_hit_low", "hit_fly", "fly_straight"]
 	if es_impacto and impact_sfx_override != "" and sfx.has(impact_sfx_override):
 		nombre = impact_sfx_override
-	_play_sfx_key(nombre)
+	# Fe en ARRIBA+E (air_spin_kick): NO usa el grito de DAM (dam-kick-shout); usa SU voz de
+	# giratoria ("Power Twister" furiosa) + un swoosh, igual que su spin_kick de suelo.
+	if fx_blue and nombre == "air_spin_kick":
+		var ruta := "res://imagen-action/favi/Fe-sound-effect/spin-fe-furiosa.wav"
+		if spin_voz_sfx == null and ResourceLoader.exists(ruta):
+			spin_voz_sfx = load(ruta)
+		if spin_voz_sfx != null:
+			voz_player.stream = spin_voz_sfx
+			voz_player.play()
+		_play_sfx_key("spin_kick")   # swoosh de swing (no la voz de DAM)
+	elif fx_blue and nombre == "air_jab":
+		# Fe ARRIBA+R = PATADA AÉREA DOBLE: DOS kicks. El 1º en sfx_player y el 2º en voz_player
+		# (canal APARTE) ~0.14s después, así se oyen las DOS patadas sin cortarse (doble claro).
+		# NO el "weak-sound-sword" (blade), que no le va a las agujas.
+		_play_sfx_key("kick_effect")
+		get_tree().create_timer(0.14).timeout.connect(_play_kick2, CONNECT_ONE_SHOT)
+	else:
+		_play_sfx_key(nombre)
 	# humo de dash en golpes fuertes (con cooldown para no saturar en el ultra).
 	# sale atras del personaje (extremo trasero), no adelante
 	# ...pero NO durante el ULTRA de Fe (aéreo o en el suelo): sin humo en su combo cinemático
 	var _mb := get_parent()
 	var _en_ultra_fe: bool = fx_blue and _mb != null and bool(_mb.get("ultra_active"))
-	if nombre in SMOKE_MOVES and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
-		_spawn_dash_smoke(0.5, 200.0)
+	if nombre in SMOKE_MOVES and not airborne and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
+		_spawn_dash_smoke(0.5, 200.0)   # NO en el aire: el polvo es de suelo (dash)
 		dash_smoke_cd = 0.28
 
 func _play_sfx_key(k: String) -> void:
@@ -336,6 +354,13 @@ func _play_sfx_key(k: String) -> void:
 		sfx_player.pitch_scale = randf_range(0.94, 1.06)  # variacion natural
 		sfx_player.volume_db = SFX_VOL.get(k, 0.0)
 		sfx_player.play(SFX_START.get(k, 0.0))
+
+# 2ª patada del air_jab DOBLE de Fe: suena en el canal de VOZ (aparte) para no cortar la 1ª
+func _play_kick2() -> void:
+	if sfx.has("kick_effect"):
+		voz_player.stream = sfx["kick_effect"]
+		voz_player.pitch_scale = randf_range(0.94, 1.06)
+		voz_player.play()
 
 # al conectar un golpe, el impacto del rival corta nuestro whoosh
 func duck_swing() -> void:
@@ -378,13 +403,17 @@ func current_attack() -> Dictionary:
 	if sprite.animation == "air_jab" and sprite.is_playing():
 		var afr := int(sprite.frame)
 		if fx_blue:
-			# Favi: PATADA AÉREA DOBLE (2 golpes ligeros)
+			# Favi: PATADA AÉREA DOBLE (2 golpes ligeros). hit_frame en el frame con el PIE
+			# EXTENDIDO (f1 y f2), NO en f0/f3 que están ENCOGIDA. Alcance 460 (que SÍ conecta);
+			# si queda un toque largo se baja de a poco (330 quedó tan corto que no golpeaba).
 			if afr < 2:
-				return {"name": "air_jab", "frame": afr, "hit_frame": 0,
+				return {"name": "air_jab", "frame": afr, "hit_frame": 1,
 					"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
 					"damage": 35, "impact_sfx": "kick_impact"}
+			# la 2ª patada con MÁS alcance: el 1er golpe empuja un poco al rival, así el 2º
+			# igual lo alcanza (si no, solo conectaba una de las dos = "media" doble patada).
 			return {"name": "air_jab_2", "frame": afr, "hit_frame": 2,
-				"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
+				"reach": 560.0 * CHAR_SCALE, "low": false, "strong": false,
 				"damage": 35, "impact_sfx": "kick_impact"}
 		# DAM: JAB AÉREO de UN SOLO golpe (aunque la animación muestre dos jabs)
 		return {"name": "air_jab", "frame": afr, "hit_frame": 1,

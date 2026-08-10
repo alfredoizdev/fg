@@ -3451,7 +3451,9 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		return done
 	# el AIR JAB (arriba R) es AIRE-A-AIRE: SOLO conecta si el rival está EN EL AIRE
 	# (si el rival está en el suelo, pasa de largo aunque el atacante haya saltado)
-	if String(atk["name"]) in ["air_jab", "air_jab_2"] \
+	# el AIR JAB de DAM es AIRE-A-AIRE (solo pega si el rival está EN EL AIRE). El de Fe es
+	# JUMP-IN: pega también al rival EN EL SUELO si está a rango (por eso el not att.fx_blue).
+	if String(atk["name"]) in ["air_jab", "air_jab_2"] and not att.fx_blue \
 			and not (def.airborne and (def.floor_y - def.position.y) > 40.0):
 		return done
 	# los golpes BAJOS raspan el piso: fallan contra un rival en el aire
@@ -3459,7 +3461,10 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 			and (def.floor_y - def.position.y) > 40.0:
 		return done
 	var dx: float = def.position.x - att.position.x
-	if absf(dx) > float(atk["reach"]) + HIT_MARGIN:
+	# el ALCANCE escala con el CUERPO del atacante (Fe/Aye son más chicas que DAM): sin esto
+	# Fe pegaba desde "cuerpo y medio" porque usaba el reach tuneado para DAM. DAM = idéntico.
+	var reach: float = float(atk["reach"]) * (att.base_scale.x / DAM_SCALE)
+	if absf(dx) > reach + HIT_MARGIN:
 		# la giratoria y el dash viajan: si aun no alcanza, sigue intentando cada frame
 		if String(atk["name"]) in ["spin_kick", "air_spin_kick", "ember_dash"]:
 			return ""
