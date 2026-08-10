@@ -1223,8 +1223,8 @@ func _build_favi_frames() -> SpriteFrames:
 		if not sf.has_animation("whirlpool"):
 			sf.add_animation("whirlpool")
 		# HURACÁN: gira MUY RÁPIDO y en LOOP -> muchas vueltas durante el remate (golpea seguido)
-		sf.set_animation_loop("whirlpool", true)
-		sf.set_animation_speed("whirlpool", 34.0)   # 6 frames ~0.18s por vuelta = giro muy veloz
+		sf.set_animation_loop("whirlpool", false)   # control MANUAL de frames en _run_whirlpool
+		sf.set_animation_speed("whirlpool", 12.0)   # (no se usa: los frames se setean a mano)
 		for t in whl:
 			sf.add_frame("whirlpool", t)
 	# PATADA AÉREA DOBLE (salto+R): animación EXCLUSIVA de Fe (no existe en DAM).
@@ -2033,7 +2033,9 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	atacante.position.y = atacante.floor_y
 	atacante.set_facing(dir)
 	_fe_cast_fx(atacante, true)                    # borde AZUL eléctrico + partículas (solo Fe)
-	atacante.sprite.play("whirlpool")
+	atacante.sprite.animation = "whirlpool"
+	atacante.sprite.stop()
+	atacante.sprite.frame = 0                      # f1: pose de arranque (se ve durante el freeze)
 	if atacante.has_method("_spawn_jump_dust"):
 		atacante._spawn_jump_dust(0.55)   # un toque de polvo al arrancar (sutil, no tapa)
 	# GRITA en su player de VOZ propio (no lo corta el sonido de impacto)
@@ -2054,6 +2056,11 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 		victima.position.y = victima.floor_y
 		victima.set_facing(-dir)
 	_shake(20.0, 0.3)
+	# ARRANQUE del giro: acelera del reposo (f1) al tornado completo (f4)
+	for fr in range(1, atacante.sprite.sprite_frames.get_frame_count("whirlpool")):
+		atacante.sprite.frame = fr
+		await get_tree().create_timer(0.045).timeout
+	var spin_clock := 0.0   # reloj del giro (cicla los frames de tornado)
 	# MULTI-HIT del remolino (HURACÁN): golpea repetido y MUY RÁPIDO SIN lanzarlo; ~40% de su vida
 	var n0: int = combo_n[idx]
 	var HITS := 12
@@ -2068,6 +2075,9 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	var fin := float(HITS) * PASO + 0.05
 	while t < fin:
 		var dt := get_process_delta_time()
+		# GIRA: cicla los frames de TORNADO (f2,f3,f4) rápido — nunca vuelve a la pose f1
+		spin_clock += dt
+		atacante.sprite.frame = 1 + (int(spin_clock / 0.045) % 3)
 		if alcanza:
 			victima.position.x = clampf(atacante.position.x + float(dir) * 190.0, 120.0, 1800.0)
 			victima.position.y = victima.floor_y
@@ -2104,8 +2114,14 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 			flash_rect.color = Color(0.3, 0.55, 1.2, 0.35)
 		t += dt
 		await get_tree().process_frame
+	# RECUPERACIÓN: desacelera saliendo del giro reproduciendo los frames AL REVÉS
+	# (f4 -> f1): da la sensación de que el tornado se FRENA y Favi vuelve a la pose.
+	var nfr := atacante.sprite.sprite_frames.get_frame_count("whirlpool")
+	for fr in range(nfr - 1, -1, -1):
+		atacante.sprite.frame = fr
+		await get_tree().create_timer(0.06).timeout
 	_fe_cast_fx(atacante, false)                         # apaga el borde azul
-	atacante.sprite.play("pose")                         # frena el giro (la anim hacía loop)
+	atacante.sprite.play("pose")
 	# REMATE: lo derriba al piso (solo si el remolino lo atrapó)
 	if alcanza:
 		victima.receive_hit(false, false, dir, "", true, 1.0)

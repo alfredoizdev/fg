@@ -199,9 +199,10 @@ const jobs = {
   // weak_punch (jab R): brazo extendido como punch -> método ÁREA (la cabeza dibujada
   // grande engaña al método cabeza, igual que en punch/kick).
   weak_punch:  ['weak-punch-sheet.png',1,4,4,'weak_punch',0.04,0.06,-1],
-  // whirlpool (finisher ↓←E): giro mortal EN EL LUGAR con VÓRTICE de agua creciendo. 6 frames
-  // (2 filas de 3). Rota + rings de agua anchos -> escala por ALTURA (como spin_kick) + keepExtra.
-  whirlpool:   ['Whirlpool-move.png',2,3,6,'whirlpool',0.03,0.03,1.54,true],
+  // whirlpool (finisher ↓←E): giro mortal EN EL LUGAR con VÓRTICE de agua creciendo. 4 frames
+  // (2 filas de 2): f1 pose (arranca), f2-f3 girando, f4 tornado completo. Rota + rings de agua
+  // anchos -> escala por ALTURA (como spin_kick) + keepExtra (el vórtice azul se sale de la celda).
+  whirlpool:   ['Whirlpool-move.png',2,2,4,'whirlpool',0.03,0.03,1.54,true],
   // spin_kick (E suelo): PEONZA de agujas, gira 360° con pies juntos y brazos abiertos.
   // Rota (cabeza de frente/perfil varía) y brazos MUY abiertos (área se infla) -> escala por
   // ALTURA de cuerpo a ojo (pies en el piso). keepExtra por si el brillo azul se separa.
