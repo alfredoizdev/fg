@@ -228,6 +228,9 @@ const jobs = {
   // vuelo/piso: la cabeza no es fiable (arqueada/tirada), escala fija a ojo (matchea walk)
   hit_fly:     ['strong-fly-sheet.png',1,4,4,'hit_fly',0.1,0.3,1.139],
   hit_down:    ['strong-fly-sheet-2.png',1,5,5,'hit_down',0.1,0.3,1.47],
+  // wall_splat (estrellón contra la pared → cae de bruces): 6 frames en 2 filas de 3.
+  // NOQUEADA muñeca de trapo; escala por ALTURA a ojo (como hit_fly, cuerpo casi horizontal).
+  wall_splat:  ['wall-bounce-sheet.png',2,3,6,'wall_splat',0.1,0.3,1.14,true],
   // block: hoja con 2 poses casi iguales -> uso solo la 1ª (el juego usa 1 frame).
   // ÁREA porque las agujas cruzadas suben por encima de la cabeza (engañan al método cabeza).
   block:       ['block-sheet.png',1,2,1,'block',0.05,0.2,-1],

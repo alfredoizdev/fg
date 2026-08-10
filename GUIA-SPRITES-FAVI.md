@@ -259,6 +259,42 @@ sueltos por masa corporal para que encajen).
     anilla). Deja ESPACIO claro entre frame y frame (no que se pisen las poses).
     → alimenta la animación `hit_down`.
 
+13c. **`wall-bounce-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3**
+    (fila arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE
+    puro #00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:**
+    pared, piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la
+    niña flotando sobre el verde (la pared y el golpe los pone el motor). Los 6
+    frames al **MISMO tamaño de personaje** (misma escala que las demás hojas).
+
+    ESTADO: Favi está **NOQUEADA en el aire**, cuerpo de **muñeca de trapo** sin
+    control, ojos cerrados/apretados, cara floja, pelo y gabardina al viento. NADA
+    de pose de fuerza ni de ataque en ningún frame.
+
+    AGUJAS (regla fija en los 6 frames): las **dos agujas SIEMPRE en las manos**
+    (sujetas por la anilla, dedos cerrados en el aro), **flojas y colgando/arrastrando**
+    hacia atrás por la inercia. PROHIBIDO que floten sueltas separadas de las manos,
+    que las agarre por la hoja, o cualquier pose de ataque.
+
+    Es UN SOLO movimiento continuo: **vuela horizontal de espaldas → choca y se
+    comprime contra la pared invisible → se despega cayendo de BRUCES (boca abajo).**
+    Cada frame CONTINÚA el anterior. Piensa el eje del cuerpo (cabeza→pies):
+    - **f1 — VUELO:** cuerpo casi HORIZONTAL en el aire, la ESPALDA por delante
+      (va de espaldas hacia la pared), cabeza colgando hacia atrás, brazos y
+      piernas arrastrando, gabardina ondeando fuerte hacia atrás.
+    - **f2 — POR CHOCAR:** casi vertical, la espalda/hombros llegando a la pared
+      invisible, el cuerpo empezando a comprimirse, rodillas subiendo por el impacto.
+    - **f3 — IMPACTO (aplastada):** cuerpo COMPRIMIDO contra la pared (vertical,
+      apretado), cabeza hundida entre los hombros, todo el cuerpo en su punto más
+      compacto — el momento del golpe.
+    - **f4 — REBOTE:** se despega de la pared, todavía casi vertical pero la cabeza
+      cae hacia ADELANTE-abajo, el cuerpo empieza a volcarse boca abajo.
+    - **f5 — VOLCANDO:** cuerpo en diagonal cayendo de bruces, cabeza y torso
+      abajo-adelante, piernas subiendo atrás, brazos colgando (muñeca de trapo).
+    - **f6 — CAE DE BRUCES:** casi HORIZONTAL otra vez pero **boca abajo**, todo el
+      cuerpo a punto de tocar el piso de frente, agujas colgando de las manos.
+    → alimenta la animación `wall_splat` (el estrellón contra la pared). Tras esto
+    el motor encadena `hit_down` (13b) para que se levante.
+
 ### Defensa
 
 14. **`block-sheet.png`** — 2 frame. Bloqueo de pie: cubierta con las dos
