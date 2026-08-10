@@ -226,6 +226,8 @@ var buffer_action := ""      # boton guardado esperando ventana de cancel
 var buffer_t := 0.0
 var breaker_ready := true    # combo breaker disponible (uno por ronda)
 var breaker_inv_t := 0.0     # invencibilidad tras romper
+var parry_t := 0.0           # ventana del PARRY (Q+W): si te pegan mientras >0 → COUNTER
+const PARRY_WINDOW := 0.5    # medio segundo de ventana de parry
 
 # destello de impacto: chispas radiales al recibir un golpe
 const BURST_TIME := 0.22
@@ -519,6 +521,32 @@ func do_breaker() -> bool:
 		sprite.play("pose")
 	# sin destello de bloqueo en el que rompe: solo el mortal con sombras.
 	# el impacto (chispas + sonido) sale sobre el atacante via on_breaker.
+	_play_sfx_key("block")
+	return true
+
+# PARRY (↓+E): entra al CONTRAATAQUE. Acá solo pone al peleador en pose de counter e
+# invulnerable; la secuencia (desvío + 3 golpes + "COUNTER" + pantalla oscura + borde)
+# la maneja main.on_parry.
+func do_parry() -> bool:
+	if koed:
+		return false
+	hit_flying = false
+	airborne = false
+	crouching = false
+	punch_followup = false
+	buffer_t = 0.0
+	vel_x = 0.0
+	vel_y = 0.0
+	position.y = floor_y
+	parry_t = PARRY_WINDOW                                  # ventana ~0.5s: si te pegan acá → COUNTER
+	breaker_fx_t = maxf(breaker_fx_t, PARRY_WINDOW + 0.15)  # borde/aura AZUL (Fe) / ROJO (DAM)
+	sprite.speed_scale = 1.0
+	if sprite.sprite_frames.has_animation("counter"):
+		sprite.play("counter")
+		sprite.frame = 0            # POSE de desvío = PRIMER frame del counter, congelado
+		sprite.stop()
+	else:
+		sprite.play("block")
 	_play_sfx_key("block")
 	return true
 
@@ -1185,6 +1213,23 @@ func _physics_process(delta: float) -> void:
 	ultra_r_t = maxf(0.0, ultra_r_t - delta)
 	dash_smoke_cd = maxf(0.0, dash_smoke_cd - delta)
 
+	# PARRY (Q+W): CONGELADO en la pose de desvío durante la ventana (~0.5s), con el borde/
+	# aura del color del personaje. Si te pegan acá, main dispara el counter (y pone parry_t=0).
+	# Si expira sin golpe, vuelve a la guardia (la barra ya se gastó al activarlo).
+	if parry_t > 0.0 and not koed:
+		parry_t = maxf(0.0, parry_t - delta)
+		breaker_fx_t = maxf(breaker_fx_t, 0.15)   # sombras del color del personaje
+		# GLOW PULSANTE (azul Fe / rojo DAM) para INDICAR que está en la postura de parry
+		var pg := 0.55 + 0.45 * absf(sin((PARRY_WINDOW - parry_t) * 26.0))
+		var pcol: Color = Color(0.5, 0.85, 1.9) if fx_blue else Color(1.9, 0.45, 0.35)
+		sprite.modulate = Color(1, 1, 1, 1).lerp(pcol, pg)
+		if String(sprite.animation) == "counter":
+			sprite.frame = 0                      # sostiene la pose de desvío (1er frame)
+		if parry_t <= 0.0:
+			sprite.modulate = Color(1, 1, 1, 1)   # sale de la postura: color normal
+			sprite.play("pose")
+		return   # quieto durante la ventana de parry
+
 	# noqueado: si está EN EL AIRE, deja que CAIGA y aterrice tendido (el aterrizaje lo
 	# pone en "ko"); ya en el SUELO queda tendido y no responde a nada.
 	if koed and not airborne and not hit_flying:
@@ -1400,7 +1445,7 @@ func _ai_process(delta: float) -> void:
 	var dist := absf(ai_target.position.x - position.x)
 	ai_timer -= delta
 	if ai_timer <= 0.0:
-		ai_timer = randf_range(0.4, 0.9)
+		ai_timer = randf_range(0.28, 0.6)   # decide más seguido (más agresiva)
 		var r := randf()
 		if ai_break_drill:
 			# DRILL de BREAK: persigue y encadena combos casi siempre (para practicar romper)
@@ -1409,25 +1454,25 @@ func _ai_process(delta: float) -> void:
 			else:
 				ai_action = "combo_start" if r < 0.8 else "punch"
 		elif dist > 620.0 * CHAR_SCALE:
-			ai_action = "advance" if r < 0.75 else "idle"
+			ai_action = "advance" if r < 0.92 else "idle"   # persigue casi siempre
 		elif dist > 430.0 * CHAR_SCALE:
-			if r < 0.35: ai_action = "advance"
-			elif r < 0.5: ai_action = "kick"
-			elif r < 0.62: ai_action = "spin_kick"
-			elif r < 0.72: ai_action = "crouch_kick"
-			elif r < 0.85: ai_action = "retreat"
+			if r < 0.50: ai_action = "advance"               # cierra distancia agresivo
+			elif r < 0.66: ai_action = "kick"
+			elif r < 0.78: ai_action = "spin_kick"
+			elif r < 0.90: ai_action = "crouch_kick"
+			elif r < 0.96: ai_action = "retreat"             # poco retreat/idle
 			else: ai_action = "idle"
 		else:
-			if r < 0.22: ai_action = "combo_start"
-			elif r < 0.38: ai_action = "weak_punch"
-			elif r < 0.52: ai_action = "punch"
-			elif r < 0.64: ai_action = "kick"
-			elif r < 0.74: ai_action = "crouch_punch"
-			elif r < 0.86: ai_action = "retreat"
+			if r < 0.42: ai_action = "combo_start"           # MUCHOS combos de cerca
+			elif r < 0.57: ai_action = "weak_punch"
+			elif r < 0.71: ai_action = "punch"
+			elif r < 0.83: ai_action = "kick"
+			elif r < 0.93: ai_action = "crouch_punch"
+			elif r < 0.97: ai_action = "retreat"             # casi nunca retrocede/espera
 			else: ai_action = "idle"
 	match ai_action:
 		"advance":
-			position.x += facing * WALK_SPEED * 0.75 * spd * delta
+			position.x += facing * WALK_SPEED * 0.95 * spd * delta   # persigue más rápido
 			if sprite.animation != "walk" or walk_dir != 1:
 				sprite.play("walk")
 			walk_dir = 1
@@ -1439,16 +1484,16 @@ func _ai_process(delta: float) -> void:
 		"punch", "kick", "spin_kick", "crouch_punch", "crouch_kick":
 			walk_dir = 0
 			if ai_action == "punch":
-				punch_followup = randf() < 0.35  # la IA tambien encadena el doble
+				punch_followup = randf() < 0.55  # encadena el doble más seguido
 			sprite.play(ai_action)
 			ai_action = "idle"
-			ai_timer = randf_range(0.5, 1.0)
+			ai_timer = randf_range(0.35, 0.7)   # vuelve a atacar antes
 		"combo_start":
 			walk_dir = 0
 			ai_combo = AI_COMBOS[randi() % AI_COMBOS.size()].duplicate()
 			sprite.play(ai_combo.pop_front())
 			ai_action = "idle"
-			ai_timer = randf_range(0.9, 1.5)
+			ai_timer = randf_range(0.6, 1.0)   # presiona con el próximo combo antes
 		_:
 			walk_dir = 0
 			if sprite.animation == "walk":
@@ -1481,22 +1526,46 @@ func _unhandled_input(event: InputEvent) -> void:
 		if down_tap_t > 0.0:
 			double_down_t = 0.35
 		down_tap_t = 0.4
-	# combo breaker (↑+E, o S de respaldo): rompe el castigo, una vez por ronda
-	var quiere_break := event.is_action_pressed("combo_break") \
-		or (event.is_action_pressed("spin_kick") and up_tap_t > 0.0)
-	if quiere_break and not koed \
-			and (hit_flying or (String(sprite.animation) in ["take_hit", "take_hit_low"] and sprite.is_playing())):
-		var mb := get_parent()
-		if mb and mb.has_method("meter_can_break") and not mb.meter_can_break(self):
-			return   # sin ½ barra no se puede romper
-		if do_breaker():
-			if mb and mb.has_method("on_breaker"):
-				mb.on_breaker(self)
-		return
+	# DEFENSA mientras te COMBEAN (te están pegando): PARRY (estándar) o COMBO BREAK (por personaje)
+	var _combeado := not koed and (hit_flying \
+		or (String(sprite.animation) in ["take_hit", "take_hit_low"] and sprite.is_playing()))
+	if _combeado:
+		var _e := event.is_action_pressed("spin_kick")
+		var _fwd := int(signf(Input.get_axis("ui_left", "ui_right")))
+		var _down := Input.is_action_pressed("ui_down") or down_recent_t > 0.0
+		var _mbp := get_parent()
+		# COMBO BREAK (POR PERSONAJE): Fe = ↓→+E (spin) · DAM = ↑+E (o S de respaldo)
+		var quiere_break := false
+		if fx_blue:
+			quiere_break = _e and _down and _fwd == facing          # Fe: ↓→+E
+		else:
+			quiere_break = event.is_action_pressed("combo_break") \
+				or (_e and up_tap_t > 0.0)                          # DAM: ↑+E / S
+		if quiere_break:
+			# LÍMITE: solo se puede romper en los primeros 4 golpes del combo
+			if _mbp and _mbp.has_method("combo_hits_on") and _mbp.combo_hits_on(self) > 4:
+				return
+			if _mbp and _mbp.has_method("meter_can_break") and not _mbp.meter_can_break(self):
+				return
+			if do_breaker():
+				if _mbp and _mbp.has_method("on_breaker"):
+					_mbp.on_breaker(self)
+			return
 	if event.is_action_pressed("combo_break"):
 		return
 	if koed or is_downed():
 		return
+	# PARRY (Q+W a la VEZ, estándar todos): entra en POSE de counter con borde ~0.5s. Si te
+	# pegan en esa ventana → contraataque (3 golpes). Gasta 1 barra. Solo parado en el piso.
+	if not airborne and parry_t <= 0.0 \
+			and (event.is_action_pressed("attack") or event.is_action_pressed("kick")) \
+			and Input.is_action_pressed("attack") and Input.is_action_pressed("kick"):
+		var _mbq := get_parent()
+		if _mbq and _mbq.has_method("meter_can_parry") and _mbq.meter_can_parry(self):
+			if do_parry():
+				if _mbq.has_method("on_parry_start"):
+					_mbq.on_parry_start(self)
+				return
 	# teclas de prueba de dano sobre uno mismo (E/R/T); el golpe llega de frente
 	if event.is_action_pressed("take_hit") and not airborne:
 		receive_hit(false, false, -facing)

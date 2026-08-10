@@ -331,6 +331,24 @@ sueltos por masa corporal para que encajen).
     torso vertical), cubriéndose con la katana en posición HORIZONTAL por
     encima de la cabeza, como un techo. La hoja NO apunta al cielo.
 
+### Counter / Parry (mecánica defensiva NUEVA — gasta 1 barra)
+
+**`counter-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3** (arriba f1 f2
+f3, abajo f4 f5 f6, izq→der), con separación entre filas y frames. Es el
+CONTRAATAQUE: DAM **desvía** el golpe del rival con la katana y responde con una
+**ráfaga de 3 cortes rápidos**. Perfil a la DERECHA, cuerpo completo, MISMO tamaño en
+los 6 frames. SIN fuego/llamas/partículas (los pone el motor); solo el filo ROJO de
+la katana.
+- **f1 — DESVÍO (parry):** katana levantada desviando un golpe entrante, cuerpo
+  braced hacia el rival, peso adelantado.
+- **f2 — 1er corte:** tajo rápido al frente.
+- **f3 — 2do corte:** corte de retorno (cruce).
+- **f4 — 3er corte (el fuerte):** katana lanzada al frente, cuerpo adelantado — el
+  golpe más potente.
+- **f5 — follow-through:** la extensión tras el corte, filo ROJO brillante.
+- **f6 — recuperación:** vuelve a la guardia.
+→ alimenta la animación `counter` (el parry-contraataque).
+
 ### Final de ronda (¡nuevas — completan el juego!)
 
 16. **`ko-sheet.png`** — **5 frames. DERROTA: UNA sola caída HACIA ATRÁS, continua y

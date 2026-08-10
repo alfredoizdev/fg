@@ -863,6 +863,106 @@ func on_breaker(quien: Node2D) -> void:
 	get_tree().create_timer(0.55, true, false, true).timeout.connect(
 		func() -> void: Engine.time_scale = 1.0)
 
+# ---- PARRY / COUNTER (↓+E, estándar): desvía el combo y contraataca. Gasta 1 barra. ----
+func meter_can_parry(quien: Node2D) -> bool:
+	if break_practice:
+		return true
+	var i := 0 if quien == player else 1
+	return meter[i] >= 1.0
+
+# cuántos golpes lleva el combo que le hacen a 'victima' (para el límite ≤4 del combo break)
+func combo_hits_on(victima: Node2D) -> int:
+	var atk_idx := 1 if victima == player else 0
+	return combo_n[atk_idx]
+
+# ACTIVACIÓN del PARRY (Q+W): gasta 1 barra AL ACTIVAR (riesgo: si no te pegan en la
+# ventana, la perdiste). El borde/aura lo pone el fighter (breaker_fx_t). El counter en sí
+# lo dispara on_parry cuando te pegan dentro de la ventana (ver _process_attacker).
+func on_parry_start(quien: Node2D) -> void:
+	var i := 0 if quien == player else 1
+	if not break_practice:
+		meter[i] = maxf(0.0, meter[i] - 1.0)
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = (Color(0.55, 0.85, 1.0, 0.30) if quien.fx_blue else Color(1.0, 0.6, 0.4, 0.30))
+
+func on_parry(quien: Node2D, atacante: Node2D) -> void:
+	quien.parry_t = 0.0                                   # consume la ventana
+	quien.sprite.modulate = Color(1, 1, 1, 1)            # limpia el glow de la postura
+	var p_idx := 0 if quien == player else 1
+	var a_idx := 1 if quien == player else 0
+	var dir := 1 if atacante.position.x >= quien.position.x else -1
+	quien.set_facing(dir)
+	# corta el combo del atacante
+	combo_n[a_idx] = 0
+	combo_t[a_idx] = 99.0
+	if a_idx < combo_ui.size():
+		combo_ui[a_idx].visible = false
+	# bloquea el control durante el counter
+	player.input_enabled = false
+	dummy.ai_enabled = false
+	# --- CINE del COUNTER (como el ULTRA): todo va DETRÁS de los peleadores (z=-1) para que
+	# los personajes Y el texto SOBRESALGAN por encima del OSCURO. Nada de velo amarillo encima. ---
+	break_side = 1 if quien.position.x >= 960.0 else -1
+	_show_announce("COUNTER", Color(1.0, 0.9, 0.25), 1.6, break_side)
+	_play_voz("counter")                                 # voz épica (efecto tipo apocalypse) al ejecutar el counter
+	var line_col: Color = Color(0.55, 0.85, 1.7) if quien.fx_blue else Color(1.7, 0.42, 0.28)  # líneas AZUL (Fe) / ROJO (DAM)
+	quien.breaker_fx_t = 1.8
+	_shake(18.0, 0.3)
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(1.0, 1.0, 1.0, 0.55)         # SOLO un destello blanco BREVE del desvío (se desvanece)
+	# velo OSCURO (ko_red, z=-1 DETRÁS) + LÍNEAS del ultra (ko_lines, z=-1 DETRÁS)
+	ko_red.color = Color(0.03, 0.03, 0.07, 0.62)
+	ko_lines.visible = true
+	# freeze corto del desvío (congelado dramático)
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(0.18, true, false, true).timeout
+	Engine.time_scale = 1.0
+	# el parrier reproduce su COUNTER; 3 golpes automáticos al atacante
+	if quien.sprite.sprite_frames.has_animation("counter"):
+		quien.sprite.play("counter")
+	var crit := int(hp_max[1 - p_idx] * 0.30)            # el counter pega ~30% de la vida
+	var dealt := 0
+	var t0 := Time.get_ticks_msec()
+	for h in 3:
+		# LÍNEAS del ultra ciclando + OSCURO (todo DETRÁS de los players)
+		var kt := float(Time.get_ticks_msec() - t0) / 1000.0
+		if ultra_panels.size() > 0:
+			ko_lines.texture = ultra_panels[int(kt * 16.0) % ultra_panels.size()]
+		ko_lines.modulate = Color(line_col.r, line_col.g, line_col.b, 1.0)
+		ko_red.color.a = 0.62
+		await get_tree().create_timer(0.10).timeout
+		if atacante.koed:
+			break
+		var last: bool = h == 2
+		atacante.set_facing(-dir)
+		atacante.receive_hit(false, false, dir, "kick_impact")  # NO lanza: recoil corto, queda CERCA
+		var d: int = (crit - dealt) if last else int(crit / 3)
+		dealt += d
+		if a_idx == 0:
+			dummy_hp = maxi(0, dummy_hp - d)
+		else:
+			player_hp = maxi(0, player_hp - d)
+		atacante._burst(0.95, false, 1, quien.fx_blue)
+		_shake(12.0, 0.1)
+	# NO lo ALEJA: queda cerca en take_hit para que el que hizo el counter SIGA COMBEANDO.
+	# El counter cuenta como 3 golpes de SU combo y deja la ventana abierta para encadenar.
+	combo_n[p_idx] = 3
+	combo_t[p_idx] = 0.0
+	combo_lvl[p_idx] = 0
+	# se desvanece el OSCURO + las LÍNEAS
+	var fs := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - fs < 400:
+		var k := 1.0 - float(Time.get_ticks_msec() - fs) / 400.0
+		ko_red.color.a = 0.62 * k
+		ko_lines.modulate.a = k
+		await get_tree().process_frame
+	ko_red.color = Color(1.3, 0.06, 0.05, 0.0)
+	ko_lines.visible = false
+	if state == "fight":
+		quien.sprite.play("pose")
+		player.input_enabled = true
+		dummy.ai_enabled = dummy_ai_mode
+
 func _hide_announce_soon() -> void:
 	await get_tree().create_timer(0.6).timeout
 	if state == "fight" or state == "demo":
@@ -1250,6 +1350,15 @@ func _build_favi_frames() -> SpriteFrames:
 		sf.set_animation_speed("neutral_spin", 18.0)
 		for t in nsp:
 			sf.add_frame("neutral_spin", t)
+	# COUNTER (parry-contraataque, ↓+E): desvío (f1) + 3 estocadas (f2-f5) + recuperación (f6)
+	var cnt := _favi_action_frames("counter")
+	if not cnt.is_empty():
+		if not sf.has_animation("counter"):
+			sf.add_animation("counter")
+		sf.set_animation_loop("counter", false)
+		sf.set_animation_speed("counter", 16.0)
+		for t in cnt:
+			sf.add_frame("counter", t)
 	# el mortal aéreo (salto+E) va MÁS RÁPIDO que el resto de las animaciones de Fe
 	if sf.has_animation("air_spin_kick"):
 		sf.set_animation_speed("air_spin_kick", sf.get_animation_speed("air_spin_kick") * 1.5)
@@ -1334,6 +1443,15 @@ func _build_dam_frames() -> SpriteFrames:
 			sf.set_animation_speed("neutral_spin", 13.0)   # DAM: un poco más lento que Fe
 			for t in ns:
 				sf.add_frame("neutral_spin", t)
+	# COUNTER (parry-contraataque, ↓+E): desvío + 3 cortes
+	if not sf.has_animation("counter"):
+		var cf := _dam_action_frames("counter")
+		if not cf.is_empty():
+			sf.add_animation("counter")
+			sf.set_animation_loop("counter", false)
+			sf.set_animation_speed("counter", 16.0)
+			for t in cf:
+				sf.add_frame("counter", t)
 	return sf
 
 func _apply_char(f: Node2D, id: String) -> void:
@@ -1530,6 +1648,7 @@ func _refresh_hud_chars() -> void:
 
 func _start_round() -> void:
 	state = "intro"
+	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
 	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)
@@ -3479,6 +3598,12 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	if not alcanza:
 		if String(atk["name"]) in ["spin_kick", "air_spin_kick", "ember_dash"]:
 			return ""
+		return done
+	# PARRY: si el defensor está en la VENTANA de parry (Q+W) y el golpe iba a conectar,
+	# lo DESVÍA y CONTRAATACA (on_parry) en vez de recibir daño.
+	if def.parry_t > 0.0 and not def.koed:
+		att.duck_swing()          # corta el whoosh del atacante
+		on_parry(def, att)
 		return done
 	var push := 1 if dx >= 0.0 else -1
 	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)))

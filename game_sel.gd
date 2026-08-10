@@ -30,3 +30,28 @@ func data(id: String) -> Dictionary:
 		if c["id"] == id:
 			return c
 	return ROSTER[0]
+
+# --- Música de los MENÚS (título + char-select). Va en el AUTOLOAD para que PERSISTA
+# entre las dos escenas (no se reinicia al pasar de una a otra) y hace LOOP. La pelea
+# la corta con stop_menu_music(). ---
+var _music: AudioStreamPlayer = null
+const MENU_MUSIC := "res://imagen-action/sound-effect/main-song-screen.mp3"
+
+func play_menu_music() -> void:
+	if _music != null and _music.playing:
+		return   # ya está sonando: NO reiniciar al cambiar de título a char-select
+	if _music == null:
+		_music = AudioStreamPlayer.new()
+		if ResourceLoader.exists(MENU_MUSIC):
+			var s := load(MENU_MUSIC)
+			if s is AudioStreamMP3 or s is AudioStreamOggVorbis:
+				s.loop = true   # LOOP seamless (se repite sin corte)
+			_music.stream = s
+		_music.finished.connect(func(): _music.play())   # respaldo de loop
+		add_child(_music)
+	if _music.stream != null:
+		_music.play()
+
+func stop_menu_music() -> void:
+	if _music != null:
+		_music.stop()

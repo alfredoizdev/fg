@@ -113,7 +113,7 @@ def get_crops(rgba, rows, cols):
 
 def scale_path(char): return os.path.join("imagen-action", char, "scale.txt")
 
-def process(sheet, char, action, rows, cols, airborne):
+def process(sheet, char, action, rows, cols, airborne, scale_mult=1.0):
     rgba = key_green(sheet)
     crops = get_crops(rgba, rows, cols)
     n = len(crops)
@@ -129,6 +129,12 @@ def process(sheet, char, action, rows, cols, airborne):
     else:
         scale = float(open(sp).read().strip())
         print(f"  escala del personaje = {scale:.4f} [de {sp}]")
+
+    # multiplicador manual (NO se guarda en scale.txt): para agrandar/achicar una acción
+    # puntual cuya hoja la IA dibujó a otro tamaño (ej. counter salió chico -> --scale-mult 1.2)
+    if scale_mult != 1.0:
+        scale *= scale_mult
+        print(f"  x scale-mult {scale_mult} -> escala final {scale:.4f}")
 
     outdir = os.path.join("imagen-action", char, action)
     os.makedirs(outdir, exist_ok=True)
@@ -172,6 +178,8 @@ if __name__ == "__main__":
     ap.add_argument("--cols", type=int, default=None)
     ap.add_argument("--airborne", action="store_true",
                     help="acción aérea: centra en vertical en vez de anclar por pies")
+    ap.add_argument("--scale-mult", type=float, default=1.0,
+                    help="multiplica la escala (ej. 1.2 para agrandar un counter que salió chico)")
     args = ap.parse_args()
     print(f"Procesando {args.sheet}  ({args.char}/{args.action})")
-    process(args.sheet, args.char, args.action, args.rows, args.cols, args.airborne)
+    process(args.sheet, args.char, args.action, args.rows, args.cols, args.airborne, args.scale_mult)

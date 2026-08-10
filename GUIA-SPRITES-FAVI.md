@@ -348,6 +348,26 @@ sueltos por masa corporal para que encajen).
     → alimenta la animación `wall_splat` (el estrellón contra la pared). Tras esto
     el motor encadena `hit_down` (13b) para que se levante.
 
+### Counter / Parry (mecánica defensiva NUEVA — gasta 1 barra)
+
+18. **`counter-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3** (arriba
+    f1 f2 f3, abajo f4 f5 f6, izq→der), con separación entre filas y frames. Es el
+    CONTRAATAQUE: Favi **desvía** el golpe del rival con sus agujas y responde con
+    una **ráfaga rápida de 3 estocadas**. Perfil a la DERECHA, cuerpo completo (pies
+    enteros), MISMO tamaño en los 6 frames, proporciones esbeltas. Puntas de las
+    agujas con brillo AZUL tenue.
+    - **f1 — DESVÍO (parry):** postura firme desviando un golpe entrante, las dos
+      agujas CRUZADAS/levantadas al frente (guardia de tijera), cuerpo braced hacia
+      el rival, peso adelantado.
+    - **f2 — 1ª estocada:** pincha rápido al frente con UNA aguja (brazo extendido).
+    - **f3 — 2ª estocada:** pincha con la OTRA aguja (cruce), la primera se recoge.
+    - **f4 — 3ª estocada (la fuerte):** las DOS agujas clavando al frente juntas,
+      cuerpo lanzado adelante — el golpe más potente.
+    - **f5 — follow-through:** la extensión tras el 3er golpe, agujas al frente,
+      brillo azul en las puntas.
+    - **f6 — recuperación:** vuelve a la guardia baja.
+    → alimenta la animación `counter` (el parry-contraataque).
+
 ### Defensa
 
 14. **`block-sheet.png`** — 2 frame. Bloqueo de pie: cubierta con las dos

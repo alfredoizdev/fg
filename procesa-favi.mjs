@@ -211,6 +211,11 @@ const jobs = {
   // weak_punch (jab R): brazo extendido como punch -> método ÁREA (la cabeza dibujada
   // grande engaña al método cabeza, igual que en punch/kick).
   weak_punch:  ['weak-punch-sheet.png',1,4,4,'weak_punch',0.04,0.06,-1],
+  // counter (parry-contraataque): 6 frames en 2 filas de 3. f1 desvío (agujas cruzadas),
+  // f2-f5 las 3 estocadas (agujas MUY extendidas -> marginR grande), f6 recuperación. La IA
+  // dibujó la cabeza grande (método cabeza la achicaba ~9%), así que override 1.20 para que
+  // quede del tamaño de su POSE/presencia normal, no chiquita.
+  counter:     ['counter-sheet.png',2,3,6,'counter',0.05,0.35,1.20],
   // whirlpool (finisher ↓←E): giro mortal EN EL LUGAR con VÓRTICE de agua creciendo. 4 frames
   // (2 filas de 2): f1 pose (arranca), f2-f3 girando, f4 tornado completo. Rota + rings de agua
   // anchos -> escala por ALTURA (como spin_kick) + keepExtra (el vórtice azul se sale de la celda).

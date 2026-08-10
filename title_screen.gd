@@ -22,6 +22,7 @@ const OPT_DY := 96.0
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	Sel.play_menu_music()   # canción del menú (loop, persiste al pasar al char-select)
 	big_font = SystemFont.new()
 	big_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
 	big_font.font_weight = 900

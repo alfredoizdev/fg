@@ -46,6 +46,12 @@ const GOLD := Color(0.98, 0.84, 0.32)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	Sel.play_menu_music()   # sigue la canción del menú (NO se reinicia: ya venía del título)
+	_sfx_sel = AudioStreamPlayer.new()
+	add_child(_sfx_sel)
+	_voz_name = AudioStreamPlayer.new()
+	_voz_name.volume_db = 2.0
+	add_child(_voz_name)
 	roster = Sel.ROSTER
 	sel2 = 1 % roster.size()
 	big_font = SystemFont.new()
@@ -467,6 +473,25 @@ func _anim_portrait(node: TextureRect, box: Rect2, ap: float, dir: float, active
 	node.position = Vector2(box.position.x + off, box.position.y)
 	node.modulate = Color(1, 1, 1, e * (1.0 if active else 0.6))
 
+# --- sonidos del char-select: al confirmar suena "on-select" + la VOZ (épica) del nombre ---
+const SEL_SFX := "res://imagen-action/sound-effect/on-select.mp3"
+const HOVER_SFX := "res://imagen-action/sound-effect/hover-selection.mp3"   # campana al pasar por un personaje
+const NAME_VOZ := {
+	"dam": "res://imagen-action/sound-effect/dam-name.mp3",
+	"favi": "res://imagen-action/sound-effect/fe-name.mp3",
+}
+var _sfx_sel: AudioStreamPlayer
+var _voz_name: AudioStreamPlayer
+
+func _play_select(char_id: String) -> void:
+	if _sfx_sel != null and ResourceLoader.exists(SEL_SFX):
+		_sfx_sel.stream = load(SEL_SFX)
+		_sfx_sel.play()
+	var ruta: String = NAME_VOZ.get(char_id, "")
+	if _voz_name != null and ruta != "" and ResourceLoader.exists(ruta):
+		_voz_name.stream = load(ruta)
+		_voz_name.play()
+
 func _unhandled_input(_e: InputEvent) -> void:
 	var dc := 0
 	if Input.is_action_just_pressed("ui_left"):
@@ -478,13 +503,18 @@ func _unhandled_input(_e: InputEvent) -> void:
 			sel1 = posmod(sel1 + dc, roster.size())
 		else:
 			sel2 = posmod(sel2 + dc, roster.size())
+		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # campana al pasar por un personaje
+			_sfx_sel.stream = load(HOVER_SFX)
+			_sfx_sel.play()
 		_refresh()
 		return
 	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
 		if picking == 0:
+			_play_select(String(roster[sel1]["id"]))   # on-select + voz del nombre (1P)
 			picking = 1
 			_refresh()
 		else:
+			_play_select(String(roster[sel2]["id"]))   # on-select + voz del nombre (2P/CPU)
 			Sel.p1 = String(roster[sel1]["id"])
 			Sel.p2 = String(roster[sel2]["id"])
 			Sel.configured = true
