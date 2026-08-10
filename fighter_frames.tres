@@ -615,7 +615,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("sf6")
 }],
-"loop": true,
+"loop": false,
 "name": &"hit_fly",
 "speed": 28.0
 }, {
