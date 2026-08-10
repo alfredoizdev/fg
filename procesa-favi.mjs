@@ -202,7 +202,7 @@ const jobs = {
   // whirlpool (finisher ↓←E): giro mortal EN EL LUGAR con VÓRTICE de agua creciendo. 4 frames
   // (2 filas de 2): f1 pose (arranca), f2-f3 girando, f4 tornado completo. Rota + rings de agua
   // anchos -> escala por ALTURA (como spin_kick) + keepExtra (el vórtice azul se sale de la celda).
-  whirlpool:   ['Whirlpool-move.png',2,2,4,'whirlpool',0.03,0.03,0,true],
+  whirlpool:   ['Whirlpool-move.png',2,2,4,'whirlpool',0.03,0.03,1.07,true],
   // spin_kick (E suelo): PEONZA de agujas, gira 360° con pies juntos y brazos abiertos.
   // Rota (cabeza de frente/perfil varía) y brazos MUY abiertos (área se infla) -> escala por
   // ALTURA de cuerpo a ojo (pies en el piso). keepExtra por si el brillo azul se separa.
