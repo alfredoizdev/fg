@@ -2116,7 +2116,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 		await get_tree().process_frame
 	# RECUPERACIÓN: desacelera saliendo del giro reproduciendo los frames AL REVÉS
 	# (f4 -> f1): da la sensación de que el tornado se FRENA y Favi vuelve a la pose.
-	var nfr := atacante.sprite.sprite_frames.get_frame_count("whirlpool")
+	var nfr: int = atacante.sprite.sprite_frames.get_frame_count("whirlpool")
 	for fr in range(nfr - 1, -1, -1):
 		atacante.sprite.frame = fr
 		await get_tree().create_timer(0.06).timeout
