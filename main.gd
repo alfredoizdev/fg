@@ -1178,11 +1178,15 @@ func _build_favi_frames() -> SpriteFrames:
 		pose = [load("res://imagen-action/favi/avatar/favi-avatar.png")]
 	for anim in dam.get_animation_names():
 		var real := _favi_action_frames(anim)
-		# ko_air (KO aéreo boca abajo) y pummeled (tambaleo bajo lluvia de golpes) son
-		# exclusivos del arte de DAM. Si Fe no tiene el suyo, se OMITEN (no placeholder de
-		# pose): así su KO aéreo cae con "ko" (boca arriba) y al recibir el ultra usa
-		# "take_hit" (recibir golpe real) en vez de quedarse ESTÁTICA en la pose.
-		if real.is_empty() and (anim == "ko_air" or anim == "pummeled"):
+		# Animaciones EXCLUSIVAS del arte de DAM. Si Fe no tiene el suyo, se OMITEN (no
+		# placeholder de pose parada, que se ve TIESA/mal):
+		#   ko_air      -> Fe cae con "ko" (boca arriba)
+		#   pummeled    -> Fe recibe el ultra con "take_hit" (golpe real, no estática)
+		#   fly_straight-> Fe vuela hacia la pared con "hit_fly" (vuelo real, no de pie)
+		#   wall_splat  -> hasta tener wall-bounce-sheet.png, Fe se estrella en "hit_fly"
+		#                  (volando) en vez de la pose parada. Cuando exista el arte del
+		#                  estampado boca abajo se procesa a favi/wall_splat/ y deja de omitirse.
+		if real.is_empty() and anim in ["ko_air", "pummeled", "fly_straight", "wall_splat"]:
 			continue
 		if not sf.has_animation(anim):
 			sf.add_animation(anim)
@@ -1779,6 +1783,8 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 		victima.receive_hit(false, false, dir, "kick_impact")   # impacto EN EL SITIO (no lanza)
 		if victima.sprite.sprite_frames.has_animation("pummeled"):
 			victima.sprite.play("pummeled")
+		else:
+			victima.sprite.play("take_hit")   # Fe (sin pummeled): reacciona al golpe
 		n += 1
 		_ultra_count(idx, n)
 		_shake(14.0, 0.18)

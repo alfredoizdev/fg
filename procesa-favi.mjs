@@ -226,6 +226,12 @@ const jobs = {
   jump_kick:   ['jump-kick-sheet.png',1,4,4,'jump_kick',0.08,0.35,1.25],
   take_hit:    ['take-hit-sheet.png',1,4,4,'take_hit',0.08,0.12,0.98],
   take_hit_low:['take-hit-low-sheet.png',1,3,3,'take_hit_low',0.12,0.4,0],
+  // pummeled (tambaleo CONTINUO bajo la ráfaga del ULTRA): 6 frames en 2 filas de 3.
+  // De PIE tambaleándose -> estatura COMPLETA (~walk 555) para que no se vea chica al
+  // lado de DAM. La IA la dibujó ENCOGIDA en la fuente: a 0.98 salía chica (410-470) y
+  // a 1.10 quedaba corta (460-528); override 1.22 la sube a ~510-585 (frame erguido ~=
+  // walk). Cabeza sacudida -> no sirve el método CABEZA. BUCLE: f6 empalma con f1.
+  pummeled:    ['pummeled-sheet.png',2,3,6,'pummeled',0.08,0.12,1.22],
   // vuelo/piso: la cabeza no es fiable (arqueada/tirada), escala fija a ojo (matchea walk)
   hit_fly:     ['strong-fly-sheet.png',1,4,4,'hit_fly',0.1,0.3,1.139],
   hit_down:    ['strong-fly-sheet-2.png',1,5,5,'hit_down',0.1,0.3,1.47],

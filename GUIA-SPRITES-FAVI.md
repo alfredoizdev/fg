@@ -239,6 +239,40 @@ sueltos por masa corporal para que encajen).
     (Nota: evitá las palabras "golpeada/impacto/golpe" en el prompt; el filtro de
     la IA las marca. Describí solo el movimiento del cuerpo.)
 
+12b. **`pummeled-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3** (fila
+    arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE puro
+    #00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:** pared,
+    piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la niña sobre
+    el verde. Los 6 frames al **MISMO tamaño de personaje** que las demás hojas.
+    Contenido apto: NADA de sangre, heridas ni violencia gráfica — es puro lenguaje
+    corporal de videojuego.
+    (Nota: evitá las palabras "golpe/golpeada/impacto"; el filtro de la IA las marca.
+    Describí SOLO el movimiento del cuerpo.)
+
+    ESTADO: Favi **tambalea DE PIE** sin control, sacudida hacia atrás una y otra vez
+    por una ráfaga que llega de frente (desde su derecha). **NUNCA cae ni apoya la
+    rodilla en el piso** — se mantiene parada, encogida y a la defensiva. Cabeza y
+    torso van y vienen; las dos agujas flojas colgando de las manos (sujetas por la
+    anilla, dedos en el aro). NADA de pose de fuerza ni de ataque.
+
+    Es un CICLO CONTINUO que **se repite en bucle**: el frame 6 debe empalmar
+    SUAVEMENTE con el frame 1 (sin salto brusco). Es un temblor/vaivén EN EL SITIO
+    (los pies casi fijos). Piensa el eje del cuerpo (cabeza→pies):
+    - **f1 — RETROCEDE:** el torso se va hacia atrás, la cabeza se ladea atrás, los
+      hombros empiezan a subir, los pies clavados en el sitio.
+    - **f2 — MÁS ATRÁS:** el cuerpo se encoge y recula más, rodillas cediendo un poco,
+      la barbilla arriba-atrás, brazos flojos arrastrando.
+    - **f3 — PUNTO MÁS ENCOGIDA:** cuerpo compacto y hundido, cabeza metida entre los
+      hombros, espalda curvada hacia atrás — el instante más comprimido.
+    - **f4 — VUELVE ADELANTE:** rebota hacia adelante, la cabeza cae adelante-abajo,
+      los hombros bajan, el cuerpo empieza a enderezarse.
+    - **f5 — VAIVÉN:** el torso oscila un poco al frente absorbiendo, los hombros se
+      tuercen, la cabeza floja balanceándose.
+    - **f6 — REGRESA AL CENTRO:** el cuerpo casi vuelve a la postura de f1 (torso
+      recuperando el eje, cabeza subiendo), listo para reiniciar el ciclo.
+    → alimenta la animación `pummeled` (el tambaleo continuo mientras recibe la
+    ráfaga del ULTRA). Va en BUCLE: por eso f6 debe empalmar con f1.
+
 13. **Golpe fuerte que la manda a volar — se hace en DOS HOJAS** (mejor calidad:
     menos frames por hoja = personajes más grandes y limpios, sin invasión).
 
