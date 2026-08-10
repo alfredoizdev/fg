@@ -1013,15 +1013,20 @@ func _make_smoke(path_fmt: String, n: int, speed: float, pos: Vector2, scl: floa
 func _ensure_burn_smoke() -> void:
 	if burn_smoke != null or burn_smoke_front != null:
 		return
+	# El humo se UBICA y se ACHICA según el cuerpo (DAM alto vs Fe más chica). Los pies caen
+	# a +500 del centro en TODOS, así que anclamos el humo al PECHO: 500 - alto_pecho*base_scale.y.
+	# Calibrado a DAM (base_scale.y≈1.10 -> y=90/120, escala 0.8/0.55 EXACTO). Sin esto, en Fe
+	# el humo quedaba MUY ARRIBA (fuera del cuerpo) y solo se veía al caer tendida (al final).
+	var bs := base_scale.y
 	if ResourceLoader.exists("res://imagen-action/impact-effect/humo/humo-1.png"):
 		burn_smoke = _make_smoke("res://imagen-action/impact-effect/humo/humo-%d.png", 5, 7.0,
-				Vector2(0.0, 90.0), 0.8, Color(0.42, 0.40, 0.42, 0.0))
+				Vector2(0.0, 500.0 - 372.7 * bs), 0.727 * bs, Color(0.42, 0.40, 0.42, 0.0))
 		add_child(burn_smoke)
 		move_child(burn_smoke, sprite.get_index())    # DETRÁS del cuerpo
 		burn_smoke.play("humo")
 	if ResourceLoader.exists("res://imagen-action/impact-effect/humo2/humo2-1.png"):
 		burn_smoke_front = _make_smoke("res://imagen-action/impact-effect/humo2/humo2-%d.png", 6, 8.0,
-				Vector2(0.0, 120.0), 0.55, Color(0.52, 0.50, 0.52, 0.0))
+				Vector2(0.0, 500.0 - 345.5 * bs), 0.5 * bs, Color(0.52, 0.50, 0.52, 0.0))
 		burn_smoke_front.z_index = 1                  # DELANTE del cuerpo (sobre el pecho)
 		add_child(burn_smoke_front)
 		burn_smoke_front.play("humo")
@@ -1062,8 +1067,10 @@ func _physics_process(delta: float) -> void:
 		burned_t = maxf(0.0, burned_t - delta)
 		var bt := burned_t / BURN_DUR   # 1 (recién quemado) -> 0 (recuperado)
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.30, 0.23, 0.24, 1), bt)
-		# el HUMO solo sale al PRINCIPIO (~1.3s) y se disipa; el oscurecido sí dura todo
-		var smk := clampf((burned_t - (BURN_DUR - 1.3)) / 1.3, 0.0, 1.0)
+		# el HUMO dura ~3s: cubre el golpe + la caída + LEVANTARSE humeando (como DAM);
+		# después se disipa. El oscurecido (tinte) sí dura todo el BURN_DUR.
+		var smoke_dur := 3.0
+		var smk := clampf((burned_t - (BURN_DUR - smoke_dur)) / smoke_dur, 0.0, 1.0)
 		var showing := smk > 0.01
 		if burn_smoke != null:
 			burn_smoke.visible = showing

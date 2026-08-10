@@ -85,11 +85,17 @@ sueltos por masa corporal para que encajen).
 
 ### Básicas (empezar por estas 4)
 
-1. **`pose-sheet.png`** — 4 frames. Postura de guardia de esgrima DUAL: una
-   aguja al frente (mano adelantada) apuntando al rival, la otra recogida junto
-   a la cadera lista. Respiración sutil: el pecho sube y baja, el brillo azul de
-   las puntas varía apenas de intensidad. El loop debe cerrar (frame 4 conecta
-   con frame 1).
+1. **`pose-sheet.png`** — 4 frames (2 filas de 2). **Guardia BAJA de asesina
+   (bladed, ágil)**: cuerpo DE COSTADO / tres cuartos hacia la derecha (hombro
+   adelantado), **rodillas FLEXIONADAS y peso bajo y centrado**, lista para
+   lanzarse (postura felina). La aguja de la mano **ADELANTADA** se sostiene
+   **BAJA y en DIAGONAL** (NO rígida apuntando al frente); la aguja de la mano de
+   **ATRÁS** en **AGARRE INVERTIDO** (reverse-grip, punta hacia abajo/atrás) junto
+   a la cadera. Mirada afilada al frente. Pelo y gabardina con leve movimiento.
+   Respiración sutil: el torso sube y baja APENAS, las agujas oscilan un poquito,
+   el brillo azul de las puntas varía apenas. Los pies NO se mueven. El loop debe
+   cerrar (frame 4 conecta con frame 1). **CUERPO COMPLETO dentro del cuadro: los
+   pies/tenis ENTEROS, con margen debajo — NUNCA recortados por el borde.**
 
 2. **`walk-sheet.png`** — 8 frames en 2 filas de 4. Ciclo de caminata de
    COMBATE: el torso casi quieto en guardia, las DOS agujas siempre listas (una
@@ -297,8 +303,20 @@ sueltos por masa corporal para que encajen).
     (fila arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE
     puro #00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:**
     pared, piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la
-    niña flotando sobre el verde (la pared y el golpe los pone el motor). Los 6
-    frames al **MISMO tamaño de personaje** (misma escala que las demás hojas).
+    niña flotando sobre el verde (la pared y el golpe los pone el motor).
+
+    ⚠️ **PROPORCIONES (LO MÁS IMPORTANTE — antes salió MAL):** mismas proporciones
+    que sus otras hojas (caminar/vuelo). Cuerpo **ESBELTO y ÁGIL de asesina
+    adolescente**, **piernas y brazos LARGOS**, torso estilizado, **cabeza
+    PROPORCIONADA y más bien pequeña respecto al cuerpo**. **NO la dibujes con
+    proporciones de nena chiquita / bebé / chibi** (cabeza grande, cuerpo corto y
+    rechoncho, piernas cortas): la silueta debe verse **ALTA y ESTILIZADA**, igual
+    de madura que en las demás hojas.
+
+    **TAMAÑO:** el personaje debe **LLENAR la celda** (misma escala que la hoja de
+    vuelo `hit_fly`), NO salir pequeña con mucho verde alrededor. La **MISMA
+    estatura y proporciones en los 6 frames** — solo cambia la pose, nunca el
+    tamaño ni la contextura.
 
     ESTADO: Favi está **NOQUEADA en el aire**, cuerpo de **muñeca de trapo** sin
     control, ojos cerrados/apretados, cara floja, pelo y gabardina al viento. NADA
@@ -319,7 +337,8 @@ sueltos por masa corporal para que encajen).
       invisible, el cuerpo empezando a comprimirse, rodillas subiendo por el impacto.
     - **f3 — IMPACTO (aplastada):** cuerpo COMPRIMIDO contra la pared (vertical,
       apretado), cabeza hundida entre los hombros, todo el cuerpo en su punto más
-      compacto — el momento del golpe.
+      compacto — el momento del golpe (**pero SIN volverse cabezona**: la cabeza
+      se hunde entre los hombros, no crece).
     - **f4 — REBOTE:** se despega de la pared, todavía casi vertical pero la cabeza
       cae hacia ADELANTE-abajo, el cuerpo empieza a volcarse boca abajo.
     - **f5 — VOLCANDO:** cuerpo en diagonal cayendo de bruces, cabeza y torso

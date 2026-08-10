@@ -121,7 +121,7 @@ function extractCell(p, W, x0, x1, y0, y1, sx0, sx1, keepExtra=false) {
   return {mask, renderMask, feetY, miny, maxy, charH:feetY-miny, area:main.area, faceH, headW:headWmask(mask,W,miny), feetCx:(fminx+fmaxx)/2, bboxCx:(minx+maxx)/2, bboxCy:(miny+maxy)/2};
 }
 
-function processSheet(sheetRel, rows, cols, count, outDir, outName, marginL=0.02, marginR=0.02, scaleOverride=0, startIdx=0, cellStart=0, cxBbox=false, vCenter=false, keepExtra=false) {
+function processSheet(sheetRel, rows, cols, count, outDir, outName, marginL=0.02, marginR=0.02, scaleOverride=0, startIdx=0, cellStart=0, cxBbox=false, vCenter=false, keepExtra=false, flipH=false) {
   const raw = PNG.sync.read(fs.readFileSync(FG+'/'+sheetRel));
   const p = chroma(raw);
   const W=p.width, cellW=W/cols, cellH=p.height/rows;
@@ -162,8 +162,20 @@ function processSheet(sheetRel, rows, cols, count, outDir, outName, marginL=0.02
       const si=(iy*W+ix)*4;
       out.data[di]=p.data[si];out.data[di+1]=p.data[si+1];out.data[di+2]=p.data[si+2];out.data[di+3]=p.data[si+3];
     }
-    fs.writeFileSync(`${FG}/${outDir}/favi-${outName}-${startIdx+i+1}.png`,PNG.sync.write(out));
-    report.push(`${outName}-${startIdx+i+1}: [${metodo} s=${sheetS.toFixed(3)}] headOut ${Math.round(cell.headW*sheetS)} h=${Math.round(cell.charH*sheetS)}`);
+    // flipH: espeja horizontalmente el frame alrededor del ancla de pies (FEET_X=650),
+    // para que la ORIENTACIÓN de la hoja empalme con la de otra animación (ej. wall_splat
+    // debe mirar igual que hit_fly, si la IA la dibujó al revés).
+    let final = out;
+    if (flipH) {
+      final = new PNG({width:CANVAS_W,height:CANVAS_H});
+      for(let dy=0;dy<CANVAS_H;dy++)for(let dx=0;dx<CANVAS_W;dx++){
+        const s=(dy*CANVAS_W+dx)*4, mx=2*FEET_X-dx, d=(dy*CANVAS_W+mx)*4;
+        if(mx<0||mx>=CANVAS_W) continue;
+        final.data[d]=out.data[s];final.data[d+1]=out.data[s+1];final.data[d+2]=out.data[s+2];final.data[d+3]=out.data[s+3];
+      }
+    }
+    fs.writeFileSync(`${FG}/${outDir}/favi-${outName}-${startIdx+i+1}.png`,PNG.sync.write(final));
+    report.push(`${outName}-${startIdx+i+1}: [${metodo} s=${sheetS.toFixed(3)}${flipH?' FLIP':''}] headOut ${Math.round(cell.headW*sheetS)} h=${Math.round(cell.charH*sheetS)}`);
   }
   processSheet.lastScale = sheetS;
   return report;
@@ -236,8 +248,11 @@ const jobs = {
   hit_fly:     ['strong-fly-sheet.png',1,4,4,'hit_fly',0.1,0.3,1.139],
   hit_down:    ['strong-fly-sheet-2.png',1,5,5,'hit_down',0.1,0.3,1.47],
   // wall_splat (estrellón contra la pared → cae de bruces): 6 frames en 2 filas de 3.
-  // NOQUEADA muñeca de trapo; escala por ALTURA a ojo (como hit_fly, cuerpo casi horizontal).
-  wall_splat:  ['wall-bounce-sheet.png',2,3,6,'wall_splat',0.1,0.3,1.14,true],
+  // NOQUEADA muñeca de trapo. Hoja REGENERADA con proporciones esbeltas (ya no "nenana").
+  // La IA aún la dibuja MÁS CHICA que hit_fly (área de piel ~66% -> override 1.40 iguala el
+  // tamaño en pantalla). Esta versión mira YA como hit_fly (cabeza a la IZQ) -> flipH=false.
+  // keepExtra=false: sin efectos, y evita que se cuele el bleed de zapatos del frame vecino.
+  wall_splat:  ['wall-bounce-sheet.png',2,3,6,'wall_splat',0.1,0.3,1.40,false,false],
   // block: hoja con 2 poses casi iguales -> uso solo la 1ª (el juego usa 1 frame).
   // ÁREA porque las agujas cruzadas suben por encima de la cabeza (engañan al método cabeza).
   block:       ['block-sheet.png',1,2,1,'block',0.05,0.2,-1],
@@ -246,7 +261,7 @@ const jobs = {
   block_low:   ['block-low-sheet.png',1,2,1,'block_low',0.08,0.15,-1],
   water_cast:  ['water-cast-fe-sheet.png',1,5,5,'water_cast',0.06,0.22,1.00],
 };
-function run(k){ const [f,r,c,n,name,ml,mr,ov,ke]=jobs[k]; console.log(k+':\n'+processSheet(S+f,r,c,n,'imagen-action/favi/'+name,name,ml,mr,ov,0,0,false,false,ke).join('\n')); }
+function run(k){ const [f,r,c,n,name,ml,mr,ov,ke,fh]=jobs[k]; console.log(k+':\n'+processSheet(S+f,r,c,n,'imagen-action/favi/'+name,name,ml,mr,ov,0,0,false,false,ke,fh).join('\n')); }
 // SWEEP: 2 hojas de 3 frames -> 6 frames, con la MISMA escala (agachada; override para
 // que matchee el tamaño de crouch). marginR generoso porque la aguja se extiende al frente.
 function runSweep(){
