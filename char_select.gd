@@ -27,6 +27,18 @@ var name_r: Label
 var data_l: Label
 var data_r: Label
 var prompt: Label
+# --- pantalla VS de transición / carga ---
+var loading := false
+var load_t := 0.0
+const VS_MIN_SHOW := 1.6     # tiempo mínimo que se ve la pantalla VS (aunque cargue antes)
+var vs_overlay: Control
+var vs_bg: ColorRect
+var vs_p1: TextureRect
+var vs_p2: TextureRect
+var vs_label: Label
+var vs_name1: Label
+var vs_name2: Label
+var vs_loading: Label
 
 const RED := Color(0.95, 0.24, 0.20)
 const BLU := Color(0.36, 0.56, 1.0)
@@ -103,7 +115,120 @@ func _ready() -> void:
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(prompt)
+	_build_vs_overlay()
 	_refresh()
+
+# ---------- PANTALLA VS (transición + carga) ----------
+func _build_vs_overlay() -> void:
+	vs_overlay = Control.new()
+	vs_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vs_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.visible = false
+	add_child(vs_overlay)
+	vs_bg = ColorRect.new()
+	vs_bg.color = Color(0.04, 0.01, 0.04, 0.0)
+	vs_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vs_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(vs_bg)
+	# pósters grandes de los dos elegidos (entran deslizando)
+	vs_p1 = TextureRect.new()
+	vs_p1.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	vs_p1.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	vs_p1.clip_contents = true
+	vs_p1.size = Vector2(760, 1080)
+	vs_p1.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(vs_p1)
+	vs_p2 = TextureRect.new()
+	vs_p2.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	vs_p2.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	vs_p2.clip_contents = true
+	vs_p2.size = Vector2(760, 1080)
+	vs_p2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(vs_p2)
+	# capa fx del VS (diagonal + destello), encima de los pósters
+	var vfx := Control.new()
+	vfx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vfx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(vfx)
+	vfx.draw.connect(_draw_vs_fx)
+	# nombres
+	vs_name1 = _vs_text(48, RED, HORIZONTAL_ALIGNMENT_LEFT, 88)
+	vs_name2 = _vs_text(-48, BLU, HORIZONTAL_ALIGNMENT_RIGHT, 88)
+	vs_name1.position.y = 880
+	vs_name2.position.y = 880
+	# "VS" gigante
+	vs_label = Label.new()
+	vs_label.add_theme_font_override("font", big_font)
+	vs_label.add_theme_font_size_override("font_size", 260)
+	vs_label.add_theme_constant_override("outline_size", 22)
+	vs_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	vs_label.add_theme_color_override("font_color", GOLD)
+	vs_label.text = "VS"
+	vs_label.position = Vector2(0, 380); vs_label.size = Vector2(1920, 300)
+	vs_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vs_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	vs_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(vs_label)
+	# NOW LOADING
+	vs_loading = Label.new()
+	vs_loading.add_theme_font_override("font", big_font)
+	vs_loading.add_theme_font_size_override("font_size", 30)
+	vs_loading.add_theme_constant_override("outline_size", 5)
+	vs_loading.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	vs_loading.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
+	vs_loading.position = Vector2(0, 1010); vs_loading.size = Vector2(1920, 40)
+	vs_loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vs_loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(vs_loading)
+
+func _vs_text(x: float, col: Color, align: int, size: int) -> Label:
+	var l := Label.new()
+	l.add_theme_font_override("font", big_font)
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_constant_override("outline_size", 12)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_color_override("font_color", col)
+	if align == HORIZONTAL_ALIGNMENT_LEFT:
+		l.position = Vector2(x, 0); l.size = Vector2(700, 110)
+	else:
+		l.position = Vector2(1920 - 700 + x, 0); l.size = Vector2(700, 110)
+	l.horizontal_alignment = align
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vs_overlay.add_child(l)
+	return l
+
+func _draw_vs_fx() -> void:
+	if not loading:
+		return
+	var vfx: Control = vs_overlay.get_child(3)
+	var a: float = clampf(load_t / 0.3, 0.0, 1.0)
+	# franja diagonal central (donde va el VS)
+	vfx.draw_colored_polygon(PackedVector2Array([Vector2(760, 0), Vector2(1160, 0), Vector2(1160, 1080), Vector2(760, 1080)]),
+			Color(0.5, 0.06, 0.06, 0.5 * a))
+	vfx.draw_line(Vector2(820, 0), Vector2(700, 1080), Color(RED.r, RED.g, RED.b, a), 5.0)
+	vfx.draw_line(Vector2(1100, 0), Vector2(1220, 1080), Color(BLU.r, BLU.g, BLU.b, a), 5.0)
+
+func _start_vs_transition() -> void:
+	loading = true
+	load_t = 0.0
+	set_process_unhandled_input(false)
+	# carga la escena de pelea EN SEGUNDO PLANO (no congela la pantalla VS)
+	ResourceLoader.load_threaded_request("res://main.tscn")
+	# pósters de los elegidos
+	var p1path := Sel.portrait_of(String(roster[sel1]["id"]))
+	var p2path := Sel.portrait_of(String(roster[sel2]["id"]))
+	if ResourceLoader.exists(p1path):
+		vs_p1.texture = load(p1path)
+	if ResourceLoader.exists(p2path):
+		vs_p2.texture = load(p2path)
+	vs_name1.text = String(roster[sel1]["name"])
+	vs_name2.text = String(roster[sel2]["name"])
+	vs_p1.position = Vector2(-760, 0)     # entran desde afuera
+	vs_p2.position = Vector2(1920, 0)
+	vs_label.scale = Vector2(3.0, 3.0)    # "VS" hace pop (de grande a normal)
+	vs_label.pivot_offset = Vector2(960, 150)
+	vs_label.modulate.a = 0.0
+	vs_overlay.visible = true
 
 # ---------- construcción de nodos ----------
 func _mk_portrait(box: Rect2) -> TextureRect:
@@ -284,6 +409,9 @@ func _ease_out(x: float) -> float:
 
 func _process(delta: float) -> void:
 	t += delta
+	if loading:
+		_update_vs(delta)
+		return
 	# avanza la animación de aparición de los cuadros (hover)
 	appear_l = minf(1.0, appear_l + delta * 5.0)   # ~0.2s
 	appear_r = minf(1.0, appear_r + delta * 5.0)
@@ -291,6 +419,29 @@ func _process(delta: float) -> void:
 	_anim_portrait(stand_r, FRAME_R, appear_r, 1.0, picking == 1)
 	if fx:
 		fx.queue_redraw()
+
+func _update_vs(delta: float) -> void:
+	load_t += delta
+	var e := _ease_out(minf(1.0, load_t / 0.45))
+	vs_bg.color.a = clampf(load_t / 0.25, 0.0, 1.0) * 0.96
+	vs_p1.position.x = lerpf(-760.0, 60.0, e)
+	vs_p2.position.x = lerpf(1920.0, 1100.0, e)
+	# "VS" hace POP tras 0.35s (de grande a normal + fade)
+	var vp := clampf((load_t - 0.35) / 0.3, 0.0, 1.0)
+	var vs_sc := lerpf(3.0, 1.0, _ease_out(vp))
+	vs_label.scale = Vector2(vs_sc, vs_sc)
+	vs_label.modulate.a = vp
+	# puntos animados del loading
+	vs_loading.text = "NOW LOADING" + ".".repeat(1 + int(load_t * 2.0) % 3)
+	if vs_overlay.get_child_count() > 3:
+		vs_overlay.get_child(3).queue_redraw()   # capa vfx del VS
+	# cuando la escena de pelea terminó de cargar Y ya se vio el mínimo -> entrar
+	var st := ResourceLoader.load_threaded_get_status("res://main.tscn")
+	if st == ResourceLoader.THREAD_LOAD_LOADED and load_t >= VS_MIN_SHOW:
+		var packed = ResourceLoader.load_threaded_get("res://main.tscn")
+		get_tree().change_scene_to_packed(packed)
+	elif st == ResourceLoader.THREAD_LOAD_FAILED or st == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		get_tree().change_scene_to_file("res://main.tscn")   # fallback
 
 func _anim_portrait(node: TextureRect, box: Rect2, ap: float, dir: float, active: bool) -> void:
 	if node == null:
@@ -322,7 +473,7 @@ func _unhandled_input(_e: InputEvent) -> void:
 			Sel.p1 = String(roster[sel1]["id"])
 			Sel.p2 = String(roster[sel2]["id"])
 			Sel.configured = true
-			get_tree().change_scene_to_file("res://main.tscn")
+			_start_vs_transition()   # pantalla VS mientras carga la pelea
 	elif Input.is_action_just_pressed("ui_cancel"):
 		if picking == 1:
 			picking = 0
