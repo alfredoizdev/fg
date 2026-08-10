@@ -353,11 +353,26 @@ func _portrait_frame(box: Rect2, ap: float, dir: float, col: Color) -> void:
 	# borde de color; con FLASH extra mientras aparece (e<1)
 	var flash := 1.0 + (1.0 - e) * 1.4
 	fx.draw_rect(r.grow(2.0), Color(col.r * flash, col.g * flash, col.b * flash, e), false, 6.0)
-	# esquinas doradas (acento)
-	var cs := 22.0
-	for corner in [r.position, Vector2(r.end.x - cs, r.position.y), Vector2(r.position.x, r.end.y - cs), Vector2(r.end.x - cs, r.end.y - cs)]:
-		fx.draw_rect(Rect2(corner.x, corner.y, cs, 5), Color(GOLD.r, GOLD.g, GOLD.b, e))
-		fx.draw_rect(Rect2(corner.x, corner.y, 5, cs), Color(GOLD.r, GOLD.g, GOLD.b, e))
+	# esquinas doradas (brackets en L): cada una abraza SU esquina (apunta hacia adentro)
+	var gc := Color(GOLD.r, GOLD.g, GOLD.b, e)
+	var cs := 30.0
+	var th := 6.0
+	var x1 := r.position.x
+	var y1 := r.position.y
+	var x2 := r.end.x
+	var y2 := r.end.y
+	# superior-izquierda
+	fx.draw_rect(Rect2(x1 - th, y1 - th, cs, th), gc)
+	fx.draw_rect(Rect2(x1 - th, y1 - th, th, cs), gc)
+	# superior-derecha
+	fx.draw_rect(Rect2(x2 - cs + th, y1 - th, cs, th), gc)
+	fx.draw_rect(Rect2(x2, y1 - th, th, cs), gc)
+	# inferior-izquierda
+	fx.draw_rect(Rect2(x1 - th, y2, cs, th), gc)
+	fx.draw_rect(Rect2(x1 - th, y2 - cs + th, th, cs), gc)
+	# inferior-derecha
+	fx.draw_rect(Rect2(x2 - cs + th, y2, cs, th), gc)
+	fx.draw_rect(Rect2(x2, y2 - cs + th, th, cs), gc)
 
 func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side: int) -> void:
 	if idx < 0 or idx >= cards.size():
