@@ -204,6 +204,7 @@ var airborne := false
 var hit_flying := false
 var walk_dir := 0
 var spd := 1.0   # multiplicador de velocidad de desplazamiento por personaje (Favi = ágil)
+var jump_mult := 1.0   # multiplicador de ALTURA de salto por personaje (Aye salta un poco más alto)
 var base_scale := Vector2.ONE   # escala base del sprite por personaje (Favi = nena, más chica)
 # Ajuste fino del KO TENDIDO (px de pantalla). El frame ancla su pixel más bajo al piso, pero en
 # poses acostadas ese pixel es una mano/katana y el CUERPO flota. Se corrige por personaje:
@@ -1390,7 +1391,7 @@ func _physics_process(delta: float) -> void:
 			and sprite.animation == "crouch_kick" and sprite.frame > 2:
 		airborne = true
 		crouching = false
-		vel_y = -JUMP_SPEED
+		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(0.6)   # polvo de despegue
 		sprite.play("jump")
 		return
@@ -1408,7 +1409,7 @@ func _physics_process(delta: float) -> void:
 	# salto
 	if Input.is_action_just_pressed("ui_up") and not crouching:
 		airborne = true
-		vel_y = -JUMP_SPEED
+		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(0.6)   # polvo de despegue
 		# salto hacia ADELANTE (hacia el rival) = MORTAL (neutral_spin); neutro/atrás = jump normal
 		var jdir := Input.get_axis("ui_left", "ui_right")

@@ -160,23 +160,42 @@ not walk forward. Do not move to the right. Do not turn around.
 
 **`jump`:**
 
-> Aye **jumps straight up in place**: bends knees (anticipation, compresses for a moment) →
+> Aye jumps straight up in place: bends knees (anticipation, compresses for a moment) →
 > pushes up with the staff held close → apex → falls → squashes for a moment on landing. She goes
-> up and down **inside the frame** (never leaves it).
+> up and down inside the frame (never leaves it).
+
+**`neutral_spin` (FORWARD jump / mortal — spinning leap) — OPTIONAL:**
+
+> ⚠️ OPTIONAL: right now Aye's forward jump just reuses the normal `jump` (no separate spin).
+> Only make this if you want a distinct spinning forward-jump; if its frames exist, the engine
+> uses it for forward jumps automatically. A COMBAT spinning leap with the staff, NOT joyful.
+> Paste as PLAIN TEXT:
+
+```
+A cute chibi anime fantasy mage character, cartoon video-game art, side view. This is a COMBAT
+forward jump for a fighting game: she leaps UP and slightly FORWARD (to the right, toward an
+enemy) while doing ONE controlled spin in the air, sweeping her straight purple crystal-flower
+staff around her body in a circle. Serious, focused expression, NOT joyful, NOT cheering. She
+takes off from the ground, spins once in mid-air, and comes back down. Compact and controlled
+(not arms flailing). She stays inside the frame the whole time. The staff is a plain straight
+rod with NO glow, NO sparkles, NO floating crystals, and NO effects of any kind. Pure green
+screen background #00FF00, flat and static. Do NOT smile or cheer; do NOT add any effect on the
+staff.
+```
 
 ### CLOSE COMBAT (short and weak — she's a zoner)
 
 **`weak_punch`:**
 
-> Aye does a **quick short poke** forward with the TIP of the staff and returns **immediately to
+> Aye does a quick short poke forward with the TIP of the staff and returns **immediately to
 > guard**. Snappy, fast, short reach. Plain staff, no effects (the shards are in the separate
 > clip). Start and end in guard.
 
 **`punch`:**
 
-> Aye does a **short staff SWEEP at chest height**, back to front: draws the staff back → sweeps
+> Aye does a short staff SWEEP at chest height\*\*, back to front: draws the staff back → sweeps
 > forward hard (a light MOTION streak at the tip) → extends → recovers to guard. PLAIN staff, no
-> glow; the **crystal SHARDS** that come out on the extension are in the separate EFFECT clip.
+> glow; the crystal SHARDS that come out on the extension are in the separate EFFECT clip.
 > Start and end in guard.
 
 **`kick`:**
@@ -198,7 +217,7 @@ not walk forward. Do not move to the right. Do not turn around.
 
 **`jump_punch`** _(aerial — give it a starting image of her jumping if you can):_
 
-> Suspended in the air, Aye does a **downward diagonal slash** with the staff toward down-forward;
+> Suspended in the air, Aye does a downward diagonal slash with the staff toward down-forward;
 > legs tucked. Body airborne the whole time.
 
 **`jump_kick`** _(aerial):_

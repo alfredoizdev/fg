@@ -1530,7 +1530,7 @@ const FAVI_FEET_FROM_CENTER := 500.0
 # AYE (The Blooming Dynamo): NENA de ~5 años -> más baja aún que Fe. Ágil ("dynamo").
 # Pre-cableada con PLACEHOLDER (los frames de DAM) hasta procesar sus hojas verdes.
 const AYE_SPD := 1.0     # multiplicador de la velocidad de ANIMACIÓN de Aye (anims sin override)
-const AYE_MOVE_SPD := 0.52   # velocidad de DESPLAZAMIENTO (desacoplada): no-skate para el walk nuevo (paso 136px, 56 frames)
+const AYE_MOVE_SPD := 0.55   # velocidad de DESPLAZAMIENTO (desacoplada): no-skate para el walk (reescalado a cuerpo 607px)
 const AYE_SCALE := 0.72            # ~5 años: más chica que Fe (0.85)
 const AYE_FEET_FROM_CENTER := 500.0
 
@@ -1699,6 +1699,20 @@ func _build_aye_frames() -> SpriteFrames:
 		sf.set_animation_speed("walk_back", 30.0)   # 29 frames de salto @ 30fps = ~1s por brinco. Tuneable.
 		for t in wb:
 			sf.add_frame("walk_back", t)
+	# CROUCH de Aye: transición de pie->agachada (no-loop, se sostiene el último frame). 17 frames
+	# @ 50fps = ~0.34s bajando (y al revés para pararse). Tuneable.
+	if sf.has_animation("crouch") and not _aye_action_frames("crouch").is_empty():
+		sf.set_animation_speed("crouch", 50.0)
+	# JUMP de Aye: 17 frames (despegue->ápice->caída) sincronizados al airtime (~0.88s). La ALTURA
+	# la da la física (vel_y); la animación va vertical in-place (pies anclados). ~20fps. Tuneable.
+	if sf.has_animation("jump") and not _aye_action_frames("jump").is_empty():
+		sf.set_animation_speed("jump", 20.0)
+	# NEUTRAL_SPIN (salto ADELANTE / mortal): Aye no tiene giro propio. Si no hay frames suyos,
+	# quitamos el placeholder de DAM (katana) para que el salto adelante caiga al "jump" normal
+	# (fighter.gd: si no existe neutral_spin, juega "jump"). Si algún día se generan sus frames,
+	# se conserva la animación y vuelve a usarse.
+	if sf.has_animation("neutral_spin") and _aye_action_frames("neutral_spin").is_empty():
+		sf.remove_animation("neutral_spin")
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
 	return sf
@@ -1768,6 +1782,7 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, AYE_FEET_FROM_CENTER / AYE_SCALE - AYE_FEET_FROM_CENTER)
 		f.spd = AYE_MOVE_SPD
+		f.jump_mult = 1.12   # salta un poquito más alto que el resto
 	else:
 		f.sprite.sprite_frames = _build_dam_frames()
 		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
