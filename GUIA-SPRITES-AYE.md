@@ -1,228 +1,226 @@
-# AYE — The Blooming Dynamo · Guía de sprites (personaje)
+# AYE — Crystal Witch (ZONER) · Guía de sprites
 
-> Esta es la guía ESPECÍFICA de AYE: su identidad y la animación detallada de
-> cada movimiento con su **BLOOM STAFF** (bastón mágico floral) y su compañera
-> Pomeranian **Pommy**. Las reglas de producción y el roster de movimientos están
-> calcados de **`GUIA-SPRITES-FAVI.md`** (la de Fe): mismo moveset, mismos conteos
-> de frames y mismos timings — lo ÚNICO que cambia es que AYE empuña un BASTÓN
-> (no agujas ni katana) y su energía es FLORAL/ROSA (no agua, no fuego).
+> Guía ESPECÍFICA de AYE, la 3ª peleadora. Es una **MAGA/WIZARD de LARGA DISTANCIA
+> (ZONER)**: controla el espacio con **CRISTALES MORADOS** que brotan de su báculo
+> de flor-de-cristal. Su firma es **CAPTURAR/CONGELAR** al rival encerrándolo en un
+> cristal morado. Las reglas de producción (chroma verde, mirando a la derecha, un
+> personaje por frame, etc.) siguen calcadas de `GUIA-SPRITES-FAVI.md`.
 
-> **Diferencia clave que manda en TODAS las animaciones:** AYE pelea con **UN
-> BASTÓN largo (el Bloom Staff)** sujeto con las DOS manos o con una. Es un
-> personaje CHIBI ágil y alegre (tipo "dynamo"): hace barridos amplios, giros de
-> bastón (tipo bo-staff), estocadas con la punta y golpes que sueltan PÉTALOS y
-> destellos ROSA/LILA. Cuando un golpe de Fe era "las dos agujas cruzándose", en
-> AYE es "el bastón barriendo con una lluvia de pétalos".
-
-## Reglas generales (van en TODOS los prompts)
-
-Pega esto al final de cada prompt, junto con la **imagen de referencia de AYE**
-(su hoja de diseño) adjunta:
-
-> Mismo personaje EXACTO de la referencia — una ILUSTRACIÓN CHIBI de estilo anime,
-> una pequeña HEROÍNA MÁGICA de fantasía (personaje/mascota de videojuego, arte de
-> caricatura estilizado, NO una persona real ni una foto): piel morena, pelo
-> castaño oscuro RIZADO recogido en un MOÑO ALTO desordenado con mechones sueltos y
-> lazos ROSAS, ojos grandes de estilo anime, y una GEMA/cristal floral ROSA-LILA en
-> la FRENTE (pequeños cristales facetados). Lleva un traje de fantasía tipo
-> cheongsam/qipao SIN MANGAS, BLANCO con estampado de FLORES rosa/lila y ribetes
-> dorados, un gran MOÑO MAGENTA en la cintura, SHORTS MORADOS debajo del vestido,
-> botas altas BLANCAS con lazos florales rosa/morado, y muñequeras blancas. Sus
-> proporciones son SIEMPRE IDÉNTICAS EN TODAS LAS HOJAS: cabeza grande estilo chibi,
-> PERO exactamente la misma relación cabeza-a-cuerpo que en `walk-sheet.png` /
-> `pose-sheet.png` (esas dos son la REFERENCIA de tamaño). El cuerpo llena el frame
-> a la misma altura en todas las hojas; las piernas tienen el mismo largo. NUNCA la
-> dibujes más cabezona, más rechoncha ni más "super-deformed" en unas hojas que en
-> otras — si comparas dos frames de hojas distintas, la niña debe medir y verse igual.
-> Su arma es
-> el BLOOM STAFF: un bastón/cetro LIGERO de mango
-> MORADO largo, con una FLOR DE CRISTAL en la punta (cristales facetados lila y
-> rosa en forma de loto/flor abierta, con centro rosado). Su energía es FLORAL:
-> PÉTALOS de flor y destellos ROSA / LILA / MAGENTA. NADA de fuego, NADA de agua,
-> NADA de katana, NADA de agujas — es UN bastón con una flor de cristal.
-> Misma paleta de colores exacta y mismo estilo de línea. Vista lateral de juego
-> de pelea 2D (estilo KOF), personaje mirando a la DERECHA en TODOS los frames —
-> nunca de frente a la cámara, nunca de espaldas.
-> Los frames van en UNA o DOS filas, ordenados de izquierda a derecha (la fila de
-> ARRIBA primero). Todos los personajes a la MISMA escala; dentro de cada fila los
-> pies en la MISMA línea. Si hay dos filas, deja una franja horizontal VACÍA entre
-> ellas: nada de la fila de arriba puede tocar la de abajo. Personaje completo en
-> cada frame con margen (nada cortado por el borde). Deja espacio VACÍO claro entre
-> personaje y personaje: el BASTÓN de frames vecinos NUNCA debe tocarse ni
-> traslaparse. Ojo con los frames de bastón EXTENDIDO al frente (ocupan mucho más
-> ancho): entre la PUNTA del bastón (la flor de cristal) y el siguiente personaje
-> debe quedar MÍNIMO medio cuerpo de espacio vacío.
-> El bastón es UNA sola pieza continua sujeta en las manos: nunca fragmentado,
-> nunca duplicado, nunca tirado en el piso ni bajo los pies. Cada frame es UN solo
-> personaje completo — jamás dos poses pegadas o fusionadas dentro del mismo frame.
-> ANATOMÍA correcta: exactamente DOS brazos, DOS piernas, DOS manos de 5 dedos y
-> UN solo bastón. El vestido mantiene su borde inferior NORMAL y limpio, como en la
-> referencia: NO lo dibujes rasgado, roto ni hecho jirones.
-> Fondo VERDE PURO #00FF00 completamente plano y SIN NINGUNA marca: no pongas
-> números, letras, rótulos ni líneas guía en la hoja — solo el personaje sobre el
-> verde. Sin sombra en el piso. Sin desenfoque ni líneas de velocidad.
-
-Guarda cada hoja en `imagen-action/aye/sheets/` con el nombre indicado.
-
-**Nitidez:** mientras menos frames por FILA, más grande y nítido sale cada
-personaje. Para animaciones largas usa DOS FILAS en la misma hoja (mi procesador
-las lee solo: fila de arriba primero, de izquierda a derecha), o divide en dos
-hojas (`walk-sheet.png` + `walk-sheet-2.png`) — también las une solo.
-
-**Frames rebeldes:** si un frame sale mal una y otra vez (de espaldas, bastón
-quieto, dos bastones), pide ESE frame SOLO, en su propia hoja de UN personaje,
-con descripción hiperdetallada y prohibiciones explícitas. Nómbrala
-`<accion>-f<numero>-sheet.png`.
-
-**Nota sobre Pommy (la Pomeranian):** la compañera NO va en los frames de los
-golpes normales (solo AYE). Pommy aparece únicamente en el ESPECIAL ("Bark Burst")
-y se dibuja como EFECTO aparte sobre verde (ver §21).
+> **Lo que manda en TODAS sus animaciones:**
+> 1. Empuña un **BÁCULO** (mango morado, flor de cristal rosa/magenta en la punta).
+> 2. Su energía son **CRISTALES MORADOS/LILA** y destellos (NADA de fuego ni agua;
+>    lo floral vive solo en la flor de cristal del báculo).
+> 3. Es **ZONER**: su fuerte es a distancia (proyectiles, pilares, congelación). Su
+>    cuerpo a cuerpo es **corto y débil A PROPÓSITO** — golpes de báculo solo para
+>    empujar y ganar espacio, no para combos largos.
 
 ---
 
-## Las hojas que necesitamos
+## Diseño de AYE (de la imagen de referencia #133 — es la CANÓNICA)
 
-### Básicas (empezar por estas 4)
+Pega esto en cada prompt, con la **imagen de referencia de AYE** adjunta:
 
-1. **`pose-sheet.png`** — 4 frames. Postura de guardia alegre: sostiene el Bloom
-   Staff con una mano al frente-abajo (la flor de cristal apuntando adelante), la
-   otra mano relajada, peso ligero sobre los pies. Respiración sutil: el pecho sube
-   y baja, la flor de cristal brilla apenas variando de intensidad, algún pétalo
-   flotando. El loop debe cerrar (frame 4 conecta con frame 1).
+> Mismo personaje EXACTO de la referencia — ILUSTRACIÓN CHIBI estilo anime, una
+> pequeña MAGA de fantasía (personaje de videojuego, arte de caricatura estilizado,
+> NO una persona real ni una foto): piel morena, pelo castaño oscuro RIZADO recogido
+> en una **COLETA ALTA** con un **scrunchie ROSA** (mechones rizados sueltos), ojos
+> grandes de estilo anime. Viste un **VESTIDO LILA/lavanda de MANGAS FAROL** (puff
+> sleeves cortas), cuello cuadrado con **ribete DORADO**, un **MOÑO ROSA** grande en
+> la cintura, una **enagua ROSA** que asoma bajo la falda, y el ruedo con ribete
+> dorado. Calza **BOTAS DE LLUVIA de degradé** (de arriba a abajo: amarillo → rosa →
+> celeste) con asas rosas. Su arma es un **BÁCULO/cetro** de mango MORADO largo y
+> delgado, rematado en una **FLOR DE CRISTAL** (cristales facetados rosa/magenta en
+> forma de loto abierto, con brillo). Sus proporciones son SIEMPRE IDÉNTICAS en TODAS
+> las hojas: la MISMA relación cabeza-a-cuerpo y la misma altura que en
+> `walk-sheet.png` / `pose-sheet.png` (esas dos mandan el tamaño). NUNCA la dibujes
+> más cabezona ni más rechoncha en unas hojas que en otras. Su energía son CRISTALES
+> MORADOS/LILA facetados y destellos magenta — NADA de fuego, NADA de agua, NADA de
+> katana ni agujas: UN báculo con flor de cristal. Misma paleta y mismo estilo de
+> línea exactos. Vista lateral de juego de pelea 2D (estilo KOF), personaje mirando a
+> la DERECHA en TODOS los frames — nunca de frente ni de espaldas (salvo giros).
+> Los frames van en UNA o DOS filas, de izquierda a derecha (fila de ARRIBA primero),
+> pies en la misma línea dentro de cada fila. Si hay dos filas, deja una franja
+> horizontal VACÍA entre ellas. Personaje completo en cada frame con margen (nada
+> cortado por el borde). Deja espacio VACÍO claro entre personaje y personaje: el
+> BÁCULO de frames vecinos NUNCA debe tocarse. En los frames de báculo EXTENDIDO al
+> frente, deja MÍNIMO medio cuerpo de espacio vacío hasta el siguiente personaje.
+> El báculo es UNA sola pieza continua en las manos: nunca fragmentado, duplicado ni
+> tirado. Cada frame es UN solo personaje completo. ANATOMÍA correcta: DOS brazos,
+> DOS piernas, DOS manos de 5 dedos y UN báculo. El vestido mantiene su borde inferior
+> NORMAL y limpio (NO rasgado). Fondo VERDE PURO #00FF00 plano y SIN NINGUNA marca
+> (sin números, letras ni líneas guía). Sin sombra en el piso. Sin desenfoque global
+> ni líneas de velocidad (los smears van SOLO donde se indique, ver Fluidez).
 
-2. **`walk-sheet.png`** — 8 frames en 2 filas de 4. Ciclo de caminata de COMBATE:
-   torso casi quieto en guardia, el bastón siempre listo (apuntando adelante-abajo),
-   ciclo clásico de piernas (contacto → apoyo → cruce → alcance), f8 conecta con f1.
-   El sube-y-baja del cuerpo es SUTIL, misma altura base en todos.
+Guarda cada hoja en `imagen-action/aye/sheets/` con el nombre indicado.
 
-3. **`punch-sheet.png`** — 10 frames en DOS FILAS de 5. ⚠️ REGENERAR: la versión
-   anterior salió CABEZONA (cabeza demasiado grande / cuerpo rechoncho, distinta al
-   walk). Al rehacerla, la niña debe tener EXACTAMENTE las mismas proporciones y
-   altura que en `walk-sheet.png` (cabeza más chica que antes, piernas más largas),
-   y el BASTÓN + los pétalos deben quedar COMPLETOS dentro de cada frame (nunca
-   cortados por el borde, deja margen). BARRIDO HORIZONTAL de
-   bastón: gira el Bloom Staff barriendo de lado a lado a la altura del pecho,
-   soltando pétalos ROSA en el arco. Las hojas del arco quedan más o menos
-   HORIZONTALES (no un golpe de arriba abajo):
-   - f1: pose de guardia exacta (bastón listo)
-   - f2-f4: carga — recoge el bastón atrás girando el torso, pétalos naciendo
-   - f5-f6: el barrido arranca, el bastón entra al frente
-   - f7: IMPACTO — bastón EXTENDIDO barriendo al frente, estela de pétalos rosa
-   - f8-f10: sigue el arco y recupera la guardia
-     El bastón SIEMPRE en las manos, una pieza continua.
+**Nitidez vs. fluidez:** menos frames por FILA = cada personaje sale más grande y
+nítido. Para animaciones largas usa DOS FILAS (mi procesador las lee solo: arriba
+primero) o dos hojas (`walk-sheet.png` + `walk-sheet-2.png`).
 
-4. **`kick-sheet.png`** — 10 frames en DOS FILAS de 5. GOLPE FUERTE con el bastón:
-   un mazazo/barrido AMPLIO y pesado (de arriba hacia adelante) que estalla en una
-   flor de energía ROSA al impactar. Más lento y potente que el punch:
-   - f1: guardia · f2-f4: alza el bastón bien arriba cargando · f5-f6: baja el
-     bastón con fuerza al frente · f7: IMPACTO — el bastón golpea adelante, ESTALLIDO
-     de pétalos/flor rosa · f8-f10: recupera.
+**Frames rebeldes:** si un frame sale mal repetido (de espaldas, báculo quieto, dos
+báculos), pídelo SOLO en su propia hoja de un personaje, hiperdetallado.
+Nómbrala `<accion>-f<numero>-sheet.png`.
 
-### Agachado
+---
 
-5. **`crouch-sheet.png`** — 3 frames. Se agacha progresivamente hasta quedar en
-   cuclillas, el bastón recogido cruzado sobre las rodillas.
+## FLUIDEZ estilo SF3 (Dudley) — la clave para que se vea NÍTIDA y FLUIDA
 
-6. **`crouch-punch-sheet.png`** — 3 frames. Estocada baja rápida con la PUNTA del
-   bastón (la flor de cristal) al frente, desde cuclillas.
+Analizando los sprites de Dudley (SF3): lo que los hace fluidos NO es solo "más
+frames", sino **keyframes correctos**. Aplicar a TODAS las hojas de acción:
 
-7. **`crouch-kick-sheet.png`** — 5 frames. GANCHO ASCENDENTE (anti-aéreo): barre el
-   bastón de abajo hacia arriba en diagonal, soltando pétalos que suben.
+1. **Idle vivo:** la pose NO es estática — respira/rebota (por eso "vive"). Aye:
+   pecho sube/baja, cristal del báculo latiendo, algún cristalito flotando.
+2. **Estructura de cada ataque:** *anticipación (1-2 frames, recoge/carga) → golpe
+   con SMEAR (1 frame de estela en la parte más rápida) → IMPACTO/hold (1) →
+   recuperación (1-2, vuelve a la guardia).* Nunca saltar de guardia a impacto directo.
+3. **SMEAR:** en el frame más veloz, la punta del báculo (o el cristal) deja una
+   **estela borrosa** en el arco del movimiento (mancha alargada semitransparente),
+   como en SF3. Solo ESE frame lleva estela; los demás nítidos.
+4. **Squash & stretch sutil:** en el impacto el cuerpo se comprime/estira un toque;
+   al aterrizar de un salto, se achata un frame.
+5. **Volumen y silueta CONSTANTES:** la niña mide y pesa igual en todos los frames;
+   la pose se debe leer incluso en silueta negra.
 
-### Salto
+---
 
-8. **`jump-sheet.png`** — 6 frames. Salto vertical: impulso (rodillas dobladas) →
-   sube con el bastón pegado al cuerpo → ápice → empieza a caer. El loop de caída
-   se sostiene en los últimos frames.
+## Las hojas BASE (empezar por estas)
 
-9. **`jump-punch-sheet.png`** — 4 frames. Corte aéreo: en el aire, barrido de bastón
-   diagonal hacia adelante con pétalos.
+1. **`pose-sheet.png`** — **6 frames** (subimos de 4 → 6 para el idle vivo, en 2
+   filas de 3). Guardia de maga alegre: sostiene el báculo con una mano al
+   frente-abajo (flor de cristal apuntando adelante), la otra mano relajada.
+   Respiración: pecho sube/baja, la flor de cristal LATE (brillo variando), 1-2
+   cristalitos flotando. El loop CIERRA (f6 conecta con f1).
 
-10. **`jump-kick-sheet.png`** — 4 frames. Ataque aéreo descendente: clava el bastón
-    hacia abajo-adelante en picada (mazazo aéreo) con pétalos.
+2. **`walk-sheet.png`** — 8 frames en 2 filas de 4. Caminata de COMBATE: torso en
+   guardia, báculo siempre listo, ciclo clásico de piernas (contacto → apoyo →
+   cruce → alcance), f8 conecta con f1. Sube-y-baja SUTIL, misma altura base.
 
-### Recibir daño
+3. **`crouch-sheet.png`** — 3 frames. Se agacha hasta cuclillas, báculo recogido
+   cruzado sobre las rodillas.
 
-11. **`take-hit-sheet.png`** — 4 frames. Retroceso de pie: el torso salta hacia atrás
-    por el golpe, brazos sueltos, el bastón se sacude. (Neutral — sin "golpeada".)
+4. **`jump-sheet.png`** — 6 frames. Salto: impulso (rodillas dobladas + squash 1
+   frame) → sube con el báculo pegado → ápice → cae. El loop de caída se sostiene.
 
-12. **`take-hit-low-sheet.png`** — 3 frames. Retroceso en cuclillas: se encoge un poco
-    hacia atrás sosteniendo el bastón.
+### Cuerpo a cuerpo (CORTO y débil — es zoner)
 
-13. **Golpe fuerte que la manda a volar — en DOS HOJAS** (mejor calidad):
-    - **`strong-fly-sheet.png`** — 4 frames. Sale despedida por los aires: cuerpo
-      arqueado hacia atrás, bastón suelto de una mano, en pleno vuelo.
-    - **`strong-fly-sheet-2.png`** — 5 frames. Cae y se estrella: rebota, queda tirada,
-      se reincorpora. (Se procesan como `hit_fly` y `hit_down`.)
+5. **`weak-punch-sheet.png`** — 4 frames en 1 fila. Piquete rápido con la PUNTA del
+   báculo (destello de cristal). Anticipación f1-2, SMEAR f3 (estela de la punta),
+   recupera f4.
 
-### Defensa
+6. **`punch-sheet.png`** — **8 frames** en 2 filas de 4 (bajamos de 10 → 8 para que
+   salgan más grandes; lo importante son los keyframes). BARRIDO corto de báculo a la
+   altura del pecho, soltando ESQUIRLAS de cristal:
+   - f1: guardia · f2-3: carga (recoge el báculo atrás, cristal cargando)
+   - f4: **SMEAR** — el báculo barre al frente con estela borrosa
+   - f5: IMPACTO — báculo extendido, estallido de cristales morados
+   - f6-8: sigue el arco y recupera la guardia
 
-14. **`block-sheet.png`** — 2 frames. Bloqueo de pie: pone el bastón HORIZONTAL
-    delante del cuerpo como barrera, un domo de pétalos rosa tenue al frente.
+7. **`kick-sheet.png`** — 8 frames en 2 filas de 4. Mazazo AMPLIO de báculo (de arriba
+   al frente), más lento y pesado, estalla en una flor de cristal al impactar. Misma
+   estructura (carga → smear f4 → impacto f5 → recupera).
 
-15. **`block-low-sheet.png`** — 2 frames. Bloqueo agachado: en cuclillas, el bastón
-    cruzado al frente, domo de pétalos bajo.
+8. **`crouch-punch-sheet.png`** — 3 frames. Estocada baja con la punta del báculo.
 
-### Final de ronda
+9. **`crouch-kick-sheet.png`** — 5 frames. GANCHO ASCENDENTE anti-aéreo: barre el
+   báculo de abajo-arriba en diagonal, cristales que suben (smear en el frame medio).
 
-16. **`ko-sheet.png`** — 5 frames. Derrota: se tambalea → cae de rodillas → queda
-    sentada/tirada con el bastón caído junto a ella (pero SIN soltarlo del todo).
+10. **`jump-punch-sheet.png`** — 4 frames. Corte aéreo: barrido diagonal de báculo
+    con esquirlas.
 
-17. **Victoria — en DOS HOJAS de 4 frames** (8 en total): de pie, alegre, alza el
-    Bloom Staff con una lluvia de pétalos rosa a su alrededor y mueve la BOCA (dice
-    algo tipo "¡Bloom!"). `victory-sheet.png` + `victory-sheet-2.png`.
+11. **`jump-kick-sheet.png`** — 4 frames. Picada aérea: clava el báculo hacia
+    abajo-adelante.
 
-## Golpes especiales
+### Recibir daño / defensa / final
 
-18. **`spin-kick-sheet.png`** — 8 frames en DOS FILAS de 4. **GIRO DE BASTÓN**
-    (peonza · E en el suelo): junta los PIES y gira como trompo con el Bloom Staff
-    extendido barriendo un círculo de PÉTALOS a su alrededor (tipo bo-staff spin).
-    Rota 360° (excepción a la vista de perfil: la muestra de frente y de espaldas
-    según el giro). Pies juntos, brazos con el bastón horizontal barriendo.
+12. **`take-hit-sheet.png`** — 4 frames. Retroceso de pie (sobresalto, torso atrás).
+13. **`take-hit-low-sheet.png`** — 3 frames. Retroceso en cuclillas.
+14. **Salir despedida — DOS hojas:** `strong-fly-sheet.png` (4f, vuela arqueada) +
+    `strong-fly-sheet-2.png` (5f, cae/rebota/tirada). (→ `hit_fly` y `hit_down`.)
+15. **`block-sheet.png`** — 2 frames. Báculo horizontal como barrera, domo de cristal
+    tenue al frente. **`block-low-sheet.png`** — 2 frames, agachada.
+16. **`ko-sheet.png`** — 5 frames. Se tambalea → cae de rodillas → queda sentada con
+    el báculo caído al lado (sin soltarlo del todo).
+17. **Victoria — DOS hojas de 4 frames:** de pie, alegre, alza el báculo con cristales
+    girando y mueve la BOCA. `victory-sheet.png` + `victory-sheet-2.png`.
 
-19. **`weak-punch-sheet.png`** — 4 frames en UNA fila. PIQUETE RÁPIDO con la PUNTA
-    del bastón (la flor de cristal) al frente — jab veloz y ligero, un destello rosa.
+---
 
-20. **`air-spin-kick-sheet.png`** — 8 frames en DOS FILAS de 4. MORTAL AÉREO con el
-    bastón: en el aire hace un giro/rueda con el Bloom Staff barriendo, estela de
-    pétalos. (Rota — de frente/espaldas según el giro.)
+## KIT ZONER de CRISTAL (el corazón del personaje)
 
-21. **`bloom-cast-sheet.png`** — 5 frames. **ESPECIAL FLORAL de AYE** (animación
-    `water_cast` en el motor, reusa ese slot). Clava el Bloom Staff hacia el SUELO,
-    alza la mano libre y GRITA el nombre del poder → brota una COLUMNA de FLORES /
-    géiser de pétalos rosa del suelo bajo el rival, lanzándolo hacia arriba. Se queda
-    DE PIE en su sitio. La BOCA se mueve como gritando (forma distinta cada frame).
-    - f1: postura de invocación, apunta el bastón al piso, boca cerrada
-    - f2: energía ROSA/floral naciendo en la punta, mano libre subiendo, boca abriéndose
-    - f3: mano bien ALZADA, BOCA MUY ABIERTA gritando, remolino de pétalos concentrándose
-    - f4: mantiene, máximo brillo rosa, pétalos girando
-    - f5: descarga: baja la mano al suelo, la energía floral se hunde (dispara la columna)
+Estas son sus herramientas de LARGA DISTANCIA. La animación de AYE va en su hoja; el
+CRISTAL/proyectil se dibuja como **efecto aparte** sobre verde (como los efectos de Fe).
 
-    **Efecto que acompaña:** `bloom-geyser-sheet.png` → columna de flores de 8 frames
-    (gota → domo → columna de pétalos → floración → estallido → se dispersa), anclada
-    al piso, brota bajo el rival.
+18. **`crystal-cast-sheet.png`** — 6 frames (reusa el slot `water_cast` del motor).
+    **DISPARO DE CRISTAL** (proyectil recto, su ataque principal a distancia):
+    - f1: guardia · f2: apunta el báculo al frente, cristal cargando en la flor
+    - f3: **BOCA gritando** el nombre, cristal al máximo brillo (anticipación)
+    - f4: **SMEAR** — empuja el báculo al frente, el cristal SALE disparado
+    - f5-6: recupera la guardia. Se queda DE PIE en su sitio.
+    **Efecto:** `crystal-shard-sheet.png` — 4 frames del proyectil: una **esquirla/
+    lanza de CRISTAL MORADO** facetada girando, con estela de destellos lila. Sobre
+    verde, sin personaje (vuela horizontal).
 
-## Compañera + efectos (sin personaje: SOLO el efecto sobre verde)
+19. **`crystal-pillar-cast-sheet.png`** — 5 frames. **PILAR DE CRISTAL** (zoning: clava
+    un muro/columna de cristal del piso a 1/2/3 cuerpos de distancia, para cortar el
+    acercamiento). Clava el báculo hacia el piso, boca gritando, energía morada bajando.
+    Se queda de pie.
+    **Efecto:** `crystal-pillar-sheet.png` — 6 frames de la columna (grieta → púa que
+    crece → cristal alto facetado → destella → se agrieta → se disuelve), anclada al
+    piso donde brota.
 
-22. **`pommy-bark-burst-sheet.png`** — 6 frames. **BARK BURST** (el especial de
-    Pommy): la Pomeranian (perrito naranja esponjoso con collar de flores) EMBISTE
-    hacia adelante soltando una RÁFAGA de energía FLORAL rosa que aturde. Dibuja SOLO
-    a Pommy corriendo + la onda de pétalos, sobre verde. 6 frames del dash + estallido.
+20. **`crystal-capture-sheet.png`** — 6 frames. **★ CAPTURA / CONGELACIÓN ★** (la
+    FIRMA de Aye). Extiende el báculo al frente con las DOS manos, la flor de cristal
+    disparando un haz morado; boca gritando; postura triunfal. Se queda de pie
+    mientras el rival queda atrapado.
+    - f1-2: alza y apunta el báculo, cristal cargando fuerte
+    - f3: **BOCA MUY ABIERTA** gritando, haz de cristal saliendo de la flor
+    - f4-6: mantiene el báculo extendido, cristales orbitando su punta
+    **Efecto (va SOBRE el rival):** `crystal-prison-sheet.png` — 6 frames de un
+    **cristal morado facetado ENCERRANDO** un hueco con forma de cuerpo (aparecen
+    esquirlas → crece la prisión de cristal traslúcido morado → sellado brillante →
+    se mantiene → grietas → estalla en esquirlas). Sobre verde, SIN personaje (es la
+    jaula; en el motor se dibuja encima del rival "congelado").
 
-23. **`petal-hit-sheet.png`** — 5 frames. Destello de impacto floral: estallido de
-    PÉTALOS rosa/magenta con corazón blanco (equivalente al relámpago de impacto,
-    pero en flores). Sobre verde, sin personaje.
+21. **`crystal-rain-cast-sheet.png`** — 5 frames. **LLUVIA DE CRISTALES** (control
+    aéreo/overhead): alza el báculo al cielo, la flor destella, invoca cristales que
+    caen. Boca gritando.
+    **Efecto:** `crystal-rain-sheet.png` — 6 frames de varias esquirlas de cristal
+    cayendo en diagonal y estallando al tocar el piso. Sobre verde.
+
+22. **`teleport-sheet.png`** — 4 frames. **DESTELLO DE CRISTAL** (escape del zoner:
+    backdash/parpadeo corto): se disuelve en un estallido de esquirlas moradas y se
+    rearma. f1: pose · f2: se fragmenta en cristales · f3: casi invisible (nube de
+    esquirlas) · f4: reaparece en guardia. (Para el motor: retroceso rápido con i-frames.)
+
+23. **`spin-kick-sheet.png`** — 8 frames en 2 filas de 4. **GIRO DE BÁCULO** (peonza,
+    su reversal cercano): junta los pies y gira como trompo con el báculo barriendo un
+    círculo de cristales. Rota 360° (excepción: se ve de frente/espaldas según el giro).
+
+24. **`air-spin-kick-sheet.png`** — 8 frames en 2 filas de 4. Giro aéreo con el báculo
+    barriendo, estela de cristales.
+
+---
+
+## Efectos de impacto (sin personaje: SOLO el efecto sobre verde)
+
+25. **`crystal-hit-sheet.png`** — 5 frames. Destello de impacto: estallido de
+    **esquirlas de CRISTAL morado/magenta** con corazón blanco (equivalente al
+    relámpago de impacto). Sobre verde, sin personaje.
+
+---
 
 ## Recordatorios
 
-- Energía SIEMPRE floral/rosa (pétalos, cristal), NUNCA fuego ni agua.
-- El bastón es UNA pieza continua; ojo con las puntas extendidas (medio cuerpo de
+- Energía SIEMPRE **cristal morado/lila** (esquirlas, prisión, pilar), NUNCA fuego ni
+  agua. Lo floral solo en la flor de cristal del báculo.
+- El báculo es UNA pieza continua; ojo con las puntas extendidas (medio cuerpo de
   espacio libre al frente).
 - Reframe los prompts de hit/recoil SIN "golpe/impacto/golpeada" (el filtro de la IA
   los rechaza): usa "retroceso/sobresalto".
-- ⚠️ **FILTRO DE CONTENIDO:** NO menciones EDAD ("niña de 5 años", "nena", "child",
-  etc.). El filtro rechaza describir a un menor. Encuádrala SIEMPRE como una
-  **ilustración CHIBI de anime / heroína mágica de fantasía / personaje de
-  videojuego** (arte de caricatura, no una persona real). Las proporciones chibi las
-  aporta la imagen de referencia — no hace falta decir la edad.
-- Pommy solo en el especial (§22), como efecto aparte.
+- ⚠️ **FILTRO DE CONTENIDO:** NO menciones EDAD ("niña", "nena", "child", "5 años").
+  El filtro rechaza describir a un menor. Encuádrala SIEMPRE como **ilustración CHIBI
+  de anime / maga de fantasía / personaje de videojuego** (arte de caricatura, no una
+  persona real). Las proporciones chibi las aporta la imagen de referencia.
+- **Prioridad de producción:** 1) las 4 base (pose, walk, crouch, jump) para tenerla
+  jugable, 2) el kit zoner (crystal-cast + crystal-shard, capture + crystal-prison,
+  pillar), 3) el resto (hit/block/ko/victory + normales cortos).
