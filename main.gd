@@ -2228,8 +2228,12 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 			combo_dmg[idx] += player_hp
 			player_hp = 0
 		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
-		# lanzamiento muy alto + caida acelerada (hard_fall)
-		victima.receive_hit(false, true, dir, "kick_impact", false, 1.9)
+		# lanzamiento alto + caida acelerada (hard_fall). Sube RECTO (vel_x=0) y SIN rebote de
+		# pared (wall_bounced=true) -> nunca entra en wall_splat boca abajo; cae BOCA ARRIBA
+		# igual en los dos ultras. Fuerza moderada (1.25) + tope de techo para no salirse arriba.
+		victima.receive_hit(false, true, dir, "kick_impact", false, 1.25)
+		victima.vel_x = 0.0
+		victima.wall_bounced = true
 		victima.hard_fall = true
 		await get_tree().create_timer(0.4, true, false, true).timeout
 		Engine.time_scale = 1.0
@@ -3541,7 +3545,9 @@ func _physics_process(_delta: float) -> void:
 	# aviso en pantalla: el jugador puede lanzar ANIQUILACIÓN (rival en rojo +
 	# combo VIVO de 3+, dentro de la ventana, no mientras el numero se apaga)
 	if ultra_hint:
+		# NO se muestra en training/práctica (free ni break): solo en VS CPU real
 		var listo: bool = state == "fight" and not ultra_active \
+				and dummy_ai_mode and not break_practice \
 				and combo_n[0] >= 3 and combo_t[0] <= COMBO_WINDOW \
 				and meter[0] >= 2.0
 		ultra_hint.visible = listo
