@@ -205,6 +205,12 @@ var hit_flying := false
 var walk_dir := 0
 var spd := 1.0   # multiplicador de velocidad de desplazamiento por personaje (Favi = ágil)
 var base_scale := Vector2.ONE   # escala base del sprite por personaje (Favi = nena, más chica)
+# Ajuste fino del KO TENDIDO (px de pantalla). El frame ancla su pixel más bajo al piso, pero en
+# poses acostadas ese pixel es una mano/katana y el CUERPO flota. Se corrige por personaje:
+#   up   = KO boca ARRIBA ("ko")     (+ baja el cuerpo, - lo sube)
+#   down = KO boca ABAJO ("ko_air")  (+ baja, - sube)
+var ko_lie_drop_up := 0.0
+var ko_lie_drop_down := 0.0
 var swing_layer: Node2D   # capa POR DELANTE del sprite para la estela del arma (z alto)
 var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar el cuerpo en el aire)
 var vel_y := 0.0
@@ -490,9 +496,11 @@ func force_grounded_ko() -> void:
 	if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
 		sprite.play("ko_air")   # TENDIDO boca abajo
 		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)
+		sprite.position.y = ko_lie_drop_down   # asienta el cuerpo en el piso (ver ko_lie_drop_*)
 	else:
 		sprite.play("ko")
 		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
+		sprite.position.y = ko_lie_drop_up
 
 func do_breaker() -> bool:
 	if not breaker_ready or koed:
@@ -569,6 +577,7 @@ func revive() -> void:
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
+	sprite.position.y = 0.0   # deshace el ajuste del KO tendido
 	sprite.play("pose")
 
 func celebrate() -> void:

@@ -207,7 +207,7 @@ const jobs = {
   walk:        ['walk-sheet.png',2,4,8,'walk',0.02,0.02,0],
   pose:        ['pose-sheet.png',2,2,4,'pose',0.05,0.05,0],
   punch:       ['punch-sheet.png',2,5,10,'punch',0.04,0.06,-1],
-  kick:        ['kick-sheet.png',2,5,10,'kick',0.04,0.06,-1],
+  kick:        ['kick-sheet.png',2,5,10,'kick',0.22,0.06,-1],   // marginL 0.22: el pie de atrás del lunge (f5) se sale ~62px de la celda
   // weak_punch (jab R): brazo extendido como punch -> método ÁREA (la cabeza dibujada
   // grande engaña al método cabeza, igual que en punch/kick).
   weak_punch:  ['weak-punch-sheet.png',1,4,4,'weak_punch',0.04,0.06,-1],

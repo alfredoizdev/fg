@@ -7,7 +7,13 @@ const OPTS := ["VS CPU", "TRAINING", "VS ONLINE"]
 const MODES := ["vs_cpu", "practice", ""]   # "" = deshabilitado
 const RED := Color(0.95, 0.24, 0.20)
 const GOLD := Color(0.98, 0.84, 0.32)
-const BG_PATH := "res://imagen-action/ui/posetr-ui.png"
+# FRAMES FINALES del título ya compuestos (tormenta + personajes fusionados). Ciclarlos =
+# relámpagos animados, sin depender de transparencia ni de la caché de importación.
+const STORM_FRAMES := [
+	"res://imagen-action/ui/title-storm-1.png", "res://imagen-action/ui/title-storm-2.png",
+	"res://imagen-action/ui/title-storm-3.png", "res://imagen-action/ui/title-storm-4.png",
+	"res://imagen-action/ui/title-storm-5.png", "res://imagen-action/ui/title-storm-6.png",
+]
 
 var sel := 0
 var has_bg := false
@@ -15,6 +21,14 @@ var big_font: SystemFont
 var opt_labels := []
 var fx: Control
 var t := 0.0
+# --- RELÁMPAGOS: un solo fondo que cicla los frames de tormenta con destellos ---
+var sky_node: TextureRect
+var flash_node: ColorRect
+var light_frames: Array = []
+var strike_t := 0.0        # tiempo restante del destello en curso
+var strike_dur := 0.0      # duración total del destello en curso
+var next_strike := 1.4     # cuenta atrás hasta el próximo relámpago
+const SKY_BASE := Color(1.0, 1.0, 1.0, 1.0)   # brillo base del fondo (la tormenta ya viene apagada)
 
 # posición del menú (abajo-centro)
 const OPT_Y0 := 706.0
@@ -26,16 +40,28 @@ func _ready() -> void:
 	big_font = SystemFont.new()
 	big_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
 	big_font.font_weight = 900
-	has_bg = ResourceLoader.exists(BG_PATH)
-	# FONDO: póster a pantalla completa (cover). Si no está, el _draw pone el logo temporal.
+	# FONDO: frames de tormenta ya compuestos (DAM vs Fe + relámpagos). Se ciclan para animar.
+	for p in STORM_FRAMES:
+		if ResourceLoader.exists(p):
+			light_frames.append(load(p))
+	has_bg = not light_frames.is_empty()
 	if has_bg:
-		var bg := TextureRect.new()
-		bg.texture = load(BG_PATH)
-		bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(bg)
+		var sky := TextureRect.new()
+		sky.texture = light_frames[0]
+		sky.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sky.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		sky.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sky.modulate = SKY_BASE
+		add_child(sky)
+		sky_node = sky
+		# DESTELLO del rayo: ilumina toda la escena (sobre el fondo, debajo del menú).
+		var fl := ColorRect.new()
+		fl.color = Color(0.82, 0.9, 1.0, 0.0)      # blanco-azulado, como un flash de tormenta
+		fl.set_anchors_preset(Control.PRESET_FULL_RECT)
+		fl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(fl)
+		flash_node = fl
 	# capa fx: velo + placa del seleccionado (encima del fondo, debajo de los labels)
 	fx = Control.new()
 	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -129,6 +155,33 @@ func _process(delta: float) -> void:
 	t += delta
 	if fx:
 		fx.queue_redraw()
+	_lightning(delta)
+
+# RELÁMPAGOS intermitentes: el cielo de tormenta descansa apagado y, cada cierto tiempo,
+# CAE un rayo -> cambia el patrón (otro claude-N), el cielo se ILUMINA con parpadeo y un
+# destello a pantalla completa; luego se asienta hasta el próximo.
+func _lightning(delta: float) -> void:
+	if sky_node == null or light_frames.is_empty():
+		return
+	if strike_t > 0.0:
+		strike_t -= delta
+		var prog := 1.0 - strike_t / strike_dur                 # 0 -> 1
+		var env := sin(prog * PI)                               # 0 -> 1 -> 0 (envolvente)
+		var flick := 1.0 if (int(prog * 38.0) % 2 == 0) else 0.55   # parpadeo eléctrico
+		var b := 1.0 + 0.85 * env * flick                      # el fogonazo ilumina la escena
+		sky_node.modulate = Color(b, b, minf(b * 1.05, 2.2), 1.0)
+		if flash_node:
+			flash_node.color.a = 0.26 * env * flick
+	else:
+		sky_node.modulate = sky_node.modulate.lerp(SKY_BASE, minf(delta * 5.0, 1.0))
+		if flash_node and flash_node.color.a > 0.0:
+			flash_node.color.a = maxf(0.0, flash_node.color.a - delta * 3.5)
+		next_strike -= delta
+		if next_strike <= 0.0:
+			sky_node.texture = light_frames[randi() % light_frames.size()]   # nuevo patrón de rayo
+			strike_dur = randf_range(0.26, 0.5)                # dura el fogonazo
+			strike_t = strike_dur
+			next_strike = randf_range(1.4, 3.6)                # pausa hasta el siguiente
 
 func _unhandled_input(_e: InputEvent) -> void:
 	if Input.is_action_just_pressed("ui_up"):

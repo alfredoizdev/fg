@@ -11,7 +11,7 @@ var hp_max := [1200, 1200]   # vida máxima por lado [P1, P2], se setea de cada 
 const HIT_MARGIN := 59.0     # tolerancia extra de alcance
 const AIR_REACH_H := 302.0   # altura maxima a la que un golpe aereo alcanza a un rival en el piso
 const WINS_NEEDED := 2       # rondas para ganar el combate
-const BODY_SEP := 143.0      # distancia minima entre cuerpos en el piso
+const BODY_SEP := 225.0      # distancia minima entre cuerpos en el piso (antes 143 = se metían uno dentro del otro)
 const TRAINING := false      # modo entrenamiento: sin rival, sin escenario, sin UI
 const STAGE := 3             # 1 = ciudad en llamas, 2 = noche de luna, 3 = templo al atardecer
 const CITY_NODES := ["BG", "StageBase", "Flame1", "Patch1", "Patch2", "Patch3",
@@ -190,6 +190,23 @@ var _outline_mat: ShaderMaterial = null
 var pin_panel: ColorRect
 var pin_label: Label
 var pin_success_t := 0.0
+# ===== MENÚ DE PAUSA (dentro de la pelea): CONTINUAR / COMBOS / SALIR =====
+var pause_root: Control            # capa raíz del menú de pausa (sobre todo, z alto)
+var pause_lines: TextureRect       # líneas de acción manga tintadas al color del personaje
+var pause_title_lbl: Label         # "PAUSA"
+var pause_sub_lbl: Label           # nombre del personaje elegido
+var pause_hint_lbl: Label          # ayuda de controles
+var pause_items: Array = []        # labels de las opciones
+var pause_plates: Array = []       # polígonos de fondo de cada opción (para resaltar)
+var pause_accent := Color(1.7, 0.35, 0.22)   # color del personaje (rojo DAM / azul Fe)
+var pause_sel := 0
+var pause_in_combos := false       # true = viendo la sublista de COMBOS
+var pause_prev_state := "fight"    # estado al que se vuelve al reanudar
+var pause_combos: Control          # subpanel con la lista de movimientos
+var pause_combos_title: Label
+var pause_combos_moves: Label
+var pause_combos_fin: Label
+var pause_combos_border: Array = []
 var combo_seq := []   # secuencia de golpes del combo actual del jugador
 # secuencia exacta que debe ejecutar el jugador para el SUCCESS de cada combo
 const COMBO_SEQS := {
@@ -722,6 +739,7 @@ func _ready() -> void:
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pp.add_child(pl)
 	pin_label = pl
+	_build_pause()          # menú de pausa de la pelea (ESC): CONTINUAR / COMBOS / SALIR
 	if TRAINING:
 		_enter_training()
 	elif Sel.configured:
@@ -969,17 +987,265 @@ func _hide_announce_soon() -> void:
 		announce.visible = false
 
 # pone el título / MOVES / FINISHERS de la lista según el personaje ELEGIDO
+# texto de MOVE LIST por personaje (compartido por la pantalla MOVES y el menú de pausa)
+func _char_move_text(cid: String) -> Dictionary:
+	if cid == "favi":
+		return {
+			"title": "FE — MOVE LIST",
+			"moves": "MOVES:\n\nR  —  Quick needle jab (4)\n↓ + R  —  Low needle jab (4)\nQ  —  Scissor slash (10)\n→ + Q  —  Double scissor\nW  —  Heavy scissor (10)\n↓ + Q  —  Crouch scissor (3)\n↓ + W  —  Rising needles (5) ▲\nE  —  Needle spin · 2 hits\n↓ + E  —  Ground sweep (6) ▼\nJump + Q  —  Air scissor (4)\nJump + W  —  Dive needle (4)\nJump + E  —  Air somersault (8) ▲\n\n▲ = launches into the air     ▼ = knocks down",
+			"fin": "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  WATER GEYSER · 1/2/3 bodies\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick\n\nPARRY (Q + W a la vez):  counter · 1 barra · corta el combo rival",
+		}
+	return {
+		"title": "DAM — MOVE LIST",
+		"moves": "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\n\n▲ = launches into the air     ▼ = knocks down",
+		"fin": "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP\n\nPARRY (Q + W a la vez):  counter · 1 barra · corta el combo rival",
+	}
+
 func _set_moves_text() -> void:
 	if moves_title == null:
 		return
-	if selected_char == "favi":
-		moves_title.text = "FE — MOVE LIST"
-		moves_col1.text = "MOVES:\n\nR  —  Quick needle jab (4)\n↓ + R  —  Low needle jab (4)\nQ  —  Scissor slash (10)\n→ + Q  —  Double scissor\nW  —  Heavy scissor (10)\n↓ + Q  —  Crouch scissor (3)\n↓ + W  —  Rising needles (5) ▲\nE  —  Needle spin · 2 hits\n↓ + E  —  Ground sweep (6) ▼\nJump + Q  —  Air scissor (4)\nJump + W  —  Dive needle (4)\nJump + E  —  Air somersault (8) ▲\n\n▲ = launches into the air     ▼ = knocks down"
-		moves_fin.text = "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  WATER GEYSER · 1/2/3 bodies\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick"
-	else:
-		moves_title.text = "DAM — MOVE LIST"
-		moves_col1.text = "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\n\n▲ = launches into the air     ▼ = knocks down"
-		moves_fin.text = "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP"
+	var t := _char_move_text(selected_char)
+	moves_title.text = String(t["title"])
+	moves_col1.text = String(t["moves"])
+	moves_fin.text = String(t["fin"])
+
+# ============================================================================
+#  MENÚ DE PAUSA (ESC en pelea): CONTINUAR / COMBOS / SALIR AL MENÚ
+#  Estilo tipo SF6/Guilty Gear: velo oscuro + líneas de acción manga tintadas
+#  al color del personaje, placas inclinadas que se encienden al seleccionar.
+# ============================================================================
+const PAUSE_LABELS := ["CONTINUAR", "COMBOS", "SALIR AL MENÚ"]
+
+func _pause_plate_poly(w: float, h: float, slant: float) -> PackedVector2Array:
+	# paralelogramo inclinado (misma estética que los carteles de BREAK/COUNTER)
+	return PackedVector2Array([Vector2(slant, 0.0), Vector2(w, 0.0),
+			Vector2(w - slant, h), Vector2(0.0, h)])
+
+func _build_pause() -> void:
+	var root := Control.new()
+	root.position = Vector2.ZERO
+	root.size = Vector2(1920, 1080)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.z_index = 120                       # SOBRE todo (peleadores + HUD + combo)
+	root.visible = false
+	$UI.add_child(root)
+	pause_root = root
+	# velo oscuro casi opaco
+	var veil := ColorRect.new()
+	veil.color = Color(0.02, 0.02, 0.06, 0.9)
+	veil.position = Vector2.ZERO; veil.size = Vector2(1920, 1080)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(veil)
+	# líneas de acción manga (ciclan y se tintan al color del personaje en _open/_process)
+	var lines := TextureRect.new()
+	lines.size = Vector2(1920, 1080)
+	lines.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	lines.stretch_mode = TextureRect.STRETCH_SCALE
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lines.modulate = Color(1.7, 0.35, 0.22, 0.14)
+	if ultra_panels.size() > 0:
+		lines.texture = ultra_panels[0]
+	root.add_child(lines)
+	pause_lines = lines
+	# barras diagonales de acento (arriba y abajo) para enmarcar
+	for yb in [Vector2(0.0, 96.0), Vector2(0.0, 968.0)]:
+		var bar := Polygon2D.new()
+		bar.polygon = PackedVector2Array([Vector2(0, yb.y), Vector2(1920, yb.y - 34.0),
+				Vector2(1920, yb.y + 12.0), Vector2(0, yb.y + 46.0)])
+		bar.color = Color(1.7, 0.35, 0.22, 0.55)
+		bar.name = "AccentBar"
+		root.add_child(bar)
+	# título "PAUSA"
+	var ttl := Label.new()
+	ttl.text = "PAUSA"
+	ttl.add_theme_font_override("font", combo_font)
+	ttl.add_theme_font_size_override("font_size", 150)
+	ttl.add_theme_color_override("font_color", Color(0.97, 0.97, 1.0))
+	ttl.add_theme_color_override("font_outline_color", Color(1.7, 0.35, 0.22))
+	ttl.add_theme_constant_override("outline_size", 14)
+	ttl.position = Vector2(230, 150)
+	ttl.size = Vector2(900, 170)
+	root.add_child(ttl)
+	pause_title_lbl = ttl
+	# subtítulo: nombre del personaje elegido
+	var sub := Label.new()
+	sub.add_theme_font_override("font", combo_font)
+	sub.add_theme_font_size_override("font_size", 46)
+	sub.add_theme_color_override("font_color", Color(1.7, 0.4, 0.24))
+	sub.position = Vector2(244, 322)
+	sub.size = Vector2(900, 56)
+	root.add_child(sub)
+	pause_sub_lbl = sub
+	# placas del menú (inclinadas), una por opción
+	pause_items.clear()
+	pause_plates.clear()
+	var pw := 640.0
+	var ph := 92.0
+	var slant := 34.0
+	for i in PAUSE_LABELS.size():
+		var pos := Vector2(240.0, 468.0 + float(i) * 118.0)
+		# sombra
+		var sh := Polygon2D.new()
+		sh.polygon = _pause_plate_poly(pw, ph, slant)
+		sh.color = Color(0, 0, 0, 0.4)
+		sh.position = pos + Vector2(9, 10)
+		root.add_child(sh)
+		# placa
+		var plate := Polygon2D.new()
+		plate.polygon = _pause_plate_poly(pw, ph, slant)
+		plate.color = Color(0.08, 0.09, 0.14, 0.92)
+		plate.position = pos
+		root.add_child(plate)
+		pause_plates.append(plate)
+		# texto
+		var lab := Label.new()
+		lab.add_theme_font_override("font", combo_font)
+		lab.add_theme_font_size_override("font_size", 48)
+		lab.add_theme_color_override("font_color", Color(0.6, 0.62, 0.7))
+		lab.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+		lab.add_theme_constant_override("outline_size", 5)
+		lab.position = pos + Vector2(slant + 40.0, 16.0)
+		lab.size = Vector2(pw, ph)
+		lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lab.text = PAUSE_LABELS[i]
+		root.add_child(lab)
+		pause_items.append(lab)
+	# ayuda de controles (abajo)
+	var hint := Label.new()
+	hint.add_theme_font_size_override("font_size", 30)
+	hint.add_theme_color_override("font_color", Color(1.0, 0.7, 0.5))
+	hint.add_theme_constant_override("outline_size", 4)
+	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	hint.text = "↑ ↓  moverse       Q / Enter  elegir       ESC  seguir peleando"
+	hint.position = Vector2(240, 900)
+	hint.size = Vector2(1440, 40)
+	root.add_child(hint)
+	pause_hint_lbl = hint
+	# ---- SUBPANEL DE COMBOS (lista de movimientos del personaje) ----
+	var cp := Control.new()
+	cp.position = Vector2.ZERO; cp.size = Vector2(1920, 1080)
+	cp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cp.visible = false
+	root.add_child(cp)
+	pause_combos = cp
+	var panel := ColorRect.new()
+	panel.color = Color(0.03, 0.03, 0.08, 0.97)
+	panel.position = Vector2(250, 96)
+	panel.size = Vector2(1420, 890)
+	cp.add_child(panel)
+	pause_combos_border.clear()
+	# marco de acento (4 líneas)
+	for r in [Rect2(0, 0, 1420, 6), Rect2(0, 884, 1420, 6), Rect2(0, 0, 6, 890), Rect2(1414, 0, 6, 890)]:
+		var br := ColorRect.new()
+		br.position = r.position; br.size = r.size
+		br.color = Color(1.7, 0.4, 0.24, 0.6)
+		panel.add_child(br)
+		pause_combos_border.append(br)
+	var ct := Label.new()
+	ct.add_theme_font_override("font", combo_font)
+	ct.add_theme_font_size_override("font_size", 54)
+	ct.add_theme_color_override("font_color", Color(1.7, 0.4, 0.24))
+	ct.position = Vector2(0, 30); ct.size = Vector2(1420, 66)
+	ct.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(ct)
+	pause_combos_title = ct
+	# separador bajo el título
+	var sep := ColorRect.new()
+	sep.position = Vector2(90, 116); sep.size = Vector2(1240, 3)
+	sep.color = Color(1.0, 0.6, 0.3, 0.5)
+	panel.add_child(sep)
+	var cm := Label.new()
+	cm.add_theme_font_size_override("font_size", 27)
+	cm.add_theme_color_override("font_color", Color(0.92, 0.92, 0.96))
+	cm.position = Vector2(90, 150); cm.size = Vector2(640, 700)
+	panel.add_child(cm)
+	pause_combos_moves = cm
+	# separador vertical
+	var vsep := ColorRect.new()
+	vsep.position = Vector2(720, 140); vsep.size = Vector2(3, 700)
+	vsep.color = Color(1.0, 0.6, 0.3, 0.4)
+	panel.add_child(vsep)
+	var cf := Label.new()
+	cf.add_theme_font_size_override("font_size", 27)
+	cf.add_theme_color_override("font_color", Color(1.0, 0.82, 0.4))
+	cf.add_theme_color_override("font_outline_color", Color(0.22, 0.03, 0.0))
+	cf.add_theme_constant_override("outline_size", 4)
+	cf.position = Vector2(760, 150); cf.size = Vector2(600, 700)
+	panel.add_child(cf)
+	pause_combos_fin = cf
+	var cb := Label.new()
+	cb.add_theme_font_size_override("font_size", 28)
+	cb.add_theme_color_override("font_color", Color(1.0, 0.75, 0.45))
+	cb.text = "ESC / W  —  volver"
+	cb.position = Vector2(0, 838); cb.size = Vector2(1420, 40)
+	cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(cb)
+
+func _open_pause() -> void:
+	if state != "fight":
+		return
+	pause_prev_state = state
+	state = "pause"
+	pause_sel = 0
+	pause_in_combos = false
+	player.input_enabled = false
+	dummy.ai_enabled = false
+	# color del personaje ELEGIDO (azul Fe / rojo DAM)
+	pause_accent = Color(0.5, 0.85, 1.9) if selected_char == "favi" else Color(1.7, 0.4, 0.24)
+	pause_sub_lbl.text = ("FE" if selected_char == "favi" else "DAM") + "   —   ROUND EN PAUSA"
+	pause_sub_lbl.add_theme_color_override("font_color", pause_accent)
+	pause_title_lbl.add_theme_color_override("font_outline_color", pause_accent)
+	pause_hint_lbl.add_theme_color_override("font_color", pause_accent.lerp(Color(1, 1, 1), 0.45))
+	pause_lines.modulate = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.14)
+	pause_combos_title.add_theme_color_override("font_color", pause_accent)
+	for b in pause_combos_border:
+		(b as ColorRect).color = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.6)
+	for a in pause_root.get_children():
+		if a is Polygon2D and (a as Polygon2D).name == "AccentBar":
+			(a as Polygon2D).color = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.55)
+	pause_combos.visible = false
+	pause_root.visible = true
+	_pause_refresh()
+	Engine.time_scale = 0.0                  # CONGELA la pelea (el menú anima en tiempo real)
+
+func _pause_refresh() -> void:
+	for i in pause_items.size():
+		var selq := i == pause_sel
+		var lab := pause_items[i] as Label
+		var plate := pause_plates[i] as Polygon2D
+		lab.text = ("▶   " if selq else "     ") + String(PAUSE_LABELS[i])
+		lab.add_theme_color_override("font_color", Color(1, 1, 1) if selq else Color(0.58, 0.6, 0.7))
+		plate.color = pause_accent if selq else Color(0.08, 0.09, 0.14, 0.92)
+
+func _pause_show_combos(show: bool) -> void:
+	pause_in_combos = show
+	if show:
+		var t := _char_move_text(selected_char)
+		pause_combos_title.text = String(t["title"])
+		pause_combos_moves.text = String(t["moves"])
+		pause_combos_fin.text = String(t["fin"])
+	pause_combos.visible = show
+
+func _pause_confirm() -> void:
+	match pause_sel:
+		0:
+			_close_pause()                   # CONTINUAR
+		1:
+			_pause_show_combos(true)         # COMBOS
+		2:
+			# SALIR AL MENÚ PRINCIPAL (restaurar time_scale ANTES de cambiar de escena)
+			Engine.time_scale = 1.0
+			Sel.configured = false
+			get_tree().change_scene_to_file("res://title.tscn")
+
+func _close_pause() -> void:
+	pause_in_combos = false
+	pause_combos.visible = false
+	pause_root.visible = false
+	state = pause_prev_state
+	Engine.time_scale = 1.0
+	player.input_enabled = true
+	dummy.ai_enabled = dummy_ai_mode
 
 func _open_moves() -> void:
 	state = "moves"
@@ -1480,6 +1746,10 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, DAM_FEET_FROM_CENTER / DAM_SCALE - DAM_FEET_FROM_CENTER)
 		f.spd = 1.0
+		# KO tendido de DAM: el cuerpo flotaba (el pixel más bajo era la mano/katana).
+		# Se baja el boca-arriba y se sube el boca-abajo (que estaba hundido ~100px).
+		f.ko_lie_drop_up = 70.0
+		f.ko_lie_drop_down = -95.0
 	f.sprite.play("pose")
 
 # ESPECIAL DE AGUA de Fe (medialuna + Q/W/E): brota un géiser a 1/2/3 CUERPOS adelante.
@@ -3415,10 +3685,36 @@ func _physics_process(_delta: float) -> void:
 		if Input.is_action_just_pressed("ui_cancel"):
 			_open_moves()
 			return
+	# ===== MENÚ DE PAUSA (mientras está congelado el combate) =====
+	if state == "pause":
+		# animación en tiempo REAL (el juego está en time_scale 0): líneas manga ciclan
+		# y la placa activa PULSA. Time.get_ticks_msec NO se ve afectado por time_scale.
+		var pt := float(Time.get_ticks_msec()) / 1000.0
+		if pause_lines and ultra_panels.size() > 0:
+			pause_lines.texture = ultra_panels[int(pt * 6.0) % ultra_panels.size()]
+		if not pause_in_combos and pause_sel < pause_plates.size():
+			var pulse := 0.68 + 0.32 * absf(sin(pt * 5.0))
+			var c := Color(pause_accent.r * pulse, pause_accent.g * pulse, pause_accent.b * pulse, 1.0)
+			(pause_plates[pause_sel] as Polygon2D).color = c
+		if pause_in_combos:
+			if Input.is_action_just_pressed("ui_cancel") or Input.is_action_just_pressed("kick"):
+				_pause_show_combos(false)
+			return
+		var pd := 0
+		if Input.is_action_just_pressed("ui_up"):
+			pd = -1
+		if Input.is_action_just_pressed("ui_down"):
+			pd = 1
+		if pd != 0:
+			pause_sel = posmod(pause_sel + pd, pause_items.size())
+			_pause_refresh()
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
+			_pause_confirm()
+		elif Input.is_action_just_pressed("ui_cancel"):
+			_close_pause()          # ESC = seguir peleando
+		return
 	if state == "fight" and Input.is_action_just_pressed("ui_cancel"):
-		# ESC en pelea: vuelve a la PANTALLA PRINCIPAL (escena separada)
-		Sel.configured = false
-		get_tree().change_scene_to_file("res://title.tscn")
+		_open_pause()               # ESC en pelea: abre el menú de pausa (ya NO salta al título)
 		return
 
 	# en entrenamiento solo existe el jugador: sin empuje, sin golpes, sin barras
@@ -3594,6 +3890,12 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	if att.airborne or def.airborne:
 		# las giratorias barren mas banda vertical (el mortal cubre todo el giro)
 		var v_max := 420.0 if String(atk["name"]) in ["spin_kick", "air_spin_kick"] else 360.0
+		# Fe EN EL SUELO no alcanza a un rival ALTO en el aire (no pega desde abajo al aire
+		# vacío): sólo llega a un rival BAJO, recién lanzado. Lanzadores (giratoria/crouch_kick)
+		# llegan un poco más. (Sólo Fe -> att.fx_blue; DAM queda intacto.)
+		if att.fx_blue and not att.airborne and def.airborne \
+				and (def.floor_y - def.position.y) > 60.0:
+			v_max = 250.0 if String(atk["name"]) in ["spin_kick", "crouch_kick"] else 150.0
 		alcanza = absf(att.position.y - def.position.y) <= v_max
 	if not alcanza:
 		if String(atk["name"]) in ["spin_kick", "air_spin_kick", "ember_dash"]:

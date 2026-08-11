@@ -55,3 +55,12 @@ func play_menu_music() -> void:
 func stop_menu_music() -> void:
 	if _music != null:
 		_music.stop()
+
+# al CERRAR la ventana: parar la música y soltar el stream para que el AudioServer no
+# avise "resource still in use at exit". (En cierre por Ctrl+C / kill duro el aviso puede
+# seguir saliendo porque ese camino no dispara esta notificación — es inofensivo.)
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+		if _music != null:
+			_music.stop()
+			_music.stream = null
