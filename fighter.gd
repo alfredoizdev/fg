@@ -1288,6 +1288,15 @@ func _physics_process(delta: float) -> void:
 		elif hit_flying and vel_y > 0.0:
 			g_mult = 1.7
 		vel_y += GRAVITY * g_mult * delta
+		# CAÍDA: mientras va ALTO y descendiendo en pose de vuelo, NO congelar el frame
+		# TENDIDO (el hit_fly de Fe termina horizontal). Mantiene tumbo de caída y recién se
+		# tiende cerca del piso (evita que Fe "flote acostada" muy arriba tras el combo/remate).
+		if hit_flying and vel_y > 0.0 and String(sprite.animation) == "hit_fly" \
+				and sprite.sprite_frames.has_animation("hit_fly") \
+				and (floor_y - position.y) > 260.0:
+			var lastf := sprite.sprite_frames.get_frame_count("hit_fly") - 1
+			if sprite.frame >= lastf:
+				sprite.frame = maxi(1, lastf - 2)   # vuelve a pose de caída (no la tendida)
 		if air_atk:
 			if floating:
 				vel_y = minf(vel_y, 300.0 * CHAR_SCALE)   # descenso lento SOLO si conectó

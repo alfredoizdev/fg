@@ -2079,7 +2079,11 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 		# tambaleo, ideal para la rafaga continua del ultra; ya con arte nuevo)
 		victima.crouching = false
 		victima.airborne = false
+		victima.hit_flying = false
+		victima.hard_fall = false
 		victima.ultra_hover = false
+		victima.vel_y = 0.0
+		victima.position.y = victima.floor_y   # se queda EN EL PISO toda la ráfaga (no flota)
 		# SIEMPRE mira hacia el atacante para que el recular sea acorde al golpe
 		victima.set_facing(1 if atacante.position.x > victima.position.x else -1)
 		if victima.sprite.sprite_frames.has_animation("pummeled"):
@@ -2114,6 +2118,18 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 	ultra_largo = largo
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
+	# EL ULTRA AGARRA AL RIVAL: si estaba EN EL AIRE / volando / lejos arriba, se lo trae al
+	# PISO de pie y de FRENTE. Sin esto quedaba flotando arriba recibiendo golpes fantasma y
+	# virado al revés (DAM en el suelo pegándole al aire).
+	victima.airborne = false
+	victima.hit_flying = false
+	victima.hard_fall = false
+	victima.ultra_hover = false
+	victima.crouching = false
+	victima.vel_x = 0.0
+	victima.vel_y = 0.0
+	victima.position.y = victima.floor_y
+	victima.set_facing(-dir)
 	# PRIMER golpe bloqueable: si el rival lo bloquea, la ANIQUILACIÓN NO entra
 	var arranque: String = victima.receive_hit(false, false, dir, "kick_impact")
 	if arranque != "hit" and arranque != "launched":
@@ -3890,10 +3906,10 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	if att.airborne or def.airborne:
 		# las giratorias barren mas banda vertical (el mortal cubre todo el giro)
 		var v_max := 420.0 if String(atk["name"]) in ["spin_kick", "air_spin_kick"] else 360.0
-		# Fe EN EL SUELO no alcanza a un rival ALTO en el aire (no pega desde abajo al aire
-		# vacío): sólo llega a un rival BAJO, recién lanzado. Lanzadores (giratoria/crouch_kick)
-		# llegan un poco más. (Sólo Fe -> att.fx_blue; DAM queda intacto.)
-		if att.fx_blue and not att.airborne and def.airborne \
+		# EN EL SUELO no se alcanza a un rival ALTO en el aire (no pegar desde abajo al aire
+		# vacío): sólo llega a un rival BAJO, recién lanzado. Los LANZADORES (giratoria /
+		# crouch_kick) llegan un poco más para poder encadenar el juggle. Aplica a ambos.
+		if not att.airborne and def.airborne \
 				and (def.floor_y - def.position.y) > 60.0:
 			v_max = 250.0 if String(atk["name"]) in ["spin_kick", "crouch_kick"] else 150.0
 		alcanza = absf(att.position.y - def.position.y) <= v_max

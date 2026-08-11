@@ -248,7 +248,7 @@ const jobs = {
   // lado de DAM. La IA la dibujó ENCOGIDA en la fuente: a 0.98 salía chica (410-470) y
   // a 1.10 quedaba corta (460-528); override 1.22 la sube a ~510-585 (frame erguido ~=
   // walk). Cabeza sacudida -> no sirve el método CABEZA. BUCLE: f6 empalma con f1.
-  pummeled:    ['pummeled-sheet.png',2,3,6,'pummeled',0.08,0.12,1.22],
+  pummeled:    ['pummeled-sheet.png',2,3,6,'pummeled',0.08,0.12,1.22,false,true],   // flipH: la hoja está dibujada mirando a la IZQUIERDA; se espeja para que mire a la DERECHA como el resto
   // vuelo/piso: la cabeza no es fiable (arqueada/tirada), escala fija a ojo (matchea walk)
   hit_fly:     ['strong-fly-sheet.png',1,4,4,'hit_fly',0.1,0.3,1.139],
   hit_down:    ['strong-fly-sheet-2.png',1,5,5,'hit_down',0.1,0.3,1.47],
