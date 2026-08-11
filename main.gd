@@ -6,7 +6,9 @@ const LEFT_LIMIT := 115.0
 const RIGHT_LIMIT := 1805.0
 const MAX_HP := 100   # (legado; la vida real es por personaje según arquetipo)
 # vida por ARQUETIPO (puede variar por personaje)
-const ARCH_HP := {"assassin": 1200, "wizard": 1000, "warrior": 1500}
+# TRIÁNGULO de arquetipos: warrior=TANK (aguanta y pega fuerte, pero lento + super armor),
+# assassin=RUSHDOWN (glass cannon: rápida y combea, poca vida), wizard=ZONER (medio).
+const ARCH_HP := {"assassin": 1050, "wizard": 1150, "warrior": 1500}
 var hp_max := [1200, 1200]   # vida máxima por lado [P1, P2], se setea de cada peleador
 const HIT_MARGIN := 59.0     # tolerancia extra de alcance
 const AIR_REACH_H := 302.0   # altura maxima a la que un golpe aereo alcanza a un rival en el piso
@@ -127,7 +129,7 @@ var char_pick_label: Label        # "PLAYER 1 — CHOOSE YOUR FIGHTER" / "SELECT
 const CHARS := [
 	{"id": "dam",  "name": "DAM",  "arch": "assassin", "avatar": "res://imagen-action/dam/avatar/dam-avatar.png",  "frames": "res://fighter_frames.tres", "scale": 1.0},
 	{"id": "favi", "name": "FE",   "arch": "assassin", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "frames": "res://favi_frames.tres",   "scale": 0.82},
-	{"id": "aye",  "name": "AYE",  "arch": "assassin", "avatar": "res://imagen-action/aye/avatar/aye-avatar.png",   "frames": "res://fighter_frames.tres", "scale": 0.78},
+	{"id": "aye",  "name": "AYE",  "arch": "wizard", "avatar": "res://imagen-action/aye/sheets/aye-face.png",   "frames": "res://fighter_frames.tres", "scale": 0.78},
 ]
 var char_panel: ColorRect
 var char_cards := []            # [{border, av, name_lbl, wip_lbl, ready}] por personaje
@@ -1527,7 +1529,8 @@ const FAVI_FEET_FROM_CENTER := 500.0
 
 # AYE (The Blooming Dynamo): NENA de ~5 años -> más baja aún que Fe. Ágil ("dynamo").
 # Pre-cableada con PLACEHOLDER (los frames de DAM) hasta procesar sus hojas verdes.
-const AYE_SPD := 1.25
+const AYE_SPD := 1.0     # multiplicador de la velocidad de ANIMACIÓN de Aye (anims sin override)
+const AYE_MOVE_SPD := 0.52   # velocidad de DESPLAZAMIENTO (desacoplada): no-skate para el walk nuevo (paso 136px, 56 frames)
 const AYE_SCALE := 0.72            # ~5 años: más chica que Fe (0.85)
 const AYE_FEET_FROM_CENTER := 500.0
 
@@ -1663,14 +1666,39 @@ func _build_aye_frames() -> SpriteFrames:
 		if not sf.has_animation(anim):
 			sf.add_animation(anim)
 		sf.set_animation_loop(anim, dam.get_animation_loop(anim))
-		sf.set_animation_speed(anim, dam.get_animation_speed(anim) * AYE_SPD)
+		var base_speed: float = dam.get_animation_speed(anim) * AYE_SPD
 		var real := _aye_action_frames(anim)
 		if real.is_empty():
+			sf.set_animation_speed(anim, base_speed)
 			for i in dam.get_frame_count(anim):   # placeholder: frame de DAM
 				sf.add_frame(anim, dam.get_frame_texture(anim, i))
 		else:
+			# la animación de Aye puede tener MÁS frames que DAM (ej. walk 16 vs 8). Escalamos la
+			# velocidad al conteo REAL para conservar la MISMA cadencia (el ciclo dura igual, no
+			# patina): fps = fps_dam * AYE_SPD * (frames_aye / frames_dam).
+			var dcount: int = maxi(1, dam.get_frame_count(anim))
+			sf.set_animation_speed(anim, base_speed * float(real.size()) / float(dcount))
 			for t in real:
 				sf.add_frame(anim, t)
+	# WALK de Aye: cadencia PROPIA y calmada. El video es una zancada más lenta/larga que la
+	# marcha rápida de DAM (13fps); heredar esa velocidad con 16 frames la hacía ir glitch-rápido.
+	# ~15fps con 16 frames = ciclo ~1.07s (se lee como caminata). Tuneable.
+	if sf.has_animation("walk") and not _aye_action_frames("walk").is_empty():
+		sf.set_animation_speed("walk", 30.0)
+	# POSE (idle) de Aye: cadencia CALMA de respiración (12 frames @ 5fps = ciclo ~2.4s). Tuneable.
+	if sf.has_animation("pose") and not _aye_action_frames("pose").is_empty():
+		sf.set_animation_speed("pose", 24.0)
+	# WALK_BACK de Aye: animación PROPIA de retroceso (NO es el walk al revés). Solo se crea si
+	# ya existen sus frames (imagen-action/aye/walk_back/aye-walk_back-N.png); si no, el motor cae
+	# al fallback (walk invertido). Velocidad a calibrar cuando lleguen los frames (como el walk).
+	var wb := _aye_action_frames("walk_back")
+	if not wb.is_empty():
+		if not sf.has_animation("walk_back"):
+			sf.add_animation("walk_back")
+		sf.set_animation_loop("walk_back", true)
+		sf.set_animation_speed("walk_back", 30.0)   # 29 frames de salto @ 30fps = ~1s por brinco. Tuneable.
+		for t in wb:
+			sf.add_frame("walk_back", t)
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
 	return sf
@@ -1739,16 +1767,17 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.base_scale = Vector2(AYE_SCALE, AYE_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, AYE_FEET_FROM_CENTER / AYE_SCALE - AYE_FEET_FROM_CENTER)
-		f.spd = AYE_SPD
+		f.spd = AYE_MOVE_SPD
 	else:
 		f.sprite.sprite_frames = _build_dam_frames()
 		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, DAM_FEET_FROM_CENTER / DAM_SCALE - DAM_FEET_FROM_CENTER)
-		f.spd = 1.0
+		f.spd = 0.9   # TANK: se desplaza más lento (le cuesta acercarse a un zoner) -> su debilidad
+		f.has_super_armor = true   # TANK: super armor en el arranque de su pesado (kick)
 		# KO tendido de DAM: el cuerpo flotaba (el pixel más bajo era la mano/katana).
 		# Se baja el boca-arriba y se sube el boca-abajo (que estaba hundido ~100px).
-		f.ko_lie_drop_up = 70.0
+		f.ko_lie_drop_up = 120.0   # (antes 70, quedaba flotando alto vs Fe -> se baja más)
 		f.ko_lie_drop_down = -95.0
 	f.sprite.play("pose")
 
@@ -2308,7 +2337,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	_play_voz("inferno")                   # GRITA el poder al alzar la katana (ANTES de la bola)
 	# CUT-IN: el retrato sale en el lado OPUESTO al contador de combo (para no chocar).
 	var combo_x: float = float(combo_rest_x[idx])
-	_play_cutin(-1 if combo_x >= 960.0 else 1)   # combo a la derecha -> retrato a la izquierda
+	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)   # combo a la derecha -> retrato a la izquierda
 	flash_ms = Time.get_ticks_msec()
 	# velo TENUE: el cut-in va DETRÁS de la acción y del velo, así que lo dejamos
 	# suave para que el retrato/banda se vean brillantes (el drama lo da el cut-in).
@@ -2459,6 +2488,9 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	if voz != null and atacante.voz_player != null:
 		atacante.voz_player.stream = voz
 		atacante.voz_player.play()
+	# CUT-IN del PERSONAJE (como el inferno de DAM): retrato de Fe en el lado opuesto al combo
+	var combo_x: float = float(combo_rest_x[idx])
+	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)
 	# entrada cinemática: congela un instante + velo AZUL marino
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(0.05, 0.12, 0.35, 0.5)
@@ -3444,9 +3476,14 @@ func _build_cutin() -> void:
 	cutin_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cutin_root.add_child(cutin_flash)
 
-func _play_cutin(side: int) -> void:
+func _play_cutin(side: int, caster: Node2D = null) -> void:
 	if cutin_root == null:
 		return
+	# retrato del PERSONAJE que castea: DAM usa su cut-in del inferno; Fe su victory-hud.
+	if caster != null and cutin_portrait != null:
+		var ctex := "res://imagen-action/favi/sheets/victory-hud-fe-key.png" if caster.fx_blue else "res://imagen-action/dam/cutin/dam-cutin.png"
+		if ResourceLoader.exists(ctex):
+			cutin_portrait.texture = load(ctex)
 	# side = -1 (retrato a la IZQUIERDA) o +1 (DERECHA). Se pasa el OPUESTO al combo.
 	cutin_side = side
 	cutin_ms = Time.get_ticks_msec()
@@ -3938,6 +3975,15 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	if result == "blocked":
 		var didx := 1 if att_is_player else 0
 		meter[didx] = maxf(0.0, meter[didx] - float(atk.get("damage", 50)) * BLOCK_DRAIN)
+	if result == "armored":
+		# TANK aguantó con super armor: recibe CHIP (daño reducido), SIN combo/hitstop/empuje.
+		# El chip NO lo mata (min 1) para que su pesado alcance a rematar al assassin.
+		var chip := maxi(1, int(float(atk.get("damage", 50)) * 0.45))
+		if att_is_player:
+			dummy_hp = maxi(1, dummy_hp - chip)
+		else:
+			player_hp = maxi(1, player_hp - chip)
+		_shake(6.0, 0.08)
 	if result == "hit" or result == "launched":
 		# HITSTOP: ambos se CONGELAN unos frames en el impacto (peso + pausa entre golpes,
 		# como los juegos pro). La duración escala con el PESO del golpe: jab ligero =
@@ -4058,12 +4104,17 @@ func _end_round(player_won: bool) -> void:
 	ko_red.color.a = 0.0
 	ko_lines.visible = false
 	await get_tree().create_timer(0.7).timeout
+	var winner: Node2D = player if player_won else dummy
 	if player_won:
 		player.celebrate()
 	else:
 		dummy.celebrate()
-	# GANADOR: su retrato (estilo cut-in del inferno) entra DETRÁS de los peleadores;
-	# el player celebra ENCIMA y SOBRESALE. Por ahora siempre DAM (Fe/otros luego).
+	# GANADOR: su retrato (estilo cut-in del inferno) entra DETRÁS de los peleadores; el
+	# ganador celebra ENCIMA y SOBRESALE. El retrato y el nombre son del PERSONAJE que ganó.
+	var win_tex := "res://imagen-action/favi/sheets/victory-hud-fe-key.png" if winner.fx_blue else "res://imagen-action/dam/cutin/dam-cutin.png"
+	if ResourceLoader.exists(win_tex):
+		win_portrait.texture = load(win_tex)
+	var win_name := "FE" if winner.fx_blue else "DAM"
 	var wside := -1 if player_won else 1
 	var wrest_x := (-CUTIN_PW * 0.14) if wside < 0 else (1920.0 - CUTIN_PW * 0.86)
 	var woff_x := wrest_x - 240.0 * float(wside)
@@ -4074,7 +4125,7 @@ func _end_round(player_won: bool) -> void:
 	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)
 	ko_lines.visible = true
 	ko_red.color.a = 0.0
-	_show_announce("DAM WINS", Color(0.88, 0.75, 0.28), 3.3, wside)
+	_show_announce(win_name + " WINS", Color(0.88, 0.75, 0.28), 3.3, wside)
 	var ws := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - ws < 340:
 		var wp := float(Time.get_ticks_msec() - ws) / 340.0

@@ -145,7 +145,7 @@ const ANIM_LEVEL := {
 var sfx_key := ""
 
 @export var is_player := true
-@export var archetype := "assassin"   # define la vida: assassin 1200 · wizard 1000 · warrior 1500
+@export var archetype := "assassin"   # define la vida (ver ARCH_HP en main.gd): assassin 1050 · wizard 1150 · warrior 1500
 
 var input_enabled := true
 # EMBER DASH (↓→+Q): estado del especial
@@ -211,6 +211,7 @@ var base_scale := Vector2.ONE   # escala base del sprite por personaje (Favi = n
 #   down = KO boca ABAJO ("ko_air")  (+ baja, - sube)
 var ko_lie_drop_up := 0.0
 var ko_lie_drop_down := 0.0
+var has_super_armor := false   # TANK (DAM): aguanta golpes NO-lanzadores en el arranque de su pesado
 var swing_layer: Node2D   # capa POR DELANTE del sprite para la estela del arma (z alto)
 var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar el cuerpo en el aire)
 var vel_y := 0.0
@@ -958,6 +959,14 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 		return "ignored"
 	if koed or (is_downed() and not hit_flying):
 		return "ignored"
+	# SUPER ARMOR (TANK): durante el ARRANQUE de su golpe pesado (kick) aguanta golpes
+	# NO-lanzadores sin trastabillar ni frenar su golpe -> mata el mash del assassin. Recibe
+	# CHIP (lo aplica main._process_attacker). Los LANZADORES (strong/wall/trip) SÍ lo atraviesan.
+	if has_super_armor and not airborne and String(sprite.animation) == "kick" \
+			and sprite.is_playing() and sprite.frame <= 4 \
+			and not strong and not wall and not trip:
+		_burst(0.7, false, 1, atk_blue)   # chispa de aguante
+		return "armored"
 	special_t = 0.0  # un golpe recibido corta el dash especial
 	fe_dash_t = 0.0  # ...y también el dash de agujas de Fe
 	fe_dash_active = false
@@ -1428,16 +1437,27 @@ func _physics_process(delta: float) -> void:
 		var forward := signi(int(dir)) == facing
 		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * spd * delta
 		var want := 1 if forward else -1
-		if sprite.animation != "walk" or walk_dir != want:
-			if forward:
-				sprite.play("walk")
-			else:
-				sprite.play_backwards("walk")
+		if walk_dir != want or not _is_locomotion_anim():
+			_play_locomotion(forward)
 		walk_dir = want
 	else:
 		walk_dir = 0
-		if sprite.animation == "walk":
+		if _is_locomotion_anim():
 			sprite.play("pose")
+
+# ¿está en una animación de locomoción? (walk adelante o walk_back atrás)
+func _is_locomotion_anim() -> bool:
+	return sprite.animation == "walk" or sprite.animation == "walk_back"
+
+# reproduce la locomoción correcta: walk hacia adelante; al retroceder usa walk_back (animación
+# PROPIA de back-pedal) si existe, si no cae al walk invertido (comportamiento anterior).
+func _play_locomotion(forward: bool) -> void:
+	if forward:
+		sprite.play("walk")
+	elif sprite.sprite_frames.has_animation("walk_back"):
+		sprite.play("walk_back")
+	else:
+		sprite.play_backwards("walk")
 
 func _ai_process(delta: float) -> void:
 	if not ai_enabled or koed or ai_target == null or airborne:
@@ -1493,8 +1513,8 @@ func _ai_process(delta: float) -> void:
 			walk_dir = 1
 		"retreat":
 			position.x -= facing * WALK_BACK_SPEED * 0.75 * spd * delta
-			if sprite.animation != "walk" or walk_dir != -1:
-				sprite.play_backwards("walk")
+			if walk_dir != -1 or not _is_locomotion_anim():
+				_play_locomotion(false)
 			walk_dir = -1
 		"punch", "kick", "spin_kick", "crouch_punch", "crouch_kick":
 			walk_dir = 0
@@ -1511,7 +1531,7 @@ func _ai_process(delta: float) -> void:
 			ai_timer = randf_range(0.6, 1.0)   # presiona con el próximo combo antes
 		_:
 			walk_dir = 0
-			if sprite.animation == "walk":
+			if _is_locomotion_anim():
 				sprite.play("pose")
 
 func _unhandled_input(event: InputEvent) -> void:

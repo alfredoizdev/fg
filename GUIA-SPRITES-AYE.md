@@ -1,226 +1,325 @@
-# AYE — Crystal Witch (ZONER) · Guía de sprites
+# AYE — Crystal Witch (ZONER) · Animation guide (describe the MOVEMENT)
 
-> Guía ESPECÍFICA de AYE, la 3ª peleadora. Es una **MAGA/WIZARD de LARGA DISTANCIA
-> (ZONER)**: controla el espacio con **CRISTALES MORADOS** que brotan de su báculo
-> de flor-de-cristal. Su firma es **CAPTURAR/CONGELAR** al rival encerrándolo en un
-> cristal morado. Las reglas de producción (chroma verde, mirando a la derecha, un
-> personaje por frame, etc.) siguen calcadas de `GUIA-SPRITES-FAVI.md`.
+> **(ES) Nota para vos:** los prompts están en **INGLÉS** para que la herramienta de IA
+> los entienda mejor. Pegá cada bloque tal cual. Los títulos de sección van en inglés,
+> pero cualquier duda me preguntás en español.
 
-> **Lo que manda en TODAS sus animaciones:**
-> 1. Empuña un **BÁCULO** (mango morado, flor de cristal rosa/magenta en la punta).
-> 2. Su energía son **CRISTALES MORADOS/LILA** y destellos (NADA de fuego ni agua;
->    lo floral vive solo en la flor de cristal del báculo).
-> 3. Es **ZONER**: su fuerte es a distancia (proyectiles, pilares, congelación). Su
->    cuerpo a cuerpo es **corto y débil A PROPÓSITO** — golpes de báculo solo para
->    empujar y ganar espacio, no para combos largos.
+> AYE-specific guide, the 3rd fighter. She is a **LONG-RANGE MAGE / WIZARD (ZONER)**:
+> she controls space with **PURPLE CRYSTALS** shot from her crystal-flower staff. Her
+> signature is **CAPTURE/FREEZE** — trapping the opponent inside a purple crystal.
 
----
+> **NEW WORKFLOW (important):** we no longer build sprite sheets. We now use an
+> **ANIMATION tool**: we give it **Aye's reference image** + a **prompt that DESCRIBES
+> THE MOVEMENT** we want, and the tool generates the animation itself; **I then process
+> it** for the game. So this guide is just a list of **MOVEMENT DESCRIPTIONS**, one per
+> animation — we never ask for counts or sheets, we only describe HOW she moves.
 
-## Diseño de AYE (de la imagen de referencia #133 — es la CANÓNICA)
-
-Pega esto en cada prompt, con la **imagen de referencia de AYE** adjunta:
-
-> Mismo personaje EXACTO de la referencia — ILUSTRACIÓN CHIBI estilo anime, una
-> pequeña MAGA de fantasía (personaje de videojuego, arte de caricatura estilizado,
-> NO una persona real ni una foto): piel morena, pelo castaño oscuro RIZADO recogido
-> en una **COLETA ALTA** con un **scrunchie ROSA** (mechones rizados sueltos), ojos
-> grandes de estilo anime. Viste un **VESTIDO LILA/lavanda de MANGAS FAROL** (puff
-> sleeves cortas), cuello cuadrado con **ribete DORADO**, un **MOÑO ROSA** grande en
-> la cintura, una **enagua ROSA** que asoma bajo la falda, y el ruedo con ribete
-> dorado. Calza **BOTAS DE LLUVIA de degradé** (de arriba a abajo: amarillo → rosa →
-> celeste) con asas rosas. Su arma es un **BÁCULO/cetro** de mango MORADO largo y
-> delgado, rematado en una **FLOR DE CRISTAL** (cristales facetados rosa/magenta en
-> forma de loto abierto, con brillo). Sus proporciones son SIEMPRE IDÉNTICAS en TODAS
-> las hojas: la MISMA relación cabeza-a-cuerpo y la misma altura que en
-> `walk-sheet.png` / `pose-sheet.png` (esas dos mandan el tamaño). NUNCA la dibujes
-> más cabezona ni más rechoncha en unas hojas que en otras. Su energía son CRISTALES
-> MORADOS/LILA facetados y destellos magenta — NADA de fuego, NADA de agua, NADA de
-> katana ni agujas: UN báculo con flor de cristal. Misma paleta y mismo estilo de
-> línea exactos. Vista lateral de juego de pelea 2D (estilo KOF), personaje mirando a
-> la DERECHA en TODOS los frames — nunca de frente ni de espaldas (salvo giros).
-> Los frames van en UNA o DOS filas, de izquierda a derecha (fila de ARRIBA primero),
-> pies en la misma línea dentro de cada fila. Si hay dos filas, deja una franja
-> horizontal VACÍA entre ellas. Personaje completo en cada frame con margen (nada
-> cortado por el borde). Deja espacio VACÍO claro entre personaje y personaje: el
-> BÁCULO de frames vecinos NUNCA debe tocarse. En los frames de báculo EXTENDIDO al
-> frente, deja MÍNIMO medio cuerpo de espacio vacío hasta el siguiente personaje.
-> El báculo es UNA sola pieza continua en las manos: nunca fragmentado, duplicado ni
-> tirado. Cada frame es UN solo personaje completo. ANATOMÍA correcta: DOS brazos,
-> DOS piernas, DOS manos de 5 dedos y UN báculo. El vestido mantiene su borde inferior
-> NORMAL y limpio (NO rasgado). Fondo VERDE PURO #00FF00 plano y SIN NINGUNA marca
-> (sin números, letras ni líneas guía). Sin sombra en el piso. Sin desenfoque global
-> ni líneas de velocidad (los smears van SOLO donde se indique, ver Fluidez).
-
-Guarda cada hoja en `imagen-action/aye/sheets/` con el nombre indicado.
-
-**Nitidez vs. fluidez:** menos frames por FILA = cada personaje sale más grande y
-nítido. Para animaciones largas usa DOS FILAS (mi procesador las lee solo: arriba
-primero) o dos hojas (`walk-sheet.png` + `walk-sheet-2.png`).
-
-**Frames rebeldes:** si un frame sale mal repetido (de espaldas, báculo quieto, dos
-báculos), pídelo SOLO en su propia hoja de un personaje, hiperdetallado.
-Nómbrala `<accion>-f<numero>-sheet.png`.
+> **What rules ALL her animations:**
+>
+> 1. She wields a **STAFF** (straight purple shaft, pink/magenta crystal flower at the tip).
+> 2. Her energy is **PURPLE/LILAC CRYSTALS** and sparkles (NO fire, NO water; the only
+>    floral element is the crystal flower on the staff tip).
+> 3. She is a **ZONER**: her strength is at range (projectiles, pillars, freezing). Her
+>    close combat is **short and weak ON PURPOSE** — staff pokes just to push and gain
+>    space, not long combos.
 
 ---
 
-## FLUIDEZ estilo SF3 (Dudley) — la clave para que se vea NÍTIDA y FLUIDA
+## Generation rules (apply to EVERY prompt)
 
-Analizando los sprites de Dudley (SF3): lo que los hace fluidos NO es solo "más
-frames", sino **keyframes correctos**. Aplicar a TODAS las hojas de acción:
+Always set these, and attach **Aye's reference image** as the starting image (for the
+face use `aye-face`; for body/pose use the #133 reference):
 
-1. **Idle vivo:** la pose NO es estática — respira/rebota (por eso "vive"). Aye:
-   pecho sube/baja, cristal del báculo latiendo, algún cristalito flotando.
-2. **Estructura de cada ataque:** *anticipación (1-2 frames, recoge/carga) → golpe
-   con SMEAR (1 frame de estela en la parte más rápida) → IMPACTO/hold (1) →
-   recuperación (1-2, vuelve a la guardia).* Nunca saltar de guardia a impacto directo.
-3. **SMEAR:** en el frame más veloz, la punta del báculo (o el cristal) deja una
-   **estela borrosa** en el arco del movimiento (mancha alargada semitransparente),
-   como en SF3. Solo ESE frame lleva estela; los demás nítidos.
-4. **Squash & stretch sutil:** en el impacto el cuerpo se comprime/estira un toque;
-   al aterrizar de un salto, se achata un frame.
-5. **Volumen y silueta CONSTANTES:** la niña mide y pesa igual en todos los frames;
-   la pose se debe leer incluso en silueta negra.
+- **Aspect ratio: 1:1 (square)** — NOT 9:16 vertical (vertical crops the weapon on swings).
+- **LOCKED / FIXED camera**: no zoom, no pan, no push-in or pull-out. CRITICAL (if the
+  camera moves I can't process a clean animation).
+- **Aye ALWAYS centered, the SAME SIZE the whole time**, full body, feet visible on a flat
+  ground line, **side view facing RIGHT**.
+- **She moves IN PLACE** (walks/jumps/spins without traveling or leaving the frame, like on
+  a treadmill). She never exits the frame, not even during a swing.
+- **PURE GREEN #00FF00 flat, STATIC background**, no ground shadow, no text/marks, no
+  background particles.
+- **STRAIGHT, RIGID staff** (a ruler-straight rod, never curved/bent) and an **UPRIGHT,
+  STRAIGHT BACK**.
+- **PLAIN staff, NO effects — in EVERY animation:** the staff has NO glow, aura, energy or
+  sparkle on the shaft, and **NO crystals floating/orbiting** around her. All crystal magic
+  (charge, shards, prison, pillar, rain, impact) lives ONLY in the **separate EFFECT clips**
+  (over green, no character) — the engine composites it on top. The crystal flower at the tip
+  is a PHYSICAL part of the staff (always present), but with **no extra glow**.
+- **Empty green space on the LEFT and RIGHT** so staff swings don't get cut (see "Framing").
+- No camera blur or post FX; the motion must look **crisp**.
 
----
-
-## Las hojas BASE (empezar por estas)
-
-1. **`pose-sheet.png`** — **6 frames** (subimos de 4 → 6 para el idle vivo, en 2
-   filas de 3). Guardia de maga alegre: sostiene el báculo con una mano al
-   frente-abajo (flor de cristal apuntando adelante), la otra mano relajada.
-   Respiración: pecho sube/baja, la flor de cristal LATE (brillo variando), 1-2
-   cristalitos flotando. El loop CIERRA (f6 conecta con f1).
-
-2. **`walk-sheet.png`** — 8 frames en 2 filas de 4. Caminata de COMBATE: torso en
-   guardia, báculo siempre listo, ciclo clásico de piernas (contacto → apoyo →
-   cruce → alcance), f8 conecta con f1. Sube-y-baja SUTIL, misma altura base.
-
-3. **`crouch-sheet.png`** — 3 frames. Se agacha hasta cuclillas, báculo recogido
-   cruzado sobre las rodillas.
-
-4. **`jump-sheet.png`** — 6 frames. Salto: impulso (rodillas dobladas + squash 1
-   frame) → sube con el báculo pegado → ápice → cae. El loop de caída se sostiene.
-
-### Cuerpo a cuerpo (CORTO y débil — es zoner)
-
-5. **`weak-punch-sheet.png`** — 4 frames en 1 fila. Piquete rápido con la PUNTA del
-   báculo (destello de cristal). Anticipación f1-2, SMEAR f3 (estela de la punta),
-   recupera f4.
-
-6. **`punch-sheet.png`** — **8 frames** en 2 filas de 4 (bajamos de 10 → 8 para que
-   salgan más grandes; lo importante son los keyframes). BARRIDO corto de báculo a la
-   altura del pecho, soltando ESQUIRLAS de cristal:
-   - f1: guardia · f2-3: carga (recoge el báculo atrás, cristal cargando)
-   - f4: **SMEAR** — el báculo barre al frente con estela borrosa
-   - f5: IMPACTO — báculo extendido, estallido de cristales morados
-   - f6-8: sigue el arco y recupera la guardia
-
-7. **`kick-sheet.png`** — 8 frames en 2 filas de 4. Mazazo AMPLIO de báculo (de arriba
-   al frente), más lento y pesado, estalla en una flor de cristal al impactar. Misma
-   estructura (carga → smear f4 → impacto f5 → recupera).
-
-8. **`crouch-punch-sheet.png`** — 3 frames. Estocada baja con la punta del báculo.
-
-9. **`crouch-kick-sheet.png`** — 5 frames. GANCHO ASCENDENTE anti-aéreo: barre el
-   báculo de abajo-arriba en diagonal, cristales que suben (smear en el frame medio).
-
-10. **`jump-punch-sheet.png`** — 4 frames. Corte aéreo: barrido diagonal de báculo
-    con esquirlas.
-
-11. **`jump-kick-sheet.png`** — 4 frames. Picada aérea: clava el báculo hacia
-    abajo-adelante.
-
-### Recibir daño / defensa / final
-
-12. **`take-hit-sheet.png`** — 4 frames. Retroceso de pie (sobresalto, torso atrás).
-13. **`take-hit-low-sheet.png`** — 3 frames. Retroceso en cuclillas.
-14. **Salir despedida — DOS hojas:** `strong-fly-sheet.png` (4f, vuela arqueada) +
-    `strong-fly-sheet-2.png` (5f, cae/rebota/tirada). (→ `hit_fly` y `hit_down`.)
-15. **`block-sheet.png`** — 2 frames. Báculo horizontal como barrera, domo de cristal
-    tenue al frente. **`block-low-sheet.png`** — 2 frames, agachada.
-16. **`ko-sheet.png`** — 5 frames. Se tambalea → cae de rodillas → queda sentada con
-    el báculo caído al lado (sin soltarlo del todo).
-17. **Victoria — DOS hojas de 4 frames:** de pie, alegre, alza el báculo con cristales
-    girando y mueve la BOCA. `victory-sheet.png` + `victory-sheet-2.png`.
+**Saving:** save whatever the tool outputs (clip or image) into `imagen-action/aye/sheets/`
+named after the action (e.g. `walk`, `crystal-cast`). I process it into
+`imagen-action/aye/<action>/aye-<action>-N.png`.
 
 ---
 
-## KIT ZONER de CRISTAL (el corazón del personaje)
+## AYE design (reference image #133 — this is CANONICAL)
 
-Estas son sus herramientas de LARGA DISTANCIA. La animación de AYE va en su hoja; el
-CRISTAL/proyectil se dibuja como **efecto aparte** sobre verde (como los efectos de Fe).
+Paste this design block into EVERY prompt, along with the reference image:
 
-18. **`crystal-cast-sheet.png`** — 6 frames (reusa el slot `water_cast` del motor).
-    **DISPARO DE CRISTAL** (proyectil recto, su ataque principal a distancia):
-    - f1: guardia · f2: apunta el báculo al frente, cristal cargando en la flor
-    - f3: **BOCA gritando** el nombre, cristal al máximo brillo (anticipación)
-    - f4: **SMEAR** — empuja el báculo al frente, el cristal SALE disparado
-    - f5-6: recupera la guardia. Se queda DE PIE en su sitio.
-    **Efecto:** `crystal-shard-sheet.png` — 4 frames del proyectil: una **esquirla/
-    lanza de CRISTAL MORADO** facetada girando, con estela de destellos lila. Sobre
-    verde, sin personaje (vuela horizontal).
+> The EXACT same character as the reference — a CHIBI anime-style illustration, a small
+> fantasy MAGE (a video-game character, stylized cartoon art, NOT a real person or a photo):
+> brown skin, dark-brown CURLY hair tied in a **HIGH PONYTAIL** with a **PINK scrunchie**
+> (loose curly strands), big anime eyes. She wears a **LILAC/lavender PUFF-SLEEVE DRESS**
+> (short puff sleeves), a square neckline with **GOLD trim**, a big **PINK BOW** at the
+> waist, a **PINK underskirt** peeking below, and a gold-trimmed hem. She wears **gradient
+> RAIN BOOTS** (top to bottom: yellow → pink → light blue) with pink pull loops. Her weapon
+> is a **STAFF** with a long, thin, **PERFECTLY STRAIGHT purple shaft** (like a spear shaft,
+> never curved or bent), tipped with a **CRYSTAL FLOWER** (faceted pink/magenta crystals in
+> an open-lotus shape). She holds it with a **STRAIGHT BACK and UPRIGHT torso** — firm,
+> elegant posture, shoulders back; NEVER hunched or bent over the staff. **Keep the SAME
+> size and the SAME proportions (head-to-body ratio) the WHOLE time** — never more big-headed
+> or chubbier. Her energy is faceted PURPLE/LILAC CRYSTALS and magenta sparkles — NO fire,
+> NO water, NO katana, NO needles: ONE staff with a crystal flower. Same palette and same
+> line style. 2D fighting-game side view (KOF style), facing **RIGHT**. Full body with margin
+> (nothing cropped by the edge). Correct anatomy: TWO arms, TWO legs, TWO five-fingered hands,
+> and ONE single staff (one continuous piece, never fragmented or duplicated). The dress hem
+> stays NORMAL and clean (NOT torn). PURE GREEN #00FF00 flat background with no marks.
 
-19. **`crystal-pillar-cast-sheet.png`** — 5 frames. **PILAR DE CRISTAL** (zoning: clava
-    un muro/columna de cristal del piso a 1/2/3 cuerpos de distancia, para cortar el
-    acercamiento). Clava el báculo hacia el piso, boca gritando, energía morada bajando.
-    Se queda de pie.
-    **Efecto:** `crystal-pillar-sheet.png` — 6 frames de la columna (grieta → púa que
-    crece → cristal alto facetado → destella → se agrieta → se disuelve), anclada al
-    piso donde brota.
+### Framing and SIDE SPACE (key for swings)
 
-20. **`crystal-capture-sheet.png`** — 6 frames. **★ CAPTURA / CONGELACIÓN ★** (la
-    FIRMA de Aye). Extiende el báculo al frente con las DOS manos, la flor de cristal
-    disparando un haz morado; boca gritando; postura triunfal. Se queda de pie
-    mientras el rival queda atrapado.
-    - f1-2: alza y apunta el báculo, cristal cargando fuerte
-    - f3: **BOCA MUY ABIERTA** gritando, haz de cristal saliendo de la flor
-    - f4-6: mantiene el báculo extendido, cristales orbitando su punta
-    **Efecto (va SOBRE el rival):** `crystal-prison-sheet.png` — 6 frames de un
-    **cristal morado facetado ENCERRANDO** un hueco con forma de cuerpo (aparecen
-    esquirlas → crece la prisión de cristal traslúcido morado → sellado brillante →
-    se mantiene → grietas → estalla en esquirlas). Sobre verde, SIN personaje (es la
-    jaula; en el motor se dibuja encima del rival "congelado").
+The framing must leave **empty green space on the LEFT and RIGHT** of Aye the WHOLE time, so
+a **staff swing** doesn't get cut (see the viking reference, image #147: character centered
+with plenty of green on both sides and front/back).
 
-21. **`crystal-rain-cast-sheet.png`** — 5 frames. **LLUVIA DE CRISTALES** (control
-    aéreo/overhead): alza el báculo al cielo, la flor destella, invoca cristales que
-    caen. Boca gritando.
-    **Efecto:** `crystal-rain-sheet.png` — 6 frames de varias esquirlas de cristal
-    cayendo en diagonal y estallando al tocar el piso. Sobre verde.
-
-22. **`teleport-sheet.png`** — 4 frames. **DESTELLO DE CRISTAL** (escape del zoner:
-    backdash/parpadeo corto): se disuelve en un estallido de esquirlas moradas y se
-    rearma. f1: pose · f2: se fragmenta en cristales · f3: casi invisible (nube de
-    esquirlas) · f4: reaparece en guardia. (Para el motor: retroceso rápido con i-frames.)
-
-23. **`spin-kick-sheet.png`** — 8 frames en 2 filas de 4. **GIRO DE BÁCULO** (peonza,
-    su reversal cercano): junta los pies y gira como trompo con el báculo barriendo un
-    círculo de cristales. Rota 360° (excepción: se ve de frente/espaldas según el giro).
-
-24. **`air-spin-kick-sheet.png`** — 8 frames en 2 filas de 4. Giro aéreo con el báculo
-    barriendo, estela de cristales.
+- **1:1 square** (not 9:16 vertical, which cuts the weapon on swings).
+- Aye takes up **~60% of the height**, centered, with **green margin on all 4 sides**: at
+  least **half a body-width** of green on the left and right, plus headroom and footroom.
+- The **staff at full extension NEVER touches the frame edge**.
+- Same body size and feet on the same line the whole time.
+- _(My processing: 1300×1280 canvas, body centered at x=650 → ~475px free on each side; for
+  very long staff swings I widen the canvas to 1600, which is safe.)_
 
 ---
 
-## Efectos de impacto (sin personaje: SOLO el efecto sobre verde)
+## How she should MOVE (SF3 / Dudley quality)
 
-25. **`crystal-hit-sheet.png`** — 5 frames. Destello de impacto: estallido de
-    **esquirlas de CRISTAL morado/magenta** con corazón blanco (equivalente al
-    relámpago de impacto). Sobre verde, sin personaje.
+This is what makes her look CRISP and FLUID — describe it in the prompts when relevant:
+
+1. **Idle and walk are ALIVE and LOOP:** they end where they started (the last instant links
+   to the first) so the cycle doesn't jump. The idle is NOT static: she breathes.
+2. **Every attack has 3 beats:** _anticipation (wind-up/charge) → fast strike (the fast part
+   leaves a light motion streak at the staff tip) → impact → recovery to GUARD._ Never jump
+   straight from guard to impact. **Start and end in the guard pose** (so the motion links and
+   closes cleanly).
+3. **Subtle squash & stretch:** on impact the body compresses/stretches a touch; on landing a
+   jump it squashes for a moment.
+4. **CONSTANT volume and silhouette:** she is the same size and weight the whole time; the pose
+   should read even as a silhouette.
 
 ---
 
-## Recordatorios
+## MOVEMENT PROMPTS (one per animation)
 
-- Energía SIEMPRE **cristal morado/lila** (esquirlas, prisión, pilar), NUNCA fuego ni
-  agua. Lo floral solo en la flor de cristal del báculo.
-- El báculo es UNA pieza continua; ojo con las puntas extendidas (medio cuerpo de
-  espacio libre al frente).
-- Reframe los prompts de hit/recoil SIN "golpe/impacto/golpeada" (el filtro de la IA
-  los rechaza): usa "retroceso/sobresalto".
-- ⚠️ **FILTRO DE CONTENIDO:** NO menciones EDAD ("niña", "nena", "child", "5 años").
-  El filtro rechaza describir a un menor. Encuádrala SIEMPRE como **ilustración CHIBI
-  de anime / maga de fantasía / personaje de videojuego** (arte de caricatura, no una
-  persona real). Las proporciones chibi las aporta la imagen de referencia.
-- **Prioridad de producción:** 1) las 4 base (pose, walk, crouch, jump) para tenerla
-  jugable, 2) el kit zoner (crystal-cast + crystal-shard, capture + crystal-prison,
-  pillar), 3) el resto (hit/block/ko/victory + normales cortos).
+> For each: paste the **design block** above + the **generation rules** + the movement text
+> below. All: fixed camera, in place, facing right, pure green. **In ALL of them: the staff is
+> PLAIN (no glow/effect) and NO floating crystals; crystal magic lives ONLY in the separate
+> EFFECT clips.**
+
+### BASE — do these first (they make her playable)
+
+**`pose` (idle):**
+
+> Aye stands in a mage guard, still in place, **breathing softly**: chest rises and falls
+> slowly, shoulders relaxed, a minimal sway. She **holds the staff with ONE hand** down-front
+> (crystal flower pointing forward), the other hand relaxed at her side. The **staff is PLAIN,
+> with no glow or effect, and NO crystals floating** around her. Minimal, calm motion, **closed
+> loop**. Feet planted.
+
+**`walk`:**
+
+> Aye walks IN PLACE (like on a treadmill, without traveling), side view facing right, in a
+> combat guard: torso firm, staff always ready. **Clear, natural leg cycle** (heel contact →
+> plant → push-off → legs crossing), a slight up-and-down bob, ponytail and skirt swaying a bit.
+> Determined pace. Continuous loop, same size, feet on the same line.
+
+**`walk_back` (retreat — BACKWARD HOPS):**
+
+> The tool keeps turning a "backward jumping" into a forward walk, so we use BACKWARD HOPS
+> instead — a distinct motion it animates reliably, and a cute retreat for her. Paste this as
+> don't make her smile or talking
+> PLAIN TEXT (no markdown symbols), with the design block + reference image
+
+A cute chibi anime fantasy mage character, cartoon video-game art, side view. She stays
+turned to the RIGHT the whole time, looking at an enemy on her right. She does small light
+HOPS BACKWARD, jumping to the LEFT: she bends her knees a little, pushes off both feet, hops
+up and lands a short distance to the LEFT, then immediately hops backward again, over and over,
+like a bunny hopping in reverse. She is hopping AWAY from the enemy, moving to the LEFT, but her
+face and chest keep pointing to the RIGHT the entire time. She never turns around and never
+faces left. She holds a plain straight purple staff with a crystal-flower tip in ONE hand, and
+the staff has no glow and no floating crystals around her. Pure green screen background, flat and
+static. The hops loop smoothly and evenly, same size, feet landing on the same ground line. Do
+not walk forward. Do not move to the right. Do not turn around.
+
+**`crouch`:**
+
+> Aye crouches from the guard down into a squat and holds it: bends knees, lowers her center,
+> tucks the staff across her knees, torso compact but back straight. Short, firm motion.
+
+**`jump`:**
+
+> Aye **jumps straight up in place**: bends knees (anticipation, compresses for a moment) →
+> pushes up with the staff held close → apex → falls → squashes for a moment on landing. She goes
+> up and down **inside the frame** (never leaves it).
+
+### CLOSE COMBAT (short and weak — she's a zoner)
+
+**`weak_punch`:**
+
+> Aye does a **quick short poke** forward with the TIP of the staff and returns **immediately to
+> guard**. Snappy, fast, short reach. Plain staff, no effects (the shards are in the separate
+> clip). Start and end in guard.
+
+**`punch`:**
+
+> Aye does a **short staff SWEEP at chest height**, back to front: draws the staff back → sweeps
+> forward hard (a light MOTION streak at the tip) → extends → recovers to guard. PLAIN staff, no
+> glow; the **crystal SHARDS** that come out on the extension are in the separate EFFECT clip.
+> Start and end in guard.
+
+**`kick`:**
+
+> Aye does a **wide, heavy overhead SMASH** with the staff, top to front (like a slow, weighty
+> chop); on impact the **crystal burst is in the separate EFFECT clip**. Then recovers to guard.
+> Plain staff. Slower and heavier than the punch. Start and end in guard.
+
+**`crouch_punch`:**
+
+> Crouched in a squat, Aye does a **quick low jab** with the staff tip forward and pulls it back.
+> Short. Start and end crouched in low guard.
+
+**`crouch_kick`:**
+
+> From a crouch, Aye does a **rising anti-air UPPERCUT sweep**: sweeps the staff diagonally
+> bottom-to-top; the rising crystals are in the separate EFFECT clip. Returns to low guard. Plain
+> staff. Start and end crouched.
+
+**`jump_punch`** _(aerial — give it a starting image of her jumping if you can):_
+
+> Suspended in the air, Aye does a **downward diagonal slash** with the staff toward down-forward;
+> legs tucked. Body airborne the whole time.
+
+**`jump_kick`** _(aerial):_
+
+> Suspended, Aye **stabs the staff down-forward** in a dive, body leaning. Airborne the whole time.
+
+### CRYSTAL ZONER KIT (the heart of the character)
+
+Aye's motion is her own clip; the **CRYSTAL/projectile is a SEPARATE clip** (only the effect over
+green, no character) — so the engine draws it separately.
+
+**`crystal_cast`** _(straight shot — her main ranged attack; uses the `water_cast` engine slot):_
+
+> From guard, Aye **aims the staff forward**, opens her MOUTH shouting the spell, and **thrusts the
+> staff forward** in a shooting gesture; then recovers to guard. She stays **standing in place** (it's
+> ranged). **PLAIN staff**: the energy charge and the fired crystal are ALL in the separate EFFECT
+> clip — draw no glow or projectile in her clip. Start and end in guard.
+
+> **Effect `crystal_shard`** (separate clip, OVER GREEN, NO character): a faceted **PURPLE CRYSTAL
+> shard/lance** flying horizontally to the right, spinning, with a trail of lilac sparkles.
+
+**`crystal_pillar_cast`** _(zoning wall):_
+
+> Aye **stabs the staff toward the ground** and, standing, mouth shouting, makes the gesture of summoning
+> a crystal wall/pillar at range; recovers to guard. Stays standing. **PLAIN staff**: the energy and the
+> pillar are in the separate EFFECT clips.
+
+> **Effect `crystal_pillar`** (separate, OVER GREEN, NO character): a **PURPLE faceted crystal COLUMN
+> erupting from the ground** (crack → spike growing fast → tall bright crystal → flashes → cracks →
+> dissolves). Anchored to the ground.
+
+**`crystal_capture`** _(★ her SIGNATURE — capture/freeze):_
+
+> Aye **extends the staff forward with BOTH hands** (exception: this capture IS two-handed), **mouth wide
+> open** shouting the spell, triumphant firm posture; she holds the staff extended aiming at the opponent.
+> She stays standing while (separately) the opponent gets trapped. **PLAIN staff**: the beam and the crystal
+> prison are in the separate EFFECT clips. Start in guard, end holding the capture pose.
+
+> **Effect `crystal_prison`** (separate, OVER GREEN, NO character): a **translucent faceted PURPLE crystal**
+> forming to **enclose a body-shaped hollow** (shards appear → the prison grows → bright seal → holds →
+> cracks → shatters into shards). In-game it's drawn **on top of the "frozen" opponent**.
+
+**`crystal_rain_cast`** _(aerial control / overhead):_
+
+> Aye **raises the staff to the sky**, mouth shouting, in the gesture of summoning a rain of crystals; recovers
+> to guard. Stays standing. **PLAIN staff**: the flash and the rain are in the separate EFFECT clips.
+
+> **Effect `crystal_rain`** (separate, OVER GREEN, NO character): several purple crystal shards **falling
+> diagonally** from above and **shattering when they hit the ground**.
+
+**`teleport`** _(escape / backdash with invincibility):_
+
+> Aye **dissolves into a burst of purple shards and reforms** a bit further back: pose → she fragments into
+> crystals → nearly invisible (cloud of shards) → reappears in guard. Fast and clean.
+
+**`spin_kick`** _(spinning top — her close reversal):_
+
+> Aye brings her feet together and **spins like a top**, sweeping the staff in a full circle (360°); the
+> circling crystals are in the separate EFFECT clip. Returns to guard. Centered, same size.
+
+**`air_spin_kick`** _(aerial):_
+
+> Suspended, Aye **spins in the air** sweeping the staff in a circle; the crystals are in the separate EFFECT
+> clip. Airborne the whole time.
+
+### TAKING DAMAGE / DEFENSE / FINISH
+
+> _(For the AI content filter: avoid "hit/impact/struck"; use "recoil/flinch".)_
+
+**`take_hit`:**
+
+> Aye gives a standing **FLINCH/recoil**: her torso snaps back, her head reacts, one foot steps back, then
+> returns to guard. Don't draw who pushes her.
+
+**`take_hit_low`:**
+
+> Crouched, Aye gives a small **flinch/recoil in a squat** and recovers.
+
+**`strong_fly`** _(she's knocked away → I get `hit_fly` and `hit_down` from this clip):_
+
+> Aye is **flung backward**: first she **flies through the air arched** (arms and staff loose, body in an arc),
+> then she **falls, bounces once** on the ground and **ends lying FACE-UP** (without fully letting go of the
+> staff). One continuous motion: fly → fall → lying. Frame it so the fly and the fall both fit.
+
+**`block`:**
+
+> Aye takes the **guard/block**: she holds the staff horizontally in front as a barrier; the faint purple
+> crystal dome is in the separate EFFECT clip. She holds firm. Short motion (raise guard → hold).
+
+**`block_low`:**
+
+> Same but **crouched**: low block in a squat with the staff and the crystal dome in front.
+
+**`ko`:**
+
+> Aye is defeated: she **staggers, drops to her knees and ends slumped/sitting** with the staff fallen to one
+> side (without fully letting go), head down. One continuous motion: stagger → fall → still.
+
+**`victory`:**
+
+> Aye **celebrates the win**: standing, cheerful, she **raises the staff and spins purple crystals** around her,
+> smiles and **moves her MOUTH** (as if saying something), triumphant pose. Short celebration loop.
+
+### IMPACT EFFECT (only the effect over green, no character)
+
+**`crystal_hit`:**
+
+> OVER GREEN, NO character: a **burst of PURPLE/magenta CRYSTAL shards with a bright white core** (a short
+> spark). Fixed camera.
+
+---
+
+## Reminders
+
+- Energy is ALWAYS **purple/lilac crystal** (shards, prison, pillar), NEVER fire or water. The only floral
+  element is the crystal flower on the staff tip.
+- The staff is **STRAIGHT and ONE continuous piece**; mind the extended tip (leave half a body of clear air
+  in front).
+- Damage prompts avoid "hit/impact/struck" → use "recoil/flinch" (the filter rejects the others).
+- ⚠️ **CONTENT FILTER:** do NOT mention AGE ("girl", "child", "kid", "years old"). The filter rejects
+  describing a minor. Always frame her as a **CHIBI anime illustration / fantasy mage / video-game character**
+  (cartoon art, not a real person). The chibi proportions come from the reference image.
+- **Priority:** 1) base (pose, walk, crouch, jump) to make her playable · 2) zoner kit (crystal-cast +
+  crystal-shard, capture + crystal-prison, pillar) · 3) the rest (hit/block/ko/victory + short normals + effects).

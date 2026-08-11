@@ -14,7 +14,7 @@ var configured := false     # true cuando el char-select terminó (la pelea arra
 const ROSTER := [
 	{"id": "dam",  "name": "DAM",  "arch": "ASSASSIN", "avatar": "res://imagen-action/dam/avatar/dam-avatar.png",   "portrait": "res://imagen-action/dam/sheets/select-character-post-Dam-2.png",  "stand": "res://imagen-action/dam/select/dam-select.png",   "stand_fallback": "res://imagen-action/dam/pose/dam-pose-1.png",   "weapon": "KATANA",       "power": "INFERNO"},
 	{"id": "favi", "name": "FE",   "arch": "ASSASSIN", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "portrait": "res://imagen-action/favi/sheets/select-character-post-Fe-2.png", "stand": "res://imagen-action/favi/select/favi-select.png", "stand_fallback": "res://imagen-action/favi/pose/favi-pose-1.png", "weapon": "TWIN NEEDLES", "power": "WHIRLPOOL"},
-	{"id": "aye",  "name": "AYE",  "arch": "ASSASSIN", "avatar": "res://imagen-action/aye/avatar/aye-avatar.png",   "portrait": "res://imagen-action/aye/sheets/slect-character-aye.png",        "stand": "res://imagen-action/aye/select/aye-select.png",   "stand_fallback": "res://imagen-action/aye/pose/aye-pose-1.png",   "weapon": "BLOOM STAFF",  "power": "BLOSSOM"},
+	{"id": "aye",  "name": "AYE",  "arch": "WIZARD", "avatar": "res://imagen-action/aye/sheets/aye-face.png",   "portrait": "res://imagen-action/aye/sheets/slect-character-aye.png",        "stand": "res://imagen-action/aye/select/aye-select.png",   "stand_fallback": "res://imagen-action/aye/pose/aye-pose-1.png",   "weapon": "CRYSTAL STAFF",  "power": "PRISM"},
 ]
 
 func portrait_of(id: String) -> String:
