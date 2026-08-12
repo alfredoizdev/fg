@@ -622,6 +622,16 @@ character.
 > warping, and NO motion-blur or smear; the same straight staff throughout. Plain staff, no glow. Pure green
 > screen #00FF00, flat, camera fixed and locked.
 
+### MANA CHANNEL — recharge (wizard resource)
+
+> **(ES) nota:** versión MINIMALISTA (efecto chico) para que el personaje se mida limpio y quede
+> del tamaño exacto y pegado al suelo. Animación en LOOP mientras canaliza (recarga rápido,
+> vulnerable; moverse/golpe la cancela). Con Grok: pega SOLO este prompt + la imagen de referencia.
+
+**`mana_charge` (channel to recharge mana — LOOP, minimal FX):**
+
+> Same character as the reference image: a chibi anime mage girl in a lilac puff-sleeve dress, holding a straight purple staff with a pink crystal flower on top. Side view, facing RIGHT. CRITICAL: fixed locked camera, NO zoom in or out at all, she stays the EXACT SAME SIZE and IN PLACE the whole time, feet flat on the ground; seamless loop. She stands still MEDITATING to recharge magic: upright, feet planted, holding the straight staff vertical with both hands, head lightly bowed, eyes half-closed, calm. THE MAIN MOTION is her CLOTHES and HAIR moving VIOLENTLY: her lilac dress, skirt and her curly hair and ponytail whip and flutter HARD UPWARD (as if a strong updraft blows up through her), then settle, looping. KEEP THE EFFECTS VERY MINIMAL: the ONLY effect is a SMALL, tight, faint purple glowing ring on the GROUND right under her feet — it stays SMALL and CONTAINED and does NOT expand, open wide or rise up. NO glow or shine on the staff or crystal (the crystal does NOT light up or flare), NO bright light burst, NO wide spreading particles. If any tiny sparkles appear, keep them very few and hugging CLOSE to her body, not spread out. Pure green #00FF00 flat static background, no motion blur.
+
 ### TAKING DAMAGE / DEFENSE / FINISH
 
 > _(For the AI content filter: avoid "hit/impact/struck"; use "recoil/flinch".)_
@@ -668,55 +678,76 @@ character.
 **`strong_fly`** _(she's knocked away → I get `hit_fly` and `hit_down` from this clip):_
 
 > STRICT SIDE VIEW / PROFILE. Aye is FLUNG BACKWARD to the LEFT (knocked away from a blow coming from the
-> RIGHT) in ONE continuous motion with TWO clearly separated phases, so I can cut it into "flying" and "fallen":
+> RIGHT) in ONE continuous motion with TWO clearly separated phases, so I can cut it into "flying" and "fallen".
+> Her FACE shows PAIN the WHOLE clip: EYES WIDE OPEN and MOUTH OPEN (crying out / wincing in pain) — never calm,
+> never eyes-closed, never neutral.
+>
+> IMPORTANT — SHE NEVER DROPS THE STAFF: she keeps a FIRM GRIP on her staff in the SAME ONE hand the ENTIRE time
+> and NEVER lets go, NEVER drops it, NEVER throws it, NEVER opens that hand, and NEVER switches it to her other
+> hand or passes it between hands — it is always the SAME single hand gripping the shaft, through the launch, the
+> arc, the bounce and the landing. The staff is a RIGID SOLID STRAIGHT ROD of CONSTANT length and shape (no
+> bending, stretching, warping, tapering or smear); it just tumbles WITH her, always held in that same hand.
 >
 > (1) FLY — she is launched off her feet up into the air, body ARCHED and tilted BACK (head trailing back and
-> LEFT, feet up and RIGHT), arms flailing loose and LIMP like a ragdoll, ponytail and dress streaming from the
-> speed. She is FULLY airborne, carried up-and-back through an arc — NOT holding any fighting pose.
+> LEFT, feet up and RIGHT), her FREE (empty) arm flailing loose while the OTHER hand keeps its firm hold on the
+> staff, ponytail and dress streaming from the speed, eyes wide and mouth open in pain. She is FULLY airborne,
+> carried up-and-back through an arc.
 >
 > (2) FALL & LIE — she drops, hits the floor and BOUNCES once, then comes to rest LYING FLAT ON HER BACK,
-> FACE-UP, arms out to the sides, head toward the LEFT and feet toward the RIGHT (lying horizontal along the
-> ground). The staff stays LOOSELY in one hand, resting beside her on the ground (do NOT throw it far away).
+> FACE-UP, head toward the LEFT and feet toward the RIGHT. CRITICAL: her hand NEVER opens and NEVER lets go of the
+> staff — her fingers stay CLOSED and WRAPPED tightly around the shaft the ENTIRE time; she is always HOLDING it
+> in her hand. As she lands, her arm lowers so the staff comes to a DIAGONAL angle held in her fist near her
+> chest. Keep the staff RIGHT-SIDE-UP: the CRYSTAL FLOWER is the TOP end and points UP-and-BACK (up in the air,
+> over toward her head), while the plain pointed butt-end is the LOWER end (toward her feet) — do NOT flip the
+> staff upside down, and the crystal flower must NEVER point down toward her feet or the floor. The staff is NEVER
+> left standing straight UP, and it is NEVER dropped, thrown, or lying loose on the floor apart from her hand — it
+> always stays gripped in her closed hand. Eyes open, mouth open, pained.
 >
 > Frame it TALL/WIDE enough that BOTH the top of the airborne arc AND the final lying-down pose are fully in
 > view (her whole body never cut off). Do NOT draw the attacker, and NO fists, weapons, sparks, blood or impact
-> effects touching her — only HER being flung and landing. The staff is a RIGID SOLID STRAIGHT ROD of CONSTANT
-> length and shape — no bending, stretching, warping, tapering or smear; it just tumbles with her, still the
-> same straight rigid rod every frame. Pure green screen #00FF00, flat, camera fixed and locked.
+> effects touching her — only HER being flung and landing. Pure green screen #00FF00, flat, camera fixed and locked.
 >
 > _(Content filter: avoid "hit/impact/struck/punch" — say "flung / knocked back / thrown / falls / lands".)_
 
-**`pummeled`** _(repeated stagger while being comboed — LOOPS):_
+**`get_up`** _(recovery from the downed pose — reference image = the LYING pose with the staff up; she lowers the staff and STANDS UP COMPLETELY):_
 
-> STRICT SIDE VIEW / PROFILE, facing RIGHT (never frontal). Aye is STANDING but being repeatedly JOLTED in
-> place — a LOOPING flinch: her head and upper body snap BACK and shudder over and over, as if taking a rapid
-> series of blows from the RIGHT. She staggers on her feet, arms limp and jostling, knees a little wobbly,
-> ponytail and dress shaking with each jolt. She stays roughly on the SAME SPOT on her feet the whole time
-> (does NOT fall down, does NOT crouch, does NOT leave the ground) and NEVER recovers to guard — a continuous
-> stunned, buffeted stagger that can loop seamlessly. Do NOT draw the attacker, and NO fists, weapons, sparks
-> or blood touching her — only HER repeated recoil.
+> Same character as the reference image: she is LYING on her BACK on the ground, head toward the LEFT and feet toward the RIGHT, holding her straight purple staff raised UP in one hand. STRICT SIDE VIEW / PROFILE, facing RIGHT the WHOLE time (NEVER frontal, NEVER facing the camera, NEVER three-quarter). Fixed locked camera, she stays IN PLACE, the SAME SIZE the whole time, one continuous clip. TWO phases:
 >
-> She keeps hold of her staff; it is a RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — no bending,
-> stretching, warping, tapering or smear; the same straight staff every frame. Pure green screen #00FF00, flat,
-> camera fixed and locked.
+> PHASE 1 — LOWER THE STAFF (she is still knocked out): she stays limp and motionless on her back — her EYES STAY CLOSED, her MOUTH STAYS CLOSED, and her body does NOT change its position at all. The ONLY thing that moves is her raised arm, which slowly LOWERS the staff down until it rests low. She keeps GRIPPING the staff the whole time — she never lets go and never drops it.
 >
-> _(Content filter: describe as "repeated flinch / stagger / being buffeted / jostled" — avoid "hit/impact/punch".)_
+> PHASE 2 — STAND ALL THE WAY UP (finish EXACTLY in the idle pose): then she RECOVERS and gets up COMPLETELY — her eyes open, she pushes off the ground, brings her legs under her, and RISES all the way up to her FEET. She MUST END standing EXACTLY in her calm RELAXED idle pose, matching the reference: standing upright and relaxed, arms DOWN, holding the staff LOOSELY in ONE hand hanging DOWN at her side with the staff VERTICAL and its bottom tip resting near the ground (her OTHER hand relaxed at her side), head level, eyes open, looking forward. Do NOT end with the staff raised up in front of her chest, do NOT hold it with BOTH hands, do NOT tilt her chin up — end in the loose, relaxed, arms-down idle exactly like the reference standing sprite. Do NOT stop halfway (no lying/sitting/kneeling/crouching).
+>
+> IMPORTANT — DO NOT CHANGE THE STAFF: the staff and its crystal flower keep the EXACT SAME simple shape and size as the reference the ENTIRE clip — do NOT redesign, ornament, deform, bend, stretch, taper, enlarge, or add extra crystals to it; it is always a plain thin STRAIGHT rigid rod with the same small crystal flower on top, held in the SAME one hand the whole time.
+>
+> Pure green #00FF00 flat static background, camera fixed and locked, no motion blur. Do NOT draw an attacker or any impact effects.
 
-**`wall_splat`** _(slams back-first into the stage wall, pinned flat, then peels off):_
+**`pummeled`** _(repeated stagger while being comboed — LOOPS. Truco anti-filtro: se describe como VIENTO + mareo, cero combate):_
 
-> STRICT SIDE VIEW / PROFILE, facing RIGHT (never frontal). Aye SLAMS BACK-FIRST into an invisible vertical
-> wall and is momentarily PINNED / SPLATTED flat against it, then peels off. Her back and shoulders press FLAT
-> as if against a vertical surface — spine upright, body flattened and slightly SQUASHED WIDER on impact — head
-> snapping back, arms and legs splayed out from the flattening, ponytail and dress flung UP from the slam: a
-> stunned "pancaked against the wall" pose. She stays UPRIGHT and vertical (NOT lying down), off-balance, then
-> begins to slump/peel FORWARD off the wall. Do NOT draw the wall itself, the attacker, or any dust/sparks/blood
-> — only HER flattened-against-the-wall reaction.
+> STRICT SIDE VIEW / PROFILE, facing RIGHT the whole time (NEVER frontal, NEVER three-quarter). Fixed locked
+> camera, pure flat green #00FF00 background, she stays on the SAME SPOT and the SAME SIZE the entire clip.
 >
-> She keeps hold of her staff; RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — no bending, stretching,
-> warping, tapering or smear; the same straight staff every frame. Pure green screen #00FF00, flat, camera
-> fixed and locked.
+> She is STANDING, dizzy and dazed with her eyes squeezed shut, while sudden POWERFUL GUSTS OF WIND coming
+> from the RIGHT side of the frame rock her on her feet, in a repeating cycle that alternates two reactions:
 >
-> _(Content filter: "slams back into a wall, pinned flat, then peels off" — avoid "impact/struck".)_
+> HIGH GUST — her head snaps back toward the LEFT, chin up, back arching, shoulders thrown back, one foot
+> sliding back a small step to keep her balance, ponytail whipping across her face and skirt flaring.
+>
+> LOW GUST — she doubles over at the waist, head and shoulders dropping down and forward, hair falling over
+> her face, knees dipping slightly.
+>
+> Each reaction is a SHARP, FAST snap followed by a brief wobbly half-recovery — she stays dazed the whole
+> time, arms hanging loose and swinging with each snap, legs staggering under her, but she NEVER falls,
+> NEVER kneels, NEVER crouches and NEVER leaves the ground. Dizzy expression throughout: eyes squeezed shut,
+> brows knit, mouth open.
+>
+> She keeps GRIPPING her staff in the SAME one hand the whole clip — that arm swings loosely, the staff
+> never leaves her hand and never touches the ground. The staff is a plain RIGID SOLID STRAIGHT rod of
+> CONSTANT length and thickness with its small crystal flower on top — no bending, stretching, warping,
+> tapering or redesign, identical every frame.
+>
+> Seamless LOOP: the LAST frame returns to the EXACT pose of the FIRST frame so the clip repeats forever
+> without a jump. Nobody else in the frame; no visible wind lines, no effects, no particles, no glow — only
+> HER body moving.
 
 **`block`:**
 

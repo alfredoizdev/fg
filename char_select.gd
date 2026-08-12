@@ -27,18 +27,26 @@ var name_r: Label
 var data_l: Label
 var data_r: Label
 var prompt: Label
-# --- pantalla VS de transición / carga ---
+# --- pantalla de carga (transición) ---
 var loading := false
 var load_t := 0.0
-const VS_MIN_SHOW := 1.6     # tiempo mínimo que se ve la pantalla VS (aunque cargue antes)
-var vs_overlay: Control
-var vs_bg: ColorRect
-var vs_p1: TextureRect
-var vs_p2: TextureRect
-var vs_label: Label
-var vs_name1: Label
-var vs_name2: Label
-var vs_loading: Label
+const VS_MIN_SHOW := 1.2     # tiempo mínimo que se ve la pantalla de carga (aunque cargue antes)
+# --- paso SELECT STAGE (picking == 2) — CARRUSEL ---
+var sel_stage := 0
+var stage_scroll := 0.0     # posición animada del carrusel (ease hacia sel_stage)
+var stage_overlay: Control
+var stage_fx: Control
+var stage_cards := []       # TextureRects de cada stage (se reposicionan cada frame)
+# geometría del carrusel (la tarjeta CENTRAL es la elegida)
+const ST_CW := 520.0
+const ST_CH := 293.0
+const ST_CX := 960.0
+const ST_CY := 430.0        # borde superior de la tarjeta central
+const ST_SPACING := 560.0   # separación entre centros de tarjetas
+# --- pantalla de CARGA (logo FG FIGHTER + spinner) tras elegir stage ---
+var load_overlay: Control
+var load_logo: TextureRect
+var load_spin: Control
 
 const RED := Color(0.95, 0.24, 0.20)
 const BLU := Color(0.36, 0.56, 1.0)
@@ -121,120 +129,179 @@ func _ready() -> void:
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(prompt)
-	_build_vs_overlay()
+	_build_loading_overlay()
+	_build_stage_overlay()
 	_refresh()
 
-# ---------- PANTALLA VS (transición + carga) ----------
-func _build_vs_overlay() -> void:
-	vs_overlay = Control.new()
-	vs_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vs_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.visible = false
-	add_child(vs_overlay)
-	vs_bg = ColorRect.new()
-	vs_bg.color = Color(0.04, 0.01, 0.04, 0.0)
-	vs_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vs_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(vs_bg)
-	# pósters grandes de los dos elegidos (entran deslizando)
-	vs_p1 = TextureRect.new()
-	vs_p1.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	vs_p1.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	vs_p1.clip_contents = true
-	vs_p1.size = Vector2(760, 1080)
-	vs_p1.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(vs_p1)
-	vs_p2 = TextureRect.new()
-	vs_p2.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	vs_p2.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	vs_p2.clip_contents = true
-	vs_p2.size = Vector2(760, 1080)
-	vs_p2.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(vs_p2)
-	# capa fx del VS (diagonal + destello), encima de los pósters
-	var vfx := Control.new()
-	vfx.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vfx.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(vfx)
-	vfx.draw.connect(_draw_vs_fx)
-	# nombres
-	vs_name1 = _vs_text(48, RED, HORIZONTAL_ALIGNMENT_LEFT, 88)
-	vs_name2 = _vs_text(-48, BLU, HORIZONTAL_ALIGNMENT_RIGHT, 88)
-	vs_name1.position.y = 880
-	vs_name2.position.y = 880
-	# "VS" gigante
-	vs_label = Label.new()
-	vs_label.add_theme_font_override("font", big_font)
-	vs_label.add_theme_font_size_override("font_size", 260)
-	vs_label.add_theme_constant_override("outline_size", 22)
-	vs_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	vs_label.add_theme_color_override("font_color", GOLD)
-	vs_label.text = "VS"
-	vs_label.position = Vector2(0, 380); vs_label.size = Vector2(1920, 300)
-	vs_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vs_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	vs_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(vs_label)
-	# NOW LOADING
-	vs_loading = Label.new()
-	vs_loading.add_theme_font_override("font", big_font)
-	vs_loading.add_theme_font_size_override("font_size", 30)
-	vs_loading.add_theme_constant_override("outline_size", 5)
-	vs_loading.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	vs_loading.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
-	vs_loading.position = Vector2(0, 1010); vs_loading.size = Vector2(1920, 40)
-	vs_loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vs_loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(vs_loading)
+# ---------- PANTALLA DE CARGA (logo FG FIGHTER + spinner) ----------
+func _build_loading_overlay() -> void:
+	load_overlay = Control.new()
+	load_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	load_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_overlay.visible = false
+	load_overlay.z_index = 6                       # por ENCIMA del overlay de stage (z=4)
+	add_child(load_overlay)
+	# fondo oscuro opaco
+	var bg := ColorRect.new()
+	bg.color = Color(0.04, 0.025, 0.06, 1.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_overlay.add_child(bg)
+	# LOGO FG FIGHTER (croma ya recortado), centrado
+	load_logo = TextureRect.new()
+	if ResourceLoader.exists("res://imagen-action/ui/title-logo.png"):
+		load_logo.texture = load("res://imagen-action/ui/title-logo.png")
+	load_logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	load_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	load_logo.size = Vector2(820, 458); load_logo.position = Vector2(550, 250)
+	load_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_overlay.add_child(load_logo)
+	# SPINNER (se dibuja girando en _update_loading)
+	load_spin = Control.new()
+	load_spin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	load_spin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_overlay.add_child(load_spin)
+	load_spin.draw.connect(_draw_spinner)
 
-func _vs_text(x: float, col: Color, align: int, size: int) -> Label:
-	var l := Label.new()
-	l.add_theme_font_override("font", big_font)
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_constant_override("outline_size", 12)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	l.add_theme_color_override("font_color", col)
-	if align == HORIZONTAL_ALIGNMENT_LEFT:
-		l.position = Vector2(x, 0); l.size = Vector2(700, 110)
-	else:
-		l.position = Vector2(1920 - 700 + x, 0); l.size = Vector2(700, 110)
-	l.horizontal_alignment = align
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vs_overlay.add_child(l)
-	return l
+func _draw_spinner() -> void:
+	# spinner de puntos girando (estela que se desvanece), centrado bajo el logo
+	var purple := Color(0.62, 0.35, 1.0)           # morado (a juego con el logo)
+	var c := Vector2(960, 860)
+	var n := 12
+	var head := fmod(load_t * 2.4, 1.0)            # posición de la cabeza (0..1) girando
+	for i in n:
+		var f := float(i) / float(n)
+		var ang := f * TAU - PI * 0.5
+		# distancia angular DETRÁS de la cabeza -> más tenue cuanto más atrás (estela)
+		var d := fmod(head - f + 1.0, 1.0)
+		var a := 0.15 + 0.85 * d
+		var pos := c + Vector2(cos(ang), sin(ang)) * 42.0
+		load_spin.draw_circle(pos, 7.0, Color(purple.r, purple.g, purple.b, a))
 
-func _draw_vs_fx() -> void:
-	if not loading:
-		return
-	var vfx: Control = vs_overlay.get_child(3)
-	var a: float = clampf(load_t / 0.3, 0.0, 1.0)
-	# franja diagonal central (donde va el VS)
-	vfx.draw_colored_polygon(PackedVector2Array([Vector2(760, 0), Vector2(1160, 0), Vector2(1160, 1080), Vector2(760, 1080)]),
-			Color(0.5, 0.06, 0.06, 0.5 * a))
-	vfx.draw_line(Vector2(820, 0), Vector2(700, 1080), Color(RED.r, RED.g, RED.b, a), 5.0)
-	vfx.draw_line(Vector2(1100, 0), Vector2(1220, 1080), Color(BLU.r, BLU.g, BLU.b, a), 5.0)
+# ---------- paso SELECT STAGE (overlay a pantalla completa) ----------
+func _build_stage_overlay() -> void:
+	stage_overlay = Control.new()
+	stage_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.visible = false
+	stage_overlay.z_index = 4
+	add_child(stage_overlay)
+	# fondo oscuro casi opaco (tapa el char-select detrás)
+	var bg := ColorRect.new()
+	bg.color = Color(0.05, 0.03, 0.08, 1.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.add_child(bg)
+	# título
+	var title := Label.new()
+	title.add_theme_font_override("font", big_font)
+	title.add_theme_font_size_override("font_size", 68)
+	title.add_theme_constant_override("outline_size", 10)
+	title.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
+	title.add_theme_color_override("font_color", GOLD)
+	title.text = "SELECT STAGE"
+	title.position = Vector2(0, 54); title.size = Vector2(1920, 80)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.add_child(title)
+	# capa de marcos (debajo de los thumbs para que el borde asome; el arrow va encima)
+	stage_fx = Control.new()
+	stage_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stage_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.add_child(stage_fx)
+	stage_fx.draw.connect(_draw_stage_fx)
+	# tarjetas (thumbnails) — se reposicionan cada frame en _layout_stage_carousel().
+	# El nombre de cada stage se dibuja en _draw_stage_fx (así sigue al carrusel).
+	stage_cards.clear()
+	for i in Sel.STAGES.size():
+		var th := TextureRect.new()
+		var tp := String(Sel.STAGES[i]["thumb"])
+		if ResourceLoader.exists(tp):
+			th.texture = load(tp)
+		th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		th.clip_contents = true
+		th.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stage_overlay.add_child(th)
+		stage_cards.append(th)
+	# hint
+	var hint := Label.new()
+	hint.add_theme_font_override("font", big_font)
+	hint.add_theme_font_size_override("font_size", 28)
+	hint.add_theme_constant_override("outline_size", 6)
+	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	hint.add_theme_color_override("font_color", Color(0.85, 0.85, 0.92))
+	hint.text = "← →   ELIGE ESCENARIO        ENTER  CONFIRMAR        ESC  ATRÁS"
+	hint.position = Vector2(0, 902); hint.size = Vector2(1920, 40)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.add_child(hint)
 
-func _start_vs_transition() -> void:
+# geometría de la tarjeta i según la posición animada del carrusel
+func _stage_geom(i: int) -> Dictionary:
+	var rel := float(i) - stage_scroll
+	var scale := lerpf(1.0, 0.78, minf(absf(rel), 1.0))
+	var w := ST_CW * scale
+	var h := ST_CH * scale
+	var cx := ST_CX + rel * ST_SPACING
+	var center_y := ST_CY + ST_CH * 0.5
+	var rect := Rect2(cx - w * 0.5, center_y - h * 0.5, w, h)
+	var alpha := clampf(1.32 - absf(rel) * 0.42, 0.0, 1.0)
+	return {"rect": rect, "rel": rel, "alpha": alpha}
+
+# reposiciona/escala/atenúa las tarjetas según el scroll (llamado cada frame)
+func _layout_stage_carousel() -> void:
+	for i in stage_cards.size():
+		var g := _stage_geom(i)
+		var r: Rect2 = g["rect"]
+		var al: float = g["alpha"]
+		var seld := (i == sel_stage)
+		var card: TextureRect = stage_cards[i]
+		card.position = r.position
+		card.size = r.size
+		var b := 1.0 if seld else 0.85     # los no elegidos, un poco más apagados
+		card.modulate = Color(b, b, b, al)
+		card.visible = al > 0.02
+
+func _draw_stage_fx() -> void:
+	var pulse := 0.55 + 0.45 * sin(t * 6.0)
+	for i in stage_cards.size():
+		var g := _stage_geom(i)
+		var al: float = g["alpha"]
+		if al < 0.05:
+			continue
+		var r: Rect2 = g["rect"]
+		var seld := (i == sel_stage)
+		# nombre bajo la tarjeta
+		var nm := String(Sel.STAGES[i]["name"])
+		var fs := 30
+		var nmw := big_font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var ncol := Color(1, 1, 1, al) if seld else Color(0.6, 0.6, 0.68, al)
+		stage_fx.draw_string(big_font, Vector2(r.position.x + r.size.x * 0.5 - nmw * 0.5, r.end.y + 46.0),
+				nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ncol)
+		if seld:
+			# glow + marco dorado grueso + flecha
+			for k in range(4, 0, -1):
+				var e := k * 5.0
+				stage_fx.draw_rect(r.grow(e), Color(GOLD.r, GOLD.g, GOLD.b, 0.10 * pulse), false, 3.0)
+			stage_fx.draw_rect(r.grow(6.0), Color(GOLD.r, GOLD.g, GOLD.b, 0.95), false, 7.0)
+			var cxm := r.position.x + r.size.x * 0.5
+			stage_fx.draw_colored_polygon(PackedVector2Array([
+					Vector2(cxm - 18, r.position.y - 34), Vector2(cxm + 18, r.position.y - 34), Vector2(cxm, r.position.y - 8)]),
+					Color(GOLD.r, GOLD.g, GOLD.b, pulse))
+		else:
+			stage_fx.draw_rect(r.grow(3.0), Color(0.5, 0.5, 0.58, 0.6 * al), false, 3.0)
+
+func _start_loading() -> void:
 	loading = true
 	load_t = 0.0
 	set_process_unhandled_input(false)
-	# carga la escena de pelea EN SEGUNDO PLANO (no congela la pantalla VS)
+	# carga la escena de pelea EN SEGUNDO PLANO (no congela la pantalla de carga)
 	ResourceLoader.load_threaded_request("res://main.tscn")
-	# pósters de los elegidos
-	var p1path := Sel.portrait_of(String(roster[sel1]["id"]))
-	var p2path := Sel.portrait_of(String(roster[sel2]["id"]))
-	if ResourceLoader.exists(p1path):
-		vs_p1.texture = load(p1path)
-	if ResourceLoader.exists(p2path):
-		vs_p2.texture = load(p2path)
-	vs_name1.text = String(roster[sel1]["name"])
-	vs_name2.text = String(roster[sel2]["name"])
-	vs_p1.position = Vector2(-760, 0)     # entran desde afuera
-	vs_p2.position = Vector2(1920, 0)
-	vs_label.scale = Vector2(3.0, 3.0)    # "VS" hace pop (de grande a normal)
-	vs_label.pivot_offset = Vector2(960, 150)
-	vs_label.modulate.a = 0.0
-	vs_overlay.visible = true
+	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
+	if stage_overlay != null:
+		stage_overlay.visible = false
+	load_overlay.visible = true
 
 # ---------- construcción de nodos ----------
 func _mk_portrait(box: Rect2) -> TextureRect:
@@ -416,8 +483,15 @@ func _refresh() -> void:
 	name_r.text = String(c2["name"])
 	data_l.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c1["arch"], c1["weapon"], c1["power"]]
 	data_r.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c2["arch"], c2["weapon"], c2["power"]]
-	prompt.text = "1P:  ELIGE TU PERSONAJE   ( ← →   ENTER  ·  ESC )" if picking == 0 \
-		else "2P:  ELIGE EL RIVAL (CPU)   ( ← →   ENTER  ·  ESC )"
+	if picking == 0:
+		prompt.text = "1P:  ELIGE TU PERSONAJE   ( ← →   ENTER  ·  ESC )"
+	elif picking == 1:
+		prompt.text = "2P:  ELIGE EL RIVAL (CPU)   ( ← →   ENTER  ·  ESC )"
+	else:
+		prompt.text = ""
+	# overlay de SELECT STAGE visible solo en el 3er paso
+	if stage_overlay != null:
+		stage_overlay.visible = (picking == 2)
 	queue_redraw()
 
 func _set_stand(node: TextureRect, c: Dictionary) -> void:
@@ -431,7 +505,7 @@ func _ease_out(x: float) -> float:
 func _process(delta: float) -> void:
 	t += delta
 	if loading:
-		_update_vs(delta)
+		_update_loading(delta)
 		return
 	# avanza la animación de aparición de los cuadros (hover)
 	appear_l = minf(1.0, appear_l + delta * 5.0)   # ~0.2s
@@ -440,22 +514,15 @@ func _process(delta: float) -> void:
 	_anim_portrait(stand_r, FRAME_R, appear_r, 1.0, picking == 1)
 	if fx:
 		fx.queue_redraw()
+	if picking == 2 and stage_fx != null:
+		stage_scroll = lerpf(stage_scroll, float(sel_stage), minf(delta * 12.0, 1.0))
+		_layout_stage_carousel()
+		stage_fx.queue_redraw()
 
-func _update_vs(delta: float) -> void:
+func _update_loading(delta: float) -> void:
 	load_t += delta
-	var e := _ease_out(minf(1.0, load_t / 0.45))
-	vs_bg.color.a = clampf(load_t / 0.25, 0.0, 1.0) * 0.96
-	vs_p1.position.x = lerpf(-760.0, 60.0, e)
-	vs_p2.position.x = lerpf(1920.0, 1100.0, e)
-	# "VS" hace POP tras 0.35s (de grande a normal + fade)
-	var vp := clampf((load_t - 0.35) / 0.3, 0.0, 1.0)
-	var vs_sc := lerpf(3.0, 1.0, _ease_out(vp))
-	vs_label.scale = Vector2(vs_sc, vs_sc)
-	vs_label.modulate.a = vp
-	# puntos animados del loading
-	vs_loading.text = "NOW LOADING" + ".".repeat(1 + int(load_t * 2.0) % 3)
-	if vs_overlay.get_child_count() > 3:
-		vs_overlay.get_child(3).queue_redraw()   # capa vfx del VS
+	if load_spin != null:
+		load_spin.queue_redraw()
 	# cuando la escena de pelea terminó de cargar Y ya se vio el mínimo -> entrar
 	var st := ResourceLoader.load_threaded_get_status("res://main.tscn")
 	if st == ResourceLoader.THREAD_LOAD_LOADED and load_t >= VS_MIN_SHOW:
@@ -479,6 +546,7 @@ const HOVER_SFX := "res://imagen-action/sound-effect/hover-selection.mp3"   # ca
 const NAME_VOZ := {
 	"dam": "res://imagen-action/sound-effect/dam-name.mp3",
 	"favi": "res://imagen-action/sound-effect/fe-name.mp3",
+	"aye": "res://imagen-action/sound-effect/aye.mp3",
 }
 var _sfx_sel: AudioStreamPlayer
 var _voz_name: AudioStreamPlayer
@@ -501,9 +569,11 @@ func _unhandled_input(_e: InputEvent) -> void:
 	if dc != 0:
 		if picking == 0:
 			sel1 = posmod(sel1 + dc, roster.size())
-		else:
+		elif picking == 1:
 			sel2 = posmod(sel2 + dc, roster.size())
-		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # campana al pasar por un personaje
+		else:                                            # picking == 2: elegir stage (carrusel, sin wrap)
+			sel_stage = clampi(sel_stage + dc, 0, Sel.STAGES.size() - 1)
+		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # campana al pasar
 			_sfx_sel.stream = load(HOVER_SFX)
 			_sfx_sel.play()
 		_refresh()
@@ -513,14 +583,24 @@ func _unhandled_input(_e: InputEvent) -> void:
 			_play_select(String(roster[sel1]["id"]))   # on-select + voz del nombre (1P)
 			picking = 1
 			_refresh()
-		else:
+		elif picking == 1:
 			_play_select(String(roster[sel2]["id"]))   # on-select + voz del nombre (2P/CPU)
 			Sel.p1 = String(roster[sel1]["id"])
 			Sel.p2 = String(roster[sel2]["id"])
+			picking = 2                                 # -> SELECT STAGE
+			_refresh()
+		else:                                           # confirmar STAGE -> a la pelea
+			Sel.stage = int(Sel.STAGES[sel_stage]["code"])
 			Sel.configured = true
-			_start_vs_transition()   # pantalla VS mientras carga la pelea
+			if _sfx_sel != null and ResourceLoader.exists(SEL_SFX):
+				_sfx_sel.stream = load(SEL_SFX)
+				_sfx_sel.play()
+			_start_loading()   # pantalla de carga (logo) mientras carga la pelea
 	elif Input.is_action_just_pressed("ui_cancel"):
-		if picking == 1:
+		if picking == 2:
+			picking = 1
+			_refresh()
+		elif picking == 1:
 			picking = 0
 			_refresh()
 		else:

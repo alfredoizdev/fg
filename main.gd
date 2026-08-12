@@ -15,7 +15,7 @@ const AIR_REACH_H := 302.0   # altura maxima a la que un golpe aereo alcanza a u
 const WINS_NEEDED := 2       # rondas para ganar el combate
 const BODY_SEP := 225.0      # distancia minima entre cuerpos en el piso (antes 143 = se metían uno dentro del otro)
 const TRAINING := false      # modo entrenamiento: sin rival, sin escenario, sin UI
-const STAGE := 3             # 1 = ciudad en llamas, 2 = noche de luna, 3 = templo al atardecer
+var STAGE: int = Sel.stage   # escenario elegido en el char-select (1=ciudad, 2=noche, 3=templo, 4=santuario)
 const CITY_NODES := ["BG", "StageBase", "Flame1", "Patch1", "Patch2", "Patch3",
 	"Patch4", "Patch5", "Window1", "Window2", "Window3", "Window4",
 	"Smoke1", "Smoke2", "Embers"]
@@ -53,6 +53,30 @@ var meter_bg := [[], []]       # fondo OSCURO de cada segmento (3 por lado)
 var meter_fill := [[], []]     # relleno VERDE por ancho (media barra = medio lleno)
 var meter_fl := [[], []]       # borde negro (Line2D) de cada segmento
 var meter_spark := [[], []]    # chispas (CPUParticles2D) del segmento lleno
+
+# ============ MANA OSCURO (dark energy) — recurso de HECHIZOS, solo magos (wizard) ============
+# Se rellena SOLO con el tiempo (la barra VERDE se gana peleando). Anillo morado en la esquina de
+# abajo del lado del mago, con su retrato adentro. Los golpes normales NO gastan mana.
+var mana := [1.0, 1.0]               # carga de mana por lado (0..1)
+var mana_is_mage := [false, false]   # ¿ese lado es mago? (se setea en _refresh_hud_chars)
+var mana_flash_t := [0.0, 0.0]       # parpadeo ROJO del anillo cuando falto mana (feedback)
+var mana_full_flash_t := [0.0, 0.0]  # destello cuando el mana llega a FULL (avisa al player)
+var mana_was_full := [false, false]  # estado full del frame anterior (detecta el cruce a lleno)
+var mana_hud := [null, null]         # contenedor Node2D del anillo por lado (toggle visibilidad)
+var mana_ring_fill := [null, null]   # arco morado que se vacia (Line2D)
+var mana_avatar := [null, null]      # retrato del mago dentro del anillo (Sprite2D)
+var mana_ring_bg := [null, null]     # anillo de fondo (Line2D) — se recompone con compensacion de aspecto
+var mana_ring_frame := [null, null]  # marco negro (Line2D)
+var mana_disc := [null, null]        # disco de fondo (Polygon2D)
+const MANA_REGEN := 0.030            # recarga pasiva por segundo (~33s de vacio a lleno; MUY lento a proposito)
+const MANA_REGEN_IDLE := 0.018       # bonus si esta quieta en el suelo (recupera un poco mas rapido)
+const MANA_CHANNEL_REGEN := 0.25     # canaleo activo (doble-tap abajo): ~4s a full (rapido, vulnerable)
+const MANA_R := 58.0                 # radio del anillo
+const MANA_RING_W := 11.0            # grosor del anillo
+const MANA_CY := 968.0               # centro Y (esquina de abajo)
+const MANA_CX_L := 92.0              # centro X lado izquierdo (P1)
+const MANA_CX_R := 1828.0            # centro X lado derecho (P2)
+const MANA_AV_BOX := 104.0           # caja del retrato (circulo que llena el anillo)
 var match_time := MATCH_TIME
 var timer_label: Label
 var win_dots := [[], []]       # puntos de victoria por lado
@@ -487,6 +511,8 @@ func _ready() -> void:
 		var esc: Node2D
 		if STAGE == 2:
 			esc = preload("res://night_stage.gd").new()
+		elif STAGE == 4:
+			esc = preload("res://santuario_stage.gd").new()
 		else:
 			esc = preload("res://templo_stage.gd").new()
 		esc.name = "CodeStage"
@@ -1619,7 +1645,7 @@ const FAVI_FEET_FROM_CENTER := 500.0
 # AYE (The Blooming Dynamo): NENA de ~5 años -> más baja aún que Fe. Ágil ("dynamo").
 # Pre-cableada con PLACEHOLDER (los frames de DAM) hasta procesar sus hojas verdes.
 const AYE_SPD := 1.0     # multiplicador de la velocidad de ANIMACIÓN de Aye (anims sin override)
-const AYE_MOVE_SPD := 0.55   # velocidad de DESPLAZAMIENTO (desacoplada): no-skate para el walk (reescalado a cuerpo 607px)
+const AYE_MOVE_SPD := 0.69   # DESPLAZAMIENTO: 0.55 base no-skate * 1.25 (mismo factor que sus anims apuradas -> el walk sigue sin patinar)
 const AYE_SCALE := 0.72            # ~5 años: más chica que Fe (0.85)
 const AYE_FEET_FROM_CENTER := 500.0
 
@@ -1811,6 +1837,41 @@ func _build_aye_frames() -> SpriteFrames:
 	# 9 frames @ 20fps = ~0.45s; llega al apuntado (frame ~3) y sostiene mientras salen los 3 bolts. Tuneable.
 	if sf.has_animation("air_jab") and not _aye_action_frames("air_jab").is_empty():
 		sf.set_animation_speed("air_jab", 20.0)
+	# MANA_CHARGE (canaleo doble-tap abajo): LOOP del canaleo (circulo magico + particulas + pelo
+	# volando). 27 frames @16fps = ~1.7s por vuelta. Tuneable.
+	var mc_frames := _aye_action_frames("mana_charge")
+	if not mc_frames.is_empty():
+		if not sf.has_animation("mana_charge"):
+			sf.add_animation("mana_charge")
+		sf.set_animation_loop("mana_charge", true)
+		sf.set_animation_speed("mana_charge", 16.0)
+		for t in mc_frames:
+			sf.add_frame("mana_charge", t)
+	# PUMMELED (tambaleo en LOOP mientras la comban en el super/finishers): 23 frames @20fps (~1.15s).
+	var pm_frames := _aye_action_frames("pummeled")
+	if not pm_frames.is_empty():
+		if not sf.has_animation("pummeled"):
+			sf.add_animation("pummeled")
+			for t in pm_frames:
+				sf.add_frame("pummeled", t)
+		sf.set_animation_loop("pummeled", true)
+		sf.set_animation_speed("pummeled", 32.0)   # rápido: acompaña la ráfaga del ultra (los golpes son veloces)
+	# GET_UP (recuperacion: tendida -> se para): 27 frames @22fps (~1.2s), NO loop, termina de pie (#248).
+	var gu_frames := _aye_action_frames("get_up")
+	if not gu_frames.is_empty():
+		if not sf.has_animation("get_up"):
+			sf.add_animation("get_up")
+			for t in gu_frames:
+				sf.add_frame("get_up", t)
+		sf.set_animation_loop("get_up", false)
+		sf.set_animation_speed("get_up", 46.0)   # MUY rápido: el snap a idle casi no se nota (+ destello de poder)
+	# KO / KO_AIR / VICTORY (DAM ya las tiene; el loop generico usa los frames de Aye) -> velocidad propia
+	if sf.has_animation("ko") and not _aye_action_frames("ko").is_empty():
+		sf.set_animation_speed("ko", 22.0)         # 23 frames: colapso de espaldas (~1s), retiene tendida
+	if sf.has_animation("ko_air") and not _aye_action_frames("ko_air").is_empty():
+		sf.set_animation_speed("ko_air", 18.0)     # 16 frames: tendida boca abajo
+	if sf.has_animation("victory") and not _aye_action_frames("victory").is_empty():
+		sf.set_animation_speed("victory", 22.0)    # 45 frames: celebracion + giro (~2s), retiene pose
 	# PUNCH (Q): estocada fuerte con el báculo. 12 frames @ 28fps = ~0.43s. Tuneable.
 	if sf.has_animation("punch") and not _aye_action_frames("punch").is_empty():
 		sf.set_animation_speed("punch", 28.0)
@@ -1916,6 +1977,15 @@ func _build_aye_frames() -> SpriteFrames:
 	# se conserva la animación y vuelve a usarse.
 	if sf.has_animation("neutral_spin") and _aye_action_frames("neutral_spin").is_empty():
 		sf.remove_animation("neutral_spin")
+	# AYE se sentía LENTA: apurar TODAS sus acciones de personaje un 25% (golpes, caminar,
+	# saltos, reacciones). NO tocar: proyectiles (crystal_fly/impact van aparte), mana_charge,
+	# pummeled/get_up (ya tuneadas), ko/ko_air/victory (escenas), pose (idle), crystal_flurry (ultra).
+	for aa in ["walk", "walk_back", "jump", "land", "weak_punch", "punch", "kick",
+			"crouch_punch", "crouch_kick", "crouch_jab", "sweep", "jump_punch", "jump_kick",
+			"jump_kick_cast", "crystal_cast", "teleport", "counter", "air_jab",
+			"take_hit", "take_hit_low"]:
+		if sf.has_animation(aa) and not _aye_action_frames(aa).is_empty():
+			sf.set_animation_speed(aa, sf.get_animation_speed(aa) * 1.25)
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
 	return sf
@@ -2161,7 +2231,16 @@ func _refresh_hud_chars() -> void:
 			hud_name[side].text = String(c["name"])
 		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			hud_avatar[side].texture = load(String(c["avatar"]))
-			_cover_avatar(hud_avatar[side], 114, 114)   # reajusta al tamaño real del retrato nuevo
+			_cover_avatar(hud_avatar[side], 114, 114, 1.4 if ids[side] == "aye" else 1.0)   # Aye: acerca su cara
+		# MANA: ¿este lado es mago (wizard)? -> muestra el anillo y carga su retrato
+		var is_mage: bool = String(c.get("arch", "")) == "wizard"
+		mana_is_mage[side] = is_mage
+		if mana_hud[side] != null:
+			mana_hud[side].visible = is_mage
+		if is_mage and mana_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
+			mana_avatar[side].texture = load(String(c["avatar"]))
+			_cover_avatar(mana_avatar[side], MANA_AV_BOX, MANA_AV_BOX)
+			mana_avatar[side].flip_h = side == 1
 
 func _start_round() -> void:
 	state = "intro"
@@ -2188,6 +2267,10 @@ func _start_round() -> void:
 		combo_last[i] = ""
 		combo_ui[i].visible = false
 	meter = [1.0, 1.0]        # arranca con 1 barra (solo INFERNO); las otras 2 se ganan
+	mana = [1.0, 1.0]        # mana lleno al empezar la ronda (los magos arrancan con hechizos)
+	mana_flash_t = [0.0, 0.0]
+	mana_full_flash_t = [0.0, 0.0]
+	mana_was_full = [true, true]   # arranca full: no destella en el intro
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	announce.visible = false
 	# READY cruza desde la IZQUIERDA -> FIGHT! entra desde la DERECHA casi cuando READY se va
@@ -2346,6 +2429,17 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 				victima.sprite.play("pummeled")
 		else:
 			victima.sprite.play("take_hit_low" if i % 2 == 0 else "take_hit")
+		# el tambaleo SIGUE EL RITMO de los golpes: cada golpe REINICIA el latigazo (desde
+		# el tramo de cabeza-atrás) y la velocidad se ajusta para que UN ciclo completo dure
+		# exactamente el intervalo hasta el próximo golpe; si la ráfaga ya va más rápida que
+		# el ciclo, corre libre a tope
+		if String(victima.sprite.animation) == "pummeled":
+			var paso_g := lerpf(0.42, 0.05, ramp)
+			var ciclo: float = float(victima.sprite.sprite_frames.get_frame_count("pummeled")) \
+					/ float(victima.sprite.sprite_frames.get_animation_speed("pummeled"))
+			if paso_g >= 0.20:
+				victima.sprite.frame = 9   # arranca en el inicio del latigazo hacia ATRÁS
+			victima.sprite.speed_scale = clampf(ciclo / paso_g, 1.0, 3.2)
 		# panel manga a pantalla completa: CAMBIA en cada golpe (cicla 1->6 rápido)
 		if ultra_panels.size() > 0:
 			ultra_panel.texture = ultra_panels[i % ultra_panels.size()]
@@ -2365,6 +2459,7 @@ func _ultra_flurry(atacante: Node2D, victima: Node2D, idx: int, dir: int, n0: in
 		combo_dmg[idx] += drain                                  # el daño total se va sumando
 		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
 		await get_tree().create_timer(lerpf(0.42, 0.05, ramp)).timeout
+	victima.sprite.speed_scale = 1.0
 	return n
 
 func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
@@ -2826,17 +2921,100 @@ func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
 # TELEPORT de Aye (↓→Q, reemplaza el dash): glitch out + TIEMBLA + sonido -> reaparece AL FRENTE del
 # rival con un golpe. Sombras + borde MORADO que se desvanecen si no encadena un combo. Invulnerable.
 # ¿Aye tiene barra para el teleport? (lo consulta fighter._start_teleport ANTES de comprometerse)
+# ---- MANA: API de hechizos (fighter consulta antes de castear) ----
+func _mana_side(caster: Node2D) -> int:
+	return 0 if caster == player else 1
+
+func _mana_ok(caster: Node2D, cost: float) -> bool:
+	var i := _mana_side(caster)
+	if not mana_is_mage[i]:
+		return true            # los no-magos nunca se quedan sin "mana"
+	return mana[i] >= cost - 0.0001
+
+func _mana_spend(caster: Node2D, cost: float) -> void:
+	var i := _mana_side(caster)
+	if not mana_is_mage[i]:
+		return
+	mana[i] = maxf(0.0, mana[i] - cost)
+
+# feedback cuando NO alcanza el mana: el anillo parpadea rojo (y el hechizo no sale)
+func _mana_denied(caster: Node2D) -> void:
+	mana_flash_t[_mana_side(caster)] = 0.35
+
+# puntos de un circulo/arco (para el anillo de mana). frac=1 -> circulo completo.
+# compensacion de ASPECTO: con window/stretch/aspect=ignore un circulo del lienzo (1920x1080) se OVALA
+# si la ventana no es 16:9. Multiplicamos el radio X por k para que el anillo salga CIRCULAR.
+func _mana_xk() -> float:
+	var w := get_window().size
+	if w.x <= 0 or w.y <= 0:
+		return 1.0
+	return (float(w.y) * 1920.0) / (float(w.x) * 1080.0)
+
+func _mana_circle_pts(cx: float, cy: float, r: float, n: int, frac: float, side: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var k := _mana_xk()
+	var total := int(round(float(n) * clampf(frac, 0.0, 1.0)))
+	var dirp := 1.0 if side == 0 else -1.0   # P1 horario, P2 antihorario (espejo)
+	for i in range(total + 1):
+		var a := -PI * 0.5 + dirp * TAU * float(i) / float(n)
+		pts.append(Vector2(cx + cos(a) * r * k, cy + sin(a) * r))
+	return pts
+
+func _mana_disc_pts(cx: float, cy: float, r: float, n: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var k := _mana_xk()
+	for i in n:
+		var a := TAU * float(i) / float(n)
+		pts.append(Vector2(cx + cos(a) * r * k, cy + sin(a) * r))
+	return pts
+
 func _aye_bar_ok(caster: Node2D) -> bool:
 	var idx := 0 if caster == player else 1
 	return meter[idx] >= 1.0
 
+# BLINK de ESCAPE de Aye (←←): glitch EN EL SITIO (anim teleport + tiembla + sonido) y
+# reaparece ~CUERPO Y MEDIO hacia ATRÁS (1 cuerpo = BODY_SEP), sin golpe. Esquiva breve.
+# El maná ya se cobró en fighter._start_blink_back.
+func _aye_blink_back(caster: Node2D) -> void:
+	if state != "fight" or ultra_active:
+		return
+	caster.crouching = false
+	caster.vel_x = 0.0
+	caster.vel_y = 0.0
+	caster.buffer_t = 0.0
+	caster.breaker_inv_t = maxf(caster.breaker_inv_t, 0.35)   # esquiva breve durante el glitch
+	caster.breaker_fx_t = maxf(caster.breaker_fx_t, 0.5)      # sombras moradas
+	caster._cast_border_on(0.6)
+	var was_input: bool = caster.input_enabled
+	var was_ai: bool = caster.ai_enabled
+	caster.input_enabled = false
+	caster.ai_enabled = false
+	if caster.sprite.sprite_frames.has_animation("teleport"):
+		caster.sprite.play("teleport")
+	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
+	if ResourceLoader.exists(vr):
+		caster.voz_player.stream = load(vr)
+		caster.voz_player.play()
+	var base_off: float = caster.sprite.offset.x
+	var t := 0.0
+	while t < 0.16 and state == "fight":
+		caster.sprite.offset.x = base_off + randf_range(-11.0, 11.0)   # TIEMBLA
+		_shake(7.0, 0.04)
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	caster.sprite.offset.x = base_off
+	if state == "fight":
+		caster.position.x = clampf(caster.position.x - float(caster.facing) * BODY_SEP * 1.5, LEFT_LIMIT, RIGHT_LIMIT)
+		caster.position.y = caster.floor_y
+		if caster.sprite.sprite_frames.has_animation("teleport"):
+			caster.sprite.play("teleport")   # glitch de ENTRADA al reaparecer
+	caster.input_enabled = was_input
+	caster.ai_enabled = was_ai
+
 func _aye_teleport(caster: Node2D, from_air := false) -> void:
 	if state != "fight" or ultra_active:
 		return
-	var tidx := 0 if caster == player else 1
-	if meter[tidx] < 1.0:
-		return                 # cuesta 1 BARRA (como sus otros poderes)
-	meter[tidx] -= 1.0
+	# el costo del teleport ahora es MANA (se cobra en fighter._start_teleport via _spell_afford)
 	var opp: Node2D = dummy if caster == player else player
 	caster.crouching = false
 	caster.airborne = from_air   # si teleportó EN EL AIRE, se queda en el aire (combo aéreo)
@@ -3104,6 +3282,13 @@ func _run_fe_ultra(atacante: Node2D, idx: int) -> void:
 		victima.position.y = subida + 20.0
 		victima.set_facing(-dir)
 		victima.sprite.play("pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit")
+		if String(victima.sprite.animation) == "pummeled":
+			var paso_g := lerpf(0.42, 0.06, ramp)
+			var ciclo: float = float(victima.sprite.sprite_frames.get_frame_count("pummeled")) \
+					/ float(victima.sprite.sprite_frames.get_animation_speed("pummeled"))
+			if paso_g >= 0.20:
+				victima.sprite.frame = 9   # un latigazo nuevo por golpe (cabeza atrás)
+			victima.sprite.speed_scale = clampf(ciclo / paso_g, 1.0, 3.2)
 		victima._play_sfx_key("take_hit")
 		victima._burst(0.95, false, 1, true)   # chispas AZULES
 		victima.water_flash_t = 0.2
@@ -3117,6 +3302,7 @@ func _run_fe_ultra(atacante: Node2D, idx: int) -> void:
 		combo_dmg[idx] += drain
 		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
 		await get_tree().create_timer(lerpf(0.42, 0.06, ramp)).timeout
+	victima.sprite.speed_scale = 1.0
 	# FINISHER: PICADA que lo estrella al piso + vacía la vida restante
 	if state == "ultra":
 		n += 1
@@ -3393,7 +3579,7 @@ func _meter_x(side: int, s: int) -> float:
 # Ajusta un Sprite2D con retrato para que LLENE una caja de box_w x box_h (modo "cover"):
 # recorta la textura a la proporción de la caja y la escala, sin importar su tamaño real.
 # El recorte vertical va sesgado hacia ARRIBA (0.30) para conservar la cara.
-func _cover_avatar(av: Sprite2D, box_w: float, box_h: float) -> void:
+func _cover_avatar(av: Sprite2D, box_w: float, box_h: float, zoom := 1.0) -> void:
 	if av == null or av.texture == null:
 		return
 	var tw := float(av.texture.get_width())
@@ -3407,6 +3593,8 @@ func _cover_avatar(av: Sprite2D, box_w: float, box_h: float) -> void:
 		rw = th * box_ar          # textura más ancha que la caja -> recorta los lados
 	else:
 		rh = tw / box_ar          # textura más alta -> recorta arriba/abajo
+	rw /= zoom                    # zoom>1 = recorta una ventana mas chica = ACERCA la cara
+	rh /= zoom
 	av.region_enabled = true
 	av.region_rect = Rect2((tw - rw) * 0.5, (th - rh) * 0.30, rw, rh)
 	av.scale = Vector2(box_w / rw, box_h / rh)
@@ -3562,6 +3750,52 @@ func _build_hud() -> void:
 			$UI.add_child(av)
 			hud_avatar[side] = av
 
+	# mascara circular para el retrato (recorta la foto a un CIRCULO como el anillo)
+	var _mana_mask_sh := Shader.new()
+	_mana_mask_sh.code = "shader_type canvas_item;\nvoid fragment() {\n\tfloat d = distance(UV, vec2(0.5));\n\tCOLOR.a *= smoothstep(0.5, 0.47, d);\n}\n"
+	# ---- ANILLO DE MANA (mana oscuro) en la esquina de ABAJO, solo visible para magos ----
+	for side in 2:
+		var cont := Node2D.new()
+		cont.z_index = 9
+		cont.visible = false                # oculto hasta saber si el lado es mago
+		$UI.add_child(cont)
+		mana_hud[side] = cont
+		var mcx: float = MANA_CX_L if side == 0 else MANA_CX_R
+		var disc := Polygon2D.new()         # disco oscuro de fondo (el "orbe")
+		disc.polygon = _mana_disc_pts(mcx, MANA_CY, MANA_R - 3.0, 40)
+		disc.color = Color(0.05, 0.03, 0.09, 0.97)
+		cont.add_child(disc)
+		mana_disc[side] = disc
+		var av2 := Sprite2D.new()           # retrato del mago (se carga en _refresh_hud_chars)
+		av2.centered = true
+		av2.position = Vector2(mcx, MANA_CY)
+		var _mmat := ShaderMaterial.new()
+		_mmat.shader = _mana_mask_sh
+		av2.material = _mmat
+		cont.add_child(av2)
+		mana_avatar[side] = av2
+		var rbg := Line2D.new()             # anillo de fondo (circulo completo, morado oscuro)
+		rbg.points = _mana_circle_pts(mcx, MANA_CY, MANA_R, 48, 1.0, side)
+		rbg.width = MANA_RING_W
+		rbg.default_color = Color(0.14, 0.07, 0.22, 0.96)
+		rbg.joint_mode = Line2D.LINE_JOINT_ROUND
+		cont.add_child(rbg)
+		mana_ring_bg[side] = rbg
+		var rf := Line2D.new()              # arco de mana (morado brillante, se vacia)
+		rf.width = MANA_RING_W
+		rf.default_color = Color(0.62, 0.30, 1.5)
+		rf.joint_mode = Line2D.LINE_JOINT_ROUND
+		rf.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		rf.end_cap_mode = Line2D.LINE_CAP_ROUND
+		cont.add_child(rf)
+		mana_ring_fill[side] = rf
+		var rfr := Line2D.new()             # marco negro fino por fuera
+		rfr.points = _mana_circle_pts(mcx, MANA_CY, MANA_R + MANA_RING_W * 0.5 + 1.5, 48, 1.0, side)
+		rfr.width = 1.0
+		rfr.default_color = Color(0, 0, 0, 0.9)
+		cont.add_child(rfr)
+		mana_ring_frame[side] = rfr
+
 # actualiza el relleno inclinado de una barra de vida (se vacía hacia el centro)
 func _update_hp_bar(side: int, hp: int) -> void:
 	var fill: Polygon2D = hp_bar_fill[side]
@@ -3590,11 +3824,18 @@ func _update_hp_bar(side: int, hp: int) -> void:
 # frase de victoria de DAM ("my work is done...")
 var _victory_stream = null       # voz de victoria de DAM
 var _victory_stream_fe = null    # voz de victoria de Fe (energética, "no was easy")
+var _victory_stream_aye = null   # voz de victoria de Aye (victory-aye.mp3)
 func _play_victory_line(who = null) -> void:
-	# Fe se detecta por su animación exclusiva water_cast; si no, es DAM
-	var es_fe: bool = who != null and who.sprite.sprite_frames.has_animation("water_cast")
+	# Aye se detecta por fx_floral; Fe por su animación exclusiva water_cast; si no, es DAM
+	var es_aye: bool = who != null and bool(who.get("fx_floral"))
+	var es_fe: bool = who != null and not es_aye and who.sprite.sprite_frames.has_animation("water_cast")
 	var stream = null
-	if es_fe:
+	if es_aye:
+		if _victory_stream_aye == null:
+			var raye := "res://imagen-action/aye/sound-effect/victory-aye.mp3"
+			_victory_stream_aye = load(raye) if ResourceLoader.exists(raye) else null
+		stream = _victory_stream_aye
+	elif es_fe:
 		if _victory_stream_fe == null:
 			var rfe := "res://imagen-action/favi/Fe-sound-effect/victory-fe-energetica.wav"
 			_victory_stream_fe = load(rfe) if ResourceLoader.exists(rfe) else null
@@ -4310,6 +4551,20 @@ func _physics_process(_delta: float) -> void:
 				if String(fgt.sprite.animation) == "walk" and fgt.walk_dir == 1:
 					gain += METER_WALK          # caminando hacia adelante
 				meter[i] = clampf(meter[i] + gain * _delta, 0.0, METER_MAX)
+			# MANA: se rellena SOLO con el tiempo (mas rapido si esta quieta en el suelo)
+			for mi in 2:
+				if not mana_is_mage[mi]:
+					continue
+				var mf2: Node2D = player if mi == 0 else dummy
+				if mf2.channeling and mana[mi] >= 1.0:
+					mf2._stop_channel()                            # LLENO: termina el canaleo
+				if mana[mi] < 1.0:
+					var mg := MANA_REGEN
+					if mf2.channeling:
+						mg = MANA_CHANNEL_REGEN                     # canaleo activo: recarga RAPIDA
+					elif not mf2.airborne and String(mf2.sprite.animation) in ["pose", "idle", "crouch"]:
+						mg += MANA_REGEN_IDLE
+					mana[mi] = clampf(mana[mi] + mg * _delta, 0.0, 1.0)
 
 	# BARRAS DE VIDA inclinadas (se vacían hacia el CENTRO) con degradado
 	_update_hp_bar(0, player_hp)
@@ -4334,6 +4589,45 @@ func _physics_process(_delta: float) -> void:
 					fp.polygon = _para(bx + M_W * (1.0 - f), bx + M_W, M_Y, M_Y + M_H, msl)
 			if s < meter_spark[side].size():
 				meter_spark[side][s].emitting = lleno   # chispas solo en el segmento lleno
+	# MANA: arco morado de cada mago (parpadea rojo si falto mana)
+	for mside in 2:
+		if not mana_is_mage[mside] or mana_ring_fill[mside] == null:
+			continue
+		if mana_flash_t[mside] > 0.0:
+			mana_flash_t[mside] = maxf(0.0, mana_flash_t[mside] - _delta)
+		var mfr: float = clampf(mana[mside], 0.0, 1.0)
+		var mcx2: float = MANA_CX_L if mside == 0 else MANA_CX_R
+		var rfl: Line2D = mana_ring_fill[mside]
+		rfl.points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, mfr, mside)
+		# compensacion de aspecto (circulo perfecto en cualquier ventana)
+		if mana_ring_bg[mside] != null:
+			mana_ring_bg[mside].points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, 1.0, mside)
+		if mana_ring_frame[mside] != null:
+			mana_ring_frame[mside].points = _mana_circle_pts(mcx2, MANA_CY, MANA_R + MANA_RING_W * 0.5 + 1.5, 48, 1.0, mside)
+		if mana_disc[mside] != null:
+			mana_disc[mside].polygon = _mana_disc_pts(mcx2, MANA_CY, MANA_R - 3.0, 40)
+		if mana_avatar[mside] != null:
+			mana_avatar[mside].scale.x = mana_avatar[mside].scale.y * _mana_xk()
+		# DETECTA el instante en que se LLENA -> destello de "full mana"
+		var full_now: bool = mfr >= 0.999
+		if full_now and not mana_was_full[mside]:
+			mana_full_flash_t[mside] = 0.6
+		mana_was_full[mside] = full_now
+		if mana_full_flash_t[mside] > 0.0:
+			mana_full_flash_t[mside] = maxf(0.0, mana_full_flash_t[mside] - _delta)
+		var fk: float = mana_full_flash_t[mside] / 0.6
+		if mana_flash_t[mside] > 0.0:
+			rfl.default_color = Color(1.9, 0.22, 0.32)          # falta mana: rojo
+			rfl.width = MANA_RING_W
+		elif fk > 0.0:
+			rfl.default_color = Color(0.95, 0.60, 2.05).lerp(Color(2.4, 2.1, 3.0), fk)   # DESTELLO al llenarse
+			rfl.width = MANA_RING_W + 7.0 * fk
+		elif full_now:
+			rfl.default_color = Color(0.95, 0.60, 2.05)         # lleno: brilla
+			rfl.width = MANA_RING_W
+		else:
+			rfl.default_color = Color(0.58, 0.30, 1.45)         # cargando: morado
+			rfl.width = MANA_RING_W
 	# DOTS de rounds: encendidos = rondas ganadas
 	for side in 2:
 		var w: int = wins_p1 if side == 0 else wins_p2
@@ -5019,7 +5313,9 @@ func _end_round(player_won: bool) -> void:
 	if ResourceLoader.exists(win_tex):
 		win_portrait.texture = load(win_tex)
 	var win_name := "AYE" if winner.fx_floral else ("FE" if winner.fx_blue else "DAM")
-	var wside := -1 if player_won else 1
+	# el retrato sale DEL LADO DONDE ESTÁ el ganador (queda detrás de él y el personaje
+	# sobresale encima); antes dependía de quién ganó y podía salir desconectado al otro lado
+	var wside := -1 if winner.position.x < 960.0 else 1
 	var wrest_x := (-CUTIN_PW * 0.14) if wside < 0 else (1920.0 - CUTIN_PW * 0.86)
 	var woff_x := wrest_x - 240.0 * float(wside)
 	var wcy := 1080.0 - CUTIN_PH + 30.0   # ancla el borde inferior del retrato al de abajo (según su aspecto)

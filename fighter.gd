@@ -188,6 +188,7 @@ const FE_DASH_TIME := 0.28                   # cuánto persigue antes de rendirs
 var fe_dash_t := 0.0        # >0 = embistiendo hacia adelante (mueve el cuerpo)
 var fe_dash_active := false # true toda la secuencia (embestida + 3 golpes): el árbitro pega, no la anim
 var back_recent_t := 0.0   # memoria de ATRÁS reciente (para el motion ←→ del dash)
+var back_tap_win := 0.0    # ventana del DOBLE-TOQUE atrás (←← = blink de escape de Aye)
 var dash_voz_sfx: AudioStream = null   # voz "water way" al arrancar el dash (carga perezosa)
 var spin_voz_sfx: AudioStream = null   # voz "Power Twister" al girar (peonza, carga perezosa)
 var fire_trail: CPUParticles2D
@@ -613,7 +614,8 @@ func die_ko() -> void:
 	ultra_hover = false   # libera el hover del ultra para que CAIGA de verdad (no flote)
 	if airborne or hit_flying:
 		# muerte EN EL AIRE: deja que complete el vuelo y caiga. hard_fall = baja decidido.
-		ko_facedown = true
+		# AYE: nunca boca abajo — completa el vuelo (hit_fly) y aterriza con su hit_down
+		ko_facedown = not fx_floral
 		hit_flying = true
 		hard_fall = true
 		wall_bounced = true   # sin rebote de pared en la muerte
@@ -641,7 +643,12 @@ func force_grounded_ko() -> void:
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
-	if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
+	if fx_floral and String(sprite.animation) != "ko" and sprite.sprite_frames.has_animation("hit_down"):
+		# AYE: SOLO para el KO VOLADOR (venía en hit_fly/hit_down). Si está en su anim "ko"
+		# (KO de golpe normal en el suelo) NO tocarla: cae al else y conserva su ko de siempre.
+		sprite.play("hit_down")
+		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("hit_down") - 1)
+	elif ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
 		sprite.play("ko_air")   # TENDIDO boca abajo
 		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)
 		sprite.position.y = ko_lie_drop_down   # asienta el cuerpo en el piso (ver ko_lie_drop_*)
@@ -778,10 +785,47 @@ func _start_special() -> void:
 # TELEPORT de Aye (↓→Q, reemplaza el dash de fuego): se DESVANECE en glitch morado y reaparece
 # ~1.5 cuerpos adelante. Deja una after-imagen morada donde estaba + sombras + borde morado, y es
 # invulnerable un instante (esquiva). Cuando exista imagen-action/aye/teleport/ usa esa animación.
+# ¿hay mana para este hechizo? Los no-magos siempre pueden. Si alcanza, lo COBRA y devuelve true;
+# si no, hace el feedback (parpadeo del anillo) y devuelve false (el hechizo no debe salir).
+func _spell_afford(cost: float) -> bool:
+	var mb := get_parent()
+	if mb == null or not mb.has_method("_mana_ok"):
+		return true
+	if mb._mana_ok(self, cost):
+		mb._mana_spend(self, cost)
+		return true
+	if mb.has_method("_mana_denied"):
+		mb._mana_denied(self)
+	return false
+
+# AYE canaleo de mana: nombre de la anim (usa mana_charge si existe; si no, 'pose' como placeholder)
+func _channel_anim() -> String:
+	return "mana_charge" if sprite.sprite_frames.has_animation("mana_charge") else "pose"
+
+func _start_channel() -> void:
+	channeling = true
+	crouching = false
+	walk_dir = 0
+	buffer_t = 0.0
+	sprite.play(_channel_anim())
+	_cast_border_on(0.3)   # aura MORADA de casteo mientras canaliza
+	var _scr := "res://imagen-action/aye/sound-effect/spell-charge-mana.mp3"
+	if ResourceLoader.exists(_scr):
+		sfx_player.stream = load(_scr)
+		sfx_player.play()
+
+func _stop_channel() -> void:
+	if not channeling:
+		return
+	channeling = false
+	if sfx_player.playing:
+		sfx_player.stop()   # corta el sonido de carga
+	if sprite.animation == _channel_anim():
+		sprite.play("pose")
+
 func _start_teleport() -> void:
-	var mb0 := get_parent()
-	# TELEPORT cuesta 1 BARRA: si no la tiene, NO se ejecuta (no se compromete el movimiento)
-	if mb0 and mb0.has_method("_aye_bar_ok") and not mb0._aye_bar_ok(self):
+	# TELEPORT cuesta MANA (caro): si no alcanza, NO se ejecuta (feedback + no compromete el movimiento)
+	if not _spell_afford(0.35):
 		return
 	var was_air := airborne   # si teleporta EN EL AIRE, se queda en el aire (combo aéreo)
 	crouching = false
@@ -799,6 +843,32 @@ func _start_teleport() -> void:
 		mb._aye_teleport(self, was_air)
 	else:
 		position.x = clampf(position.x + float(facing) * 430.0, 150.0, 1770.0)
+		if sprite.sprite_frames.has_animation("teleport"):
+			sprite.play("teleport")
+
+# BLINK de ESCAPE de Aye (←←): glitch corto y reaparece ~CUERPO Y MEDIO hacia ATRÁS,
+# sin golpe (es una esquiva). Gasta MANA (más barato que el teleport ofensivo).
+func _start_blink_back() -> void:
+	if special_t > 0.0 or fe_dash_active or hit_flying or airborne or koed:
+		return
+	var _ba := String(sprite.animation)
+	if _ba in ATTACKS and sprite.is_playing():
+		return   # no cancela golpes en curso
+	if _ba in ["take_hit", "take_hit_low", "hit_down", "get_up", "counter"] and sprite.is_playing():
+		return   # tampoco estados de castigo/recuperación
+	if channeling:
+		_stop_channel()
+	if not _spell_afford(0.20):
+		return
+	crouching = false
+	walk_dir = 0
+	vel_x = 0.0
+	buffer_t = 0.0
+	var mb := get_parent()
+	if mb and mb.has_method("_aye_blink_back"):
+		mb._aye_blink_back(self)
+	else:
+		position.x = clampf(position.x - float(facing) * 340.0, 115.0, 1805.0)
 		if sprite.sprite_frames.has_animation("teleport"):
 			sprite.play("teleport")
 
@@ -1110,6 +1180,8 @@ var ice_moon_frames: SpriteFrames = null
 var moon_cast_spawned := false
 var crystal_fired := false   # Aye E (crystal_cast): dispara el proyectil una sola vez por cast
 var jp_shots := 0            # Aye jump_punch (aéreo): cuántos de los 3 proyectiles ya salieron
+var channeling := false      # AYE (wizard): canaleo de mana (doble-tap abajo); recarga rapido, VULNERABLE
+var down_tap_win := 0.0      # ventana para detectar el DOBLE-TAP abajo (~0.28s)
 func spawn_ice_moon(gx: float) -> Node2D:
 	if ice_moon_frames == null:
 		if not ResourceLoader.exists("res://imagen-action/aye/ice_moon/aye-ice_moon-1.png"):
@@ -1289,6 +1361,10 @@ func _launch(push_dir: int, mult := 1.0) -> void:
 	vel_y = -KNOCKBACK_Y * mult * pow(0.86, float(juggle_hits))
 	vel_x = push_dir * KNOCKBACK_X
 	fly_lean = float(push_dir)   # el cuerpo se ladea hacia donde sale despedido
+	# ESQUINA: lanzado CERCA de la pared -> el vuelo es RECTO hacia ARRIBA (no viaja a la pared)
+	if (push_dir < 0 and position.x - 115.0 < 300.0) or (push_dir > 0 and 1805.0 - position.x < 300.0):
+		vel_y -= absf(vel_x) * 0.5
+		vel_x = 0.0
 	juggle_hits += 1
 	var ya_volaba := String(sprite.animation) == "hit_fly"
 	sprite.play("hit_fly")
@@ -1299,6 +1375,7 @@ func _launch(push_dir: int, mult := 1.0) -> void:
 # push_dir: hacia donde empuja el golpe (+1 derecha / -1 izquierda)
 func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip := false, launch_mult := 1.0, wall := false, atk_blue := false, freeze := false) -> String:
 	impact_sfx_override = impact_key
+	_stop_channel()   # recibir golpe CANCELA el canaleo (+ corta el sonido de carga)
 	if breaker_inv_t > 0.0:
 		return "ignored"
 	if koed or (is_downed() and not hit_flying):
@@ -1683,6 +1760,7 @@ func _physics_process(delta: float) -> void:
 				_cb._cast_border(self, false)
 	up_tap_t = maxf(0.0, up_tap_t - delta)
 	double_up_t = maxf(0.0, double_up_t - delta)
+	back_tap_win = maxf(0.0, back_tap_win - delta)
 	down_tap_t = maxf(0.0, down_tap_t - delta)
 	double_down_t = maxf(0.0, double_down_t - delta)
 	pq_tap_t = maxf(0.0, pq_tap_t - delta)
@@ -1718,7 +1796,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# combo →+Q: cerca del final del primer corte encadena el segundo
-	if punch_followup and sprite.animation == "punch" and sprite.frame >= 8:
+	if punch_followup and not fx_floral and sprite.animation == "punch" and sprite.frame >= 8:
 		punch_followup = false
 		sprite.play("punch2")
 
@@ -1759,6 +1837,9 @@ func _physics_process(delta: float) -> void:
 		# lanzado normal: una vez que YA va cayendo, cae más rápido (menos flote)
 		elif hit_flying and vel_y > 0.0:
 			g_mult = 1.7
+		# AYE: su salto natural se sentía muy FLOTADO al bajar -> cae más decidida
+		elif fx_floral and vel_y > 0.0 and not floating:
+			g_mult = 1.55
 		vel_y += GRAVITY * g_mult * delta
 		# TECHO: no dejar que suba tanto que se salga por arriba (el remate del ultra lanza
 		# altísimo). Topa a ~520px sobre el piso y de ahí empieza a caer.
@@ -1773,22 +1854,17 @@ func _physics_process(delta: float) -> void:
 				position.x += facing * SPIN_TRAVEL * 0.8 * delta
 		elif hit_flying:
 			position.x += vel_x * delta
-			# rebote contra el limite del escenario (una vez por vuelo)
-			if not wall_bounced and ((position.x <= 115.0 and vel_x < 0.0) \
-					or (position.x >= 1805.0 and vel_x > 0.0)):
-				wall_bounced = true
-				position.x = clampf(position.x, 115.0, 1805.0)
-				# rebota hacia ADELANTE (lejos de la pared) con buen empuje
-				vel_x = -vel_x * 0.9
-				if absf(vel_x) < 320.0 * CHAR_SCALE:   # rebote mínimo garantizado
-					vel_x = signf(vel_x) * 320.0 * CHAR_SCALE
-				vel_y = minf(vel_y, -520.0 * CHAR_SCALE)
-				if sprite.sprite_frames.has_animation("wall_splat"):
-					sprite.play("wall_splat")
-				wall_squash_t = SQUASH_DUR
-				squash_horizontal = true   # choca de lado: comprime el ancho
-				# efecto de escombros QUITADO (el usuario hará su propio frame de impacto)
-				_play_sfx_key("wall_bounce")
+			# ESQUINA (estilo Marvel/anime): al llegar al borde NO rebota ni juega wall_splat. Se PEGA a la
+			# pared y su impulso HORIZONTAL se convierte en VERTICAL -> SUBE por la pared (juggle de esquina).
+			# Usa su pose de vuelo (hit_fly), sin animacion de pared.
+			if (position.x <= 115.0 and vel_x < 0.0) or (position.x >= 1805.0 and vel_x > 0.0):
+				var into_wall := absf(vel_x)
+				vel_x = 0.0
+				# solo convierte a VERTICAL si aún SUBE; si ya viene cayendo, la pared solo
+				# lo frena y cae recto (sin pop hacia arriba = sin "rebote")
+				if vel_y < 0.0:
+					vel_y = minf(vel_y, -maxf(into_wall * 0.85, 340.0 * CHAR_SCALE))
+			position.x = clampf(position.x, 115.0, 1805.0)
 		elif is_player:
 			var air_dir := Input.get_axis("ui_left", "ui_right")
 			if air_dir != 0.0:
@@ -1805,6 +1881,11 @@ func _physics_process(delta: float) -> void:
 				hit_flying = false
 				hard_fall = false
 				_spawn_jump_dust(0.9)
+				if fx_floral and sprite.sprite_frames.has_animation("hit_down"):
+					# AYE: completa su caída normal (hit_down) y queda TENDIDA BOCA ARRIBA
+					# tal como termina esa anim (koed bloquea el get_up)
+					sprite.play("hit_down")
+					return
 				if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
 					sprite.play("ko_air")   # BOCA ABAJO (coherente con el despedido)
 					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)  # tendido
@@ -1872,6 +1953,27 @@ func _physics_process(delta: float) -> void:
 			and sprite.is_playing():
 		return
 
+	# ---- AYE (wizard): CANALEO DE MANA (doble-tap ABAJO) — recarga rapido pero VULNERABLE ----
+	if down_tap_win > 0.0:
+		down_tap_win -= delta
+	if channeling:
+		var chmv := Input.get_axis("ui_left", "ui_right")
+		var ch_atk := Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("kick") \
+			or Input.is_action_just_pressed("spin_kick") or Input.is_action_just_pressed("weak_punch")
+		if airborne or chmv != 0.0 or Input.is_action_just_pressed("ui_up") or ch_atk:
+			_stop_channel()   # mover/saltar/atacar CANCELA (cae al proceso normal este frame)
+		else:
+			var can := _channel_anim()
+			if sprite.animation != can or not sprite.is_playing():
+				sprite.play(can)
+			_cast_border_on(0.25)   # mantiene el aura MORADA mientras canaliza
+			return
+	# ENTRAR al canaleo: doble toque ABAJO, solo magos, en el suelo y en neutro (sin izq/der)
+	if fx_floral and not airborne and Input.is_action_just_pressed("ui_down"):
+		if down_tap_win > 0.0 and Input.get_axis("ui_left", "ui_right") == 0.0:
+			_start_channel()
+			return
+		down_tap_win = 0.28
 	# salto
 	if Input.is_action_just_pressed("ui_up") and not crouching:
 		airborne = true
@@ -1887,7 +1989,7 @@ func _physics_process(delta: float) -> void:
 
 	# AYE: deja que el ATERRIZAJE (land, flexión) se VEA — no lo cortes con caminar/idle mientras juega
 	# (dura poco). El salto (arriba, ya chequeado) y los ataques (por _try_attack) SÍ lo pueden cancelar.
-	if sprite.animation == "land" and sprite.is_playing():
+	if sprite.animation in ["land", "get_up"] and sprite.is_playing():
 		return
 
 	# agacharse: mantener abajo; al soltar se levanta en reversa
@@ -1990,6 +2092,8 @@ func _ai_process(delta: float) -> void:
 			walk_dir = -1
 		"punch", "kick", "spin_kick", "crouch_punch", "crouch_kick":
 			walk_dir = 0
+			if fx_floral and ai_action == "spin_kick":
+				ai_action = "sweep"   # AYE no tiene spin_kick propio (saldría DAM): usa sus púas
 			if ai_action == "punch":
 				punch_followup = randf() < 0.55  # encadena el doble más seguido
 			sprite.play(ai_action)
@@ -1998,6 +2102,10 @@ func _ai_process(delta: float) -> void:
 		"combo_start":
 			walk_dir = 0
 			ai_combo = AI_COMBOS[randi() % AI_COMBOS.size()].duplicate()
+			if fx_floral:
+				for k in ai_combo.size():
+					if ai_combo[k] == "spin_kick":
+						ai_combo[k] = "sweep"   # AYE: sin spin_kick propio (saldría DAM)
 			sprite.play(ai_combo.pop_front())
 			ai_action = "idle"
 			ai_timer = randf_range(0.6, 1.0)   # presiona con el próximo combo antes
@@ -2023,6 +2131,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		crouching = false
 		sprite.play("ko" if koed else "pose")
 		return
+	# doble toque ATRÁS (Aye): BLINK de ESCAPE ~cuerpo y medio hacia atrás (gasta maná)
+	if fx_floral and (event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right")):
+		var _bd := -1 if event.is_action_pressed("ui_left") else 1
+		if _bd == -facing and not airborne and not koed:
+			if back_tap_win > 0.0:
+				back_tap_win = 0.0
+				_start_blink_back()
+				return
+			back_tap_win = 0.28
+		else:
+			back_tap_win = 0.0   # tocar ADELANTE (o en el aire) rompe la secuencia
 	# doble toque ↑: habilita el breaker con movimiento (↑↑+E)
 	if event.is_action_pressed("ui_up"):
 		if up_tap_t > 0.0:
@@ -2145,6 +2264,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			break
 	if accion == "":
 		return
+	# AYE: CERCA del piso y CAYENDO, el botón se GUARDA para el movimiento TERRESTRE al
+	# aterrizar (↓Q/↓E de suelo). Antes el golpe aéreo se robaba el input y el de suelo
+	# nunca salía. El ↓ se lee en vivo cuando el buffer dispara (ya aterrizada).
+	if fx_floral and airborne and vel_y > 0.0 and position.y > floor_y - 150.0:
+		buffer_action = accion
+		buffer_t = 0.35
+		return
 	# UN solo golpe aéreo por salto (hasta CAER o hasta que CONECTE). Corta el spam
 	# de golpes aéreos (y el sonido agudo repetido).
 	if airborne and air_move_used:
@@ -2172,6 +2298,8 @@ func _unhandled_input(event: InputEvent) -> void:
 # intenta ejecutar un boton de ataque respetando ventana, familia y escalera
 func _try_attack(accion: String) -> bool:
 	var anim_actual := String(sprite.animation)
+	if channeling:
+		_stop_channel()   # cualquier ataque CANCELA el canaleo (evita que la anim de carga vuelva)
 	if special_t > 0.0 or fe_dash_active:
 		return false  # ni el dash especial ni el dash de agujas se cancelan
 	if anim_actual in ["take_hit", "take_hit_low", "block", "block_low", "water_cast", "crystal_cast"] and sprite.is_playing():
@@ -2244,6 +2372,8 @@ func _try_attack(accion: String) -> bool:
 				# AYE ↓→+W = BACKSTAB: se teleporta DETRÁS del rival, golpea y lo EMPUJA ~3 cuerpos hacia
 				# adelante (si hay orbe delante, lo mete en ella -> congela). Mixup con el orb.
 				if fx_floral and kade and down_recent_t > 0.0:
+					if not _spell_afford(0.30):
+						return true
 					_start_backstab()
 					return true
 				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
@@ -2256,6 +2386,8 @@ func _try_attack(accion: String) -> bool:
 			# AYE (E) = CRYSTAL CAST a distancia: grita y alza el báculo (#181). El proyectil que
 			# viaja se anima aparte (crystal_shard) y se cablea cuando exista. En el suelo.
 			if fx_floral and not airborne and sprite.sprite_frames.has_animation("crystal_cast"):
+				if not _spell_afford(0.20):
+					return true
 				_start_crystal_cast()
 				return true
 			if not airborne:
@@ -2268,6 +2400,8 @@ func _try_attack(accion: String) -> bool:
 			# AYE salto+E = jump_kick_cast: gira el báculo e INVOCA 3 proyectiles de cristal rectos
 			# (reemplaza el air_spin_kick que caía a DAM). Los 3 disparos salen en la fase de lanzamiento.
 			if airborne and fx_floral and sprite.sprite_frames.has_animation("jump_kick_cast"):
+				if not _spell_afford(0.20):
+					return true
 				jp_shots = 0
 				sprite.play("jump_kick_cast")
 				return true
@@ -2294,6 +2428,8 @@ func _try_attack(accion: String) -> bool:
 			# salto + R = PATADA AÉREA DOBLE de Fe (air_jab), exclusiva (DAM no la tiene)
 			if airborne and sprite.sprite_frames.has_animation("air_jab"):
 				if fx_floral:
+					if not _spell_afford(0.20):
+						return true
 					jp_shots = 0   # reinicia para que su barrage (down) dispare, incluso tras un cancel E->R
 				sprite.play("air_jab")
 				return true
@@ -2301,6 +2437,8 @@ func _try_attack(accion: String) -> bool:
 				# AYE: → ↓ ← + R (media luna atrás) = FROST ORB (PRISM ORB), la orbe congelante
 				if fx_floral and hcb_t > 0.0 and sprite.sprite_frames.has_animation("crystal_cast"):
 					hcb_t = 0.0
+					if not _spell_afford(0.50):
+						return true
 					_start_frost_orb()
 					return true
 				if sprite.sprite_frames.has_animation("weak_punch"):
@@ -2309,17 +2447,45 @@ func _try_attack(accion: String) -> bool:
 			return false
 	return false
 
+# corta el SFX si TODAVIA esta sonando ese mismo stream (efectos cortos con mp3 largos)
+func _sfx_cut(st: AudioStream) -> void:
+	if sfx_player.playing and sfx_player.stream == st:
+		sfx_player.stop()
+
 func _on_animation_finished() -> void:
 	if sprite.animation == "hit_down":
 		# ya se levanto: el castigo termino, se reinician los frenos de combo
 		juggle_hits = 0
 		wall_bounced = false
+		# KO: queda TENDIDA tal como termina la caída (boca arriba), sin levantarse
+		if koed:
+			sprite.stop()
+			sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("hit_down") - 1)
+			return
+		# AYE: reproduce la anim de LEVANTARSE (tendida -> de pie) antes de volver a idle
+		if fx_floral and sprite.sprite_frames.has_animation("get_up"):
+			sprite.play("get_up")
+			return
 	if sprite.animation == "ko" or sprite.animation == "ko_air":
 		return  # se queda tendido (ko_air = boca abajo del KO aéreo)
 	if sprite.animation == "victory":
 		return  # sostiene la pose final
 	if sprite.animation == "land":
 		sprite.play("pose")   # terminó de amortiguar el aterrizaje -> vuelve a idle
+		return
+	if sprite.animation == "get_up":
+		# "usa un poder" para levantarse: aura MORADA + sombras de poder -> ENMASCARA el snap del
+		# último frame (#248, dos manos) a la pose idle relajada.
+		_cast_border_on(0.6)
+		breaker_fx_t = maxf(breaker_fx_t, 0.55)
+		var pwr := "res://imagen-action/aye/sound-effect/spell-charge-mana.mp3"
+		if ResourceLoader.exists(pwr):
+			var st: AudioStream = load(pwr)
+			sfx_player.stream = st
+			sfx_player.play()
+			# el mp3 es el del canal de maná (largo): cortarlo al terminar el destello
+			get_tree().create_timer(0.75).timeout.connect(_sfx_cut.bind(st), CONNECT_ONE_SHOT)
+		sprite.play("pose")   # terminó de levantarse -> idle (pose normal)
 		return
 	if sprite.animation == "jump_kick" and airborne:
 		sprite.stop()
