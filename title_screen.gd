@@ -3,8 +3,8 @@ extends Control
 # (res://imagen-action/ui/menu-bg.png). Menú abajo-centro sobre un velo oscuro, con la
 # tipografía pesada del juego. Sin título (el póster manda). VS CPU / TRAINING / VS ONLINE.
 
-const OPTS := ["VS CPU", "TRAINING", "VS ONLINE"]
-const MODES := ["vs_cpu", "practice", ""]   # "" = deshabilitado
+const OPTS := ["VS CPU", "TRAINING", "COMBOS", "VS ONLINE"]
+const MODES := ["vs_cpu", "practice", "combos", ""]   # "" = deshabilitado; "combos" = abre el panel de combos
 const RED := Color(0.95, 0.24, 0.20)
 const GOLD := Color(0.98, 0.84, 0.32)
 # FRAMES FINALES del título ya compuestos (tormenta + personajes fusionados). Ciclarlos =
@@ -18,6 +18,8 @@ const STORM_FRAMES := [
 var sel := 0
 var has_bg := false
 var big_font: SystemFont
+var body_font: SystemFont          # fuente del panel de combos (mono, para alinear las flechas)
+var combos_root: Control = null    # panel de COMBOS (overlay a pantalla completa)
 var opt_labels := []
 var fx: Control
 var t := 0.0
@@ -40,6 +42,8 @@ func _ready() -> void:
 	big_font = SystemFont.new()
 	big_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
 	big_font.font_weight = 900
+	body_font = SystemFont.new()
+	body_font.font_names = PackedStringArray(["Menlo", "Consolas", "Courier New", "Arial"])
 	# FONDO: frames de tormenta ya compuestos (DAM vs Fe + relámpagos). Se ciclan para animar.
 	for p in STORM_FRAMES:
 		if ResourceLoader.exists(p):
@@ -91,6 +95,14 @@ func _ready() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hint)
+	# PANEL DE COMBOS (overlay, oculto hasta que se elige "COMBOS")
+	combos_root = Control.new()
+	combos_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	combos_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	combos_root.z_index = 5
+	combos_root.visible = false
+	combos_root.draw.connect(_draw_combos)
+	add_child(combos_root)
 	_refresh()
 
 func _refresh() -> void:
@@ -184,6 +196,13 @@ func _lightning(delta: float) -> void:
 			next_strike = randf_range(1.4, 3.6)                # pausa hasta el siguiente
 
 func _unhandled_input(_e: InputEvent) -> void:
+	# PANEL DE COMBOS abierto: cualquier tecla lo cierra (no navega el menú)
+	if combos_root != null and combos_root.visible:
+		if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("ui_cancel") \
+				or Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("kick") \
+				or Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down"):
+			combos_root.visible = false
+		return
 	if Input.is_action_just_pressed("ui_up"):
 		sel = posmod(sel - 1, OPTS.size()); _refresh()
 	elif Input.is_action_just_pressed("ui_down"):
@@ -191,5 +210,49 @@ func _unhandled_input(_e: InputEvent) -> void:
 	elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
 		if MODES[sel] == "":
 			return
+		if MODES[sel] == "combos":            # abre el panel de combos (no cambia de escena)
+			combos_root.visible = true
+			combos_root.queue_redraw()
+			return
 		Sel.mode = MODES[sel]
 		get_tree().change_scene_to_file("res://char_select.tscn")
+
+# ---------- PANEL DE COMBOS ----------
+func _draw_combos() -> void:
+	var cr := combos_root
+	var PURPLE := Color(0.75, 0.55, 1.0)
+	var WHITE := Color(0.95, 0.95, 1.0)
+	var GRAY := Color(0.72, 0.72, 0.8)
+	# velo casi opaco + panel con marco dorado
+	cr.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.02, 0.01, 0.04, 0.92))
+	var px := 230.0; var py := 66.0; var pw := 1460.0; var ph := 948.0
+	cr.draw_rect(Rect2(px, py, pw, ph), Color(0.07, 0.05, 0.11, 0.98))
+	var gline := Color(GOLD.r, GOLD.g, GOLD.b, 0.85)
+	cr.draw_line(Vector2(px, py), Vector2(px + pw, py), gline, 3.0)
+	cr.draw_line(Vector2(px, py + ph), Vector2(px + pw, py + ph), gline, 3.0)
+	cr.draw_line(Vector2(px, py), Vector2(px, py + ph), gline, 3.0)
+	cr.draw_line(Vector2(px + pw, py), Vector2(px + pw, py + ph), gline, 3.0)
+	# título
+	cr.draw_string(big_font, Vector2(px + 50, py + 86), "COMBOS", HORIZONTAL_ALIGNMENT_LEFT, -1, 58, GOLD)
+	var x := px + 56.0
+	var y := py + 156.0
+	# escalera (todos)
+	cr.draw_string(big_font, Vector2(x, y), "LADDER  (all fighters):   R  →  Q  →  W  →  E", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, WHITE); y += 40.0
+	cr.draw_string(body_font, Vector2(x, y), "weak → medium → heavy → special.  Cancel UP only, one button per rung —", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, GRAY); y += 30.0
+	cr.draw_string(body_font, Vector2(x, y), "never repeat a button, never go down.  Max 4 hits.  Cancel FAST (buffer the next button).", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, GRAY); y += 54.0
+	# AYE
+	cr.draw_string(big_font, Vector2(x, y), "AYE  — crystal witch (slow casts, wider combo window)", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, PURPLE); y += 46.0
+	cr.draw_string(body_font, Vector2(x, y), "R   Q   W   E          poke → thrust → ice pillar → crystal shot", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, WHITE); y += 38.0
+	cr.draw_string(body_font, Vector2(x, y), "R   Q   W   ↓E         ...  → ice-spikes  FREEZE", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, WHITE); y += 38.0
+	cr.draw_string(body_font, Vector2(x, y), "↓R  ↓Q  ↓W  ↓E         full crouch chain (hold ↓)", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, WHITE); y += 38.0
+	cr.draw_string(body_font, Vector2(x, y), "↓E  →  E               freeze, then projectile  (zoner 2-hit)", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, WHITE); y += 38.0
+	cr.draw_string(body_font, Vector2(x, y), "SUPER   ↓ ← Q          needs a live 3-hit combo + 1.5 meter bars", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, GOLD); y += 54.0
+	# DAM / FE
+	cr.draw_string(big_font, Vector2(x, y), "DAM / FE", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, RED); y += 46.0
+	cr.draw_string(body_font, Vector2(x, y), "R   Q   W   E          same ladder;  E (spin kick) launches → air juggle", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, WHITE); y += 38.0
+	cr.draw_string(body_font, Vector2(x, y), "specials:  DAM ↓→Q dash · →E/→R ultra · FE ↓←E whirlpool · Q+W parry (both together)", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, GRAY); y += 54.0
+	# tips + cerrar
+	cr.draw_string(body_font, Vector2(x, y), "Tip: END on E / ↓E — nothing chains after a special.  Buttons:  Q W E R = attack/kick/spin/weak.", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, GRAY)
+	var closes := "ENTER  /  ESC   —   close"
+	var cw := big_font.get_string_size(closes, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	cr.draw_string(big_font, Vector2(px + pw * 0.5 - cw * 0.5, py + ph - 26.0), closes, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, GOLD)

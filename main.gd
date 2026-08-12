@@ -72,7 +72,9 @@ const ATK_LEVEL := {
 	"weak_punch": 1, "crouch_jab": 1,
 	"punch": 2, "punch2": 2, "crouch_punch": 2, "jump_punch": 2,
 	"kick": 3, "crouch_kick": 3, "jump_kick": 3,
-	"spin_kick": 4, "air_spin_kick": 4, "sweep": 4,
+	"spin_kick": 4, "air_spin_kick": 4, "sweep": 4, "crystal_cast": 4,   # E de Aye = nivel 4 (no resetea el combo)
+	# 3 proyectiles aéreos de jump_kick_cast: nombres DISTINTOS (mismo nivel 4) para contar como 3 hits
+	"crystal_air_a": 4, "crystal_air_b": 4, "crystal_air_c": 4,
 	"ember_dash": 5,
 }
 var combo_dmg_lbl := []
@@ -104,6 +106,8 @@ var moves_panel: ColorRect
 var moves_title: Label   # título de la lista (cambia según personaje)
 var moves_col1: Label    # columna de MOVES (cambia según personaje)
 var moves_fin: Label     # bloque SPECIALS & FINISHERS (cambia según personaje)
+var moves_avatar: TextureRect   # retrato del personaje en la pantalla MOVES del trainer
+var moves_avframe: ColorRect    # marco de acento del retrato
 var menu_opts := []
 var menu_sel := 0
 # --- PANTALLA PRINCIPAL (title) y submenú TRAINER ---
@@ -173,7 +177,7 @@ var cutin_ms := -100000
 var cutin_side := -1
 const CUTIN_BG := 0.22     # el panel/líneas SUBEN de abajo hacia arriba
 const CUTIN_IN := 0.26     # ...y DESPUÉS entra el personaje
-const CUTIN_HOLD := 0.52   # aguanta durante el FRAME CONGELADO (freeze largo)
+const CUTIN_HOLD := 0.95   # aguanta durante el FRAME CONGELADO (más rato en pantalla)
 const CUTIN_OUT := 0.40    # ...y se va mientras corren los frames del rayo
 const CUTIN_PW := 776.0
 const CUTIN_PH := 1150.0
@@ -209,6 +213,8 @@ var pause_combos_title: Label
 var pause_combos_moves: Label
 var pause_combos_fin: Label
 var pause_combos_border: Array = []
+var pause_combos_avatar: TextureRect   # retrato del personaje que juegas (top-left del panel)
+var pause_combos_avframe: ColorRect    # marco de acento del retrato
 var combo_seq := []   # secuencia de golpes del combo actual del jugador
 # secuencia exacta que debe ejecutar el jugador para el SUCCESS de cada combo
 const COMBO_SEQS := {
@@ -666,6 +672,20 @@ func _ready() -> void:
 	vt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vp.add_child(vt)
 	moves_title = vt
+	# AVATAR del personaje (top-left) con marco de acento
+	var mvfr := ColorRect.new()
+	mvfr.position = Vector2(36, 16); mvfr.size = Vector2(108, 108)
+	mvfr.color = Color(1.7, 0.4, 0.24, 1.0)
+	vp.add_child(mvfr)
+	moves_avframe = mvfr
+	var mav := TextureRect.new()
+	mav.position = Vector2(41, 21); mav.size = Vector2(98, 98)
+	mav.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mav.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	mav.clip_contents = true
+	mav.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp.add_child(mav)
+	moves_avatar = mav
 	var col1 := Label.new()
 	col1.add_theme_font_size_override("font_size", 24)
 	col1.position = Vector2(80, 118)
@@ -991,16 +1011,22 @@ func _hide_announce_soon() -> void:
 # pone el título / MOVES / FINISHERS de la lista según el personaje ELEGIDO
 # texto de MOVE LIST por personaje (compartido por la pantalla MOVES y el menú de pausa)
 func _char_move_text(cid: String) -> Dictionary:
+	if cid == "aye":
+		return {
+			"title": "AYE — MOVE LIST",
+			"moves": "MOVES:\n\nR  —  Staff poke (50)\n↓ + R  —  Low crouch poke (50)\nQ  —  Staff thrust (90)\n→ + Q  —  Double thrust (90+90)\n↓ + Q  —  Crouch jab (90)\nW  —  ICE PILLAR cast (100)\n↓ + W  —  ICE MOON · rising launcher (100) ▲\nE  —  CRYSTAL SHOT · projectile (80)\n↓ + E  —  ICE SPIKES · sweep, FREEZES (100) ✦\nJump + Q  —  Air staff (90)\nJump + W  —  Air overhead (100)\n\n▲ = launches into the air     ✦ = freezes the rival ~1s",
+			"fin": "★  SPECIALS  &  FINISHERS   (zoner)\n↑↑ R  —  COMBO BREAK (1/round, while hit)\n↓ → Q  —  TELEPORT (glitch, invincible, 1 bar)\n↓ ← Q  —  CRYSTAL FLURRY super\n      (needs 3-hit combo + 1.5 bars)\n↓ E → E  —  freeze, then projectile\n\nBEST COMBO:  R → Q → W → ↓E   (go UP only)\n\nPARRY (Q + W together):  counter, 1 bar",
+		}
 	if cid == "favi":
 		return {
 			"title": "FE — MOVE LIST",
 			"moves": "MOVES:\n\nR  —  Quick needle jab (4)\n↓ + R  —  Low needle jab (4)\nQ  —  Scissor slash (10)\n→ + Q  —  Double scissor\nW  —  Heavy scissor (10)\n↓ + Q  —  Crouch scissor (3)\n↓ + W  —  Rising needles (5) ▲\nE  —  Needle spin · 2 hits\n↓ + E  —  Ground sweep (6) ▼\nJump + Q  —  Air scissor (4)\nJump + W  —  Dive needle (4)\nJump + E  —  Air somersault (8) ▲\n\n▲ = launches into the air     ▼ = knocks down",
-			"fin": "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  WATER GEYSER · 1/2/3 bodies\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick\n\nPARRY (Q + W a la vez):  counter · 1 barra · corta el combo rival",
+			"fin": "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  WATER GEYSER · 1/2/3 bodies\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick\n\nPARRY (Q + W together):  counter · 1 bar · breaks their combo",
 		}
 	return {
 		"title": "DAM — MOVE LIST",
 		"moves": "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\n\n▲ = launches into the air     ▼ = knocks down",
-		"fin": "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP\n\nPARRY (Q + W a la vez):  counter · 1 barra · corta el combo rival",
+		"fin": "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP\n\nPARRY (Q + W together):  counter · 1 bar · breaks their combo",
 	}
 
 func _set_moves_text() -> void:
@@ -1010,13 +1036,22 @@ func _set_moves_text() -> void:
 	moves_title.text = String(t["title"])
 	moves_col1.text = String(t["moves"])
 	moves_fin.text = String(t["fin"])
+	# AVATAR + color de acento del personaje (por-personaje, épico)
+	var acc := _char_accent(selected_char)
+	moves_title.add_theme_color_override("font_color", acc)
+	if moves_avframe != null:
+		moves_avframe.color = acc
+	if moves_avatar != null:
+		var avp := _char_avatar(selected_char)
+		if ResourceLoader.exists(avp):
+			moves_avatar.texture = load(avp)
 
 # ============================================================================
 #  MENÚ DE PAUSA (ESC en pelea): CONTINUAR / COMBOS / SALIR AL MENÚ
 #  Estilo tipo SF6/Guilty Gear: velo oscuro + líneas de acción manga tintadas
 #  al color del personaje, placas inclinadas que se encienden al seleccionar.
 # ============================================================================
-const PAUSE_LABELS := ["CONTINUAR", "COMBOS", "SALIR AL MENÚ"]
+const PAUSE_LABELS := ["CONTINUE", "COMBOS", "QUIT TO MENU"]
 
 func _pause_plate_poly(w: float, h: float, slant: float) -> PackedVector2Array:
 	# paralelogramo inclinado (misma estética que los carteles de BREAK/COUNTER)
@@ -1059,7 +1094,7 @@ func _build_pause() -> void:
 		root.add_child(bar)
 	# título "PAUSA"
 	var ttl := Label.new()
-	ttl.text = "PAUSA"
+	ttl.text = "PAUSED"
 	ttl.add_theme_font_override("font", combo_font)
 	ttl.add_theme_font_size_override("font_size", 150)
 	ttl.add_theme_color_override("font_color", Color(0.97, 0.97, 1.0))
@@ -1118,7 +1153,7 @@ func _build_pause() -> void:
 	hint.add_theme_color_override("font_color", Color(1.0, 0.7, 0.5))
 	hint.add_theme_constant_override("outline_size", 4)
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
-	hint.text = "↑ ↓  moverse       Q / Enter  elegir       ESC  seguir peleando"
+	hint.text = "↑ ↓  MOVE       Q / ENTER  SELECT       ESC  RESUME FIGHT"
 	hint.position = Vector2(240, 900)
 	hint.size = Vector2(1440, 40)
 	root.add_child(hint)
@@ -1130,8 +1165,14 @@ func _build_pause() -> void:
 	cp.visible = false
 	root.add_child(cp)
 	pause_combos = cp
+	# fondo OPACO a pantalla completa: tapa el menú de pausa por completo (sin transparentar)
+	var backdrop := ColorRect.new()
+	backdrop.position = Vector2.ZERO; backdrop.size = Vector2(1920, 1080)
+	backdrop.color = Color(0.02, 0.01, 0.04, 1.0)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cp.add_child(backdrop)
 	var panel := ColorRect.new()
-	panel.color = Color(0.03, 0.03, 0.08, 0.97)
+	panel.color = Color(0.05, 0.04, 0.10, 1.0)
 	panel.position = Vector2(250, 96)
 	panel.size = Vector2(1420, 890)
 	cp.add_child(panel)
@@ -1151,11 +1192,31 @@ func _build_pause() -> void:
 	ct.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(ct)
 	pause_combos_title = ct
+	# AVATAR del personaje (top-left) con marco de acento + brillo detrás
+	var avglow := ColorRect.new()
+	avglow.position = Vector2(30, 12); avglow.size = Vector2(140, 140)
+	avglow.color = Color(1.7, 0.4, 0.24, 0.22)
+	panel.add_child(avglow)
+	pause_combos_border.append(avglow)
+	var avfr := ColorRect.new()
+	avfr.position = Vector2(40, 18); avfr.size = Vector2(120, 120)
+	avfr.color = Color(1.7, 0.4, 0.24, 1.0)
+	panel.add_child(avfr)
+	pause_combos_avframe = avfr
+	var av := TextureRect.new()
+	av.position = Vector2(45, 23); av.size = Vector2(110, 110)
+	av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	av.clip_contents = true
+	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(av)
+	pause_combos_avatar = av
 	# separador bajo el título
 	var sep := ColorRect.new()
 	sep.position = Vector2(90, 116); sep.size = Vector2(1240, 3)
 	sep.color = Color(1.0, 0.6, 0.3, 0.5)
 	panel.add_child(sep)
+	pause_combos_border.append(sep)
 	var cm := Label.new()
 	cm.add_theme_font_size_override("font_size", 27)
 	cm.add_theme_color_override("font_color", Color(0.92, 0.92, 0.96))
@@ -1167,6 +1228,7 @@ func _build_pause() -> void:
 	vsep.position = Vector2(720, 140); vsep.size = Vector2(3, 700)
 	vsep.color = Color(1.0, 0.6, 0.3, 0.4)
 	panel.add_child(vsep)
+	pause_combos_border.append(vsep)
 	var cf := Label.new()
 	cf.add_theme_font_size_override("font_size", 27)
 	cf.add_theme_color_override("font_color", Color(1.0, 0.82, 0.4))
@@ -1178,7 +1240,7 @@ func _build_pause() -> void:
 	var cb := Label.new()
 	cb.add_theme_font_size_override("font_size", 28)
 	cb.add_theme_color_override("font_color", Color(1.0, 0.75, 0.45))
-	cb.text = "ESC / W  —  volver"
+	cb.text = "ESC / W  —  back"
 	cb.position = Vector2(0, 838); cb.size = Vector2(1420, 40)
 	cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(cb)
@@ -1192,9 +1254,10 @@ func _open_pause() -> void:
 	pause_in_combos = false
 	player.input_enabled = false
 	dummy.ai_enabled = false
-	# color del personaje ELEGIDO (azul Fe / rojo DAM)
-	pause_accent = Color(0.5, 0.85, 1.9) if selected_char == "favi" else Color(1.7, 0.4, 0.24)
-	pause_sub_lbl.text = ("FE" if selected_char == "favi" else "DAM") + "   —   ROUND EN PAUSA"
+	# color del personaje ELEGIDO (morado Aye / azul Fe / rojo DAM)
+	pause_accent = _char_accent(selected_char)
+	var cname := "AYE" if selected_char == "aye" else ("FE" if selected_char == "favi" else "DAM")
+	pause_sub_lbl.text = cname + "   —   ROUND PAUSED"
 	pause_sub_lbl.add_theme_color_override("font_color", pause_accent)
 	pause_title_lbl.add_theme_color_override("font_outline_color", pause_accent)
 	pause_hint_lbl.add_theme_color_override("font_color", pause_accent.lerp(Color(1, 1, 1), 0.45))
@@ -1219,6 +1282,20 @@ func _pause_refresh() -> void:
 		lab.add_theme_color_override("font_color", Color(1, 1, 1) if selq else Color(0.58, 0.6, 0.7))
 		plate.color = pause_accent if selq else Color(0.08, 0.09, 0.14, 0.92)
 
+# color de acento por personaje (morado Aye / azul Fe / rojo DAM)
+func _char_accent(cid: String) -> Color:
+	if cid == "aye":
+		return Color(1.35, 0.45, 2.0)
+	if cid == "favi":
+		return Color(0.4, 0.72, 1.7)
+	return Color(1.7, 0.4, 0.24)
+
+func _char_avatar(cid: String) -> String:
+	for c in CHARS:
+		if String(c["id"]) == cid:
+			return String(c["avatar"])
+	return String(CHARS[0]["avatar"])
+
 func _pause_show_combos(show: bool) -> void:
 	pause_in_combos = show
 	if show:
@@ -1226,6 +1303,18 @@ func _pause_show_combos(show: bool) -> void:
 		pause_combos_title.text = String(t["title"])
 		pause_combos_moves.text = String(t["moves"])
 		pause_combos_fin.text = String(t["fin"])
+		# COLOR temático + AVATAR del personaje que estás jugando (épico + por-personaje)
+		var acc := _char_accent(selected_char)
+		pause_combos_title.add_theme_color_override("font_color", acc)
+		for br in pause_combos_border:
+			var cr := br as ColorRect
+			cr.color = Color(acc.r, acc.g, acc.b, cr.color.a)
+		if pause_combos_avframe != null:
+			pause_combos_avframe.color = acc
+		if pause_combos_avatar != null:
+			var avp := _char_avatar(selected_char)
+			if ResourceLoader.exists(avp):
+				pause_combos_avatar.texture = load(avp)
 	pause_combos.visible = show
 
 func _pause_confirm() -> void:
@@ -1707,6 +1796,120 @@ func _build_aye_frames() -> SpriteFrames:
 	# la da la física (vel_y); la animación va vertical in-place (pies anclados). ~20fps. Tuneable.
 	if sf.has_animation("jump") and not _aye_action_frames("jump").is_empty():
 		sf.set_animation_speed("jump", 20.0)
+	# WEAK_PUNCH (R): ESTOCADA COMPLETA. guardia→jab→windup→THRUST extendido (#170, sostenido)→
+	# recupera a la GUARDIA braceada (#174)→idle. 24 frames @ 34fps = ~0.7s (setup DENSO: abre los
+	# pies fluido). Reach largo (override en fighter.gd para que alcance a media distancia). Tuneable.
+	if sf.has_animation("weak_punch") and not _aye_action_frames("weak_punch").is_empty():
+		sf.set_animation_speed("weak_punch", 46.0)   # más SNAPPY (24 frames @46 = ~0.52s). Tuneable.
+	# TAKE_HIT / TAKE_HIT_LOW de Aye: flinch morado. Velocidad PROPIA (no la cadencia rapidísima de DAM,
+	# que casi no se veía): ~24fps para que el latigazo + recuperación se LEAN. Tuneable.
+	if sf.has_animation("take_hit") and not _aye_action_frames("take_hit").is_empty():
+		sf.set_animation_speed("take_hit", 24.0)     # 13 frames @24 = ~0.54s (visible). Tuneable.
+	if sf.has_animation("take_hit_low") and not _aye_action_frames("take_hit_low").is_empty():
+		sf.set_animation_speed("take_hit_low", 24.0)
+	# AIR_JAB (salto+R) de Aye = casteo DIAGONAL ABAJO: guardia -> apunta el báculo diagonal -> sostiene.
+	# 9 frames @ 20fps = ~0.45s; llega al apuntado (frame ~3) y sostiene mientras salen los 3 bolts. Tuneable.
+	if sf.has_animation("air_jab") and not _aye_action_frames("air_jab").is_empty():
+		sf.set_animation_speed("air_jab", 20.0)
+	# PUNCH (Q): estocada fuerte con el báculo. 12 frames @ 28fps = ~0.43s. Tuneable.
+	if sf.has_animation("punch") and not _aye_action_frames("punch").is_empty():
+		sf.set_animation_speed("punch", 28.0)
+	# PUNCH2 (2do golpe de →Q, doble estocada): Aye NO tiene arte propio de punch2 -> REUSA sus frames
+	# de punch. Sin esto, el 2do golpe caía al placeholder de DAM (se "transformaba" en la katana). Mismo ritmo.
+	var aye_p1 := _aye_action_frames("punch")
+	if not aye_p1.is_empty() and _aye_action_frames("punch2").is_empty():
+		if sf.has_animation("punch2"):
+			sf.remove_animation("punch2")
+		sf.add_animation("punch2")
+		sf.set_animation_loop("punch2", false)
+		sf.set_animation_speed("punch2", 28.0)
+		for t in aye_p1:
+			sf.add_frame("punch2", t)
+	# KICK (W) = ICE-GROW cast: alza el báculo alto y vuelve. 33 frames @ 30fps = ~1.1s. Tuneable.
+	if sf.has_animation("kick") and not _aye_action_frames("kick").is_empty():
+		sf.set_animation_speed("kick", 30.0)
+	# CROUCH_PUNCH (↓Q): jab bajo agachada. 17 frames @ 42fps = ~0.40s (rápido, ágil). Tuneable.
+	if sf.has_animation("crouch_punch") and not _aye_action_frames("crouch_punch").is_empty():
+		sf.set_animation_speed("crouch_punch", 54.0)   # más SNAPPY (17 frames @54 = ~0.31s). Tuneable.
+	# CROUCH_KICK (↓W): gancho ascendente anti-aéreo. 15 frames @ 26fps = ~0.58s (más fluido). Tuneable.
+	if sf.has_animation("crouch_kick") and not _aye_action_frames("crouch_kick").is_empty():
+		sf.set_animation_speed("crouch_kick", 26.0)
+	# CROUCH_JAB (↓R): poke bajo agachada con el báculo. 12 frames @ 34fps = ~0.35s (snappy, jab rápido).
+	# guardia→windup→poke PICO(#6, extendido)→hold breve→recupera a guardia baja. Tuneable.
+	if sf.has_animation("crouch_jab") and not _aye_action_frames("crouch_jab").is_empty():
+		sf.set_animation_speed("crouch_jab", 34.0)
+	# SWEEP (↓E) = ICE-SPIKES cast: giro bajo→release al frente (erupta el hielo, #6)→recover. RÁPIDO.
+	# 10 frames @ 28fps = ~0.36s. Al conectar CONGELA al rival (freeze morado). Tuneable.
+	if sf.has_animation("sweep") and not _aye_action_frames("sweep").is_empty():
+		sf.set_animation_speed("sweep", 28.0)
+	# JUMP_PUNCH (salto+Q): golpe aéreo con el báculo. 14 frames @ 24fps = ~0.58s (cabe en el airtime). Tuneable.
+	if sf.has_animation("jump_punch") and not _aye_action_frames("jump_punch").is_empty():
+		sf.set_animation_speed("jump_punch", 24.0)
+	# JUMP_KICK (salto+W): golpe aéreo OVERHEAD (báculo baja). 10 frames @ 26fps = ~0.38s. RÁPIDO
+	# a propósito: el strike veloz + el swing disimulan frames donde la IA corta el báculo. Tuneable.
+	if sf.has_animation("jump_kick") and not _aye_action_frames("jump_kick").is_empty():
+		sf.set_animation_speed("jump_kick", 26.0)
+	# CRYSTAL_CAST (E de Aye): cast a distancia. NO es anim de DAM -> se agrega aparte (como el
+	# water_cast de Fe). Solo si tiene frames propios. 12 frames @ 20fps = ~0.6s. Tuneable.
+	var aye_cc := _aye_action_frames("crystal_cast")
+	if not aye_cc.is_empty():
+		if not sf.has_animation("crystal_cast"):
+			sf.add_animation("crystal_cast")
+		sf.set_animation_loop("crystal_cast", false)
+		sf.set_animation_speed("crystal_cast", 20.0)
+		for t in aye_cc:
+			sf.add_frame("crystal_cast", t)
+	# CRYSTAL_FLURRY (SÚPER de Aye, ↓←+Q): ráfaga del báculo estilo lightning-legs. NO es anim de DAM
+	# -> se agrega aparte. 18 frames @ 26fps = ~0.7s (rápido). La orquesta el súper (main._run_crystal_flurry).
+	var aye_cf := _aye_action_frames("crystal_flurry")
+	if not aye_cf.is_empty():
+		if not sf.has_animation("crystal_flurry"):
+			sf.add_animation("crystal_flurry")
+		sf.set_animation_loop("crystal_flurry", true)   # LOOP: la ráfaga sigue mientras dure el súper
+		sf.set_animation_speed("crystal_flurry", 58.0)  # 145 frames FLUIDOS @58fps = ~2.5s la tanda
+		for t in aye_cf:
+			sf.add_frame("crystal_flurry", t)
+	# COUNTER (PARRY de Aye): frame 0 = pose de DESVÍO diagonal (do_parry la congela) -> extiende el
+	# báculo al frente = contraataque. NO es anim de DAM (.tres) -> se agrega aparte. 7 frames @ 20fps.
+	var aye_ct := _aye_action_frames("counter")
+	if not aye_ct.is_empty():
+		if not sf.has_animation("counter"):
+			sf.add_animation("counter")
+		sf.set_animation_loop("counter", false)
+		sf.set_animation_speed("counter", 20.0)
+		for t in aye_ct:
+			sf.add_frame("counter", t)
+	# TELEPORT (↓→Q de Aye): glitch morado (dissolve out -> reform in). NO es anim de DAM -> se agrega
+	# aparte. Solo si tiene frames propios (imagen-action/aye/teleport/). ~30fps.
+	var aye_tp := _aye_action_frames("teleport")
+	if not aye_tp.is_empty():
+		if not sf.has_animation("teleport"):
+			sf.add_animation("teleport")
+		sf.set_animation_loop("teleport", false)
+		sf.set_animation_speed("teleport", 30.0)
+		for t in aye_tp:
+			sf.add_frame("teleport", t)
+	# JUMP_KICK_CAST (salto+Q de Aye): gira el báculo (molinete) y al LANZARLO al frente invoca 3
+	# proyectiles de cristal RECTOS (frames 6-9). NO es anim de DAM -> se agrega aparte. 9 frames @ 22fps
+	# = ~0.41s (cabe en el airtime; los 3 disparos salen en la fase de lanzamiento). Tuneable.
+	var aye_jkc := _aye_action_frames("jump_kick_cast")
+	if not aye_jkc.is_empty():
+		if not sf.has_animation("jump_kick_cast"):
+			sf.add_animation("jump_kick_cast")
+		sf.set_animation_loop("jump_kick_cast", false)
+		sf.set_animation_speed("jump_kick_cast", 18.0)   # 20 frames @18 = ~1.1s (giro dura + cae suave)
+		for t in aye_jkc:
+			sf.add_frame("jump_kick_cast", t)
+	# LAND (aterrizaje): flexiona las rodillas para amortiguar y se recupera a la pose. NO es anim de DAM
+	# -> se agrega aparte. Solo si tiene frames propios. No-loop (se juega una vez -> vuelve a idle). ~24fps.
+	var aye_land := _aye_action_frames("land")
+	if not aye_land.is_empty():
+		if not sf.has_animation("land"):
+			sf.add_animation("land")
+		sf.set_animation_loop("land", false)
+		sf.set_animation_speed("land", 15.0)   # 6 frames @15 = ~0.40s: se VE la flexión (antes 24 = muy rápido)
+		for t in aye_land:
+			sf.add_frame("land", t)
 	# NEUTRAL_SPIN (salto ADELANTE / mortal): Aye no tiene giro propio. Si no hay frames suyos,
 	# quitamos el placeholder de DAM (katana) para que el salto adelante caiga al "jump" normal
 	# (fighter.gd: si no existe neutral_spin, juega "jump"). Si algún día se generan sus frames,
@@ -2010,8 +2213,14 @@ func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 	# drop: ventana cerrada, golpe repetido, o bajar en la escalera de fuerza
 	# (en el aire la escalera es libre: los juggles encadenan lo que sea)
 	var nivel: int = ATK_LEVEL.get(atk_name, 0)
+	# Aye (zoner) tiene casts LENTOS con daño RETRASADO (proyectil que viaja, hielo que erupta): ventana
+	# de combo más AMPLIA solo para ella, para que sus cadenas no se caigan por el tiempo de viaje/cast.
+	var win: float = COMBO_WINDOW
+	var atk_f: Node2D = player if idx == 0 else dummy
+	if is_instance_valid(atk_f) and atk_f.fx_floral:
+		win = 1.25
 	var baja: bool = not aereo and combo_n[idx] > 0 and nivel < int(combo_lvl[idx])
-	if combo_t[idx] > COMBO_WINDOW or atk_name == combo_last[idx] or baja:
+	if combo_t[idx] > win or atk_name == combo_last[idx] or baja:
 		combo_n[idx] = 1
 	else:
 		combo_n[idx] += 1
@@ -2461,6 +2670,229 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	else:
 		player.input_enabled = true
 		dummy.ai_enabled = dummy_ai_mode
+
+# ---- AYE: SÚPER CRYSTAL FLURRY (↓←+Q tras 3 golpes, cuesta 1.5 barras) ----
+# Ráfaga del báculo (lightning legs) con estela NEÓN morada: varios golpes CRÍTICOS y deja al rival
+# CONGELADO 1s. Escena épica (pantalla oscura + líneas manga + cut-in + grito), estilo inferno de DAM.
+func try_crystal_flurry(atacante: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	var idx := 0 if atacante == player else 1
+	if meter[idx] < 1.5:
+		return false          # cuesta 1.5 BARRAS
+	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
+		return false          # necesita 3 golpes encadenados VIVOS
+	# NO conecta de LEJOS: el rival debe estar CERCA. Si un lanzador (↓W, salto+E, etc.) lo mandó
+	# lejos, el súper NO se activa (antes Aye se teletransportaba y pegaba de un extremo al otro).
+	var victima: Node2D = dummy if idx == 0 else player
+	if absf(victima.position.x - atacante.position.x) > 520.0:
+		return false
+	meter[idx] -= 1.5
+	_run_crystal_flurry(atacante, idx)   # resetea combo_n al final (no repetir el súper)
+	return true
+
+func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var dir := 1 if victima.position.x >= atacante.position.x else -1
+	ultra_active = true
+	state = "ultra"
+	player.input_enabled = false
+	dummy.ai_enabled = false
+	atacante.buffer_t = 0.0
+	atacante.special_t = 0.0
+	atacante.airborne = false
+	atacante.crouching = false
+	atacante.set_facing(dir)
+	_focus_start(atacante)         # borde + PANTALLA OSCURA (se intensifica con el combo)
+	_focus_set(0.35)
+	# trae al rival al piso, de frente
+	victima.airborne = false
+	victima.hit_flying = false
+	victima.hard_fall = false
+	victima.ultra_hover = false
+	victima.crouching = false
+	victima.vel_x = 0.0
+	victima.vel_y = 0.0
+	victima.position.y = victima.floor_y
+	victima.set_facing(-dir)
+	# GRITO del súper + CUT-IN (retrato de Aye, lado opuesto al contador de combo)
+	var vflur := "res://imagen-action/aye/sound-effect/crystal_flurry_Cupcake_Eleven_v3_019ff390-2631-7f3d-8d53-c74ae4ef5664.mp3"
+	if ResourceLoader.exists(vflur):
+		atacante.voz_player.stream = load(vflur)
+		atacante.voz_player.play()
+	var combo_x: float = float(combo_rest_x[idx])
+	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)
+	# arranque dramático: pose CONGELADA en el frame 0 + velo MORADO tenue durante el cut-in
+	atacante.sprite.play("crystal_flurry")
+	atacante.sprite.frame = 26              # arranca en la ESTOCADA (#192), no en la pose parada del wind-up
+	atacante.sprite.speed_scale = 0.0
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.10, 0.0, 0.14, 0.22)
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(1.4, true, false, true).timeout   # pausa dramática (el cut-in dura más)
+	Engine.time_scale = 1.0
+	atacante.sprite.speed_scale = 1.0        # SUELTA la ráfaga
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.9, 0.35, 1.4, 0.45)   # fogonazo MORADO al soltar
+	_shake(22.0, 0.3)
+	# MULTI-HIT: golpes CRÍTICOS mientras corre la anim (la estela NEÓN la dibuja el propio sprite,
+	# AYE_SWING_FX["crystal_flurry"]). El rival se tambalea (pummeled). El súper NO mata (min 1 HP):
+	# el CONGELADO final es el remate/sello del zoner.
+	var n0: int = combo_n[idx]
+	var HITS := 16
+	var PASO := 0.09
+	var crit_total := int(hp_max[1 - idx] * 0.35)   # ~35% de la vida del rival, repartido
+	var dealt := 0
+	var hit_i := 0
+	var hit_cd := 0.06   # arranca ya en la estocada -> golpes casi de inmediato
+	var t := 0.0
+	var fin := 0.06 + float(HITS) * PASO + 0.06
+	atacante.position.x = clampf(victima.position.x - float(dir) * 175.0, LEFT_LIMIT, RIGHT_LIMIT)
+	while t < fin and state == "ultra":
+		var dt := get_process_delta_time()
+		atacante.set_facing(dir)
+		victima.set_facing(-dir)
+		victima.position.y = victima.floor_y
+		if victima.sprite.sprite_frames.has_animation("pummeled"):
+			if String(victima.sprite.animation) != "pummeled":
+				victima.sprite.play("pummeled")
+		hit_cd -= dt
+		if hit_cd <= 0.0 and hit_i < HITS:
+			hit_cd = PASO
+			hit_i += 1
+			var d := (crit_total - dealt) if hit_i == HITS else int(crit_total / HITS)
+			dealt += d
+			if idx == 0:
+				dummy_hp = maxi(1, dummy_hp - d)
+			else:
+				player_hp = maxi(1, player_hp - d)
+			_ultra_count(idx, n0 + hit_i)
+			combo_dmg[idx] += d
+			combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+			_focus_set(0.4 + 0.6 * float(hit_i) / float(HITS))
+			if ultra_panels.size() > 0:
+				ultra_panel.texture = ultra_panels[hit_i % ultra_panels.size()]
+				ultra_panel.visible = true
+			victima._burst(0.85, false, 1, false, 500.0 * (1.0 - victima.base_scale.y))
+			_shake(12.0, 0.1)
+			victima._play_sfx_key("take_hit")
+			flash_ms = Time.get_ticks_msec()
+			flash_rect.color = Color(0.85, 0.35, 1.3, 0.4)   # fogonazo morado por golpe
+		t += dt
+		await get_tree().process_frame
+	# REMATE: GOLPE FINAL con el uppercut ↓W (crouch_kick = su lanzador de luna de hielo). Aye hace el
+	# gancho ascendente, erupta su LUNA morada y LANZA al rival por los aires (así se LEE el golpe final,
+	# no un corte seco). El lanzamiento lo saca del tambaleo (pummeled) -> hit_fly -> se recupera solo.
+	atacante.sprite.speed_scale = 1.0
+	atacante.airborne = false
+	atacante.crouching = false
+	atacante.set_facing(dir)
+	atacante.position.x = clampf(victima.position.x - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
+	atacante.moon_cast_spawned = false     # garantiza que la LUNA erupte en el remate
+	atacante.sprite.play("crouch_kick")    # el uppercut lanzador (báculo hacia arriba + luna morada)
+	# breve windup del uppercut antes del impacto
+	var wu := 0.0
+	while wu < 0.16 and state == "ultra":
+		atacante.set_facing(dir)
+		await get_tree().process_frame
+		wu += get_process_delta_time()
+	# IMPACTO del golpe final: fogonazo morado + cámara lenta + LANZA ALTO
+	victima.set_facing(-dir)
+	victima._burst(1.4)
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.95, 0.4, 1.6, 0.8)
+	_shake(30.0, 0.45)
+	Engine.time_scale = 0.30
+	await get_tree().create_timer(0.14, true, false, true).timeout
+	Engine.time_scale = 1.0
+	victima.receive_hit(false, true, dir, "kick_impact", false, 1.45)   # strong -> _launch ALTO
+	# deja que el uppercut de Aye TERMINE antes de devolver el control (no corta el golpe final)
+	var rec := 0.0
+	while rec < 0.30 and state == "ultra":
+		atacante.set_facing(dir)
+		await get_tree().process_frame
+		rec += get_process_delta_time()
+	_focus_end()
+	ultra_active = false
+	state = "fight"
+	# NO repetir el súper: resetea el combo del atacante para que exija un combo de 3 NUEVO antes de
+	# poder soltarlo otra vez (aunque le sobren barras). Cierra también la ventana por si acaso.
+	combo_n[idx] = 0
+	combo_t[idx] = COMBO_WINDOW + 1.0
+	atacante.sprite.play("pose")           # se para tras el uppercut
+	player.input_enabled = true
+	dummy.ai_enabled = dummy_ai_mode
+
+# TELEPORT de Aye (↓→Q, reemplaza el dash): glitch out + TIEMBLA + sonido -> reaparece AL FRENTE del
+# rival con un golpe. Sombras + borde MORADO que se desvanecen si no encadena un combo. Invulnerable.
+# ¿Aye tiene barra para el teleport? (lo consulta fighter._start_teleport ANTES de comprometerse)
+func _aye_bar_ok(caster: Node2D) -> bool:
+	var idx := 0 if caster == player else 1
+	return meter[idx] >= 1.0
+
+func _aye_teleport(caster: Node2D, from_air := false) -> void:
+	if state != "fight" or ultra_active:
+		return
+	var tidx := 0 if caster == player else 1
+	if meter[tidx] < 1.0:
+		return                 # cuesta 1 BARRA (como sus otros poderes)
+	meter[tidx] -= 1.0
+	var opp: Node2D = dummy if caster == player else player
+	caster.crouching = false
+	caster.airborne = from_air   # si teleportó EN EL AIRE, se queda en el aire (combo aéreo)
+	caster.vel_x = 0.0
+	caster.vel_y = 0.0
+	caster.buffer_t = 0.0
+	caster.breaker_inv_t = maxf(caster.breaker_inv_t, 0.5)   # invulnerable (esquiva) durante el glitch
+	caster.breaker_fx_t = maxf(caster.breaker_fx_t, 0.8)     # sombras MORADAS (se desvanecen)
+	caster._cast_border_on(1.2)                              # borde MORADO (se desvanece si no combea)
+	var was_input: bool = caster.input_enabled
+	var was_ai: bool = caster.ai_enabled
+	caster.input_enabled = false
+	caster.ai_enabled = false
+	# GLITCH OUT en el sitio + sonido + TIEMBLA (jitter del sprite + shake de cámara)
+	if caster.sprite.sprite_frames.has_animation("teleport"):
+		caster.sprite.play("teleport")
+	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
+	if ResourceLoader.exists(vr):
+		caster.voz_player.stream = load(vr)
+		caster.voz_player.play()
+	var base_off: float = caster.sprite.offset.x
+	var hold_y: float = caster.position.y   # en el aire: congela su altura durante el glitch (sin caer)
+	var t := 0.0
+	while t < 0.24 and state == "fight":
+		caster.sprite.offset.x = base_off + randf_range(-13.0, 13.0)   # TIEMBLA
+		if from_air:
+			caster.vel_y = 0.0
+			caster.position.y = hold_y     # no la deja caer por gravedad mientras glitchea
+		_shake(9.0, 0.05)
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	caster.sprite.offset.x = base_off
+	if state != "fight":
+		caster.input_enabled = was_input
+		caster.ai_enabled = was_ai
+		return
+	# REAPARECE justo AL FRENTE del rival, encarándolo, con un GOLPE
+	var dir := 1 if opp.position.x >= caster.position.x else -1
+	caster.position.x = clampf(opp.position.x - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
+	if from_air:
+		# EN EL AIRE: reaparece a la altura del rival (si también está arriba) o mantiene su altura
+		# aérea, y remata con un GOLPE AÉREO. Luego cae normal (gravedad).
+		caster.position.y = opp.position.y if opp.airborne else minf(caster.position.y, caster.floor_y - 120.0)
+		caster.airborne = true
+		caster.vel_y = -120.0          # pequeño impulso; la gravedad la hace caer enseguida
+	else:
+		caster.position.y = caster.floor_y
+	caster.set_facing(dir)
+	caster._spawn_ghost(false)         # after-imagen morada al reaparecer
+	_shake(15.0, 0.13)
+	if from_air and caster.sprite.sprite_frames.has_animation("jump_punch"):
+		caster.sprite.play("jump_punch")   # GOLPE AÉREO de llegada
+	else:
+		caster.sprite.play("weak_punch")   # el GOLPE de llegada (el árbitro aplica el hit a rango)
+	caster.input_enabled = was_input
+	caster.ai_enabled = was_ai
 
 # WHIRLPOOL (finisher de Fe, ↓←+E): GIRO MORTAL en el lugar que atrapa al rival en un
 # vórtice de agua y le quita BASTANTE vida. Se habilita tras un combo VIVO de 2+ golpes.
@@ -3252,6 +3684,9 @@ func _focus_start(atacante: Node2D) -> void:
 		_outline_mat = ShaderMaterial.new()
 		_outline_mat.shader = sh
 	atacante.sprite.material = _outline_mat
+	# BORDE del focus: MORADO para Aye (fx_floral), ROJO para DAM/Fe (default del shader)
+	_outline_mat.set_shader_parameter("line_color",
+		Color(1.45, 0.35, 2.0, 1.0) if atacante.fx_floral else Color(1.9, 0.12, 0.12, 1.0))
 	focus_atk = atacante
 	focus_cur = 0.0
 	focus_target = 0.0
@@ -3275,6 +3710,23 @@ func _focus_apply() -> void:
 	if _outline_mat != null:
 		_outline_mat.set_shader_parameter("intensity", focus_cur)
 	modulate = Color(1, 1, 1).lerp(Color(0.55, 0.55, 0.64), focus_cur)   # oscurece con la intensidad
+
+# borde MORADO para los CAST de hielo de Aye (W pilar / ↓W luna): como los ultras, pero
+# corto y sin oscurecer la escena. Reusa el shader de outline con line_color morado.
+var _cast_mat: ShaderMaterial = null
+func _cast_border(atacante: Node2D, on: bool) -> void:
+	if on:
+		if _cast_mat == null:
+			var sh := Shader.new()
+			sh.code = _OUTLINE_CODE
+			_cast_mat = ShaderMaterial.new()
+			_cast_mat.shader = sh
+			_cast_mat.set_shader_parameter("line_color", Color(1.45, 0.35, 2.0, 1.0))  # MORADO brillante
+			_cast_mat.set_shader_parameter("width", 3.6)
+			_cast_mat.set_shader_parameter("intensity", 0.95)
+		atacante.sprite.material = _cast_mat
+	elif atacante.sprite.material == _cast_mat:
+		atacante.sprite.material = atacante.base_material   # restaura el color alterno (P2)
 
 # borde rojo eléctrico para el EMBER DASH (sin oscurecer la escena; el dash es rápido)
 var _dash_mat: ShaderMaterial = null
@@ -3496,7 +3948,11 @@ func _play_cutin(side: int, caster: Node2D = null) -> void:
 		return
 	# retrato del PERSONAJE que castea: DAM usa su cut-in del inferno; Fe su victory-hud.
 	if caster != null and cutin_portrait != null:
-		var ctex := "res://imagen-action/favi/sheets/victory-hud-fe-key.png" if caster.fx_blue else "res://imagen-action/dam/cutin/dam-cutin.png"
+		var ctex := "res://imagen-action/dam/cutin/dam-cutin.png"
+		if caster.fx_floral:       # Aye: su retrato de cut-in (victory-hud-aye keyeado)
+			ctex = "res://imagen-action/aye/sheets/victory-hud-aye-key.png"
+		elif caster.fx_blue:       # Fe: su victory-hud
+			ctex = "res://imagen-action/favi/sheets/victory-hud-fe-key.png"
 		if ResourceLoader.exists(ctex):
 			cutin_portrait.texture = load(ctex)
 	# side = -1 (retrato a la IZQUIERDA) o +1 (DERECHA). Se pasa el OPUESTO al combo.
@@ -3536,7 +3992,16 @@ func _cutin_tick() -> void:
 	var x := lerpf(off_x, rest_x, _ease_out_back(pin))
 	if pout > 0.0:
 		x = lerpf(rest_x, off_x, pout * pout)
-	cutin_portrait.position = Vector2(x, 1080.0 - CUTIN_PH + 30.0)
+	# ANCLA el BORDE INFERIOR del retrato al borde de abajo (~1110), calculado según el aspecto de la
+	# textura (STRETCH_KEEP_ASPECT_CENTERED la centra en la caja; sin esto Aye "flotaba" por su ratio distinto).
+	var cy := 1080.0 - CUTIN_PH + 30.0
+	if cutin_portrait.texture != null:
+		var tw := float(cutin_portrait.texture.get_width())
+		var th := float(cutin_portrait.texture.get_height())
+		if tw > 0.0 and th > 0.0:
+			var disp_h: float = th * minf(CUTIN_PW / tw, CUTIN_PH / th)
+			cy = 1110.0 - (CUTIN_PH + disp_h) * 0.5
+	cutin_portrait.position = Vector2(x, cy)
 	# --- alfas ---
 	var vis := 1.0 - pout
 	cutin_dark.color.a = 0.4 * minf(pbg, vis)
@@ -3929,6 +4394,425 @@ func _process(_dt: float) -> void:
 	elif flash_rect != null and flash_rect.color.a > 0.0:
 		flash_rect.color.a = 0.0
 
+# ===== PROYECTIL DE CRISTAL de Aye (E = crystal_cast) =====
+var crystal_fly_frames: SpriteFrames = null
+var crystal_impact_frames: SpriteFrames = null
+var frost_orb_frames: SpriteFrames = null   # orbe PRISM ORB (efecto: crece+gira -> hold -> rompe+desaparece)
+
+func _build_crystal_frames() -> void:
+	if crystal_fly_frames == null:
+		crystal_fly_frames = SpriteFrames.new()
+		crystal_fly_frames.add_animation("fly")
+		crystal_fly_frames.set_animation_loop("fly", true)
+		crystal_fly_frames.set_animation_speed("fly", 18.0)
+		var i := 1
+		while ResourceLoader.exists("res://imagen-action/aye/crystal_shard/aye-crystal_shard-%d.png" % i):
+			crystal_fly_frames.add_frame("fly", load("res://imagen-action/aye/crystal_shard/aye-crystal_shard-%d.png" % i))
+			i += 1
+	if crystal_impact_frames == null:
+		crystal_impact_frames = SpriteFrames.new()
+		crystal_impact_frames.add_animation("impact")
+		crystal_impact_frames.set_animation_loop("impact", false)
+		crystal_impact_frames.set_animation_speed("impact", 22.0)
+		var j := 1
+		while ResourceLoader.exists("res://imagen-action/aye/crystal_impact/aye-crystal_impact-%d.png" % j):
+			crystal_impact_frames.add_frame("impact", load("res://imagen-action/aye/crystal_impact/aye-crystal_impact-%d.png" % j))
+			j += 1
+
+# jump_kick_cast (salto+E): dispara los 3 proyectiles UNO DETRÁS DEL OTRO (secuencial, NO los 3 a la vez),
+# rectos a la altura de Aye (aire-vs-aire). Cada uno con borde morado + shade. Voz de cast = la misma que
+# su golpe E parado (crystal_cast: "PRISM BOLT"). Se llama UNA vez cuando la anim llega al lanzamiento.
+func _aye_air_barrage(caster: Node2D, down := false) -> void:
+	if not is_instance_valid(caster):
+		return
+	var vr := "res://imagen-action/aye/sound-effect/prims-bolt-aye.mp3"
+	if ResourceLoader.exists(vr):
+		caster.voz_player.stream = load(vr)
+		caster.voz_player.play()
+	for i in range(3):
+		if not is_instance_valid(caster) or state != "fight":
+			return
+		caster.breaker_fx_t = maxf(caster.breaker_fx_t, 0.5)   # SHADE morado por disparo
+		caster._cast_border_on(0.5)                            # borde MORADO por disparo
+		_spawn_crystal_projectile(caster, true, i, down)       # down=true -> diagonal abajo (aire-vs-suelo)
+		if i < 2:
+			await get_tree().create_timer(0.13).timeout        # espaciado -> salen uno detrás del otro
+
+# Aye lanza el proyectil (lo llama fighter al gritar en crystal_cast). Viaja hacia el rival y
+# SIEMPRE estalla al llegar (esquivado o no); solo hace daño si el rival está en el punto de impacto.
+func _spawn_crystal_projectile(caster: Node2D, air := false, shot := 0, down := false) -> void:
+	_build_crystal_frames()
+	if crystal_fly_frames.get_frame_count("fly") == 0:
+		return
+	var dir: int = caster.facing
+	var s: float = 0.45 * caster.base_scale.x   # proyectil MÁS PEQUEÑO
+	# altura MEDIA del cuerpo (a la ALTURA REAL del que lanza, esté en el suelo o EN EL AIRE): sale
+	# de su báculo. salto+E: RECTO a su altura (aire-vs-aire). salto+R (down): DIAGONAL abajo hacia el
+	# rival en el SUELO (aire-vs-suelo) — la trayectoria la calcula _crystal_travel.
+	# ref #187: position.y+(500-485*bs). bs=0.72 -> ~+150.
+	var py: float = caster.position.y + 500.0 - 485.0 * caster.base_scale.y
+	var proj := AnimatedSprite2D.new()
+	proj.sprite_frames = crystal_fly_frames
+	proj.animation = "fly"
+	proj.z_index = 7
+	proj.scale = Vector2(s * float(dir), s)   # flip: la estela queda DETRÁS
+	caster.get_parent().add_child(proj)
+	proj.position = Vector2(caster.position.x + float(dir) * 150.0, py)
+	proj.play("fly")
+	_crystal_travel(proj, caster, dir, py, air, shot, down)
+
+func _crystal_travel(proj: AnimatedSprite2D, caster: Node2D, dir: int, py: float, air := false, shot := 0, down := false) -> void:
+	# capturamos lo del caster ANTES del vuelo (por si se libera al terminar el round)
+	var caster_is_player: bool = caster == player
+	var arena: Node = caster.get_parent()
+	var cs: float = caster.base_scale.x
+	# hit-check por altura (SUELO): golpea si el rival está a la misma altura del PROYECTIL. En el aire
+	# (jump_kick_cast) el proyectil vuela RECTO a la altura de Aye -> es un combo AIRE-CONTRA-AIRE: solo
+	# le da al rival si TAMBIÉN está por los aires a esa altura (si está parado abajo, pasa por encima).
+	var caster_y: float = caster.position.y
+	var target: Node2D = dummy if caster_is_player else player
+	# SFX de VUELO (whoosh): más bajo y se CORTA al impactar (no debe seguir sonando después)
+	var fly_sp: AudioStreamPlayer = null
+	var fly_sfx := "res://imagen-action/aye/sound-effect/prim-bolt-fly.mp3"
+	if ResourceLoader.exists(fly_sfx):
+		fly_sp = AudioStreamPlayer.new()
+		fly_sp.stream = load(fly_sfx)
+		fly_sp.volume_db = -9.0
+		arena.add_child(fly_sp)
+		fly_sp.play()
+	var speed := 1700.0
+	# TRAYECTORIA: recto horizontal por defecto (salto+E / crystal_cast). En modo DOWN (salto+R) sale en
+	# DIAGONAL FIJA abajo-adelante (~45°), siguiendo el ángulo del báculo (#219) — NO apunta al rival: es
+	# una diagonal fija y pega por PROXIMIDAD si su línea pasa cerca del rival PARADO (aire-contra-suelo).
+	var vel := Vector2(float(dir) * speed, 0.0)
+	var ground_stop: float = caster.floor_y + 500.0 - 330.0 * caster.base_scale.y   # ~nivel de piernas del rival parado
+	if down:
+		var a := deg_to_rad(45.0)
+		vel = Vector2(float(dir) * speed * cos(a), speed * sin(a))
+		proj.rotation = float(dir) * a   # inclina el creciente hacia la diagonal (respeta el flip por dir)
+	var dhit := false                    # (down) pegó por proximidad durante el vuelo
+	var ghost_t := 0.0
+	while is_instance_valid(proj) and is_instance_valid(target):
+		proj.position += vel * get_process_delta_time()
+		# SHADE effect: deja una estela de "fantasmas" morados que se quedan y se desvanecen
+		ghost_t += get_process_delta_time()
+		if ghost_t >= 0.028:
+			ghost_t = 0.0
+			_spawn_moon_ghost(arena, proj)
+		# DOWN: pega si la diagonal PASA CERCA del cuerpo del rival PARADO (aire-contra-suelo)
+		if down and not target.koed and (target.floor_y - target.position.y) < 90.0:
+			var tch: float = target.position.y + 500.0 - 485.0 * target.base_scale.y
+			if absf(proj.position.x - target.position.x) < 165.0 and absf(proj.position.y - tch) < 200.0:
+				dhit = true
+				break
+		var reached: bool = (dir > 0 and proj.position.x >= target.position.x) or (dir < 0 and proj.position.x <= target.position.x)
+		if (not down and reached) or proj.position.x < LEFT_LIMIT or proj.position.x > RIGHT_LIMIT or (down and proj.position.y > ground_stop):
+			break
+		await get_tree().process_frame
+	# corta el whoosh de vuelo apenas termina el viaje (impacto o pared) para que NO siga sonando
+	if is_instance_valid(fly_sp):
+		fly_sp.queue_free()
+	if not is_instance_valid(proj) or not is_instance_valid(arena):
+		if is_instance_valid(proj):
+			proj.queue_free()
+		return
+	var ix: float = proj.position.x
+	var iy: float = proj.position.y   # en DOWN la diagonal desciende: el impacto es en el punto real
+	proj.queue_free()
+	# IMPACTO (splash) en el punto de contacto — SIEMPRE que llega (esquivado o no)
+	var imp := AnimatedSprite2D.new()
+	imp.sprite_frames = crystal_impact_frames
+	imp.animation = "impact"
+	imp.z_index = 7
+	var si: float = 0.5 * cs
+	imp.scale = Vector2(si, si)
+	arena.add_child(imp)
+	imp.position = Vector2(ix, iy)
+	imp.play("impact")
+	imp.animation_finished.connect(imp.queue_free)
+	# SFX del SPLASH al reventar el proyectil
+	var spl_sfx := "res://imagen-action/aye/sound-effect/prims-bolt-spl.mp3"
+	if ResourceLoader.exists(spl_sfx):
+		var sp2 := AudioStreamPlayer.new()
+		sp2.stream = load(spl_sfx)
+		arena.add_child(sp2)
+		sp2.finished.connect(sp2.queue_free)
+		sp2.play()
+	# DAÑO solo si el rival está EN el punto de impacto: cerca en X y a la altura del PROYECTIL.
+	# En el suelo: misma altura de suelo. En el aire (recto a la altura de Aye): golpea si el pecho del
+	# rival está a la altura de vuelo del proyectil (py) -> combo aire-contra-aire.
+	var tgt_ok := false
+	if is_instance_valid(target) and not target.koed:
+		if down:
+			tgt_ok = dhit                                    # DOWN: ya se resolvió por proximidad en el vuelo
+		elif air:
+			var tgt_chest: float = target.position.y + 500.0 - 485.0 * target.base_scale.y
+			tgt_ok = absf(target.position.x - ix) < 240.0 and absf(iy - tgt_chest) < 240.0
+		else:
+			tgt_ok = absf(target.position.x - ix) < 240.0 and absf(target.position.y - caster_y) < 230.0
+	if tgt_ok:
+		var res: String = target.receive_hit(false, false, dir, "", false)
+		if res == "hit" or res == "launched":
+			# SUMA al combo (pasa por _combo_hit) para que ↓E (freeze) + E (proyectil) encadenen.
+			# AÉREO (jump_kick_cast): cada uno de los 3 proyectiles usa un NOMBRE DISTINTO (crystal_air_a/b/c)
+			# para que NO se lean como "mismo golpe repetido" y cuenten como 3 HITS reales. Menos daño
+			# c/u (son 3). El empuje pequeño lo da el propio take_hit (push_dir*20) → "empuja un poco".
+			var hidx := 0 if caster_is_player else 1
+			var atk_id: String = "crystal_cast"
+			var proj_dmg := 80
+			if air:
+				atk_id = ["crystal_air_a", "crystal_air_b", "crystal_air_c"][clampi(shot, 0, 2)]
+				proj_dmg = 50
+			var dmg_real: int = _combo_hit(hidx, proj_dmg, atk_id, target.airborne)
+			if caster_is_player:
+				dummy_hp = maxi(0, dummy_hp - dmg_real)
+			else:
+				player_hp = maxi(0, player_hp - dmg_real)
+			meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.0020)   # el proyectil también CARGA barra
+			_shake(9.0, 0.12)
+
+# SHADE del proyectil: copia fantasma MORADA del frame actual de la luna, que se queda en el sitio
+# y se desvanece (deja una estela detrás del proyectil que vuela).
+func _spawn_moon_ghost(arena: Node, proj: AnimatedSprite2D) -> void:
+	if not is_instance_valid(proj) or not is_instance_valid(arena):
+		return
+	var tex: Texture2D = proj.sprite_frames.get_frame_texture(proj.animation, proj.frame)
+	if tex == null:
+		return
+	var g := Sprite2D.new()
+	g.texture = tex
+	g.position = proj.position
+	g.scale = proj.scale          # hereda el flip (facing) y el tamaño
+	g.z_index = 6                 # detrás del proyectil (z=7)
+	g.modulate = Color(1.35, 0.45, 1.85, 0.30)   # morado translúcido
+	arena.add_child(g)
+	var tw := g.create_tween()
+	tw.tween_property(g, "modulate:a", 0.0, 0.26)
+	tw.tween_callback(g.queue_free)
+
+# ---- AYE: FROST ORB "PRISM ORB" (→↓←+R) ----
+# Orbe de cristal que se DESPLAZA girando y creciendo ~4 cuerpos, deja estela morada de congelación en
+# el suelo, flota ~1.5s y luego se ROMPE (esquirlas que desaparecen). Si el rival la TOCA (corre, salta
+# o lo empujan hacia ella) -> CONGELADO ~1s + se rompe. Una sola anim; el motor controla fase/posición.
+const ORB_GROW_END := 10   # frame donde termina crecer+girar (0..10) y empieza el HOLD
+const ORB_CRACK := 11      # frame donde empieza a agrietarse/romperse (11..21)
+func _build_frost_orb_frames() -> void:
+	if frost_orb_frames != null:
+		return
+	frost_orb_frames = SpriteFrames.new()
+	frost_orb_frames.add_animation("orb")
+	frost_orb_frames.set_animation_loop("orb", false)
+	var i := 1
+	while ResourceLoader.exists("res://imagen-action/aye/frost_orb/aye-frost_orb-%d.png" % i):
+		frost_orb_frames.add_frame("orb", load("res://imagen-action/aye/frost_orb/aye-frost_orb-%d.png" % i))
+		i += 1
+
+# ¿el rival está TOCANDO la orbe? (cerca en X y no saltó MUY por encima). ox = x de la orbe; gy su base.
+func _orb_touch(opp: Node2D, ox: float, base: float) -> bool:
+	if not is_instance_valid(opp) or opp.koed:
+		return false
+	if absf(opp.position.x - ox) > 190.0 * base:
+		return false
+	# la orbe va del suelo hacia arriba ~460*base; si el rival saltó por ENCIMA del orbe, no lo toca
+	return (opp.floor_y - opp.position.y) < 430.0 * base
+
+# estela MORADA de congelación en el suelo por donde pasa la orbe (se desvanece)
+func _spawn_frost_trail(arena: Node, x: float, gy: float, base: float) -> void:
+	if not is_instance_valid(arena):
+		return
+	var p := Polygon2D.new()
+	var w := 95.0 * base
+	var h := 26.0 * base
+	var pts := PackedVector2Array()
+	for k in range(12):
+		var a := TAU * float(k) / 12.0
+		pts.append(Vector2(cos(a) * w, sin(a) * h))
+	p.polygon = pts
+	p.color = Color(0.72, 0.32, 1.0, 0.45)   # morado translúcido (hielo)
+	p.position = Vector2(x, gy)
+	p.z_index = 3   # en el suelo, detrás de la orbe
+	arena.add_child(p)
+	var tw := p.create_tween()
+	tw.tween_property(p, "modulate:a", 0.0, 0.9)   # se desvanece
+	tw.tween_callback(p.queue_free)
+
+func _spawn_frost_orb(caster: Node2D) -> void:
+	_build_frost_orb_frames()
+	if frost_orb_frames.get_frame_count("orb") == 0:
+		return
+	var dir: int = caster.facing
+	var idx := 0 if caster == player else 1
+	var opp: Node2D = dummy if caster == player else player
+	var arena: Node = caster.get_parent()
+	var base: float = caster.base_scale.x
+	# GRITO "PRISM ORB" al castear (voz, como el prism-bolt)
+	var vr := "res://imagen-action/aye/sound-effect/PRISM_ORB_Cupcake_Eleven_v3_019ff62a-9604-703e-9275-380f8bbbd818.mp3"
+	if ResourceLoader.exists(vr):
+		caster.voz_player.stream = load(vr)
+		caster.voz_player.play()
+	caster._cast_border_on(0.6)
+	var s: float = 0.55 * base
+	var proj := AnimatedSprite2D.new()
+	proj.sprite_frames = frost_orb_frames
+	proj.animation = "orb"
+	proj.z_index = 6
+	proj.scale = Vector2(s, s)
+	arena.add_child(proj)
+	# la orbe está anclada por su BASE (ring) en canvas y=800 (de 920, centro 460); el sprite se centra
+	# en proj.position -> la base cae 340*s px por debajo. La ponemos al NIVEL EXACTO DEL SUELO (el mismo
+	# que usan sus efectos de suelo: to_global(0, SHADOW_FEET_OFFSET=500)).
+	var feet_world: float = caster.to_global(Vector2(0.0, 500.0)).y
+	var gy: float = feet_world - 340.0 * s   # base (canvas 800) al NIVEL DEL SUELO -> encima de su estela
+	var startx: float = caster.position.x + float(dir) * 180.0
+	var endx: float = clampf(startx + float(dir) * 240.0, LEFT_LIMIT + 60.0, RIGHT_LIMIT - 60.0)   # ~2 cuerpos (corto)
+	proj.position = Vector2(startx, gy)
+	proj.stop()
+	proj.frame = 0
+	var frozen := false
+	# SPIN: tras crecer, loopea los frames de tamaño completo (7..ORB_GROW_END) para que SIGA GIRANDO
+	# mientras viaja Y mientras flota (antes se quedaba estática = "deja de rotar antes de pararse").
+	var spin_lo := 7
+	var spin_f := float(spin_lo)
+	var spin_fps := 14.0
+	# FASE 1: CRECE rápido (primer 40%) y luego VIAJA LENTO girando hasta ~2 cuerpos, luego SE DETIENE
+	var t := 0.0
+	var dur := 1.5   # recorrido LENTO. Tuneable.
+	var grow_dur := dur * 0.40
+	var trail_t := 0.0
+	while t < dur and state == "fight" and is_instance_valid(proj):
+		if t < grow_dur:
+			proj.frame = int(round((t / grow_dur) * float(ORB_GROW_END)))   # crece de abajo-arriba
+		else:
+			spin_f += spin_fps * get_process_delta_time()                   # loop de spin (full-size)
+			if spin_f > float(ORB_GROW_END):
+				spin_f = float(spin_lo)
+			proj.frame = int(spin_f)
+		proj.position.x = lerpf(startx, endx, t / dur)
+		trail_t += get_process_delta_time()
+		if trail_t >= 0.05:
+			trail_t = 0.0
+			_spawn_frost_trail(arena, proj.position.x, feet_world, base)   # estela en el SUELO (pies)
+		if _orb_touch(opp, proj.position.x, base):
+			frozen = true
+			break
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	# FASE 2: HOLD ~1.5s DETENIDA pero SIGUE GIRANDO (loop de spin), chequeando toque
+	if not frozen and is_instance_valid(proj):
+		var h := 0.0
+		while h < 1.5 and state == "fight" and is_instance_valid(proj):
+			spin_f += spin_fps * get_process_delta_time()
+			if spin_f > float(ORB_GROW_END):
+				spin_f = float(spin_lo)
+			proj.frame = int(spin_f)
+			if _orb_touch(opp, proj.position.x, base):
+				frozen = true
+				break
+			await get_tree().process_frame
+			h += get_process_delta_time()
+	# CONGELA si lo tocó (DIRECTO: sirve estando parado O en el aire, y NO lo puede bloquear la IA)
+	if frozen and is_instance_valid(opp) and not opp.koed:
+		opp.frozen_t = 1.0        # ~1s congelado (el freeze block de _physics_process lo pausa + tinta morado)
+		opp.vel_x = 0.0
+		opp.vel_y = 0.0           # se queda congelado DONDE esté (si saltó, en el aire; cae al descongelar)
+		var d := 45
+		if caster == player:
+			dummy_hp = maxi(0, dummy_hp - d)
+		else:
+			player_hp = maxi(0, player_hp - d)
+		_shake(13.0, 0.16)
+	# FASE 3: se ROMPE (frames ORB_CRACK..fin) y desaparece
+	if is_instance_valid(proj):
+		var last: int = frost_orb_frames.get_frame_count("orb") - 1
+		var st := 0.0
+		var sdur := 0.8
+		while st < sdur and is_instance_valid(proj):
+			var k: float = st / sdur
+			proj.frame = ORB_CRACK + int(round(k * float(last - ORB_CRACK)))
+			await get_tree().process_frame
+			st += get_process_delta_time()
+		if is_instance_valid(proj):
+			proj.queue_free()
+
+# ---- AYE: BACKSTAB (↓→W) ----
+# Se teleporta DETRÁS del rival, lo golpea y lo EMPUJA ~3 cuerpos hacia adelante (hacia donde dejó la orbe).
+# Si en el empujón el rival TOCA la orbe -> el coroutine del orb lo congela (opp.frozen_t) y frenamos el slide.
+func _aye_backstab(caster: Node2D) -> void:
+	if state != "fight" or ultra_active:
+		return
+	var opp: Node2D = dummy if caster == player else player
+	if not is_instance_valid(opp) or opp.koed:
+		# whiff: sin rival válido, solo el golpe en el sitio
+		caster.sprite.play("weak_punch")
+		return
+	var to_opp := 1 if opp.position.x >= caster.position.x else -1   # dir de Aye -> rival (y del empujón inverso)
+	# MISMO EFECTO DE TELEPORT que ↓→Q: glitch morado (anim "teleport") + tiembla + invuln + borde/sombras
+	caster.breaker_inv_t = maxf(caster.breaker_inv_t, 0.5)
+	caster.breaker_fx_t = maxf(caster.breaker_fx_t, 0.8)
+	caster._cast_border_on(1.0)
+	var was_input: bool = caster.input_enabled
+	var was_ai: bool = caster.ai_enabled
+	caster.input_enabled = false
+	caster.ai_enabled = false
+	if caster.sprite.sprite_frames.has_animation("teleport"):
+		caster.sprite.play("teleport")
+	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
+	if ResourceLoader.exists(vr):
+		caster.voz_player.stream = load(vr)
+		caster.voz_player.play()
+	# GLITCH OUT en el sitio + TIEMBLA (jitter del sprite + shake), igual que el teleport
+	var base_off: float = caster.sprite.offset.x
+	var gt := 0.0
+	while gt < 0.24 and state == "fight" and is_instance_valid(opp):
+		caster.sprite.offset.x = base_off + randf_range(-13.0, 13.0)
+		_shake(9.0, 0.05)
+		await get_tree().process_frame
+		gt += get_process_delta_time()
+	caster.sprite.offset.x = base_off
+	if state != "fight" or not is_instance_valid(opp) or opp.koed:
+		caster.input_enabled = was_input
+		caster.ai_enabled = was_ai
+		return
+	# REAPARECE detrás del rival (lado opuesto), encarándolo, con un GOLPE
+	to_opp = 1 if opp.position.x >= caster.position.x else -1
+	caster._spawn_ghost(false)
+	caster.position.x = clampf(opp.position.x + float(to_opp) * 175.0, LEFT_LIMIT, RIGHT_LIMIT)
+	caster.set_facing(-to_opp)          # ahora Aye está DETRÁS, encara al rival
+	# APARECE YA GOLPEANDO: salta a la ESTOCADA del weak_punch (báculo extendido), no a la guardia,
+	# para que se LEA el golpe (si no, aparece en pose neutra y el rival "sale golpeado" sin ver el golpe).
+	caster.sprite.play("weak_punch")
+	var thrust: int = mini(14, caster.sprite.sprite_frames.get_frame_count("weak_punch") - 1)
+	caster.sprite.frame = thrust
+	caster.input_enabled = was_input
+	caster.ai_enabled = was_ai
+	_shake(14.0, 0.15)
+	# EFECTO DE IMPACTO (chispa) al conectar, a la altura del pecho del rival (como un golpe normal)
+	opp._burst(1.3, false, 1, false, 500.0 * (1.0 - opp.base_scale.y))
+	opp._play_sfx_key("take_hit")   # sonido de impacto
+	# DAÑO del golpe
+	var d := 50
+	if caster == player:
+		dummy_hp = maxi(0, dummy_hp - d)
+	else:
+		player_hp = maxi(0, player_hp - d)
+	# EMPUJA al rival ~3 cuerpos hacia ADELANTE (dir -to_opp, hacia donde estaba Aye / la orbe) con un SLIDE.
+	# Si toca la orbe durante el slide, el coroutine del orb pone frozen_t>0 y aquí paramos.
+	var push_dir := -to_opp
+	opp.crouching = false
+	opp.airborne = false
+	opp.hit_flying = false
+	opp.vel_y = 0.0
+	opp.set_facing(-push_dir)            # el rival mira hacia Aye (que quedó atrás)
+	opp.sprite.play("take_hit")
+	var sx0: float = opp.position.x
+	var target_x: float = clampf(sx0 + float(push_dir) * 470.0, LEFT_LIMIT, RIGHT_LIMIT)   # ~3 cuerpos
+	var st := 0.0
+	var sdur := 0.30
+	while st < sdur and state == "fight" and is_instance_valid(opp) and not opp.koed and opp.frozen_t <= 0.0:
+		opp.position.x = lerpf(sx0, target_x, st / sdur)
+		await get_tree().process_frame
+		st += get_process_delta_time()
+
 func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bool) -> String:
 	var atk: Dictionary = att.current_attack()
 	if atk.is_empty():
@@ -3982,7 +4866,7 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		on_parry(def, att)
 		return done
 	var push := 1 if dx >= 0.0 else -1
-	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)))
+	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)), false, bool(atk.get("freeze", false)))
 	if result != "ignored":
 		att.duck_swing()
 	# BLOQUEAR gasta energía: mantener la guardia mientras recibís golpes drena el meter
@@ -3999,7 +4883,7 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		else:
 			player_hp = maxi(1, player_hp - chip)
 		_shake(6.0, 0.08)
-	if result == "hit" or result == "launched":
+	if result == "hit" or result == "launched" or result == "frozen":
 		# HITSTOP: ambos se CONGELAN unos frames en el impacto (peso + pausa entre golpes,
 		# como los juegos pro). La duración escala con el PESO del golpe: jab ligero =
 		# congelamiento corto y ágil; golpe fuerte / lanzador = largo y con más impacto. El
@@ -4012,7 +4896,8 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		var hs := 0.11 + clampf(dmg / 100.0, 0.0, 1.0) * 0.09   # 0.11 (jab) .. 0.20 (100 dmg)
 		if result == "launched":
 			hs += 0.06                                          # el lanzador pega MÁS fuerte
-		def.apply_hitstop(hs)
+		if result != "frozen":
+			def.apply_hitstop(hs)                               # el CONGELADO (frozen_t) reemplaza el hitstop de la víctima
 		att.apply_hitstop(hs * 0.85)                            # el atacante recupera un pelín antes
 		# micro-shake proporcional al golpe: le da "punch" al impacto sin marear
 		_shake(lerpf(4.0, 13.0, clampf(dmg / 110.0, 0.0, 1.0)) + (5.0 if strong else 0.0), hs)
@@ -4020,7 +4905,7 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# encadenar OTRO golpe aéreo (distinto, por la regla de oro). Si falla NO flota
 		# ni puede repetir: cae normal.
 		if att.airborne:
-			att.air_float_t = 0.45
+			att.air_float_t = 0.32
 			att.air_move_used = false
 		var hidx := 0 if att_is_player else 1
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
@@ -4126,14 +5011,25 @@ func _end_round(player_won: bool) -> void:
 		dummy.celebrate()
 	# GANADOR: su retrato (estilo cut-in del inferno) entra DETRÁS de los peleadores; el
 	# ganador celebra ENCIMA y SOBRESALE. El retrato y el nombre son del PERSONAJE que ganó.
-	var win_tex := "res://imagen-action/favi/sheets/victory-hud-fe-key.png" if winner.fx_blue else "res://imagen-action/dam/cutin/dam-cutin.png"
+	var win_tex := "res://imagen-action/dam/cutin/dam-cutin.png"
+	if winner.fx_floral:       # Aye
+		win_tex = "res://imagen-action/aye/sheets/victory-hud-aye-key.png"
+	elif winner.fx_blue:       # Fe
+		win_tex = "res://imagen-action/favi/sheets/victory-hud-fe-key.png"
 	if ResourceLoader.exists(win_tex):
 		win_portrait.texture = load(win_tex)
-	var win_name := "FE" if winner.fx_blue else "DAM"
+	var win_name := "AYE" if winner.fx_floral else ("FE" if winner.fx_blue else "DAM")
 	var wside := -1 if player_won else 1
 	var wrest_x := (-CUTIN_PW * 0.14) if wside < 0 else (1920.0 - CUTIN_PW * 0.86)
 	var woff_x := wrest_x - 240.0 * float(wside)
-	win_portrait.position = Vector2(woff_x, 1080.0 - CUTIN_PH + 30.0)
+	var wcy := 1080.0 - CUTIN_PH + 30.0   # ancla el borde inferior del retrato al de abajo (según su aspecto)
+	if win_portrait.texture != null:
+		var wtw := float(win_portrait.texture.get_width())
+		var wth := float(win_portrait.texture.get_height())
+		if wtw > 0.0 and wth > 0.0:
+			var wdh: float = wth * minf(CUTIN_PW / wtw, CUTIN_PH / wth)
+			wcy = 1110.0 - (CUTIN_PH + wdh) * 0.5
+	win_portrait.position = Vector2(woff_x, wcy)
 	win_portrait.visible = true
 	# PANELES ROJOS MANGA (como el inferno) DETRÁS del ganador: ciclan ultra-1..6 tintados
 	# de rojo durante la celebración (el retrato y el peleador van por encima, z mayor).

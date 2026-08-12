@@ -60,7 +60,8 @@ func stop_menu_music() -> void:
 # avise "resource still in use at exit". (En cierre por Ctrl+C / kill duro el aviso puede
 # seguir saliendo porque ese camino no dispara esta notificación — es inofensivo.)
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE \
+			or what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_CRASH:
 		if _music != null:
 			_music.stop()
 			_music.stream = null

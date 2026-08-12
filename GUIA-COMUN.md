@@ -6,6 +6,7 @@ personajes es el **aspecto** y el **arma** (la animación se ve distinta, pero
 mecánicamente el golpe es el mismo). El ULTRA también es igual para todos.
 
 **Para crear un personaje nuevo:**
+
 1. Escribe su **BLOQUE DE IDENTIDAD** (abajo hay una plantilla).
 2. Genera las mismas hojas del **ROSTER** (abajo), pegando ese bloque en cada prompt.
 3. Guárdalas en `imagen-action/<personaje>/sheets/` y me dices — yo las proceso
@@ -82,9 +83,10 @@ proporciones consistentes, el resultado queda clavado.
 > **Pies en la misma línea** dentro de cada fila (piso común).
 
 **Lo que MÁS ayuda con GPT-4o (no tiene `--cref` para clavar el personaje):**
+
 - **EDITA, no regeneres:** cuando puedas, parte de un frame BUENO ya hecho y pide
-  *"mantén IDÉNTICO el personaje (misma cabeza, misma estatura, mismos colores,
-  misma línea), cambia SOLO la pose a X"*. Mucho más consistente que generar de cero.
+  _"mantén IDÉNTICO el personaje (misma cabeza, misma estatura, mismos colores,
+  misma línea), cambia SOLO la pose a X"_. Mucho más consistente que generar de cero.
 - **Adjunta SIEMPRE** la referencia / model-sheet del personaje.
 - **Medidas > adjetivos:** "6.5 cabezas de alto, hombros a 1.3" obedece mejor que
   "alto y esbelto".
@@ -101,6 +103,7 @@ clave de animación profesional. Referencia mental: un **bateo de béisbol pro**
 (carga coiled → SMEAR del swing → estirón de follow-through → overshoot → asentar).
 
 > **Piensa cada frame como una POSE CLAVE, no un dibujo neutro:**
+>
 > - **SILUETA:** cada pose de ataque con silueta CLARAMENTE distinta de la
 >   guardia y de las demás. Test: tápalo en negro y aún se reconoce qué hace.
 >   Mete TODO el cuerpo (hombros, cadera, piernas), nunca solo el brazo.
@@ -127,10 +130,10 @@ clave de animación profesional. Referencia mental: un **bateo de béisbol pro**
 las 2 poses que casi siempre faltan — un **frame de SMEAR de contacto** y un
 **frame de OVERSHOOT** — que son las que dan velocidad y peso.
 
-**Glosario para hablarle a la IA:** *pose clave/extremo* = las poses que cuentan
-el golpe (carga, impacto, remate) · *silueta* = test del contorno en negro ·
-*squash/stretch* = aplastar en carga, estirar en impacto · *smear* = frame de
-estela sólida del arma en el golpe rápido · *overshoot* = pasarse de la pose
+**Glosario para hablarle a la IA:** _pose clave/extremo_ = las poses que cuentan
+el golpe (carga, impacto, remate) · _silueta_ = test del contorno en negro ·
+_squash/stretch_ = aplastar en carga, estirar en impacto · _smear_ = frame de
+estela sólida del arma en el golpe rápido · _overshoot_ = pasarse de la pose
 antes de asentar.
 
 ---
@@ -143,7 +146,7 @@ CADA prompt (más la imagen de referencia):
 > Mismo personaje exacto de la referencia: [ROPA — prendas, capucha, etc.],
 > [COLORES/PALETA], [PELO], [OJOS], [DETALLES: guantes, accesorios]. Su arma es
 > [ARMA — descripción, material, color, brillo]. [Prohibiciones del arma si
-> aplica: sin fuego, sin partículas, etc.].
+> > aplica: sin fuego, sin partículas, etc.].
 
 Ejemplo (DAM): abrigo rojo con capucha, ropa negra, tenis negros con detalles
 rojos, guantes sin dedos, pelo negro despeinado, ojos rojos; arma = katana de
@@ -158,46 +161,51 @@ solo cambia cómo se ve el golpe con su arma. La descripción detallada de la
 animación de cada uno va en la guía específica del personaje.
 
 ### Básicas
-| Hoja | Frames | Filas | Función en el juego |
-|---|---|---|---|
-| `pose-sheet` | 4 (loop) | 1 | Guardia idle, respiración sutil |
-| `walk-sheet` | 8 | 2×4 | Ciclo de caminata de combate |
-| `crouch-sheet` | 3 | 1 | Se agacha progresivamente |
-| `jump-sheet` | 3-4 | 1 | Salto (subida/ápice/caída) |
+
+| Hoja           | Frames   | Filas | Función en el juego             |
+| -------------- | -------- | ----- | ------------------------------- |
+| `pose-sheet`   | 4 (loop) | 1     | Guardia idle, respiración sutil |
+| `walk-sheet`   | 8        | 2×4   | Ciclo de caminata de combate    |
+| `crouch-sheet` | 3        | 1     | Se agacha progresivamente       |
+| `jump-sheet`   | 3-4      | 1     | Salto (subida/ápice/caída)      |
 
 ### Golpes de pie
-| Hoja | Frames | Botón | Función |
-|---|---|---|---|
-| `weak-punch-sheet` | 4 | R | Golpe suave rápido (jab, dmg 4) |
-| `punch-sheet` | 10 | Q | Golpe horizontal (dmg 8; →Q = doble) |
-| `kick-sheet` | 10 (usa fila 1) | W | Golpe pesado (dmg 12) |
-| `spin-kick-sheet` | 8 | E | Giratoria que viaja y lanza (dmg 13) |
+
+| Hoja               | Frames          | Botón | Función                              |
+| ------------------ | --------------- | ----- | ------------------------------------ |
+| `weak-punch-sheet` | 4               | R     | Golpe suave rápido (jab, dmg 4)      |
+| `punch-sheet`      | 10              | Q     | Golpe horizontal (dmg 8; →Q = doble) |
+| `kick-sheet`       | 10 (usa fila 1) | W     | Golpe pesado (dmg 12)                |
+| `spin-kick-sheet`  | 8               | E     | Giratoria que viaja y lanza (dmg 13) |
 
 ### Golpes agachados
-| Hoja | Frames | Botón | Función |
-|---|---|---|---|
-| `crouch-jab-sheet` | 4 | ↓R | Pinchazo bajo rápido (bajo, dmg 4) |
-| `crouch-punch-sheet` | 3 | ↓Q | Golpe agachado (bajo, dmg 6) |
-| `crouch-kick-sheet` | 5 | ↓W | GANCHO lanzador que manda al aire (dmg 9) |
-| `sweep-sheet` | 6 | ↓E | Barrido que derriba (bajo, dmg 12) |
+
+| Hoja                 | Frames | Botón | Función                                   |
+| -------------------- | ------ | ----- | ----------------------------------------- |
+| `crouch-jab-sheet`   | 4      | ↓R    | Pinchazo bajo rápido (bajo, dmg 4)        |
+| `crouch-punch-sheet` | 3      | ↓Q    | Golpe agachado (bajo, dmg 6)              |
+| `crouch-kick-sheet`  | 5      | ↓W    | GANCHO lanzador que manda al aire (dmg 9) |
+| `sweep-sheet`        | 6      | ↓E    | Barrido que derriba (bajo, dmg 12)        |
 
 ### Aéreos
-| Hoja | Frames | Botón | Función |
-|---|---|---|---|
-| `jump-punch-sheet` | — | salto+Q | Golpe aéreo (dmg 9) |
-| `jump-kick-sheet` | — | salto+W | Patada en picada (dmg 10) |
-| `air-spin-kick-sheet` | 8 | salto+E | Mortal con patada, lanza (dmg 13) |
+
+| Hoja                  | Frames | Botón   | Función                           |
+| --------------------- | ------ | ------- | --------------------------------- |
+| `jump-punch-sheet`    | —      | salto+Q | Golpe aéreo (dmg 9)               |
+| `jump-kick-sheet`     | —      | salto+W | Patada en picada (dmg 10)         |
+| `air-spin-kick-sheet` | 8      | salto+E | Mortal con patada, lanza (dmg 13) |
 
 ### Reacciones y especiales
-| Hoja | Frames | Función |
-|---|---|---|
-| `take-hit-sheet` | — | Recibe golpe de pie |
-| `take-hit-low-sheet` | — | Recibe golpe agachado |
-| `pummeled-sheet` | 4 (loop) | Machacado de pie durante el ULTRA |
-| `wall-bounce-sheet` | 4 | Vuelo recto noqueado + estrellón en pared |
-| `block-sheet` / `block-low-sheet` | — | Bloqueo alto / bajo |
-| `ko-sheet` | — | Noqueado, tendido |
-| `victory-sheet` | — | Celebración de victoria |
+
+| Hoja                              | Frames   | Función                                   |
+| --------------------------------- | -------- | ----------------------------------------- |
+| `take-hit-sheet`                  | —        | Recibe golpe de pie                       |
+| `take-hit-low-sheet`              | —        | Recibe golpe agachado                     |
+| `pummeled-sheet`                  | 4 (loop) | Machacado de pie durante el ULTRA         |
+| `wall-bounce-sheet`               | 4        | Vuelo recto noqueado + estrellón en pared |
+| `block-sheet` / `block-low-sheet` | —        | Bloqueo alto / bajo                       |
+| `ko-sheet`                        | —        | Noqueado, tendido                         |
+| `victory-sheet`                   | —        | Celebración de victoria                   |
 
 **Comandos compartidos** (mismos para todos): →R = jab, →Q = doble golpe,
 ↓↘→+Q = EMBER DASH (embestida a la pared), ↑+E = COMBO BREAKER,
@@ -222,143 +230,177 @@ genera aparte; si no, reutiliza estos tal cual.
 
 ---
 
-## Chispas de impacto ÉPICAS (estilo 2XKO) — prompt para la AI
+## EPIC hit-spark (2XKO style) — prompt for the AI
 
-Para reemplazar las chispas actuales por un DESTELLO DE IMPACTO grande y
-dramático (el que sale al conectar un golpe). Archivo: `impact-hit-sheet.png`
-en `imagen-action/impact-effect/`.
+The big dramatic FLASH that pops when a hit connects. Animated as VIDEO over green
+(NOT a frame sheet).
 
-**Formato técnico (OBLIGATORIO para que entre al juego):**
-- 1 hoja, **8 frames en 2 filas de 4** (fila de arriba f1-f4 izq→der, fila de
-  abajo f5-f8 izq→der) = el efecto avanzando en el tiempo. 8 frames hacen la
-  animación FLUIDA/sólida (no a saltos).
-- Fondo **VERDE puro #00FF00** (se recorta a transparente; el verde NO puede
-  tocar el efecto — deja aire verde alrededor de cada frame).
-- El efecto **CENTRADO en el MISMO punto** en los 8 frames (el destello nace y
-  se expande siempre desde ese mismo centro). El TAMAÑO SÍ cambia por diseño
-  (crece hasta el pico y luego se expande al disiparse) — pero el CENTRO no se
-  mueve. Deja MARGEN verde de sobra alrededor para que el frame más expandido
-  (f8) no toque el borde.
-- **SIN personaje, sin escenario, sin barras, sin texto, sin números.** Solo el
-  efecto flotando sobre el verde.
-- Estilo **cel-shaded PLANO, alto contraste, bordes NÍTIDOS y duros, colores
-  saturados. NADA borroso, NADA de glow suave difuso tipo Photoshop.**
+**Rules:** pure GREEN background #00FF00 (flat, static); **NO character, no scenery,
+no bars, no text**; effect CENTERED on the same point (born and expanding from there,
+the center does NOT move); plenty of green margin so the most-expanded moment never
+touches the edge; FLAT cel-shaded, high contrast, SHARP hard edges, saturated colors,
+NOTHING blurry, no soft diffuse glow.
 
-**CONCEPTO CLAVE (leer primero):** esto es un **DIBUJO GRÁFICO PLANO 2D estilo
-manga/anime hit-spark** (como Guilty Gear / 2XKO), **NO una explosión realista
-ni una bola de fuego renderizada**. Piensa en TINTA y PAPEL: formas planas de
-color liso recortadas con filo, no volumen ni humo ni fuego 3D. Los tres errores
-a evitar SÍ o SÍ:
-- ❌ **NO circular / NO simétrico:** la silueta es DESBALANCEADA e IRREGULAR —
-  más grande y con más púas de un lado, torcida, como una SALPICADURA de pintura,
-  NUNCA una rueda de fuegos artificiales redonda ni un óvalo.
-- ❌ **NO sólido / NO relleno:** entre las púas y los rayos queda **AIRE (fondo
-  verde) visible** — son lengüetas y esquirlas SEPARADAS con huecos entre ellas,
-  NO una masa naranja rellena y continua. Se debe poder "ver a través" en varios
-  puntos.
-- ❌ **NO sombreado interno / NO volumen:** colores en **3-4 capas planas duras**
-  (blanco → amarillo → naranja), sin degradados suaves, sin sombras adentro, sin
-  aspecto de esfera 3D. Es plano como una calcomanía.
+**KEY CONCEPT (read first):** this is a FLAT 2D GRAPHIC manga/anime hit-spark (like
+Guilty Gear / 2XKO), NOT a realistic explosion or a rendered fireball. Think INK and
+PAPER: flat shapes of solid color cut with a sharp edge — no volume, no smoke, no 3D
+fire. The three must-avoid mistakes:
 
-**Qué dibujar (el look de la referencia 2XKO), por capas:**
-1. **Estrella de choque ASIMÉTRICA:** un destello de MUCHAS púas afiladas,
-   largas y de LARGOS DISTINTOS, saliendo torcidas en direcciones IRREGULARES
-   (unas cortas, otras larguísimas) — bordes en ZIGZAG agresivo, silueta
-   lopsided (desbalanceada), con **huecos de fondo verde entre las púas**.
-2. **Núcleo incandescente EN FORMA DE ESTRELLA (no bola):** el centro es una
-   estrella filosa BLANCA cegadora → un aro AMARILLO brillante → puntas y bordes
-   finos en NARANJA. Todo en CAPAS planas de color, cero difuminado. El centro es
-   puntiagudo/irregular, NO un círculo blanco.
-3. **Tinta negra sumi-e (LA FIRMA del look):** una o dos MANCHAS grandes de
-   tinta NEGRA sólida, con forma irregular tipo salpicadura de pincel, colocadas
-   DESCENTRADAS (arriba y a un costado, comiéndose parte de la estrella) — esto
-   crea el "hueco" negro que rompe la simetría. El negro le da peso; sin él se ve
-   "barato". La tinta va NEGRA sólida (sobrevive al recorte del verde).
-4. **Esquirlas de luz:** varias lanzas MUY FINAS y LARGAS blanco-amarillas
-   disparadas en diagonal hacia afuera, SEPARADAS del cuerpo de la estrella
-   (aisladas, con verde alrededor), a distintos largos.
-5. **Escombros:** trocitos negros angulares + motitas/puntos volando hacia
-   afuera, y unas pocas gotas de tinta salpicando lejos.
-6. (Opcional, más pop) **chispitas eléctricas CIAN** finas cerca del centro.
+- ❌ **NOT circular / NOT symmetric:** the silhouette is UNBALANCED and IRREGULAR —
+  bigger and spikier on one side, crooked, like a PAINT SPLATTER, never a round
+  firework wheel or an oval.
+- ❌ **NOT solid / NOT filled:** between the spikes and rays there is AIR (green
+  background) VISIBLE — separated tongues and shards with gaps between them, NOT a
+  filled continuous mass. You must be able to "see through" it in places.
+- ❌ **NO inner shading / NO volume:** colors in 3-4 HARD FLAT layers (white →
+  yellow → orange), no soft gradients, no inner shadows, no 3D-sphere look. Flat
+  like a sticker.
 
-**Ciclo por frames — 8 frames. El impacto ESTALLA rápido y luego, para
-desaparecer, se DESHACE EXPANDIÉNDOSE Y VACIÁNDOSE POR EL CENTRO (NO se encoge:
-se abre como una onda hueca dentada que crece y se desvanece):**
-- **f1 — NACE:** núcleo blanco chico ultra-brillante, 2-3 púas cortas.
-- **f2 — CRECE:** más púas y las primeras esquirlas, 1 fleco de tinta.
-- **f3 — ESTALLA:** casi tamaño máximo — muchas púas + esquirlas diagonales +
-  manchas de tinta arriba + escombros saliendo.
-- **f4 — PICO:** lo más grande, SÓLIDO y caótico: estrella completa, núcleo
-  blanco intenso, tinta y escombros al máximo, esquirlas largas.
-- **f5 — SE ABRE:** el núcleo blanco empieza a VACIARSE (se abre un hueco en el
-  centro) y la estrella se EXPANDE un poco más allá del pico.
-- **f6 — HUECO:** el centro ya está claramente HUECO (transparente en el medio);
-  queda un ANILLO DENTADO de púas expandiéndose hacia afuera, con las esquirlas y
-  los escombros alejándose del centro.
-- **f7 — SE DESHACE:** el anillo dentado se expande AÚN MÁS y se adelgaza, más
-  tenue; la tinta y los escombros se dispersan lejos.
-- **f8 — DESAPARECE:** un aro dentado grande, muy tenue y casi transparente,
-  disipándose por completo.
-  *(La clave: del f4 al f8 el efecto CRECE y se VACÍA por dentro; nunca encoge.)*
+**What to draw (the 2XKO reference look), in layers:**
 
-**Variantes de color (MISMO diseño, solo cambia el tinte del núcleo/púas; la
-tinta negra y los escombros quedan negros en las tres):**
-- **DAM (fuego):** blanco → AMARILLO → naranja (igual que la referencia).
-- **Favi (agua):** blanco → CIAN → azul marino.
-- **Aye (naturaleza/floral):** blanco → ROSA → magenta/lavanda.
+1. **ASYMMETRIC shock-star:** a burst of MANY sharp spikes, long and of DIFFERENT
+   lengths, shooting out crooked in IRREGULAR directions (some short, some very
+   long) — aggressive ZIG-ZAG edges, a lopsided silhouette, with GREEN GAPS between
+   the spikes.
+2. **Star-shaped incandescent core (not a ball):** the center is a sharp blinding
+   WHITE star → a bright YELLOW ring → thin ORANGE tips and edges. All flat color
+   layers, zero blur. The center is pointy/irregular, NOT a white circle.
+3. **Sumi-e black ink (THE SIGNATURE of the look):** one or two big blobs of solid
+   BLACK ink, irregular brush-splatter shapes, placed OFF-CENTER (top and to one
+   side, eating into part of the star) — this makes the black "hole" that breaks the
+   symmetry. The black gives it weight; without it it looks "cheap." Solid black
+   (survives the green key).
+4. **Light shards:** several VERY THIN, LONG white-yellow lances shot out diagonally,
+   SEPARATED from the star body (isolated, green around them), at different lengths.
+5. **Debris:** small black angular chips + specks/dots flying outward, and a few ink
+   droplets splattering far.
+6. (Optional, extra pop) **thin CYAN electric sparks** near the center.
 
-Cuando tengas la hoja, dime "**ya está impact-hit-sheet**" y la proceso (recorte
-verde + centrado) y la conecto como efecto de impacto de golpes de todos.
+**Animated as VIDEO** (not frames): the impact BURSTS fast and, to vanish, it COMES
+APART BY EXPANDING AND EMPTYING FROM THE CENTER (it does NOT shrink: it opens like a
+hollow jagged wave that grows and fades).
+
+**Prompt (paste as-is):**
+
+```
+SEPARATE EFFECT CLIP, no character, no person, no scenery — only the effect over a PURE GREEN screen
+#00FF00 (flat, static camera). A flat 2D anime/manga HIT-SPARK (Guilty Gear / 2XKO), NOT a realistic
+explosion, NOT 3D fire — ink-and-paper flat shapes with sharp cut edges. A big ASYMMETRIC shock-star:
+many sharp spikes of DIFFERENT lengths shooting out crooked in irregular directions, aggressive
+zig-zag edges, a lopsided off-balance silhouette with GREEN GAPS between the spikes (never a solid
+filled mass). Core: a jagged blinding WHITE star → bright YELLOW ring → thin ORANGE tips, in 3-4 hard
+flat color layers (no gradients, no inner shading). SIGNATURE: one or two big irregular blobs of solid
+BLACK sumi-e INK placed off-center (eating into part of the star), plus small black angular debris and
+stray ink droplets flung outward. Animation: it bursts into existence fast, a small blinding white core,
+then the spikes shoot out fast to full size, a big chaotic star at the peak with ink and debris at max.
+Then it fades away by getting THINNER: the spikes shrink down to fine sharp needles and the whole star
+dims and dissolves in place, the debris and ink scatter a little and fade out. It does NOT expand
+outward, and it does NOT open a hole or hollow out the middle. The bright center stays solid the whole
+time and simply gets thinner and fades. It stays centered. Fast, snappy. No character.
+```
+
+**Color variants (same design; the black ink and debris stay black):**
+DAM fire (white→YELLOW→orange), Favi water (white→CYAN→blue), Aye floral
+(white→PINK→magenta).
+
+When you have it, tell me "**impact-hit is ready**" and I'll process it (green key +
+centered) and wire it as everyone's hit-impact effect.
 
 ---
 
-## Chispa de CORTE para golpes bajos (slash streak, estilo 2XKO) — prompt para la AI
+## CLEAN 4-POINT STAR hit-flash (blue/white, ref #191) — prompt for the AI
 
-Un SEGUNDO tipo de impacto, distinto a la estrella: un **TAJO largo** (rastro de
-corte) que **se va haciendo DELGADO hasta desaparecer**. Para golpes bajos /
-barridos. Archivo: `impact-slash-sheet.png` en `imagen-action/impact-effect/`.
+A THIRD kind of impact, more ELEGANT and clean than the chaotic star: a **sharp
+FOUR-POINTED star flash** (blinding white with a jagged CYAN/BLUE edge), like the
+shine of an energy or crystal hit. Starts compact (exactly like #191), then **EXPANDS
+opening a HOLE from the center and comes apart** as it grows. Animated as VIDEO over
+green (NOT a frame sheet).
 
-**Formato técnico:**
-- 1 hoja, **6 frames en 2 filas de 3** (arriba f1-f3, abajo f4-f6) = el corte
-  avanzando en el tiempo.
-- Fondo **VERDE puro #00FF00**, con MARGEN verde de sobra (el tajo es largo).
-- **CENTRADO en el mismo punto** en los 6 frames (mismo centro; cambia el grosor,
-  no la posición).
-- **SIN personaje, sin escenario, sin texto.** Solo el efecto sobre el verde.
-- Estilo **cel-shaded PLANO, bordes NÍTIDOS, NADA borroso.**
+**Rules:** pure GREEN background #00FF00 (flat, static); **NO character, no scenery,
+no bars, no text**; effect CENTERED on the same point (born and expanding from there,
+the center does not move); plenty of green margin so the most-expanded moment never
+touches the edge; FLAT cel-shaded, high contrast, SHARP hard edges, saturated colors,
+NOTHING blurry, no soft diffuse glow.
 
-**IMPORTANTE — es un CORTE de espada, NO fuego:** debe leerse como un TAJO
-limpio y afilado (un slash que rasga el aire), NO como una llama, antorcha,
-chorro de fuego ni plasma. NADA de flecos de fuego, lengüetas de llama ni
-explosión de color en las puntas.
+**Prompt (paste as-is):**
 
-**Qué dibujar:**
-- **UN solo TAJO en forma de MEDIA LUNA (crescent):** una hoja de corte
-  CURVA (arco suave, NO una línea recta), delgada, que va de una punta a la
-  otra. GRUESA/brillante SOLO en el centro y adelgazando a **puntas MUY FINAS,
-  afiladas y LIMPIAS** en los dos extremos (como los cuernos de una media luna).
-  Diagonal (abajo-izq → arriba-der). (El motor la rota al azar.)
-- **Color CONTENIDO (poco color, sobre todo en las puntas):** un filo/centro
-  BLANCO incandescente FINO, con un borde DELGADO amarillo→naranja pegado al
-  centro, y apenas un hilo ROJO en el borde exterior. Capas planas. Las PUNTAS
-  son casi solo la línea blanca fina — SIN halo naranja grande, SIN llamarada.
-  El cuerpo del tajo es DELGADO, no un chorro grueso.
-- **Bordes ANGULARES/afilados** (gráfico, filo de navaja), NO suaves,
-  NO redondeados, NO plumosos/flamígeros.
-- **Acompañantes MÍNIMOS:** unos pocos trocitos NEGROS de escombro cerca del
-  centro y alguna chispa suelta. NADA de nube de brasas ni partículas de fuego.
+```
+SEPARATE EFFECT CLIP, no character, no person, no scenery — only the effect over a PURE GREEN screen
+#00FF00 (flat, static camera). A 2D anime/manga hit-flash: a sharp FOUR-POINTED STAR BURST shaped
+EXACTLY like the reference — a blinding WHITE star core with a jagged CYAN-to-BLUE spiky outline, four
+long thin needle-like points shooting diagonally out (up-left, up-right, down-left, down-right) at
+slightly different lengths, edges in a crisp electric zig-zag, with a few thin cyan/white electric
+sparks near the tips. Flat cel-shaded hard-edged color layers (white core → bright cyan → darker blue
+rim), NO soft blur, NO fuzzy glow. Animation: it pops into existence small and blinding, the four
+points shoot out fast to full size, a bright sharp four-pointed star at the peak. Then it fades away by
+getting THINNER: the four points and the star shrink down to fine sharp needles and the whole thing
+dims and dissolves in place. It does NOT expand outward, and it does NOT open a hole or hollow out the
+middle. The bright center stays solid the whole time and simply gets thinner and fades. It stays
+centered. Fast, snappy impact. No character.
+```
 
-**Ciclo por frames (se va haciendo DELGADO hasta desaparecer, NO se encoge de
-largo — se mantiene largo pero cada vez más FINO):**
-- **f1 — APARECE:** el tajo entra fino y veloz (una línea brillante formándose).
-- **f2 — PICO:** el tajo más GRUESO y brillante, con más escombros y brasas.
-- **f3 — ADELGAZA:** empieza a afinarse, aún brillante.
-- **f4 — MÁS FINO:** más delgado, tono más naranja/rojo, brasas alejándose.
-- **f5 — TENUE:** muy delgado y semitransparente.
-- **f6 — DESAPARECE:** un hilo fino y tenue disipándose.
+**Color variants (SAME design, only the edge tint changes; the core stays white in
+all of them):**
 
-**Variantes de color:** DAM fuego (naranja/rojo), Favi agua (cian/azul), Aye
-floral (rosa/magenta).
+- **Generic / Favi (water):** white → CYAN → blue (like reference #191).
+- **DAM (fire):** white → yellow → orange.
+- **Aye (crystal/floral):** white → lavender → magenta/purple.
 
-Cuando tengas la hoja, dime "**ya está impact-slash-sheet**" y la proceso y la
-conecto como efecto de **golpes bajos** (barrido, agachados, take_hit_low).
+When you have it, tell me "**impact-flash is ready**" and I'll process it (green key +
+centered anchor) and wire it as an impact effect.
+
+---
+
+## SLASH streak for low hits (2XKO style) — prompt for the AI
+
+A long SLASH (cut trail) that gets THINNER until it disappears. For low hits /
+sweeps. Animated as VIDEO over green (NOT a frame sheet).
+
+**Rules:** pure GREEN background #00FF00; **NO character, no scenery, no text**;
+CENTERED on the same point (the thickness changes, not the position); plenty of green
+margin (the slash is long); FLAT cel-shaded, SHARP edges, NOTHING blurry.
+
+**IMPORTANT — it's a SWORD CUT, NOT fire:** it must read as a clean sharp SLASH that
+rips the air, NOT a flame, torch, jet of fire or plasma. NO fire fringes, no flame
+tongues, no color explosion at the tips.
+
+**What to draw:**
+
+- **ONE CRESCENT-shaped SLASH:** a CURVED cutting blade (a smooth arc, NOT a straight
+  line), thin, running from one tip to the other. THICK/bright ONLY in the middle and
+  tapering to **VERY FINE, sharp, CLEAN points** at both ends (like crescent-moon
+  horns). Diagonal (lower-left → upper-right). (The engine rotates it randomly.)
+- CONTAINED color (little color, especially at the tips): a thin incandescent
+  WHITE core/edge, a thin yellow→orange rim hugging the center, and just a hair of
+  RED on the outer edge. Flat layers. The TIPS are almost only the fine white line —
+  NO big orange halo, NO flare. The body of the slash is THIN, not a thick jet.
+- **ANGULAR/sharp edges** (graphic, razor edge), NOT soft, NOT rounded, NOT feathery.
+- **MINIMAL extras:** a few small BLACK debris chips near the center and a stray
+  spark or two. NO ember cloud, no fire particles.
+
+**Animated as VIDEO** (not frames): the slash stays LONG but gets THINNER and thinner
+until it disappears (it does NOT shrink in length, it thins out).
+
+**Prompt (paste as-is):**
+
+```
+SEPARATE EFFECT CLIP, no character, no person, no scenery — only the effect over a PURE GREEN screen
+#00FF00 (flat, static camera). A flat 2D anime/manga SLASH streak (Guilty Gear / 2XKO style) — a clean
+sharp SWORD CUT that rips the air, NOT fire, NOT a flame, NOT plasma. ONE curved CRESCENT-shaped slash
+blade: a smooth arc (NOT a straight line), THIN, thick and bright only in the middle and tapering to
+VERY FINE, sharp, clean points at both ends (like crescent-moon horns), running diagonally (lower-left
+to upper-right). Color CONTAINED and minimal: a thin incandescent WHITE core/edge, a thin yellow→orange
+rim hugging the center, and just a hair of RED on the outer edge — flat hard color layers; the tips are
+almost only the fine white line (NO big orange halo, NO flare). Angular razor-sharp edges, NOT soft,
+NOT rounded, NOT feathery. A few small BLACK debris chips near the center. Animation: the slash SWIPES
+into existence fast and thin (a bright line forming), peaks THICKEST and brightest for an instant, then
+stays LONG but gets THINNER and thinner (never shortens in length), fading to a faint semi-transparent
+thread that dissipates. Key: it thins out to vanish, it does NOT shrink in length. Stays centered. Fast,
+snappy. NO character.
+```
+
+**Color variants:** DAM fire (orange/red), Favi water (cyan/blue), Aye floral
+(pink/magenta).
+
+When you have it, tell me "**impact-slash is ready**" and I'll process it and wire it
+as the **low-hit** effect (sweeps, crouching hits, take_hit_low).

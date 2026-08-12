@@ -133,7 +133,8 @@ This is what makes her look CRISP and FLUID — describe it in the prompts when 
 > Aye walks IN PLACE (like on a treadmill, without traveling), side view facing right, in a
 > combat guard: torso firm, staff always ready. **Clear, natural leg cycle** (heel contact →
 > plant → push-off → legs crossing), a slight up-and-down bob, ponytail and skirt swaying a bit.
-> Determined pace. Continuous loop, same size, feet on the same line.
+> Determined pace. Continuous loop, same size, feet on the same line. Plain staff: no glow, no
+> beam, no crystals, no magic effects.
 
 **`walk_back` (retreat — BACKWARD HOPS):**
 
@@ -156,13 +157,15 @@ not walk forward. Do not move to the right. Do not turn around.
 **`crouch`:**
 
 > Aye crouches from the guard down into a squat and holds it: bends knees, lowers her center,
-> tucks the staff across her knees, torso compact but back straight. Short, firm motion.
+> tucks the staff across her knees, torso compact but back straight. Short, firm motion. Plain
+> staff: no glow, no beam, no crystals, no magic effects.
 
 **`jump`:**
 
 > Aye jumps straight up in place: bends knees (anticipation, compresses for a moment) →
 > pushes up with the staff held close → apex → falls → squashes for a moment on landing. She goes
-> up and down inside the frame (never leaves it).
+> up and down inside the frame (never leaves it). Plain staff: no glow, no beam, no crystals, no
+> magic effects.
 
 **`neutral_spin` (FORWARD jump / mortal — spinning leap) — OPTIONAL:**
 
@@ -187,42 +190,273 @@ staff.
 
 **`weak_punch`:**
 
-> Aye does a quick short poke forward with the TIP of the staff and returns **immediately to
-> guard**. Snappy, fast, short reach. Plain staff, no effects (the shards are in the separate
-> clip). Start and end in guard.
+> PHYSICAL melee, NOT magic. Aye does a quick short POKE forward with the tip of the staff (used
+> as a stick) to jab the enemy on her right, then snaps back to guard. Fast, short reach, serious
+> expression. NO effects: no beam, no glow, no crystals, no magic — just a plain physical
+> stick-poke. Start and end in guard.
 
 **`punch`:**
 
-> Aye does a short staff SWEEP at chest height\*\*, back to front: draws the staff back → sweeps
-> forward hard (a light MOTION streak at the tip) → extends → recovers to guard. PLAIN staff, no
-> glow; the crystal SHARDS that come out on the extension are in the separate EFFECT clip.
-> Start and end in guard.
+> PHYSICAL melee, NOT magic. Aye grips the staff like a POLE and THRUSTS it straight forward to
+> jab/poke the enemy at chest height, then pulls it back to guard (draw back → thrust → recover).
+> Quick physical stick-strike, serious combat expression. NO effects: do NOT cast a spell, do NOT
+> shoot a beam/ray/projectile, do NOT make the crystal glow — the staff is a plain solid rod, no
+> magic. Start and end in guard.
 
-**`kick`:**
+**`kick` (W) = ICE-GROW — she summons a purple ice/crystal PILLAR from the ground:**
 
-> Aye does a **wide, heavy overhead SMASH** with the staff, top to front (like a slow, weighty
-> chop); on impact the **crystal burst is in the separate EFFECT clip**. Then recovers to guard.
-> Plain staff. Slower and heavier than the punch. Start and end in guard.
+> NOTE (for you, do NOT paste this line): the W is NOT a physical kick — Aye INVOKES her purple
+> ice pillar from the ground. TWO SEPARATE generations: (1) Aye's cast = the `kick` clip below;
+> (2) the `ice-grow` effect = the second block. Paste ONLY the code blocks, ONE at a time. The
+> look of the ice = reference #161, but generated on green.
+
+Aye's cast (the `kick` clip) — PASTE THIS:
+
+```
+A cute chibi anime fantasy mage character, cartoon video-game art, side view, facing RIGHT,
+serious focused expression. She raises her straight purple staff UP high overhead with both hands
+(a windup), then SLAMS the bottom of the staff DOWN onto the ground in front of her (to the
+right) and plants it firmly, both hands on the staff. She holds that planted pose a moment, then
+lifts the staff back up to a guard. She stays standing in place, facing right the whole time. Just
+her body movement — plain staff, no glow, no beam, no crystals, NO magic, NOTHING coming out of
+the ground or the staff. Pure green screen #00FF00, flat and static.
+```
+
+The `ice-grow` effect (separate clip, over GREEN, NO character — look of ref #161):
+
+```
+SEPARATE EFFECT CLIP, no character, no person — only the effect over a PURE GREEN screen #00FF00
+(flat, static). A single block of PURPLE ICE (frozen ice: icy, jagged, translucent purple with
+frosty white edges) — it is ICE, NOT a shiny gemstone or jewel. It ERUPTS and GROWS UPWARD from
+the ground: the ground cracks, a sharp purple ice spike bursts out, then the SAME ice keeps
+growing taller and taller into one tall jagged purple ice pillar, with a white swirling frost ring
+around it and small purple ice shards and frost sparkles flying off. It reaches full height, holds
+a moment, then cracks and shatters into purple ice shards. It is ALWAYS the SAME purple ice, just
+growing bigger — do NOT add any other element (no fire, no water, no lightning, no plants, no
+leaves), NO other colors, NO separate different crystals, only ONE purple ice pillar. Anchored to
+the ground at the bottom. Camera fixed. NO character.
+```
 
 **`crouch_punch`:**
 
-> Crouched in a squat, Aye does a **quick low jab** with the staff tip forward and pulls it back.
-> Short. Start and end crouched in low guard.
+> PHYSICAL melee, NOT magic. Crouched in a squat, Aye does a quick low POKE forward with the staff
+> tip, then pulls back. Short physical stick-poke. NO effects: no beam, no glow, no crystals, no
+> magic. Start and end crouched in low guard.
 
-**`crouch_kick`:**
+**`crouch_kick` (↓W) = ICE-MOON — she summons a purple ice CRESCENT MOON from the ground:**
 
-> From a crouch, Aye does a **rising anti-air UPPERCUT sweep**: sweeps the staff diagonally
-> bottom-to-top; the rising crystals are in the separate EFFECT clip. Returns to low guard. Plain
-> staff. Start and end crouched.
+> NOTE (for you, do NOT paste this line): ↓W works EXACTLY like W, but the shape that erupts from
+> the ground is a purple ice CRESCENT MOON (ref #166) instead of the tall pillar. TWO SEPARATE
+> generations: (1) Aye's cast = the `crouch_kick` clip below; (2) the `ice-moon` effect = the
+> second block. Paste ONLY the code blocks, ONE at a time. The look of the moon = reference #166,
+> but generated on green.
 
-**`jump_punch`** _(aerial — give it a starting image of her jumping if you can):_
+Aye's cast (the `crouch_kick` clip) — PASTE THIS:
 
-> Suspended in the air, Aye does a downward diagonal slash with the staff toward down-forward;
-> legs tucked. Body airborne the whole time.
+```
+A cute chibi anime fantasy mage character, cartoon video-game art, side view, facing RIGHT, serious
+focused expression. She is in a low crouch/squat. She raises her straight purple staff and SWEEPS
+it down in a low arc, then plants the staff tip firmly on the ground in front of her (to the right)
+and holds, both hands on the staff, staying low. She holds that planted pose a moment, then lifts
+back up to a low guard. She stays crouched in place, facing right the whole time. Just her body
+movement — plain staff, no glow, no beam, no crystals, NO magic, NOTHING coming out of the ground
+or the staff. Pure green screen #00FF00, flat and static.
+```
+
+The `ice-moon` effect (separate clip, over GREEN, NO character — shape of ref #166):
+
+```
+SEPARATE EFFECT CLIP, no character, no person — only the effect over a PURE GREEN screen #00FF00
+(flat, static). A single PURPLE ICE CRESCENT MOON, shaped EXACTLY like ref #166 and kept in that
+EXACT SAME upright orientation the whole time (the crescent's outer curve on the LEFT, opening to
+the RIGHT, both horns pointing UP) — translucent faceted purple ice with frosty white cracked edges
+and thick curved horns. It is ICE, NOT a shiny gemstone or jewel. Animation: the ground cracks, a
+small snowy ice mound forms at the base, and the crescent-moon of ice GROWS/SCALES UP FAST straight
+from that base, getting bigger IN PLACE until it reaches full size — like an ice sculpture rising
+out of the floor. It reaches full size, holds a brief moment, then cracks and shatters into purple
+ice shards. VERY IMPORTANT: the crescent moon does NOT rotate, spin, tilt, turn, orbit or change
+angle — it stays perfectly still in the SAME fixed upright pose (identical to ref #166) and ONLY
+grows bigger in size from the ground up. Its bottom stays planted on the snowy base at all times. It
+is ALWAYS the SAME purple ice crescent moon, just scaling up — do NOT add any other element (no
+fire, no water, no lightning, no plants, no leaves), NO other colors, NO separate different
+crystals, only ONE purple ice crescent moon. Anchored to the ground at the bottom (snowy base).
+Camera fixed and locked. FAST growth. NO character.
+```
+
+**`crouch_jab` (↓R):**
+
+> PHYSICAL melee, NOT magic. Aye is CROUCHED low in a squat (knees bent, staying down the whole
+> time, she does NOT stand up). She holds the staff in both hands and does ONE VERY QUICK, short low
+> POKE forward — thrusting the staff tip straight ahead at knee/shin height — then instantly snaps
+> it back to a low crouch guard. It is a fast, snappy little stick-jab (draw back → quick poke →
+> recover), body low and compact, facing right.
+>
+> CRITICAL — THE STAFF NEVER CHANGES LENGTH: The reach of the poke comes ONLY from her ARMS and
+> BODY extending forward (she leans and pushes her hands out) — the staff itself is a solid wooden
+> rod of FIXED, UNCHANGING length that slides forward as ONE rigid piece. Both ends (crystal-flower
+> tip AND back butt-end) move forward together by the exact same amount. The staff does NOT grow,
+> stretch, elongate, extend, telescope or get longer to reach the target — if it looks longer in
+> the poke frame than in the guard frame, it is WRONG. Measure it: same number of pixels long in
+> every single frame. It is a RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — do NOT deform,
+> stretch, squash, bend, curve, warp, taper, or change its size at any point; and NO motion-blur,
+> smear or speed-trail on the staff (a fast poke of a solid stick, NOT a rubber band).
+>
+> NO effects at all: no beam, no ray, no glow, no aura, no energy, no sparkles, no crystals, no
+> magic — the staff tip is plain and empty, NOTHING comes out of it. Start and end crouched in low
+> guard.
+
+**`sweep` (↓E) = ICE-SPIKES — she summons purple ice SPIKES from the ground:**
+
+> NOTE (for you, do NOT paste this line): ↓E is now a CAST (like W and ↓W), NOT a physical hit. TWO
+> SEPARATE generations: (1) Aye's cast = the `sweep` clip below (a low spinning staff sweep, plain
+> staff, no ice); (2) the `ice-spikes` effect = the second block (the purple ice spikes of ref #190
+> that erupt from the ground). Paste ONLY the code blocks, ONE at a time.
+
+Aye's cast (the `sweep` clip) — PASTE THIS:
+
+```
+A cute chibi anime fantasy mage character, cartoon video-game art, side view, facing RIGHT, serious
+focused expression. Starting from a low crouch she rises and does ONE fast, low spinning staff
+sweep — she swings her straight purple crystal-flower staff around in a low circle close to the
+ground and finishes by pointing/planting the staff tip DOWN-FORWARD at the floor in front of her
+(to the right), as if striking the ground to summon something, then recovers to guard. Quick,
+controlled casting flourish, facing right (wind-up → low spin sweep → point staff down-forward →
+recover). The staff is a RIGID SOLID STRAIGHT ROD of CONSTANT length — do NOT deform, stretch,
+squash, bend, warp or change its size, and no motion-blur/smear on it; the reach comes from her
+ARMS, the stick stays the exact same length in every frame. Just her body movement — plain staff,
+no glow, no beam, no crystals, NO magic, NOTHING coming out of the ground or the staff (the ice is
+a separate clip). Pure green screen #00FF00, flat and static.
+```
+
+The `ice-spikes` effect (separate clip, over GREEN, NO character — shape of ref #190):
+
+```
+SEPARATE EFFECT CLIP, no character, no person — only the effect over a PURE GREEN screen #00FF00
+(flat, static). A cluster of PURPLE ICE SPIKES erupting from the ground, shaped EXACTLY like ref
+#190: two or three tall sharp translucent faceted purple ice spikes / shards (low-poly crystalline
+look, deep purple cores with pale frosty white cracked edges and highlights), leaning and pointing
+DIAGONALLY UP-AND-TO-THE-RIGHT, rising out of a low snowy/frosty ice mound at their base. It is ICE,
+NOT shiny gemstones or jewels. Animation: the ground cracks, a frosty snow base forms, and the
+sharp ice spikes SHOOT UP FAST and erupt straight out of the ground to full height (a quick jagged
+burst, like frost spears stabbing upward from the floor) — they reach full size, hold a brief
+moment, then crack and shatter into small purple ice shards that fall. VERY IMPORTANT: the spikes
+keep the SAME fixed diagonal orientation the whole time (identical lean to ref #190, tips up-right)
+— they do NOT rotate, spin, tilt, turn or change angle; they ONLY grow/erupt upward in size from
+the ground. Their bottoms stay planted on the snowy base at all times. It is ALWAYS the SAME purple
+ice spikes, just erupting and scaling up — do NOT add any other element (no fire, no water, no
+lightning, no plants, no leaves), NO other colors, only the ONE cluster of purple ice spikes.
+Anchored to the ground at the bottom (snowy base). Camera fixed and locked. FAST eruption. NO
+character.
+```
+
+**`jump_punch`** _(aerial — now a SUMMON: she fires 3 crystal projectiles; give it a jumping start image if you can):_
+
+> STRICT SIDE VIEW / PROFILE, facing RIGHT — her body is turned to the RIGHT (we see her side/profile, the
+> SAME camera angle as all her other combat sprites). She is NEVER frontal, NEVER facing the camera, NEVER
+> turned toward the viewer. Do NOT rotate her body to face front; keep her in pure side profile the whole clip.
+>
+> AERIAL MOVE — she is fully OFF THE GROUND, JUMPING / floating high in mid-air the ENTIRE clip. Both feet
+> are OFF the floor (do NOT plant a foot down, do NOT stand, do NOT run), knees/legs bent and TUCKED UP in a
+> compact jump pose. There is NO ground, NO floor line and NO shadow beneath her — nothing touches the bottom;
+> she hovers in empty space. Keep her airborne from first to last frame.
+>
+> Aye is JUMPING — caught mid-leap, body UPRIGHT (head UP, feet BELOW her), compact, in profile facing RIGHT.
+> She grips the staff with BOTH HANDS in front of her and SPINS THE WHOLE STAFF in big fast CIRCLES — like
+> twirling a bo-staff / a spinning windmill (propeller) held two-handed, seen FROM THE SIDE. The ENTIRE rod
+> rotates round-and-round in the vertical plane (the crystal-flower tip sweeps a full circle: up → forward →
+> down → back → up), several full revolutions while she stays airborne and upright, still in profile facing
+> right. Same energetic two-handed twirl as her SUPER, performed as a forward summoning wind-up — it reads as
+> "she conjures and launches something forward (to the right)."
+>
+> The staff is a RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — do NOT deform, bend, stretch,
+> squash, curve, warp, taper, arc or change its size/shape at ANY point in the spin; the whole stick
+> rotates as ONE rigid piece, her two hands stay near the middle as the pivot. CRITICAL: DURING THE SPIN
+> the staff must NOT elongate, bow or curve — NO motion-blur, NO smear, NO speed/streak trail, NO glowing
+> arc drawn where the stick swept; it keeps its exact same straight fixed length in every single frame
+> (a solid rigid stick, NOT elastic/rubber, NOT a bending arc). Show clean separate positions of a
+> straight rod as it rotates, not a blurred curved streak.
+>
+> NO projectiles and NO effects drawn in HER clip — the 3 crystal projectiles are the SEPARATE effect the
+> engine fires (reusing the existing crystal/ice-moon projectile). The staff is plain; you MAY add only a
+> faint PURPLE glow on the crystal-flower tip as it spins (nothing shooting out of it). She does NOT hang
+> limp, float sideways or go upside-down. Pure green screen #00FF00, flat and static.
 
 **`jump_kick`** _(aerial):_
 
-> Suspended, Aye **stabs the staff down-forward** in a dive, body leaning. Airborne the whole time.
+> PHYSICAL melee, NOT magic. Aye is JUMPING — caught mid-leap, body UPRIGHT (head UP, feet BELOW
+> her). She STARTS with the staff raised HIGH above her head, then CHOPS/SWINGS it DOWN and forward
+> in one clean overhead strike, ending with the staff extended down-forward (to the right). The
+> whole motion goes FROM ABOVE downward — do NOT start with the staff low and raise it, and do NOT
+> lower it first; it comes straight down from overhead. She stays off the ground (airborne) the
+> whole time, upright, facing right — she does NOT hang limp, float sideways, spin, or go
+> upside-down/horizontal (do NOT dive head-first). The staff is a RIGID SOLID STRAIGHT ROD of
+> CONSTANT length and shape — do NOT deform, stretch, squash, bend, curve, warp, taper or change
+> its size/shape at any point; it stays the exact same straight staff in every frame. CRITICAL:
+> DURING THE SWING the staff must NOT get longer or elongate — no motion-blur, no smear, no speed
+> trail, no stretching of the stick as it moves; it keeps its exact same fixed length through the
+> whole swing (a solid rigid stick, NOT elastic/rubber). Keep the swing controlled and clear, not a
+> fast blur. NO effects: no beam, no glow, no crystals, no magic — plain staff.
+
+**`air_jab`** _(aerial — salto R — a DOWNWARD crystal cast; twin of jump_kick_cast but aimed DOWN):_
+
+> STRICT SIDE VIEW / PROFILE, facing RIGHT (never frontal, never facing camera). AERIAL MOVE — she is fully
+> OFF THE GROUND, jumping / floating high the ENTIRE clip: both feet off the floor, knees tucked, NO ground
+> line and NO shadow beneath her (she hovers in empty space).
+>
+> It's a quick DOWNWARD SUMMON. She HOLDS THE STAFF WITH BOTH HANDS and does NOT spin it — she simply POINTS
+> / AIMS it DIAGONALLY DOWN-AND-FORWARD (the crystal-flower tip aimed toward the LOWER-RIGHT, a ~45° diagonal
+> toward the ground in front of her) with a short, sharp two-handed aiming thrust, casting downward — as if
+> flinging magic down at an enemy below. Simple motion: bring the staff (both hands) to the diagonal
+> down-forward aim → hold that pose (tip pointing diagonally down-right). Body upright and compact, in profile
+> facing right; she does NOT spin the staff, dive head-first, go upside-down, or drift sideways.
+>
+> PLAIN staff — NO glow, NO light, NO aura, NO effect anywhere on it (not on the tip, not on the shaft). The
+> crystal flower is just its normal solid self, same as in her other animations.
+>
+> CRITICAL — NOTHING GROWS AND NOTHING IS LAUNCHED FROM THE STAFF: the crystal-flower TIP must NOT grow,
+> enlarge, swell, extend or lengthen, and NEITHER END / no EXTREMITY of the staff may grow or stretch out.
+> The staff does NOT shoot, launch, emit, spray or fire ANYTHING in her clip — no bolt, no beam, no orb, no
+> shard leaves the staff (the 3 crystal bolts are added SEPARATELY by the engine, not drawn here). Her clip is
+> ONLY her body + the plain glowing-tip staff.
+>
+> THE STAFF IS A RIGID SOLID STRAIGHT ROD of the EXACT SAME fixed length and shape in every frame — do NOT
+> STRETCH, elongate, grow, bend, curve, squash, taper, warp or smear it at any point (no motion-blur, no speed
+> trail): the same straight staff, same length, every frame. Pure green screen #00FF00, flat, camera fixed and
+> locked.
+
+### SUPER — CRYSTAL FLURRY (like DAM's inferno)
+
+**`crystal_flurry`** (her signature SUPER: a rapid multi-hit staff flurry, then it FREEZES the foe):
+
+> NOTE (for you, do NOT paste): this is Aye's special/super — a fast multi-hit. In the engine it
+> lands SEVERAL rapid CRITICAL hits and ends leaving the rival FROZEN ~1s (the same purple freeze as
+> her ↓E). This clip is ONLY her body flurry; the crit sparks + ice are added by the engine.
+
+```
+A cute chibi anime fantasy mage character, cartoon video-game art, side view, facing RIGHT, serious
+focused determined expression. Aye plants her feet, THRUSTS her straight purple crystal-flower staff
+FORWARD (to the right), then BRANDISHES it UP AND DOWN extremely FAST — a rapid-fire flurry of many
+quick staff strikes in front of her, EXACTLY like Chun-Li's lightning-fast "Hyakuretsukyaku"
+(lightning legs) but performed with the STAFF hammering up-down-up-down at very high speed, many
+strikes per second. Her body leans forward into the assault. It is a sustained rapid flurry: thrust
+staff forward → many fast up-down strikes in place → recover to guard. She stays STANDING in place
+the whole time, facing right.
+
+CRITICAL — THE STAFF NEVER CHANGES LENGTH: even at this high speed the staff is a RIGID SOLID
+STRAIGHT ROD of CONSTANT length — do NOT stretch, elongate, bend, warp, taper, squash or change its
+size as it chops up and down; the reach comes from her ARMS, the stick stays the exact same length
+in every frame (a solid rod, NOT an elastic rubber band).
+
+NEON LIGHT (this is her SUPER, so it glows): the TIP of the staff (the crystal flower) is lit up with
+a bright PURPLE NEON glow — a vivid glowing magenta-purple light at the tip. As the staff chops UP and
+DOWN at high speed it leaves a PURPLE NEON light TRAIL / streak tracing the up-down motion — bright neon
+ribbons / afterglow sweeping up and down together with the tip, like glowing neon speed-lines following
+the staff. Purple / magenta NEON is the ONLY light effect here (no other color, no fire, no ice — the
+ice and critical sparks are added by the engine). IMPORTANT: the neon is GLOWING LIGHT painted ON TOP of
+the motion — the solid staff underneath still keeps its exact same fixed length and straight rigid shape;
+the glow does NOT stretch, bend or lengthen the actual stick. The middle up-down strikes should tile /
+loop cleanly so they can repeat for the multi-hit. Pure green screen #00FF00, flat and static camera.
+```
 
 ### CRYSTAL ZONER KIT (the heart of the character)
 
@@ -231,13 +465,43 @@ green, no character) — so the engine draws it separately.
 
 **`crystal_cast`** _(straight shot — her main ranged attack; uses the `water_cast` engine slot):_
 
-> From guard, Aye **aims the staff forward**, opens her MOUTH shouting the spell, and **thrusts the
-> staff forward** in a shooting gesture; then recovers to guard. She stays **standing in place** (it's
-> ranged). **PLAIN staff**: the energy charge and the fired crystal are ALL in the separate EFFECT
+> From guard, Aye aims the staff forward, opens her MOUTH shouting the spell, and **thrusts the
+> staff forward** in a shooting gesture; then recovers to guard. She stays standing in place (it's
+> ranged). PLAIN staff: the energy charge and the fired crystal are ALL in the separate EFFECT
 > clip — draw no glow or projectile in her clip. Start and end in guard.
 
-> **Effect `crystal_shard`** (separate clip, OVER GREEN, NO character): a faceted **PURPLE CRYSTAL
-> shard/lance** flying horizontally to the right, spinning, with a trail of lilac sparkles.
+> **Effect `crystal_shard`** (separate EFFECT clip, OVER PURE GREEN #00FF00).
+>
+> ⚠️ CRITICAL — NO CHARACTER AT ALL: this clip shows ONLY the flying ice-moon effect, floating alone
+> over the green screen. There is NO person, NO girl, NO mage, NO hands, NO staff, NOBODY casting,
+> holding, throwing or summoning it. Do NOT show anyone. From the VERY FIRST frame the crescent moon
+> is ALREADY there, flying on its own — it does not get cast or created by a character; it is just
+> the moon by itself, start to finish. NO ground, NO wall, NO background objects.
+>
+> The effect: a **PURPLE ICE CRESCENT MOON** flying RIGHT — a crescent-moon shape made of
+> faceted PURPLE ICE with frosty white cracked edges and a soft icy glow, EXACTLY the look of ref
+> #188 (frozen purple ice, translucent facets, NOT a gemstone, NOT liquid/energy). It trails frosty
+> white ice sparkles and tiny purple ice shards behind it (to the LEFT).
+>
+> SIZE: it is a CONSTANT MEDIUM size the WHOLE time — it does NOT grow or shrink; it stays exactly
+> the same medium size from start to finish (only a subtle frosty shimmer and the trailing sparkles
+> move — the moon's shape and size stay fixed, and it keeps the SAME orientation, it does NOT spin
+> or rotate).
+>
+> IMPORTANT — it TRAVELS IN PLACE: the ice moon stays in the SAME SPOT, CENTERED in the frame the
+> whole time (camera LOCKED/FIXED, no pan, no zoom). It does NOT fly across the frame — it hovers in
+> the center with its frosty trail streaming behind it (to the LEFT), as if frozen mid-flight (the
+> game engine moves it across the screen).
+>
+> Then, in the LAST part of the clip, THE SAME ICE MOON IMPACTS AND SHATTERS: this exact crescent
+> moon (not a new/separate object) CRACKS and BURSTS APART into flying purple ICE SHARDS and frosty
+> white powder, as if it slammed into an invisible wall — a crisp ICE-SHATTER (sharp broken purple
+> ice pieces + frost spray flying outward), then the shards fade. The shatter must come CONTINUOUSLY
+> out of the SAME traveling moon — same purple ice, ATTACHED, one continuous piece (do NOT spawn a
+> separate explosion beside it or a second object; the moon ITSELF is what shatters). It looks
+> EXACTLY as if it hit a post/wall — but do NOT draw any post, wall, pole, ground or surface; draw
+> ONLY the ice moon and its own shatter over the flat green. NO character. Camera fixed. It is
+> ALWAYS the same purple ICE — no energy/liquid, no other color or element.
 
 **`crystal_pillar_cast`** _(zoning wall):_
 
@@ -268,20 +532,95 @@ green, no character) — so the engine draws it separately.
 > **Effect `crystal_rain`** (separate, OVER GREEN, NO character): several purple crystal shards **falling
 > diagonally** from above and **shattering when they hit the ground**.
 
-**`teleport`** _(escape / backdash with invincibility):_
+**`frost_orb`** _(★ FROST ORB — a slow spinning crystal orb that travels, freezes ~1.5s, then SHATTERS (breaks like the ice moon); if the opponent touches it → FROZEN + it breaks. Look of ref #220):_
 
-> Aye **dissolves into a burst of purple shards and reforms** a bit further back: pose → she fragments into
-> crystals → nearly invisible (cloud of shards) → reappears in guard. Fast and clean.
+> NOTE (for you, do NOT paste): mechanic — she casts it (her body uses her normal `crystal_cast` pose); the
+> engine sends this orb DRIFTING forward while SPINNING (up to ~4 of her body-lengths), then it HOVERS in
+> place ~1.5s, then SHATTERS (breaks apart into purple ice shards, like the crescent moon — NOT an explosion).
+> As it drifts it leaves a PURPLE FREEZE TRAIL on the GROUND beneath it, along the whole path it travels, which
+> then FADES out behind it (engine-generated, like the purple ghost-trail of her projectiles — NOT a clip).
+> If the opponent contacts it at ANY point (walks in, jumps into it, or is pushed into it) → they get FROZEN
+> (purple freeze, ~1s) and the orb breaks. It is ONE single EFFECT clip: grow+spin → hold → shatter → vanish.
+
+The `frost_orb` effect — ONE single clip (separate, OVER GREEN, NO character): grow+spin → hold → shatter → vanish.
+
+```
+SEPARATE EFFECT CLIP, no character, no person — only the effect over a PURE GREEN screen #00FF00 (flat,
+static, fixed camera). A PURPLE CRYSTAL / FROST ORB — a swirling sphere of purple ICE energy: the top is a
+glossy DARK-PURPLE SPIRAL SWIRL (like a spinning spiral / soft-serve swirl), and below and around it a
+lighter PURPLE-AND-WHITE CRYSTALLINE ICE VORTEX twists upward (jagged, frosty, translucent purple ice with
+frosty-white edges), thin WHITE WIND STREAKS orbiting it and a faint white frost RING at its base.
+
+ONE CONTINUOUS ANIMATION, in this exact order:
+1) GROW UP FROM THE GROUND + SPIN: it STARTS SMALL — a tiny spinning orb SITTING ON THE GROUND — and GROWS
+   UPWARD from there. CRITICAL: its BOTTOM / BASE (the frost ring where it touches the ground) STAYS PLANTED
+   on the SAME ground line the WHOLE time and does NOT move down or drift; ONLY the TOP rises as it gets
+   bigger, so the orb grows UPWARD out of the ground (like ice erupting from the floor / like a scoop of
+   soft-serve being piled UP from its base) — NOT growing downward and NOT dropping onto the floor. While it
+   grows it keeps SPINNING / ROTATING ON ITS OWN VERTICAL AXIS (the spiral swirls and the ice vortex turn,
+   wind streaks circling). It scales up smoothly to full size, base fixed, top rising, always spinning.
+2) HOLD: at full size (base still planted on the same ground line) it keeps spinning in place a brief moment.
+3) SHATTER + VANISH: it slows and freezes solid, thin white CRACKS spread across it, then it BREAKS APART
+   like a purple ice crescent moon shattering (NOT an explosion, NOT an outward blast ring) into jagged
+   translucent PURPLE ICE SHARDS with a puff of frost; the shards FALL / scatter and FADE OUT COMPLETELY
+   until NOTHING is left on screen — the orb does NOT stay or linger, the LAST frames are just empty green.
+
+The shards stay CLOSE to the center as they scatter (a compact break, they do not fly far). It is ALL purple
+ICE / FROST — do NOT add fire, water, lightning, plants or any other color. Camera fixed and locked. NO
+character.
+```
+
+**`teleport`** _(↓→Q — glitch teleport, invincible; replaces the fire dash):_
+
+> Aye TELEPORTS with a purple GLITCH / TV-static dissolve — the look of ref #207 (a body breaking up into
+> digital scanline glitches), but in PURPLE. One continuous clip: OUT → gone → IN, facing RIGHT the whole
+> time, plain rigid staff.
+>
+> 1. START: normal standing guard pose, solid and clean.
+> 2. GLITCH OUT: her body starts tearing into HORIZONTAL GLITCH BANDS / scanline slices that shift and
+>    slide sideways (a corrupted-TV / datamosh look — the image shears left-right in stripes), each band
+>    offset from the next, edges hard and pixelated. A few PURPLE crystal shards pop off. Chromatic split:
+>    faint magenta/cyan fringes on the edges of the slices. Her silhouette smears and stretches
+>    HORIZONTALLY as it comes apart.
+> 3. DISSOLVED: she is fully broken into a spread of purple glitch stripes + static + shards, her shape
+>    almost unreadable, then it all thins out and she is GONE (nothing but a last flicker of purple static).
+> 4. GLITCH IN (reverse): the purple glitch stripes + shards snap BACK together from static, sliding into
+>    place, chromatic fringes pulling in, and REASSEMBLE cleanly into her solid standing pose again.
+>
+> Style: bright HARD-EDGED digital glitch — TV static, scanlines, datamosh, pixel-tear — in purple /
+> magenta / cyan. NOT smoke, NOT fire, NOT a soft particle cloud, NOT a fade. The STAFF glitches and
+> dissolves WITH her (same purple) and reforms rigid, straight and unchanged (do not bend/stretch the real
+> staff — only the glitch tears it). Fast and snappy. Pure green screen #00FF00, flat and static camera.
 
 **`spin_kick`** _(spinning top — her close reversal):_
 
-> Aye brings her feet together and **spins like a top**, sweeping the staff in a full circle (360°); the
-> circling crystals are in the separate EFFECT clip. Returns to guard. Centered, same size.
+> STRICT SIDE VIEW / PROFILE, facing RIGHT — same camera angle as all her other sprites (never frontal, never
+> facing the camera). Aye brings her feet TOGETHER and SPINS LIKE A TOP in place: one fast, controlled 360°
+> turn of her whole body, sweeping the staff out horizontally in a full circle around her at about waist
+> height. She stays CENTERED on the exact same spot (does NOT travel across the screen), upright and balanced,
+> then comes cleanly OUT of the spin back into her standing guard, facing right. Both feet stay on the GROUND —
+> it is a spinning pivot, NOT a jump (she never leaves the floor). Short and snappy: wind up → one full 360°
+> spin → recover to guard.
+>
+> Do NOT draw the circling crystals — that ring of crystals is a SEPARATE engine effect; her clip is ONLY her
+> body + staff spinning. THE STAFF IS A RIGID SOLID STRAIGHT ROD of the EXACT SAME fixed length, thickness and
+> straight shape in EVERY frame — do NOT bend, curve, stretch, elongate, shorten, squash, taper or warp it as
+> it sweeps, and NO motion-blur, smear or streak that makes it look longer. Plain staff, no glow. Pure green
+> screen #00FF00, flat, camera fixed and locked.
 
 **`air_spin_kick`** _(aerial):_
 
-> Suspended, Aye **spins in the air** sweeping the staff in a circle; the crystals are in the separate EFFECT
-> clip. Airborne the whole time.
+> STRICT SIDE VIEW / PROFILE, facing RIGHT (never frontal). Aye is AIRBORNE the ENTIRE clip — fully off the
+> ground, NO floor line and NO shadow beneath her, knees/feet tucked up compact. She SPINS in mid-air like an
+> airborne top, sweeping the staff around her in a full 360° circle at about waist height, body kept UPRIGHT
+> and compact while suspended. She does NOT dive, does NOT go head-down or upside-down, does NOT drift sideways
+> or hang limp — a clean controlled aerial spin held in the air. Short: tuck in mid-air → one airborne 360°
+> spin → hold, still airborne.
+>
+> Do NOT draw the circling crystals (SEPARATE engine effect). THE STAFF IS A RIGID SOLID STRAIGHT ROD of the
+> EXACT SAME fixed length and straight shape in every frame — no bending, stretching, shortening, tapering,
+> warping, and NO motion-blur or smear; the same straight staff throughout. Plain staff, no glow. Pure green
+> screen #00FF00, flat, camera fixed and locked.
 
 ### TAKING DAMAGE / DEFENSE / FINISH
 
@@ -289,37 +628,158 @@ green, no character) — so the engine draws it separately.
 
 **`take_hit`:**
 
-> Aye gives a standing **FLINCH/recoil**: her torso snaps back, her head reacts, one foot steps back, then
-> returns to guard. Don't draw who pushes her.
+> SIDE VIEW / PROFILE, facing RIGHT — same camera angle as all her other sprites (never frontal, never facing
+> camera). Aye is STANDING on the ground and gives a sharp standing **FLINCH / recoil**, reacting to a blow
+> coming from the RIGHT (the side she faces). In one quick snap her HEAD jerks back and to the UPPER-LEFT
+> (chin flicks up), her UPPER BODY / torso whips BACKWARD (leaning left, away from the front), her front
+> shoulder pulls back, and her FRONT foot slides/steps back a short step so her weight drops onto her BACK
+> foot — a clear "knocked-back a little" recoil. Her free arm flails back slightly and her hair/ponytail and
+> dress swing forward-then-back from the jolt. Then she springs back UPRIGHT and re-settles into her standing
+> guard, facing right. Short and snappy: neutral → hard recoil back → recover to guard. She stays on her feet
+> (does NOT fall, does NOT crouch, does NOT leave the ground). Do NOT draw the attacker, and NO weapon, fist,
+> spark, blood or impact effect touching her — only HER reaction.
+>
+> She keeps hold of her staff the whole time. THE STAFF IS A RIGID SOLID STRAIGHT ROD of the EXACT SAME fixed
+> length, thickness and straight shape in EVERY frame — do NOT bend, curve, stretch, elongate, shorten,
+> squash, warp, taper or thin it, and NO motion-blur or smear on it. Pure green screen #00FF00, flat, no
+> ground shadow needed, camera fixed and locked.
+>
+> _(Content filter: avoid "hit/impact/struck/punch" — describe it as a "flinch/recoil/jolt/reaction".)_
 
 **`take_hit_low`:**
 
-> Crouched, Aye gives a small **flinch/recoil in a squat** and recovers.
+> SIDE VIEW / PROFILE, facing RIGHT — same camera angle as her other sprites (never frontal). Aye is already
+> DOWN IN A LOW CROUCH / squat (knees deeply bent, hips low, close to the floor) and from there gives a small
+> flinch / recoil while staying crouched, reacting to a blow from the RIGHT. Her HEAD and upper body
+> snap/recoil BACKWARD and slightly DOWN (she scrunches lower and leans away, chin tucking, front shoulder
+> pulling back) as the jolt hits, ponytail and dress swinging from the shake — but she NEVER stands up and
+> NEVER falls over; she stays low in the squat the entire time. Then she settles back into her steady low
+> crouch guard, facing right. Short and snappy: crouched → recoil back-and-down while still squatting →
+> recover to the low crouch. Do NOT draw the attacker, and NO weapon, fist, spark, blood or impact effect
+> touching her — only HER reaction.
+>
+> She keeps hold of her staff. THE STAFF IS A RIGID SOLID STRAIGHT ROD of the EXACT SAME fixed length,
+> thickness and straight shape in EVERY frame — do NOT bend, curve, stretch, elongate, shorten, squash,
+> warp, taper or thin it, and NO motion-blur or smear on it. Pure green screen #00FF00, flat, camera fixed
+> and locked.
+>
+> _(Content filter: avoid "hit/impact/struck/punch" — describe it as a "flinch/recoil/jolt/reaction".)_
 
 **`strong_fly`** _(she's knocked away → I get `hit_fly` and `hit_down` from this clip):_
 
-> Aye is **flung backward**: first she **flies through the air arched** (arms and staff loose, body in an arc),
-> then she **falls, bounces once** on the ground and **ends lying FACE-UP** (without fully letting go of the
-> staff). One continuous motion: fly → fall → lying. Frame it so the fly and the fall both fit.
+> STRICT SIDE VIEW / PROFILE. Aye is FLUNG BACKWARD to the LEFT (knocked away from a blow coming from the
+> RIGHT) in ONE continuous motion with TWO clearly separated phases, so I can cut it into "flying" and "fallen":
+>
+> (1) FLY — she is launched off her feet up into the air, body ARCHED and tilted BACK (head trailing back and
+> LEFT, feet up and RIGHT), arms flailing loose and LIMP like a ragdoll, ponytail and dress streaming from the
+> speed. She is FULLY airborne, carried up-and-back through an arc — NOT holding any fighting pose.
+>
+> (2) FALL & LIE — she drops, hits the floor and BOUNCES once, then comes to rest LYING FLAT ON HER BACK,
+> FACE-UP, arms out to the sides, head toward the LEFT and feet toward the RIGHT (lying horizontal along the
+> ground). The staff stays LOOSELY in one hand, resting beside her on the ground (do NOT throw it far away).
+>
+> Frame it TALL/WIDE enough that BOTH the top of the airborne arc AND the final lying-down pose are fully in
+> view (her whole body never cut off). Do NOT draw the attacker, and NO fists, weapons, sparks, blood or impact
+> effects touching her — only HER being flung and landing. The staff is a RIGID SOLID STRAIGHT ROD of CONSTANT
+> length and shape — no bending, stretching, warping, tapering or smear; it just tumbles with her, still the
+> same straight rigid rod every frame. Pure green screen #00FF00, flat, camera fixed and locked.
+>
+> _(Content filter: avoid "hit/impact/struck/punch" — say "flung / knocked back / thrown / falls / lands".)_
+
+**`pummeled`** _(repeated stagger while being comboed — LOOPS):_
+
+> STRICT SIDE VIEW / PROFILE, facing RIGHT (never frontal). Aye is STANDING but being repeatedly JOLTED in
+> place — a LOOPING flinch: her head and upper body snap BACK and shudder over and over, as if taking a rapid
+> series of blows from the RIGHT. She staggers on her feet, arms limp and jostling, knees a little wobbly,
+> ponytail and dress shaking with each jolt. She stays roughly on the SAME SPOT on her feet the whole time
+> (does NOT fall down, does NOT crouch, does NOT leave the ground) and NEVER recovers to guard — a continuous
+> stunned, buffeted stagger that can loop seamlessly. Do NOT draw the attacker, and NO fists, weapons, sparks
+> or blood touching her — only HER repeated recoil.
+>
+> She keeps hold of her staff; it is a RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — no bending,
+> stretching, warping, tapering or smear; the same straight staff every frame. Pure green screen #00FF00, flat,
+> camera fixed and locked.
+>
+> _(Content filter: describe as "repeated flinch / stagger / being buffeted / jostled" — avoid "hit/impact/punch".)_
+
+**`wall_splat`** _(slams back-first into the stage wall, pinned flat, then peels off):_
+
+> STRICT SIDE VIEW / PROFILE, facing RIGHT (never frontal). Aye SLAMS BACK-FIRST into an invisible vertical
+> wall and is momentarily PINNED / SPLATTED flat against it, then peels off. Her back and shoulders press FLAT
+> as if against a vertical surface — spine upright, body flattened and slightly SQUASHED WIDER on impact — head
+> snapping back, arms and legs splayed out from the flattening, ponytail and dress flung UP from the slam: a
+> stunned "pancaked against the wall" pose. She stays UPRIGHT and vertical (NOT lying down), off-balance, then
+> begins to slump/peel FORWARD off the wall. Do NOT draw the wall itself, the attacker, or any dust/sparks/blood
+> — only HER flattened-against-the-wall reaction.
+>
+> She keeps hold of her staff; RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — no bending, stretching,
+> warping, tapering or smear; the same straight staff every frame. Pure green screen #00FF00, flat, camera
+> fixed and locked.
+>
+> _(Content filter: "slams back into a wall, pinned flat, then peels off" — avoid "impact/struck".)_
 
 **`block`:**
 
-> Aye takes the **guard/block**: she holds the staff horizontally in front as a barrier; the faint purple
-> crystal dome is in the separate EFFECT clip. She holds firm. Short motion (raise guard → hold).
+> Standing GUARD/BLOCK — a DEFENSIVE, dodging brace (NOT an attack, NOT arms spread wide). Aye holds her
+> staff DIAGONALLY across her chest — the crystal-flower tip raised UP toward her BACK shoulder (up-and-
+> behind, upper-left) and the plain far end angled DOWN and FORWARD (lower-right), a SLANTED deflecting
+> guard tilted about 35° — clearly DIAGONAL, NOT horizontal and NOT vertical. She grips it with BOTH
+> hands about shoulder-width apart near the middle of the staff (do NOT spread her arms out to the far
+> ends). At the same time she LEANS her upper body slightly BACK — recoiling/flinching away from an
+> incoming blow, weight shifted onto her BACK foot, chin tucked, as if bracing and dodging. Defensive
+> and compact, facing right. Short motion: bring the staff up to the slanted diagonal guard while
+> leaning back → hold firm.
+>
+> CRITICAL — THE STAFF DOES NOT CHANGE: it is a RIGID SOLID STRAIGHT ROD of the EXACT SAME fixed length,
+> thickness and straight shape in EVERY frame — do NOT bend, curve, stretch, elongate, shorten, squash,
+> warp, taper or thin it, and NO motion-blur or smear on it. If the staff looks longer, shorter, bent or
+> different in ANY frame, it is WRONG — measure it: the same straight staff, same length, every frame.
+>
+> PLAIN staff — no glow, no beam, no crystals, no magic (the faint purple crystal shield is a SEPARATE
+> effect the engine adds). Pure green screen #00FF00, flat and static.
 
 **`block_low`:**
 
-> Same but **crouched**: low block in a squat with the staff and the crystal dome in front.
+> Crouched LOW GUARD/BLOCK. Aye is in a DEEP SQUAT — body COMPACT and hunched, head LOW, exactly the same
+> low height as her normal crouch pose (she does NOT stand up, she is NOT kneeling with the torso vertical,
+> she stays low and compact). She covers herself by holding the staff HORIZONTAL above/in front of her head
+> like a ROOF/shield (both hands). The staff lies FLAT/horizontal — its tip does NOT point up at the sky.
+> Firm, braced, staying low the whole time, facing right. The staff is a RIGID SOLID STRAIGHT ROD of
+> CONSTANT length — do NOT deform, bend, stretch or change its size. PLAIN staff — no glow, no beam, no
+> crystals, no magic (the crystal dome/shield is a SEPARATE effect). Short motion: bring up the low
+> horizontal guard → hold. Pure green screen #00FF00, flat and static.
 
 **`ko`:**
 
-> Aye is defeated: she **staggers, drops to her knees and ends slumped/sitting** with the staff fallen to one
-> side (without fully letting go), head down. One continuous motion: stagger → fall → still.
+> STRICT SIDE VIEW / PROFILE. Aye is DEFEATED — one continuous COLLAPSE: she STAGGERS (head lolling, knees
+> buckling under her), then SINKS DOWN and ends CRUMPLED on the floor — either slumped sitting with her head
+> hung low, OR lying on her back/side — EYES CLOSED, body limp and motionless ("out cold"). Her staff FALLS
+> from her grip and comes to rest on the ground right BESIDE her body (near her, NOT flung far away). One
+> motion: totter → crumple → still, HOLDING the final downed pose at the end.
+>
+> Frame it TALL/WIDE enough that her WHOLE body and the final downed pose stay fully in view (she must NOT be
+> cut off when she's low on the ground). IMPORTANT: keep her BODY as the clear main mass on the floor with the
+> staff as a thin object beside it (so her collapsed body reads clearly, not hidden behind the staff). Do NOT
+> draw the attacker or any impact effect. The staff is a RIGID SOLID STRAIGHT ROD of CONSTANT length and shape
+> — no bending, stretching or warping (it just drops, still rigid). Pure green screen #00FF00, flat, camera
+> fixed and locked.
+>
+> _(Content filter: "defeated / collapses / faints / knocked out / out cold" — avoid "killed/dead".)_
 
 **`victory`:**
 
-> Aye **celebrates the win**: standing, cheerful, she **raises the staff and spins purple crystals** around her,
-> smiles and **moves her MOUTH** (as if saying something), triumphant pose. Short celebration loop.
+> STRICT SIDE VIEW / PROFILE, facing RIGHT (a gentle 3/4 turned slightly toward the camera is OK, but keep it
+> close to her side view — never fully frontal). Aye CELEBRATES her win — a cheerful, triumphant LOOP: standing
+> tall and happy, she RAISES her staff high (crystal-flower tip pointing UP), strikes a proud, cute victory
+> pose (a little bounce and/or a hair-flip is welcome), SMILING brightly, and clearly MOVES HER MOUTH as if
+> saying a victory line. Energetic and joyful; it should LOOP seamlessly (settle into the pose → small
+> celebratory motion → back to start). She stays STANDING on the ground the whole time (does NOT jump away, does
+> NOT leave the frame).
+>
+> Do NOT draw the swirling crystals — those purple victory crystals are a SEPARATE engine effect; her clip is
+> ONLY her body + staff. THE STAFF IS A RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — no bending,
+> stretching, tapering, warping or smear; the same straight staff every frame. Pure green screen #00FF00, flat,
+> camera fixed and locked.
 
 ### IMPACT EFFECT (only the effect over green, no character)
 
