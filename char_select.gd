@@ -48,9 +48,11 @@ var load_overlay: Control
 var load_logo: TextureRect
 var load_spin: Control
 
+# PALETA del logo: MORADO principal + blanco + rojo (sin dorado ni azul)
 const RED := Color(0.95, 0.24, 0.20)
-const BLU := Color(0.36, 0.56, 1.0)
-const GOLD := Color(0.98, 0.84, 0.32)
+const BLU := Color(0.62, 0.40, 1.0)      # "2P": morado (antes azul)
+const GOLD := Color(0.74, 0.52, 1.0)     # acento principal: morado (antes dorado)
+const WHITE := Color(0.95, 0.95, 1.0)
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -68,14 +70,14 @@ func _ready() -> void:
 	# cuadros-póster enmarcados (imagen -2 con fondo artístico), debajo de las cartas
 	stand_l = _mk_portrait(FRAME_L)
 	stand_r = _mk_portrait(FRAME_R)
-	# ---- CARTAS (grid central) ----
+	# ---- CARTAS (grid central) — un poco más chicas y más abajo ----
 	var n := roster.size()
-	var cw := 176.0
-	var ch := 224.0
-	var gap := 26.0
+	var cw := 150.0
+	var ch := 190.0
+	var gap := 24.0
 	var total := n * cw + (n - 1) * gap
 	var x0 := 960.0 - total / 2.0
-	var gy := 268.0
+	var gy := 404.0
 	for i in n:
 		var cx := x0 + i * (cw + gap)
 		var av := TextureRect.new()
@@ -96,7 +98,15 @@ func _ready() -> void:
 	add_child(fx)
 	fx.draw.connect(_draw_fx)
 	# ---- TEXTOS (encima de todo) ----
-	_hdr_big("CHARACTER SELECT", 24, GOLD, 56)
+	# LOGO del juego en el espacio de arriba (reemplaza el texto "CHARACTER SELECT")
+	var logo := TextureRect.new()
+	if ResourceLoader.exists("res://imagen-action/ui/title-logo.png"):
+		logo.texture = load("res://imagen-action/ui/title-logo.png")
+	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	logo.size = Vector2(470, 262); logo.position = Vector2(960 - 235, 16)
+	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(logo)
 	_hdr("1 PLAYER CHARACTER", Vector2(34, 30), RED, HORIZONTAL_ALIGNMENT_LEFT, 28)
 	_hdr("2 PLAYER CHARACTER", Vector2(-34, 30), BLU, HORIZONTAL_ALIGNMENT_RIGHT, 28)
 	# nombres grandes abajo (fuente pesada + outline)
@@ -115,9 +125,9 @@ func _ready() -> void:
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(nm)
-	# character data
-	data_l = _data_label(Vector2(560, 560))
-	data_r = _data_label(Vector2(1040, 560))
+	# character data — debajo de cada retrato grande, letra más pequeña
+	data_l = _data_label(Vector2(60, 886))
+	data_r = _data_label(Vector2(1456, 886))
 	# prompt
 	prompt = Label.new()
 	prompt.add_theme_font_override("font", big_font)
@@ -347,15 +357,15 @@ func _hdr(txt: String, pos: Vector2, col: Color, align: int, size: int) -> void:
 func _big_name(left: bool) -> Label:
 	var l := Label.new()
 	l.add_theme_font_override("font", big_font)
-	l.add_theme_font_size_override("font_size", 92)
-	l.add_theme_constant_override("outline_size", 12)
+	l.add_theme_font_size_override("font_size", 70)
+	l.add_theme_constant_override("outline_size", 10)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	l.add_theme_color_override("font_color", RED if left else BLU)
 	if left:
-		l.position = Vector2(40, 906); l.size = Vector2(600, 120)
+		l.position = Vector2(40, 792); l.size = Vector2(600, 96)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	else:
-		l.position = Vector2(1280, 906); l.size = Vector2(600, 120)
+		l.position = Vector2(1280, 792); l.size = Vector2(600, 96)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
@@ -364,11 +374,11 @@ func _big_name(left: bool) -> Label:
 func _data_label(pos: Vector2) -> Label:
 	var l := Label.new()
 	l.add_theme_font_override("font", big_font)
-	l.add_theme_font_size_override("font_size", 20)
-	l.add_theme_constant_override("outline_size", 5)
+	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_constant_override("outline_size", 4)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	l.add_theme_color_override("font_color", Color(0.9, 0.9, 0.94))
-	l.position = pos; l.size = Vector2(320, 200)
+	l.position = pos; l.size = Vector2(400, 160)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
 	return l
@@ -377,31 +387,31 @@ func _data_label(pos: Vector2) -> Label:
 func _draw() -> void:
 	var w := 1920.0
 	var h := 1080.0
-	# base
-	draw_rect(Rect2(0, 0, w, h), Color(0.06, 0.03, 0.07))
-	# glow radial central (vino)
+	# base (morado muy oscuro)
+	draw_rect(Rect2(0, 0, w, h), Color(0.06, 0.035, 0.10))
+	# glow radial central (morado)
 	for i in range(9, 0, -1):
 		var r := 115.0 * i
-		draw_circle(Vector2(960, 560), r, Color(0.34, 0.05, 0.13, 0.055))
-	# líneas de acción diagonales FINAS y sutiles (speedlines), no bandas anchas
+		draw_circle(Vector2(960, 560), r, Color(0.24, 0.10, 0.34, 0.055))
+	# líneas de acción diagonales FINAS y sutiles (speedlines) en morado
 	for i in range(-2, 22):
 		var x := i * 96.0
-		draw_line(Vector2(x, 0), Vector2(x - 210, h), Color(0.85, 0.3, 0.3, 0.05), 2.0)
-	# PANEL DIAGONAL izquierdo (P1 rojo) y derecho (P2 azul)
+		draw_line(Vector2(x, 0), Vector2(x - 210, h), Color(0.62, 0.4, 0.95, 0.05), 2.0)
+	# PANEL DIAGONAL izquierdo (P1 rojo) y derecho (P2 morado)
 	var pl_active: float = 1.0 if picking == 0 else 0.55
 	var pr_active: float = 1.0 if picking == 1 else 0.55
 	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(560, 0), Vector2(470, h), Vector2(0, h)]),
-			Color(0.35, 0.05, 0.08, 0.55 * pl_active + 0.2))
+			Color(0.34, 0.06, 0.12, 0.55 * pl_active + 0.2))
 	draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(1360, 0), Vector2(1450, h), Vector2(w, h)]),
-			Color(0.06, 0.10, 0.36, 0.55 * pr_active + 0.2))
+			Color(0.20, 0.08, 0.36, 0.55 * pr_active + 0.2))
 	# borde interno de cada panel (línea de color)
 	draw_line(Vector2(560, 0), Vector2(470, h), RED, 4.0)
 	draw_line(Vector2(1360, 0), Vector2(1450, h), BLU, 4.0)
-	# BARRA superior e inferior (negras con filo dorado, en diagonal)
-	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 96), Vector2(0, 78)]), Color(0.03, 0.02, 0.04, 0.92))
+	# BARRA superior e inferior (negras con filo morado, en diagonal)
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 96), Vector2(0, 78)]), Color(0.04, 0.02, 0.06, 0.92))
 	draw_line(Vector2(0, 78), Vector2(w, 96), GOLD, 3.0)
-	draw_colored_polygon(PackedVector2Array([Vector2(0, 890), Vector2(w, 872), Vector2(w, h), Vector2(0, h)]), Color(0.03, 0.02, 0.04, 0.92))
-	draw_line(Vector2(0, 890), Vector2(w, 872), Color(0.6, 0.1, 0.12), 3.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 890), Vector2(w, 872), Vector2(w, h), Vector2(0, h)]), Color(0.04, 0.02, 0.06, 0.92))
+	draw_line(Vector2(0, 890), Vector2(w, 872), Color(0.5, 0.2, 0.7), 3.0)
 	# marco de cada carta (bisel oscuro) — el glow/cursor va en la capa fx
 	for c in cards:
 		var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]

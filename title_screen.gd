@@ -8,7 +8,7 @@ extends Control
 const OPTS := ["VS CPU", "TRAINING", "VS ONLINE"]
 const MODES := ["vs_cpu", "practice", ""]   # "" = deshabilitado
 const RED := Color(0.95, 0.24, 0.20)
-const GOLD := Color(0.98, 0.84, 0.32)
+const GOLD := Color(0.74, 0.52, 1.0)     # acento morado (paleta del logo)
 const POSTER := "res://imagen-action/ui/menu-poster.png"
 const LOGO := "res://imagen-action/ui/title-logo.png"   # logo FG FIGHTER (croma recortado)
 # caja del logo arriba-izquierda (se respeta la proporción de la textura)

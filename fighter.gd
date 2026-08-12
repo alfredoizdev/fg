@@ -189,6 +189,7 @@ var fe_dash_t := 0.0        # >0 = embistiendo hacia adelante (mueve el cuerpo)
 var fe_dash_active := false # true toda la secuencia (embestida + 3 golpes): el árbitro pega, no la anim
 var back_recent_t := 0.0   # memoria de ATRÁS reciente (para el motion ←→ del dash)
 var back_tap_win := 0.0    # ventana del DOBLE-TOQUE atrás (←← = blink de escape de Aye)
+var fwd_tap_win := 0.0     # ventana del DOBLE-TOQUE adelante (→→ = blink de avance de Aye)
 var dash_voz_sfx: AudioStream = null   # voz "water way" al arrancar el dash (carga perezosa)
 var spin_voz_sfx: AudioStream = null   # voz "Power Twister" al girar (peonza, carga perezosa)
 var fire_trail: CPUParticles2D
@@ -846,9 +847,10 @@ func _start_teleport() -> void:
 		if sprite.sprite_frames.has_animation("teleport"):
 			sprite.play("teleport")
 
-# BLINK de ESCAPE de Aye (←←): glitch corto y reaparece ~CUERPO Y MEDIO hacia ATRÁS,
-# sin golpe (es una esquiva). Gasta MANA (más barato que el teleport ofensivo).
-func _start_blink_back() -> void:
+# BLINK de Aye: glitch corto y reaparece ~CUERPO Y MEDIO hacia ATRÁS (←←, escape) o
+# hacia ADELANTE (→→, avance; frena a un cuerpo del rival). Sin golpe. Gasta MANA
+# (más barato que el teleport ofensivo).
+func _start_blink(adelante := false) -> void:
 	if special_t > 0.0 or fe_dash_active or hit_flying or airborne or koed:
 		return
 	var _ba := String(sprite.animation)
@@ -865,10 +867,11 @@ func _start_blink_back() -> void:
 	vel_x = 0.0
 	buffer_t = 0.0
 	var mb := get_parent()
-	if mb and mb.has_method("_aye_blink_back"):
-		mb._aye_blink_back(self)
+	if mb and mb.has_method("_aye_blink"):
+		mb._aye_blink(self, adelante)
 	else:
-		position.x = clampf(position.x - float(facing) * 340.0, 115.0, 1805.0)
+		var _bs := 1.0 if adelante else -1.0
+		position.x = clampf(position.x + _bs * float(facing) * 340.0, 115.0, 1805.0)
 		if sprite.sprite_frames.has_animation("teleport"):
 			sprite.play("teleport")
 
@@ -1761,6 +1764,7 @@ func _physics_process(delta: float) -> void:
 	up_tap_t = maxf(0.0, up_tap_t - delta)
 	double_up_t = maxf(0.0, double_up_t - delta)
 	back_tap_win = maxf(0.0, back_tap_win - delta)
+	fwd_tap_win = maxf(0.0, fwd_tap_win - delta)
 	down_tap_t = maxf(0.0, down_tap_t - delta)
 	double_down_t = maxf(0.0, double_down_t - delta)
 	pq_tap_t = maxf(0.0, pq_tap_t - delta)
@@ -2131,17 +2135,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		crouching = false
 		sprite.play("ko" if koed else "pose")
 		return
-	# doble toque ATRÁS (Aye): BLINK de ESCAPE ~cuerpo y medio hacia atrás (gasta maná)
+	# doble toque ATRÁS/ADELANTE (Aye): BLINK ~cuerpo y medio (←← escape / →→ avance, gasta maná)
 	if fx_floral and (event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right")):
 		var _bd := -1 if event.is_action_pressed("ui_left") else 1
-		if _bd == -facing and not airborne and not koed:
+		if airborne or koed:
+			back_tap_win = 0.0
+			fwd_tap_win = 0.0
+		elif _bd == -facing:
+			fwd_tap_win = 0.0   # cambiar de dirección rompe la secuencia contraria
 			if back_tap_win > 0.0:
 				back_tap_win = 0.0
-				_start_blink_back()
+				_start_blink(false)
 				return
 			back_tap_win = 0.28
 		else:
-			back_tap_win = 0.0   # tocar ADELANTE (o en el aire) rompe la secuencia
+			back_tap_win = 0.0
+			if fwd_tap_win > 0.0:
+				fwd_tap_win = 0.0
+				_start_blink(true)
+				return
+			fwd_tap_win = 0.28
 	# doble toque ↑: habilita el breaker con movimiento (↑↑+E)
 	if event.is_action_pressed("ui_up"):
 		if up_tap_t > 0.0:
@@ -2264,12 +2277,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			break
 	if accion == "":
 		return
-	# AYE: CERCA del piso y CAYENDO, el botón se GUARDA para el movimiento TERRESTRE al
-	# aterrizar (↓Q/↓E de suelo). Antes el golpe aéreo se robaba el input y el de suelo
-	# nunca salía. El ↓ se lee en vivo cuando el buffer dispara (ya aterrizada).
-	if fx_floral and airborne and vel_y > 0.0 and position.y > floor_y - 150.0:
+	# AYE: input TERRESTRE en el aire -> se GUARDA y sale al ATERRIZAR (el buffer no corre
+	# mientras está en el aire: el físico aéreo retorna antes de procesarlo).
+	# 1) Con ↓ SOSTENIDO (y sin dirección horizontal, para no comerse el ↓→Q aéreo) la
+	#    intención es el movimiento de SUELO (↓Q/↓E): vale durante TODO el salto.
+	# 2) Sin ↓: solo en la ventana pegada al piso (cayendo, últimos ~150px).
+	if fx_floral and airborne and ( 			(Input.is_action_pressed("ui_down") and Input.get_axis("ui_left", "ui_right") == 0.0) 			or (vel_y > 0.0 and position.y > floor_y - 150.0)):
 		buffer_action = accion
-		buffer_t = 0.35
+		buffer_t = 0.45
 		return
 	# UN solo golpe aéreo por salto (hasta CAER o hasta que CONECTE). Corta el spam
 	# de golpes aéreos (y el sonido agudo repetido).

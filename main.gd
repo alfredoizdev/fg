@@ -1040,8 +1040,8 @@ func _char_move_text(cid: String) -> Dictionary:
 	if cid == "aye":
 		return {
 			"title": "AYE — MOVE LIST",
-			"moves": "MOVES:\n\nR  —  Staff poke (50)\n↓ + R  —  Low crouch poke (50)\nQ  —  Staff thrust (90)\n→ + Q  —  Double thrust (90+90)\n↓ + Q  —  Crouch jab (90)\nW  —  ICE PILLAR cast (100)\n↓ + W  —  ICE MOON · rising launcher (100) ▲\nE  —  CRYSTAL SHOT · projectile (80)\n↓ + E  —  ICE SPIKES · sweep, FREEZES (100) ✦\nJump + Q  —  Air staff (90)\nJump + W  —  Air overhead (100)\n\n▲ = launches into the air     ✦ = freezes the rival ~1s",
-			"fin": "★  SPECIALS  &  FINISHERS   (zoner)\n↑↑ R  —  COMBO BREAK (1/round, while hit)\n↓ → Q  —  TELEPORT (glitch, invincible, 1 bar)\n↓ ← Q  —  CRYSTAL FLURRY super\n      (needs 3-hit combo + 1.5 bars)\n↓ E → E  —  freeze, then projectile\n\nBEST COMBO:  R → Q → W → ↓E   (go UP only)\n\nPARRY (Q + W together):  counter, 1 bar",
+			"moves": "MOVES:\n\nR  —  Staff poke (50)\n↓ + R  —  Low crouch poke (50)\nQ  —  Staff thrust (90)\n→ + Q  —  Double thrust (90+90)\n↓ + Q  —  Crouch jab (90)\nW  —  ICE PILLAR cast (100)\n↓ + W  —  ICE MOON · rising launcher (100) ▲\nE  —  CRYSTAL SHOT · projectile (80)\n↓ + E  —  ICE SPIKES · sweep, FREEZES (100) ✦\nJump + Q  —  Air staff (90)\nJump + W  —  Air overhead (100)\nJump + E  —  SPIN CAST · 3 air crystals\nJump + R  —  AIR BOLTS · diagonal needles\n\n▲ = launches into the air     ✦ = freezes the rival ~1s",
+			"fin": "★  SPECIALS   (purple MANA ring: spells drain it)\n↓ ↓  —  CHANNEL MANA · fast refill (vulnerable)\n← ←  /  → →  —  BLINK back / forward (teleport step)\n↓ → Q  —  TELEPORT STRIKE · front, invincible (air OK)\n↓ → W  —  BACKSTAB · teleport BEHIND + push\n→ ↓ ← R  —  PRISM ORB · freezing orb\n↑↑ R  —  COMBO BREAK (1/round, while hit)\n↓ ← Q  —  CRYSTAL FLURRY super (3-hit combo + 1.5 bars)\n\nBEST COMBO:  R → Q → W → ↓E   (go UP only)\nPARRY (Q + W together):  counter, 1 bar",
 		}
 	if cid == "favi":
 		return {
@@ -2972,10 +2972,11 @@ func _aye_bar_ok(caster: Node2D) -> bool:
 	var idx := 0 if caster == player else 1
 	return meter[idx] >= 1.0
 
-# BLINK de ESCAPE de Aye (←←): glitch EN EL SITIO (anim teleport + tiembla + sonido) y
-# reaparece ~CUERPO Y MEDIO hacia ATRÁS (1 cuerpo = BODY_SEP), sin golpe. Esquiva breve.
-# El maná ya se cobró en fighter._start_blink_back.
-func _aye_blink_back(caster: Node2D) -> void:
+# BLINK de Aye (←← / →→): glitch EN EL SITIO (anim teleport + tiembla + sonido) y
+# reaparece ~CUERPO Y MEDIO hacia ATRÁS (escape) o ADELANTE (avance; frena a UN cuerpo
+# del rival para no montarse encima). Sin golpe. Esquiva breve. El maná ya se cobró
+# en fighter._start_blink.
+func _aye_blink(caster: Node2D, fwd := false) -> void:
 	if state != "fight" or ultra_active:
 		return
 	caster.crouching = false
@@ -3004,10 +3005,24 @@ func _aye_blink_back(caster: Node2D) -> void:
 		t += get_process_delta_time()
 	caster.sprite.offset.x = base_off
 	if state == "fight":
-		caster.position.x = clampf(caster.position.x - float(caster.facing) * BODY_SEP * 1.5, LEFT_LIMIT, RIGHT_LIMIT)
+		var _bopp: Node2D = dummy if caster == player else player
+		var _bdir := float(caster.facing) * (1.0 if fwd else -1.0)
+		var _bdest: float = caster.position.x + _bdir * BODY_SEP * 1.5
+		if fwd:
+			# tope: no atravesar ni montarse en el rival — frena a UN cuerpo de él; si ya
+			# está más cerca que eso, no avanza (el glitch queda en el sitio)
+			if caster.facing > 0:
+				_bdest = maxf(caster.position.x, minf(_bdest, _bopp.position.x - BODY_SEP))
+			else:
+				_bdest = minf(caster.position.x, maxf(_bdest, _bopp.position.x + BODY_SEP))
+		caster.position.x = clampf(_bdest, LEFT_LIMIT, RIGHT_LIMIT)
 		caster.position.y = caster.floor_y
 		if caster.sprite.sprite_frames.has_animation("teleport"):
-			caster.sprite.play("teleport")   # glitch de ENTRADA al reaparecer
+			# glitch de ENTRADA: la anim AL REVÉS desde el frame 6 (el glitch se disuelve).
+			# NO reproducirla completa hacia adelante: los frames 10-11 son el CUADRO glitch
+			# a pantalla completa (55%+ del lienzo) y se veía un rectángulo gigante.
+			caster.sprite.play_backwards("teleport")
+			caster.sprite.frame = 6
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
 
