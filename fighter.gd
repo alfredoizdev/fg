@@ -37,10 +37,16 @@ const SWING_FX := {
 		"stages": [[110.0, 5.0, 0.7], [120.0, -25.0, 1.0], [125.0, -35.0, 0.55], [95.0, -35.0, 0.25]]},
 	"kick": {"base": 2, "c": Vector2(30, -40), "r": 640.0, "w": 380.0, "flat": 1.0,
 		"stages": [[-130.0, -95.0, 0.45, 0.85], [-120.0, -40.0, 0.9, 0.93], [-110.0, 20.0, 1.0, 1.0]]},
-	"jump_punch": {"base": 1, "c": Vector2(20, 0), "r": 540.0, "w": 310.0, "flat": 0.38,
+	"jump_punch": {"base": 2, "c": Vector2(20, 0), "r": 540.0, "w": 310.0, "flat": 0.38,
 		"stages": [[215.0, 290.0, 0.8], [220.0, 350.0, 1.0], [260.0, 355.0, 0.4]]},
-	"jump_kick": {"base": 1, "c": Vector2(0, 0), "r": 490.0, "w": 310.0, "flat": 1.0,
-		"stages": [[-90.0, -10.0, 0.9], [-70.0, 45.0, 1.0]]},
+	# MOLINETE aéreo de DAM: la estela GIRA en círculos con la espada (loop_stages cicla
+	# los 3 segmentos de 120° durante todo el giro)
+	# hélice FINA: segmentos cortos (~65°) que avanzan 60° por frame -> el arco delgado
+	# persigue a la espada en vez de quedar como una banana gorda sobre el torso
+	"jump_kick": {"base": 5, "c": Vector2(0, -60), "r": 465.0, "w": 130.0, "flat": 0.8,
+		"loop_stages": true,
+		"stages": [[-90.0, -25.0, 0.8], [-30.0, 35.0, 0.7], [30.0, 95.0, 0.8],
+			[90.0, 155.0, 0.7], [150.0, 215.0, 0.8], [210.0, 275.0, 0.7]]},
 	"crouch_kick": {"base": 1, "c": Vector2(20, 60), "r": 560.0, "w": 340.0, "flat": 1.0,
 		"stages": [[70.0, 25.0, 0.5, 0.75], [60.0, -50.0, 1.0, 0.95], [-10.0, -125.0, 0.8, 1.0]]},
 	"spin_kick": {"base": 1, "c": Vector2(0, 120), "r": 500.0, "w": 300.0, "flat": 0.38,
@@ -52,6 +58,47 @@ const SWING_FX := {
 		"stages": [[325.0, 358.0, 0.9], [335.0, 358.0, 0.35]]},
 	"sweep": {"base": 1, "c": Vector2(10, 380), "r": 620.0, "w": 300.0, "flat": 0.38,
 		"stages": [[195.0, 120.0, 0.6, 0.8], [150.0, 5.0, 1.0, 1.0], [60.0, -15.0, 0.7, 1.0], [25.0, -35.0, 0.35, 0.95]]},
+	# VOLADORA de DAM (salto+E): rastro OSCURO que sigue la PIERNA extendida (efecto de
+	# patada, no de espada) — "dark": humo carmesí oscuro en vez del fuego naranja
+	"air_spin_kick": {"base": 10, "c": Vector2(30, 180), "r": 440.0, "w": 200.0, "flat": 0.30, "dark": true,
+		"stages": [[150.0, 60.0, 0.5], [70.0, 10.0, 0.9], [20.0, -8.0, 1.0], [8.0, -10.0, 0.7], [0.0, -10.0, 0.45], [0.0, -10.0, 0.3]]},
+}
+
+# OVERRIDE por-personaje para FAVI (fx_blue): su jump_punch NUEVO es una ESTOCADA al frente
+# con la aguja (no el tajo overhead de DAM cuyo arco quedaba flotando en el CIELO).
+# Estela fina y plana que sigue el pinchazo (frames 2-5 de la anim de 8).
+const FAVI_SWING_FX := {
+	# Q (patada alta girada NUEVA): estela corta que sigue el BARRIDO de la pierna
+	# (vertical -> frente). base=10: el pie llega arriba y empieza a barrer.
+	"punch": {"base": 10, "c": Vector2(30, -40), "r": 330.0, "w": 140.0, "flat": 0.55,
+		"stages": [[-80.0, -20.0, 0.6], [-30.0, 30.0, 0.9], [20.0, 70.0, 0.7], [50.0, 85.0, 0.4]]},
+	# punch2 (tijera vieja del →Q): streak corto al frente — SIN esto heredaba el arcazo
+	# de katana de DAM (r 610) que barría el piso entero
+	"punch2": {"base": 1, "c": Vector2(20, 0), "r": 260.0, "w": 120.0, "flat": 0.25,
+		"stages": [[110.0, 40.0, 0.6], [50.0, 5.0, 1.0], [10.0, -10.0, 0.7], [0.0, -12.0, 0.35]]},
+	# R jab v2 (estocada de esgrima): streak fino al frente EN LA EXTENSIÓN (base 20) —
+	# el arco de DAM (base 1) disparaba en la guardia, antes de que el brazo saliera
+	"weak_punch": {"base": 20, "c": Vector2(30, 20), "r": 280.0, "w": 100.0, "flat": 0.22,
+		"stages": [[115.0, 45.0, 0.55], [50.0, 5.0, 1.0], [12.0, -8.0, 0.75], [2.0, -10.0, 0.4]]},
+	# W (doble patada NUEVA): DOS estelas — streak a la CINTURA en la 1ª patada (base 3)
+	# y MEDIA LUNA ascendente siguiendo la patada ALTA (base2 37, boceto del usuario #310)
+	"kick": {"base": 3, "c": Vector2(10, -20), "r": 380.0, "w": 150.0, "flat": 0.8,
+		"stages": [[100.0, 40.0, 0.5, 0.6], [50.0, 0.0, 0.85, 0.65], [10.0, -15.0, 0.6, 0.62], [0.0, -18.0, 0.3, 0.6]],
+		"base2": 37,
+		"stages2": [[95.0, 35.0, 0.5, 0.95], [60.0, -5.0, 0.8, 1.0], [25.0, -50.0, 1.0, 1.0],
+			[-15.0, -80.0, 0.8, 1.0], [-50.0, -92.0, 0.5, 1.0], [-70.0, -95.0, 0.3, 1.0]]},
+	# E (peonza NUEVA): ANILLO giratorio a la altura de las agujas extendidas — segmentos
+	# finos que CICLAN durante todo el molinillo (frames 16-60), como el disco del trompo
+	"spin_kick": {"base": 16, "c": Vector2(0, 30), "r": 350.0, "w": 110.0, "flat": 0.30,
+		"loop_stages": true,
+		"stages": [[-90.0, -30.0, 0.7], [-30.0, 30.0, 0.55], [30.0, 90.0, 0.7],
+			[90.0, 150.0, 0.55], [150.0, 210.0, 0.7], [210.0, 270.0, 0.55]]},
+	"jump_punch": {"base": 1, "c": Vector2(20, -30), "r": 235.0, "w": 110.0, "flat": 0.25,
+		"stages": [[120.0, 40.0, 0.6], [50.0, 5.0, 1.0], [10.0, -10.0, 0.8], [0.0, -12.0, 0.4]]},
+	# jump W (estocada aérea): mismo streak fino al frente (el arco overhead de DAM con
+	# r=490 flat=1.0 quedaba como una MEDIA LUNA gigante en el cielo)
+	"jump_kick": {"base": 5, "c": Vector2(20, -20), "r": 235.0, "w": 110.0, "flat": 0.25,
+		"stages": [[120.0, 40.0, 0.6], [50.0, 5.0, 1.0], [10.0, -10.0, 0.8], [0.0, -12.0, 0.4]]},
 }
 
 # OVERRIDE por-personaje del arco de swing SOLO para Aye (fx_floral): su jump_punch barre el báculo
@@ -188,8 +235,12 @@ const FE_DASH_TIME := 0.28                   # cuánto persigue antes de rendirs
 var fe_dash_t := 0.0        # >0 = embistiendo hacia adelante (mueve el cuerpo)
 var fe_dash_active := false # true toda la secuencia (embestida + 3 golpes): el árbitro pega, no la anim
 var back_recent_t := 0.0   # memoria de ATRÁS reciente (para el motion ←→ del dash)
-var back_tap_win := 0.0    # ventana del DOBLE-TOQUE atrás (←← = blink de escape de Aye)
-var fwd_tap_win := 0.0     # ventana del DOBLE-TOQUE adelante (→→ = blink de avance de Aye)
+var back_tap_win := 0.0    # ventana del DOBLE-TOQUE atrás (←← = blink de Aye / backdash Fe-DAM)
+var fwd_tap_win := 0.0     # ventana del DOBLE-TOQUE adelante (→→ = blink de Aye / paso Fe-DAM)
+# PASO CORTO (doble-tap de Fe/DAM, estilo SF): deslizamiento breve con decaimiento
+var step_t := 0.0
+var step_vx := 0.0
+const STEP_DUR := 0.16   # SECO y veloz (0.22 se leía lento)
 var dash_voz_sfx: AudioStream = null   # voz "water way" al arrancar el dash (carga perezosa)
 var spin_voz_sfx: AudioStream = null   # voz "Power Twister" al girar (peonza, carga perezosa)
 var fire_trail: CPUParticles2D
@@ -257,9 +308,11 @@ var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso de
 const FREEZE_DUR := 1.0   # Aye ↓E (ice-spikes): tiempo que el rival queda CONGELADO en su frame (tinte morado)
 var frozen_t := 0.0       # >0 = inmóvil, sprite pausado en su pose, teñido de morado (poder de hielo)
 var air_float_t := 0.0 # flote aéreo SOLO tras conectar un golpe en el aire (juggle)
+var juggle_hold_t := 0.0   # SOSTÉN de juggle (víctima): tras cada rebote, la caída es LENTA un rato para que el combo aéreo la alcance
 var air_move_used := false   # ya se hizo UN golpe aéreo este salto (hasta caer o conectar)
 const AIR_MOVES := ["jump_punch", "jump_kick", "jump_kick_cast", "air_jab", "air_jab_2", "air_spin_kick"]
 var base_material: Material = null   # material base del sprite (color alterno del P2, etc.)
+var body_k := 1.0   # ALTURA real del cuerpo vs DAM (Fe 0.71, Aye 0.65): escala alcances verticales y chispas — un modelo bajito NO pega a alturas de DAM
 
 # HITSTOP: al conectar un golpe, este peleador se CONGELA 'dur' segundos (no se mueve
 # ni avanza su animación). Le da PESO al golpe y esa pausa entre golpe y golpe pro.
@@ -270,6 +323,7 @@ var floor_y := 0.0
 var punch_followup := false  # →+Q: segundo corte encadenado pendiente
 var buffer_action := ""      # boton guardado esperando ventana de cancel
 var buffer_t := 0.0
+var buffer_air := false      # el boton se apreto EN EL AIRE: al replay NO abre golpes agachados
 var breaker_ready := true    # combo breaker disponible (uno por ronda)
 var breaker_inv_t := 0.0     # invencibilidad tras romper
 var parry_t := 0.0           # ventana del PARRY (Q+W): si te pegan mientras >0 → COUNTER
@@ -297,6 +351,7 @@ var voz_player: AudioStreamPlayer   # voz/grito propio (SEPARADO del de impactos
 var fx_sprite: AnimatedSprite2D
 var fx_anims := {}
 var fx_blue := false   # true = chispas de impacto AZULES (Favi); false = naranja (DAM)
+var swing_y_off := 0.0  # corrimiento Y de las ESTELAS: el cuerpo de Fe va ~144px más ABAJO en el lienzo que el de DAM (para el que están tuneadas)
 var fx_floral := false  # true = estela MORADA+ROSA floral (Aye); tiene prioridad sobre fx_blue
 
 func _ready() -> void:
@@ -380,6 +435,7 @@ func _on_animation_changed() -> void:
 			spin_voz_sfx = load(ruta)
 		if spin_voz_sfx != null:
 			voz_player.stream = spin_voz_sfx
+			voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 			voz_player.play()
 		_play_sfx_key("spin_kick")   # swoosh de swing (no la voz de DAM)
 	elif fx_blue and nombre == "air_jab":
@@ -388,6 +444,14 @@ func _on_animation_changed() -> void:
 		# NO el "weak-sound-sword" (blade), que no le va a las agujas.
 		_play_sfx_key("kick_effect")
 		get_tree().create_timer(0.14).timeout.connect(_play_kick2, CONNECT_ONE_SHOT)
+	elif fx_blue and nombre == "spin_kick":
+		# PEONZA de Fe: WHOOSH giratorio (sound-effect/whoosh.mp3) en vez del slash de
+		# espada — su voz ("Power Twister") va APARTE por voz_player, se mantienen ambas
+		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
+	elif not fx_blue and not fx_floral and nombre == "jump_kick":
+		# MOLINETE de DAM (salto+W): el MISMO whoosh giratorio de la peonza — la espada
+		# girando en círculos suena a remolino, no al slash de un tajo
+		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
 	elif fx_floral and nombre == "jump_kick_cast":
 		# AYE gira el báculo (molinete): WHOOSH del giro (el sonido que va creando al rotar el báculo)
 		_play_aye_swoosh("res://imagen-action/aye/sound-effect/whoosh.mp3", -5.0)
@@ -405,7 +469,7 @@ func _on_animation_changed() -> void:
 	var _mb := get_parent()
 	var _en_ultra_fe: bool = fx_blue and _mb != null and bool(_mb.get("ultra_active"))
 	if nombre in SMOKE_MOVES and not airborne and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
-		_spawn_dash_smoke(0.5, 200.0)   # NO en el aire: el polvo es de suelo (dash)
+		_spawn_dash_smoke(0.5, 60.0)   # JUSTO al pie (no en el aire: el polvo es de suelo)
 		dash_smoke_cd = 0.28
 
 func _play_sfx_key(k: String) -> void:
@@ -482,6 +546,7 @@ func _play_ko_cry() -> void:
 	_ko_cry_done = true
 	if ResourceLoader.exists(AYE_NO_PATH):
 		voz_player.stream = load(AYE_NO_PATH)
+		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
 
 # 2ª patada del air_jab DOBLE de Fe: suena en el canal de VOZ (aparte) para no cortar la 1ª
@@ -519,11 +584,14 @@ func current_attack() -> Dictionary:
 	if sprite.animation == "spin_kick" and sprite.is_playing() \
 			and sprite.sprite_frames.has_animation("water_cast"):
 		var fr := int(sprite.frame)
-		if fr < 4:
-			return {"name": "spin_kick", "frame": fr, "hit_frame": 2,
+		# ventanas para la PEONZA NUEVA de video (85 frames, molinillo en 16-60):
+		# hits en plena vuelta (20 y 40). La vieja del sheet usaba 4 frames (hits 2 y 5).
+		var sp_v2 := sprite.sprite_frames.get_frame_count("spin_kick") > 12
+		if fr < (35 if sp_v2 else 4):
+			return {"name": "spin_kick", "frame": fr, "hit_frame": (20 if sp_v2 else 2),
 				"reach": 520.0 * CHAR_SCALE, "low": false, "strong": false,
 				"damage": 60, "impact_sfx": "kick_impact"}
-		return {"name": "spin_kick_2", "frame": fr, "hit_frame": 5,
+		return {"name": "spin_kick_2", "frame": fr, "hit_frame": (40 if sp_v2 else 5),
 			"reach": 520.0 * CHAR_SCALE, "low": false, "strong": false,
 			"damage": 60, "impact_sfx": "kick_impact"}
 	# PATADA AÉREA DOBLE de Fe (salto+R): 2 golpes ligeros que NO levantan. Dos ventanas con
@@ -532,22 +600,25 @@ func current_attack() -> Dictionary:
 	if sprite.animation == "air_jab" and sprite.is_playing():
 		var afr := int(sprite.frame)
 		if fx_blue:
-			# Favi: PATADA AÉREA DOBLE (2 golpes ligeros). hit_frame en el frame con el PIE
-			# EXTENDIDO (f1 y f2), NO en f0/f3 que están ENCOGIDA. Alcance 460 (que SÍ conecta);
-			# si queda un toque largo se baja de a poco (330 quedó tan corto que no golpeaba).
-			if afr < 2:
-				return {"name": "air_jab", "frame": afr, "hit_frame": 1,
+			# Favi: PATADA AÉREA DOBLE v2 (42 frames armados del clip: patada→recoge→patada).
+			# hit_frame en cada EXTENSIÓN real (índices 8 y 28); ventana 2 arranca en el 24
+			# (donde la 2ª patada dispara). Alcance de la 2ª mayor: el 1er golpe empuja.
+			if afr < 24:
+				return {"name": "air_jab", "frame": afr, "hit_frame": 8,
 					"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
 					"damage": 35, "impact_sfx": "kick_impact"}
-			# la 2ª patada con MÁS alcance: el 1er golpe empuja un poco al rival, así el 2º
-			# igual lo alcanza (si no, solo conectaba una de las dos = "media" doble patada).
-			return {"name": "air_jab_2", "frame": afr, "hit_frame": 2,
-				"reach": 560.0 * CHAR_SCALE, "low": false, "strong": false,
+			return {"name": "air_jab_2", "frame": afr, "hit_frame": 28,
+				"reach": 470.0 * CHAR_SCALE, "low": false, "strong": false,
 				"damage": 35, "impact_sfx": "kick_impact"}
-		# DAM: JAB AÉREO de UN SOLO golpe (aunque la animación muestre dos jabs)
-		return {"name": "air_jab", "frame": afr, "hit_frame": 1,
-			"reach": 460.0 * CHAR_SCALE, "low": false, "strong": false,
-			"damage": 50, "impact_sfx": "kick_impact"}
+		# DAM: salto+R = MORTAL de DOS golpes — el filo pasa abajo dos veces en el giro
+		# (ventanas con NOMBRES distintos para que el árbitro cuente ambos impactos)
+		if afr < 24:
+			return {"name": "air_jab", "frame": afr, "hit_frame": 12,
+				"reach": 470.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 35, "impact_sfx": "kick_impact"}
+		return {"name": "air_jab_2", "frame": afr, "hit_frame": 26,
+			"reach": 500.0 * CHAR_SCALE, "low": false, "strong": false,
+			"damage": 35, "impact_sfx": "kick_impact"}
 	# AYE: sus animaciones son MÁS LARGAS que las de DAM (el báculo se extiende a MITAD de la
 	# animación, no en el frame 1). Con el hit_frame global (tuneado para el jab corto de DAM) el
 	# golpe registra en el WINDUP y el hitstop congela a Aye en la pose inicial -> "el golpe no
@@ -574,6 +645,86 @@ func current_attack() -> Dictionary:
 			for k in AYE_ATK_OVERRIDE[sprite.animation]:
 				aa[k] = AYE_ATK_OVERRIDE[sprite.animation][k]
 		return aa
+	# MOLINETE de DAM (salto+W): hasta 3 GOLPES si agarra al rival en el aire — una pasada
+	# del círculo por golpe (ventanas con nombres distintos, como la peonza de Fe)
+	if not fx_blue and not fx_floral and sprite.animation == "jump_kick" and sprite.is_playing():
+		var jkfr := int(sprite.frame)
+		if jkfr < 24:
+			return {"name": "jump_kick", "frame": jkfr, "hit_frame": 8,
+				"reach": 500.0 * CHAR_SCALE, "low": false, "strong": true,
+				"damage": 55, "impact_sfx": "kick_impact"}
+		elif jkfr < 44:
+			return {"name": "jump_kick_h2", "frame": jkfr, "hit_frame": 26,
+				"reach": 500.0 * CHAR_SCALE, "low": false, "strong": true,
+				"damage": 55, "impact_sfx": "kick_impact"}
+		return {"name": "jump_kick_h3", "frame": jkfr, "hit_frame": 46,
+			"reach": 500.0 * CHAR_SCALE, "low": false, "strong": true,
+			"damage": 55, "impact_sfx": "kick_impact"}
+	# DAM: sus anims NUEVAS de video son MÁS LARGAS que las viejas de 3-4 frames del .tres.
+	# El hit_frame global registraba el golpe ANTES del swing (jump_kick: con la espada aún
+	# ARRIBA -> el hitstop lo congelaba ahí y "el golpe parecía hacia arriba"). Reubica el
+	# hit al momento del TAJO real.
+	const DAM_ATK_OVERRIDE := {
+		"jump_punch": {"hit_frame": 3},   # la estocada se extiende en el frame 3 (anim de 8)
+		"air_spin_kick": {"hit_frame": 12},   # la patada voladora EXTIENDE en el frame ~12 (anim de 53)
+	}
+	if not fx_floral and not fx_blue and sprite.animation in ATTACKS and sprite.is_playing():
+		var da: Dictionary = ATTACKS[sprite.animation].duplicate()
+		da["name"] = sprite.animation
+		da["frame"] = sprite.frame
+		if DAM_ATK_OVERRIDE.has(sprite.animation):
+			for k in DAM_ATK_OVERRIDE[sprite.animation]:
+				da[k] = DAM_ATK_OVERRIDE[sprite.animation][k]
+		return da
+	# ↓R de Fe v2 = CAST del tigre (señala al frente): la anim NO golpea — el daño lo
+	# pondrá el TIGRE de energía blanca cuando exista su clip (proyectil que arrastra)
+	if fx_blue and sprite.animation == "crouch_jab" \
+			and sprite.sprite_frames.get_frame_count("crouch_jab") > 8:
+		return {}
+	# W de SUELO de Fe (clip kick.mp4): DOBLE PATADA con la MISMA pierna — a la CINTURA y
+	# luego ALTA a la CARA. 2 ventanas con nombres distintos (el árbitro cuenta ambas);
+	# la ALTA es LANZADOR (si te da, te levanta). Guard por frame_count: solo la anim nueva.
+	if fx_blue and sprite.animation == "kick" and sprite.is_playing() \
+			and sprite.sprite_frames.get_frame_count("kick") > 12:
+		var kfr := int(sprite.frame)
+		if kfr < 29:
+			return {"name": "kick", "frame": kfr, "hit_frame": 5,
+				"reach": 500.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 55, "impact_sfx": "kick_impact"}
+		return {"name": "kick_h2", "frame": kfr, "hit_frame": 41,
+			"reach": 520.0 * CHAR_SCALE, "low": false, "strong": true,
+			"damage": 70, "impact_sfx": "kick_impact"}
+	# FE: overrides de sus anims NUEVAS de video (las del sheet eran de 3-10 frames; el
+	# hit_frame global caía en la CARGA y el hitstop congelaba el golpe sin extender).
+	const FAVI_ATK_OVERRIDE := {
+		# salto+E voladora: EXTIENDE en el frame ~14; el alcance 580 del sheet pegaba desde LEJOS
+		"air_spin_kick": {"hit_frame": 14, "reach": 470.0 * CHAR_SCALE},
+		# Q patada alta girada: el BARRIDO adelante de la pierna cae en los frames 11-15
+		# (v2 arranca 2 frames antes: entrada plantándose f56-57 del clip)
+		"punch": {"hit_frame": 12},
+		# salto+W clavado v2 (22 frames completos): la aguja APUÑALA en los frames 6-12
+		"jump_kick": {"hit_frame": 7},
+		# R jab de aguja v2 (35 frames): la estocada EXTIENDE en el frame ~22 (la punta de
+		# la aguja llega lejos: reach un pelín mayor que el jab de DAM)
+		"weak_punch": {"hit_frame": 22, "reach": 560.0 * CHAR_SCALE},
+		# ↓Q doble estocada v2 (40 frames): brazos disparan JUNTOS, extensión en el ~13.
+		# Las dos agujas al frente llegan LEJOS (medido 425px de arte): reach acorde.
+		# NOTA: el arte de la familia agachada se trasladó a los pies PLANTADOS de la pose
+		# (dx canvas: punch -85, kick -89, sweep -98) => reach reducido dx/body_k(0.71)
+		# para que el golpe siga conectando EXACTO en la punta visible.
+		"crouch_punch": {"hit_frame": 13, "reach": 660.0 * CHAR_SCALE},
+		# ↓W lanzador v2 (48 frames): la aguja SUBE clavando en los frames 8-16 (pico 16)
+		"crouch_kick": {"hit_frame": 13, "reach": 515.0 * CHAR_SCALE},
+		# ↓E barrida v2 (87 frames): la pierna BARRE el piso en los frames 10-38
+		"sweep": {"hit_frame": 20, "reach": 562.0 * CHAR_SCALE},
+	}
+	if fx_blue and sprite.animation in FAVI_ATK_OVERRIDE and sprite.is_playing():
+		var fa: Dictionary = ATTACKS[sprite.animation].duplicate()
+		fa["name"] = sprite.animation
+		fa["frame"] = sprite.frame
+		for k in FAVI_ATK_OVERRIDE[sprite.animation]:
+			fa[k] = FAVI_ATK_OVERRIDE[sprite.animation][k]
+		return fa
 	if sprite.animation in ATTACKS and sprite.is_playing():
 		var a: Dictionary = ATTACKS[sprite.animation].duplicate()
 		a["name"] = sprite.animation
@@ -780,7 +931,7 @@ func _start_special() -> void:
 	down_recent_t = 0.0
 	punch_followup = false
 	crouching = false
-	_spawn_dash_smoke()   # ráfaga de humo al arrancar el dash
+	_spawn_dash_smoke(0.75, 60.0)   # ráfaga de humo JUSTO al pie al arrancar el dash
 	sprite.play("punch")
 
 # TELEPORT de Aye (↓→Q, reemplaza el dash de fuego): se DESVANECE en glitch morado y reaparece
@@ -797,7 +948,43 @@ func _spell_afford(cost: float) -> bool:
 		return true
 	if mb.has_method("_mana_denied"):
 		mb._mana_denied(self)
+	_deny_flash()   # aviso universal: GRIS = no pudo castear por falta de recurso
 	return false
+
+# aviso universal "NO PUDO CASTEAR" (sin barra / sin maná): el personaje se tiñe GRIS
+# medio segundo. Va por TIMER (deny_t) porque la cadena de tintes de _physics_process
+# resetea modulate a blanco CADA frame — un set directo moría en 1/60s (invisible).
+var deny_t := 0.0
+# ELECTROCUTADO por el THUNDER de Fe: SILUETA BLANCA intermitente DETRÁS de la figura
+# (la figura en sí NO cambia). Ghost con shader de silueta que copia el frame actual.
+var electro_t := 0.0
+var electro_ghost: AnimatedSprite2D = null
+
+func _electro_ghost_update() -> void:
+	if electro_ghost == null:
+		electro_ghost = AnimatedSprite2D.new()
+		var sh := Shader.new()
+		# silueta plana: pinta TODO el alpha del frame de un color sólido
+		sh.code = "shader_type canvas_item;\nuniform vec4 fill_color : source_color = vec4(1.0,1.0,1.0,0.6);\nvoid fragment(){ vec4 t = texture(TEXTURE, UV); COLOR = vec4(fill_color.rgb, t.a * fill_color.a); }"
+		var mat := ShaderMaterial.new()
+		mat.shader = sh
+		mat.set_shader_parameter("fill_color", Color(1.0, 1.0, 1.0, 0.62))
+		electro_ghost.material = mat
+		add_child(electro_ghost)
+		move_child(electro_ghost, 0)   # mismo z que el sprite pero ANTES en el árbol => detrás
+	# espeja el frame actual del personaje, un 8% más grande (halo que SOBRESALE) con
+	# los pies alineados (compensa el crecimiento hacia abajo)
+	var rim := 1.08
+	electro_ghost.sprite_frames = sprite.sprite_frames
+	electro_ghost.animation = sprite.animation
+	electro_ghost.frame = sprite.frame
+	electro_ghost.flip_h = sprite.flip_h
+	electro_ghost.offset = sprite.offset
+	electro_ghost.scale = sprite.scale * rim
+	electro_ghost.position = sprite.position + Vector2(0.0, -499.0 * (rim - 1.0) * sprite.scale.y)
+	electro_ghost.visible = fmod(electro_t, 0.09) > 0.045   # INTERMITENTE
+func _deny_flash() -> void:
+	deny_t = 0.5
 
 # AYE canaleo de mana: nombre de la anim (usa mana_charge si existe; si no, 'pose' como placeholder)
 func _channel_anim() -> String:
@@ -884,7 +1071,7 @@ func _start_fe_dash() -> void:
 	down_recent_t = 0.0
 	punch_followup = false
 	crouching = false
-	_spawn_dash_smoke()
+	_spawn_dash_smoke(0.75, 60.0)   # JUSTO al pie
 	# usa "dash" si ya hay frames reales, si no "punch" de placeholder
 	sprite.play("dash" if sprite.sprite_frames.has_animation("dash") else "punch")
 	# voz del dash (Fe grita "water way" al arrancar — versión enérgica, como el cast)
@@ -893,6 +1080,7 @@ func _start_fe_dash() -> void:
 		dash_voz_sfx = load(ruta)
 	if dash_voz_sfx != null:
 		voz_player.stream = dash_voz_sfx
+		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
 	var mb := get_parent()
 	if mb and mb.has_method("_fe_dash_attack"):
@@ -907,19 +1095,56 @@ func _spawn_dash_smoke(escala := 0.75, atras := 0.0) -> void:
 			return
 		dashsmoke_frames = SpriteFrames.new()
 		dashsmoke_frames.add_animation("puff")
-		dashsmoke_frames.set_animation_speed("puff", 22.0)
+		# DUST v3 (nubes cartoon del usuario, 10 frames): brote -> nubarrón -> se disipa
+		dashsmoke_frames.set_animation_speed("puff", 18.0)   # ~0.56s: es POLVO, flota lento
 		dashsmoke_frames.set_animation_loop("puff", false)
-		for i in range(1, 7):
-			dashsmoke_frames.add_frame("puff", load("res://imagen-action/dust-effect/dash-dust/dash-dust-%d.png" % i))
+		var di := 1
+		while ResourceLoader.exists("res://imagen-action/dust-effect/dash-dust/dash-dust-%d.png" % di):
+			dashsmoke_frames.add_frame("puff", load("res://imagen-action/dust-effect/dash-dust/dash-dust-%d.png" % di))
+			di += 1
 	var ds := AnimatedSprite2D.new()
 	ds.sprite_frames = dashsmoke_frames
 	ds.animation = "puff"
 	ds.z_index = 1
-	ds.flip_h = facing < 0   # la cola apunta hacia la direccion del dash
+	ds.flip_h = facing > 0   # v3 INVERTIDO (salía al revés): la masa cae al pie y la cola barre atrás
 	var tex: Texture2D = dashsmoke_frames.get_frame_texture("puff", 0)
-	var s := escala * absf(scale.x)
+	# el arte v3 (1561px de ancho) es ~2x el viejo (808px): normaliza al mismo tamaño en
+	# pantalla, y ×base_scale.y: el polvo PROPORCIONAL al cuerpo (Aye chica, DAM grande)
+	var s := escala * absf(scale.x) * 0.52 * base_scale.y
 	# desplaza el humo hacia ATRÁS (extremo trasero del personaje) a los pies
-	var pies := to_global(Vector2(-float(facing) * atras, SHADOW_FEET_OFFSET))
+	# ((500+offset)×base_scale = línea de pies REAL: Aye ancla con sprite.offset 194)
+	var pies := to_global(Vector2(-float(facing) * atras * base_scale.y, (SHADOW_FEET_OFFSET + sprite.offset.y) * base_scale.y))
+	get_parent().add_child(ds)
+	ds.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5)
+	ds.scale = Vector2(s, s)
+	ds.animation_finished.connect(ds.queue_free)
+	ds.play("puff")
+
+# AZOTE contra el SUELO (knockdown de juggle / caída KO): cuña de polvo barrida
+# (dust-effect/slam-dust, la cuña gris del usuario) que revienta a los pies del que cae
+var slamdust_frames: SpriteFrames = null
+func _spawn_slam_dust(dir: int, escala := 0.9) -> void:
+	if slamdust_frames == null:
+		if not ResourceLoader.exists("res://imagen-action/dust-effect/slam-dust/slam-dust-1.png"):
+			return
+		slamdust_frames = SpriteFrames.new()
+		slamdust_frames.add_animation("puff")
+		slamdust_frames.set_animation_speed("puff", 16.0)   # es POLVO: flota lento (~0.44s)
+		slamdust_frames.set_animation_loop("puff", false)
+		var si := 1
+		while ResourceLoader.exists("res://imagen-action/dust-effect/slam-dust/slam-dust-%d.png" % si):
+			slamdust_frames.add_frame("puff", load("res://imagen-action/dust-effect/slam-dust/slam-dust-%d.png" % si))
+			si += 1
+	var ds := AnimatedSprite2D.new()
+	ds.sprite_frames = slamdust_frames
+	ds.animation = "puff"
+	ds.z_index = 1
+	ds.flip_h = dir < 0   # el barrido apunta hacia donde venía deslizando el cuerpo
+	var tex: Texture2D = slamdust_frames.get_frame_texture("puff", 0)
+	# arte 1189px -> ~250px de pantalla: acompaña el cuerpo tendido, no lo tapa;
+	# ×base_scale.y = proporcional al cuerpo del que cae
+	var s := escala * absf(scale.x) * 0.36 * base_scale.y
+	var pies := to_global(Vector2(0.0, (SHADOW_FEET_OFFSET + sprite.offset.y) * base_scale.y))
 	get_parent().add_child(ds)
 	ds.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5)
 	ds.scale = Vector2(s, s)
@@ -958,16 +1183,20 @@ func _spawn_wall_debris(lado: int) -> void:
 # sombra fantasma del dash: copia del frame actual que se desvanece en rojo
 # polvo de salto/aterrizaje: anillo de humo anime DIBUJADO (jump-dust, 6 frames)
 var jumpdust_frames: SpriteFrames = null
-func _spawn_jump_dust(escala := 0.7) -> void:
+func _spawn_jump_dust(escala := 0.7, at_x := NAN) -> void:
+	# at_x: x GLOBAL opcional (p.ej. el punto de impacto del THUNDER); por defecto los pies
 	if jumpdust_frames == null:
 		if not ResourceLoader.exists("res://imagen-action/dust-effect/jump-dust/jump-dust-1.png"):
 			return
 		jumpdust_frames = SpriteFrames.new()
 		jumpdust_frames.add_animation("puff")
-		jumpdust_frames.set_animation_speed("puff", 20.0)
+		# JUMP-DUST v2 (10 frames del usuario): burst simétrico beige. Lento: es polvo.
+		jumpdust_frames.set_animation_speed("puff", 18.0)
 		jumpdust_frames.set_animation_loop("puff", false)
-		for i in range(1, 7):
-			jumpdust_frames.add_frame("puff", load("res://imagen-action/dust-effect/jump-dust/jump-dust-%d.png" % i))
+		var ji := 1
+		while ResourceLoader.exists("res://imagen-action/dust-effect/jump-dust/jump-dust-%d.png" % ji):
+			jumpdust_frames.add_frame("puff", load("res://imagen-action/dust-effect/jump-dust/jump-dust-%d.png" % ji))
+			ji += 1
 	var jd := AnimatedSprite2D.new()
 	jd.sprite_frames = jumpdust_frames
 	jd.animation = "puff"
@@ -975,10 +1204,17 @@ func _spawn_jump_dust(escala := 0.7) -> void:
 	var tex: Texture2D = jumpdust_frames.get_frame_texture("puff", 0)
 	# el polvo va al MUNDO en la posicion global de los pies: se queda FIJO en el
 	# piso aunque el personaje salte o se mueva (no es hijo del personaje)
-	var s := escala * absf(scale.x)
-	var pies := to_global(Vector2(0.0, SHADOW_FEET_OFFSET))
+	# el arte v2 (1571px) es ~1.7x el viejo (929px): normaliza al mismo tamaño en pantalla,
+	# ×base_scale.y para que el burst sea PROPORCIONAL al cuerpo de cada personaje
+	var s := escala * absf(scale.x) * 0.59 * base_scale.y
+	# (500+offset)×base_scale = línea de pies REAL por personaje (Aye ancla con offset)
+	var pies := to_global(Vector2(0.0, (SHADOW_FEET_OFFSET + sprite.offset.y) * base_scale.y))
+	if not is_nan(at_x):
+		pies.x = at_x
 	get_parent().add_child(jd)
-	jd.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5)
+	# la LÍNEA DE SUELO del arte v2 (crescent del frame 1) queda 169px sobre el borde del
+	# recorte (los mechones tardíos estiran la caja): se baja para clavarla a los pies
+	jd.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5 - 169.0 * s)
 	jd.scale = Vector2(s, s)
 	jd.animation_finished.connect(jd.queue_free)
 	jd.play("puff")
@@ -1087,20 +1323,84 @@ func spawn_fire_impact() -> Node2D:
 	e.play("boom")
 	return e
 
+# ===== MARCAS de Fe sobre ESTE personaje (la víctima marcada) =====
+# 1-3 diamantes finos azules (como sus agujas) flotando sobre la cabeza, PULSANDO:
+# el player ve cuántas marcas lleva y que está marcado. Con 3, se encienden al blanco
+# (crítico listo). El conteo lo maneja main (fe_marks); acá solo el visual.
+var fe_mark_count := 0
+var fe_marks_node: Node2D = null
+
+func set_fe_marks(n: int) -> void:
+	fe_mark_count = clampi(n, 0, 3)
+	if fe_marks_node == null:
+		if fe_mark_count == 0:
+			return
+		fe_marks_node = Node2D.new()
+		fe_marks_node.z_index = 6
+		for k in 3:
+			var d := Polygon2D.new()
+			# diamante FINO tipo aguja de Fe
+			d.polygon = PackedVector2Array([Vector2(0, -30), Vector2(11, 0), Vector2(0, 30), Vector2(-11, 0)])
+			d.position = Vector2(-56.0 + 56.0 * float(k), 0.0)
+			fe_marks_node.add_child(d)
+		add_child(fe_marks_node)
+	# sobre la CABEZA: pies (500·bs) menos el alto real del cuerpo (~715·body_k) menos aire
+	fe_marks_node.position = Vector2(0.0, 500.0 * base_scale.y - 715.0 * body_k - 85.0)
+	var listo := fe_mark_count >= 3
+	for k in 3:
+		var d: Polygon2D = fe_marks_node.get_child(k)
+		d.visible = k < fe_mark_count
+		# con 3: BLANCO caliente (crítico cargado); si no, azul aguja
+		d.color = Color(1.3, 1.6, 2.5, 0.95) if listo else Color(0.55, 0.9, 2.0, 0.9)
+	fe_marks_node.visible = fe_mark_count > 0
+
+# PASO CORTO de Fe y DAM (doble-tap ←←/→→, estilo SF): brinquito veloz con polvo.
+# Usa las anims "step"/"backdash" si el personaje las tiene; si no, walk de placeholder.
+func _start_quick_step(adelante: bool) -> void:
+	if airborne or koed or hit_flying or crouching or parry_t > 0.0 or step_t > 0.0:
+		return
+	if sprite.is_playing() and not _is_locomotion_anim() and String(sprite.animation) != "pose":
+		return   # ocupado (atacando, casteando, reaccionando)
+	# el dash CUESTA media barra (gris + blink si no hay)
+	var mbs := get_parent()
+	if mbs and mbs.has_method("try_meter_cost") and not mbs.try_meter_cost(self, 0.5):
+		return
+	step_t = STEP_DUR
+	var dirx := float(facing) * (1.0 if adelante else -1.0)
+	step_vx = dirx * (1150.0 if adelante else 1250.0)   # atrás un pelín más lejos (escape)
+	# CUÑA de polvo (slam-dust): el pico barre hacia ATRÁS del movimiento del paso
+	_spawn_slam_dust(-signi(int(dirx)), 0.7)
+	# ESTELA de sombras del color del personaje: se LEE como dash, no como caminar
+	breaker_fx_t = maxf(breaker_fx_t, 0.28)
+	var anim := "step" if adelante else "backdash"
+	if sprite.sprite_frames.has_animation(anim) and sprite.sprite_frames.get_frame_count(anim) > 0:
+		sprite.play(anim)
+	else:
+		# placeholder: SE DESLIZA en una zancada CONGELADA del walk (nada de caminar rápido)
+		sprite.play("walk")
+		sprite.pause()
+		sprite.frame = mini(6, sprite.sprite_frames.get_frame_count("walk") - 1)
+
 # ESPECIAL DE AGUA de Fe (medialuna + Q/W/E): clava la aguja al piso y grita; el géiser
 # brota a 1/2/3 CUERPOS adelante (según el botón) — el jugador adivina dónde está el rival.
 var water_cast_sfx: AudioStream = null
 func _start_water_special(bodies: int) -> void:
+	var mbc := get_parent()
+	if mbc and mbc.has_method("try_thunder_cost") and not mbc.try_thunder_cost(self):
+		return   # sin MEDIA barra: ni cast ni rayo (gris + blink de la barra)
 	crouching = false
 	airborne = false
 	walk_dir = 0
 	sprite.play("water_cast")
-	# audio del cast (Fe llama el poder — versión enérgica/gritada)
-	var ruta := "res://imagen-action/favi/Fe-sound-effect/water-cast-fe-energetica.wav"
+	# audio del cast: "THUNDER POWER!" (voz nueva, enérgica); fallback a la de agua vieja
+	var ruta := "res://imagen-action/favi/Fe-sound-effect/thunder-power-fe-energetica.wav"
+	if not ResourceLoader.exists(ruta):
+		ruta = "res://imagen-action/favi/Fe-sound-effect/water-cast-fe-energetica.wav"
 	if water_cast_sfx == null and ResourceLoader.exists(ruta):
 		water_cast_sfx = load(ruta)
 	if water_cast_sfx != null:
 		voz_player.stream = water_cast_sfx
+		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
 	var mb := get_parent()
 	if mb and mb.has_method("_fe_water_special"):
@@ -1270,26 +1570,71 @@ func spawn_water_geyser(gx: float) -> Node2D:
 			return null
 		water_geyser_frames = SpriteFrames.new()
 		water_geyser_frames.add_animation("erupt")
-		water_geyser_frames.set_animation_speed("erupt", 26.0)
+		# THUNDER (reemplazo del géiser): 60 frames — copa crepitando + flare, disolución
+		# PODADA. 240fps => ~0.25s: un DESTELLO, el rayo no se queda. Conteo DINÁMICO.
+		water_geyser_frames.set_animation_speed("erupt", 240.0)
 		water_geyser_frames.set_animation_loop("erupt", false)
-		for i in range(1, 9):
-			water_geyser_frames.add_frame("erupt", load("res://imagen-action/impact-effect/water-geyser-fe/geyser-%d.png" % i))
+		var gi := 1
+		while ResourceLoader.exists("res://imagen-action/impact-effect/water-geyser-fe/geyser-%d.png" % gi):
+			water_geyser_frames.add_frame("erupt", load("res://imagen-action/impact-effect/water-geyser-fe/geyser-%d.png" % gi))
+			gi += 1
 	var g := AnimatedSprite2D.new()
 	g.sprite_frames = water_geyser_frames
 	g.animation = "erupt"
 	g.z_index = 6
-	var s := 0.62 * absf(scale.x)   # tamaño del géiser (~1.5x la nena)
-	g.scale = Vector2(s, s)
+	var s := 0.62 * absf(scale.x)
+	# RAYO ESTIRADO: 1.5x vertical (viene del CIELO, mucho más alto que Fe) y un pelín
+	# más ancho. La base sigue clavada al piso: el offset vertical usa la escala Y.
+	var sy := s * 1.5
+	g.scale = Vector2(s * 1.08, sy)
 	get_parent().add_child(g)
-	# frames 760x1000 anclados abajo (base del agua ~y=980, centro=500 -> base 480px bajo el centro)
+	# frames 760x1000 anclados abajo (base del impacto ~y=980, centro=500 -> 480px bajo el centro)
 	var ground_y := to_global(Vector2(0.0, SHADOW_FEET_OFFSET)).y
-	g.global_position = Vector2(gx, ground_y - 480.0 * s)
+	g.global_position = Vector2(gx, ground_y - 480.0 * sy)
 	g.animation_finished.connect(g.queue_free)
 	g.play("erupt")
-	# SFX de CHAPOTEO al brotar el agua del suelo. En un player PROPIO para no cortar la
-	# voz del cast (que suena en sfx_player). loop=false -> se libera solo al terminar.
-	if ResourceLoader.exists("res://imagen-action/favi/Fe-sound-effect/water-splahs.mp3"):
-		var strm := load("res://imagen-action/favi/Fe-sound-effect/water-splahs.mp3")
+	# DUST de impacto clavado al piso en el punto del rayo (el mismo de caer un player)
+	_spawn_jump_dust(1.05, gx)
+	# HUMO de CHAMUSCADO (las DOS capas del quemado de DAM: oscura + clara) en el punto
+	# del impacto: NACE en la base donde cayó el rayo (anclado por la base, no el centro),
+	# se queda un momento sobre el suelo y se disipa. Escalas de MUNDO (sin el 0.65 del
+	# nodo): 0.9 quedaba gigante y 345px enterrado bajo el piso.
+	if ResourceLoader.exists("res://imagen-action/impact-effect/humo/humo-1.png"):
+		var hs := 0.55
+		var sm := _make_smoke("res://imagen-action/impact-effect/humo/humo-%d.png", 5, 7.0,
+				Vector2.ZERO, hs, Color(0.38, 0.36, 0.38, 0.0))
+		sm.z_index = 5
+		get_parent().add_child(sm)
+		sm.global_position = Vector2(gx, ground_y - 768.0 * hs * 0.5 + 20.0)   # base al suelo
+		sm.play("humo")
+		var tw := sm.create_tween()
+		tw.tween_interval(0.22)                          # espera a que el rayo se deshaga
+		tw.tween_property(sm, "modulate:a", 0.6, 0.18)   # brota el humo oscuro
+		tw.tween_interval(0.9)                           # se queda un momento
+		tw.tween_property(sm, "modulate:a", 0.0, 0.7)    # se disipa
+		tw.tween_callback(sm.queue_free)
+	if ResourceLoader.exists("res://imagen-action/impact-effect/humo2/humo2-1.png"):
+		var hs2 := 0.48
+		var sm2 := _make_smoke("res://imagen-action/impact-effect/humo2/humo2-%d.png", 6, 8.0,
+				Vector2.ZERO, hs2, Color(0.62, 0.60, 0.62, 0.0))
+		sm2.z_index = 6
+		get_parent().add_child(sm2)
+		sm2.global_position = Vector2(gx + 24.0, ground_y - 866.0 * hs2 * 0.5 + 20.0)
+		sm2.play("humo")
+		var tw2 := sm2.create_tween()
+		tw2.tween_interval(0.24)
+		tw2.tween_property(sm2, "modulate:a", 0.38, 0.18)  # capa CLARA tenue delante
+		tw2.tween_interval(0.85)
+		tw2.tween_property(sm2, "modulate:a", 0.0, 0.65)
+		tw2.tween_callback(sm2.queue_free)
+	# SFX del TRUENO al caer el rayo (thunder-crack.wav: sintetizado, se puede REEMPLAZAR
+	# el archivo por uno mejor sin tocar código). Fallback al chapoteo viejo. En un player
+	# PROPIO para no cortar la voz del cast (sfx_player). loop=false -> se libera solo.
+	var geyser_sfx := "res://imagen-action/favi/Fe-sound-effect/thunder-crack.wav"
+	if not ResourceLoader.exists(geyser_sfx):
+		geyser_sfx = "res://imagen-action/favi/Fe-sound-effect/water-splahs.mp3"
+	if ResourceLoader.exists(geyser_sfx):
+		var strm := load(geyser_sfx)
 		if strm is AudioStreamMP3:
 			strm.loop = false
 		var sp := AudioStreamPlayer.new()
@@ -1358,11 +1703,22 @@ func _spawn_ghost(blue := false) -> void:
 func _launch(push_dir: int, mult := 1.0) -> void:
 	crouching = false
 	airborne = true
+	var en_juggle := hit_flying   # ¿ya venía VOLANDO de un golpe anterior?
 	hit_flying = true
 	punch_followup = false
-	# decaimiento de juggle: cada lanzamiento seguido eleva menos (anti-infinito)
-	vel_y = -KNOCKBACK_Y * mult * pow(0.86, float(juggle_hits))
-	vel_x = push_dir * KNOCKBACK_X
+	if en_juggle and mult <= 1.0:
+		# JUGGLE PRO: al que YA vuela, cada golpe normal le da un REBOTE CHICO hacia arriba
+		# que lo SUSPENDE a la altura del combo (el re-lanzamiento full lo mandaba a la luna
+		# y el combo aéreo era imposible de seguir). Los lanzadores fuertes (launch_mult>1,
+		# ultras/finishers) SÍ re-lanzan a full. El decaimiento es SUAVE (0.96): con el
+		# 0.92 anterior al 5º golpe del combo el rebote ya era invisible ("se va cayendo").
+		vel_y = -1400.0 * CHAR_SCALE * pow(0.96, float(juggle_hits))
+		vel_x = push_dir * KNOCKBACK_X * 0.45
+		juggle_hold_t = 0.55   # y tras el rebote cae LENTO un rato (sostén de combo)
+	else:
+		# decaimiento de juggle: cada lanzamiento seguido eleva menos (anti-infinito)
+		vel_y = -KNOCKBACK_Y * mult * pow(0.86, float(juggle_hits))
+		vel_x = push_dir * KNOCKBACK_X
 	fly_lean = float(push_dir)   # el cuerpo se ladea hacia donde sale despedido
 	# ESQUINA: lanzado CERCA de la pared -> el vuelo es RECTO hacia ARRIBA (no viaja a la pared)
 	if (push_dir < 0 and position.x - 115.0 < 300.0) or (push_dir > 0 and 1805.0 - position.x < 300.0):
@@ -1394,6 +1750,9 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	special_t = 0.0  # un golpe recibido corta el dash especial
 	fe_dash_t = 0.0  # ...y también el dash de agujas de Fe
 	fe_dash_active = false
+	# ...y la voz "Power Twister" si la peonza fue interrumpida (que no quede colgada)
+	if spin_voz_sfx != null and voz_player.playing and voz_player.stream == spin_voz_sfx:
+		voz_player.stop()
 	# encara al ATACANTE al recibir (push_dir = empuje del golpe; el atacante está
 	# del lado contrario). Así el escudo de bloqueo (flip_h = facing<0) mira al golpe.
 	set_facing(-push_dir)
@@ -1558,8 +1917,15 @@ func _physics_process(delta: float) -> void:
 		frozen_t -= delta
 		vel_x = 0.0
 		vel_y = 0.0
+		# pose de CONGELADO estándar (GUIA-COMUN): si el personaje tiene su anim "frozen",
+		# se muestra esa (el tiritón corre en loop); si no, se pausa el frame actual
+		if sprite.sprite_frames.has_animation("frozen") and String(sprite.animation) != "frozen":
+			sprite.play("frozen")
 		if frozen_t > 0.0:
-			sprite.speed_scale = 0.0   # congela el frame ACTUAL (no avanza la animación)
+			if String(sprite.animation) == "frozen":
+				sprite.speed_scale = 1.0   # el tiritón SÍ avanza
+			else:
+				sprite.speed_scale = 0.0   # congela el frame ACTUAL (no avanza la animación)
 			var fk := 0.55 + 0.45 * absf(sin((FREEZE_DUR - frozen_t) * 20.0))
 			sprite.modulate = Color(1, 1, 1, 1).lerp(Color(1.35, 0.45, 2.0, 1.0), fk)
 			queue_redraw()
@@ -1567,6 +1933,8 @@ func _physics_process(delta: float) -> void:
 		else:
 			sprite.speed_scale = 1.0   # se libera: reanuda
 			sprite.modulate = Color(1, 1, 1, 1)
+			if String(sprite.animation) == "frozen":
+				sprite.play("pose")   # sale del congelado a idle
 	# inclinación al salir volando: el cuerpo se ladea hacia la dirección del empujón (no vertical)
 	if hit_flying and String(sprite.animation) == "hit_fly":
 		sprite.rotation = deg_to_rad(FLY_TILT_DEG) * fly_lean
@@ -1574,6 +1942,7 @@ func _physics_process(delta: float) -> void:
 		sprite.rotation = 0.0
 	burst_t = maxf(0.0, burst_t - delta)
 	air_float_t = maxf(0.0, air_float_t - delta)
+	juggle_hold_t = maxf(0.0, juggle_hold_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
 	if water_bg:
 		# volando por el poder del agua: cuerpo teñido de AZUL todo el vuelo (no se desvanece aún)
@@ -1601,6 +1970,11 @@ func _physics_process(delta: float) -> void:
 		if burn_smoke_front != null:
 			burn_smoke_front.visible = showing
 			burn_smoke_front.modulate.a = 0.3 * smk     # DELANTE: MÁS TENUE (no tapa)
+	elif deny_t > 0.0:
+		# NO PUDO CASTEAR (sin recurso): GRIS medio segundo, desvaneciendo al final
+		deny_t = maxf(0.0, deny_t - delta)
+		var dk := clampf(deny_t / 0.2, 0.0, 1.0)   # los últimos 0.2s se desvanece
+		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.42, 0.42, 0.48, 1.0), dk)
 	elif sprite.modulate != Color(1, 1, 1, 1):
 		sprite.modulate = Color(1, 1, 1, 1)
 		if burn_smoke != null:
@@ -1612,6 +1986,25 @@ func _physics_process(delta: float) -> void:
 			burn_smoke.visible = false
 		if burn_smoke_front != null:
 			burn_smoke_front.visible = false
+	# pulso de las MARCAS de Fe sobre la cabeza (víctima marcada): respiran; con 3 laten rápido
+	if fe_marks_node != null and fe_marks_node.visible:
+		var _mt := float(Time.get_ticks_msec()) / 1000.0
+		fe_marks_node.modulate.a = 0.55 + 0.45 * absf(sin(_mt * (9.0 if fe_mark_count >= 3 else 4.5)))
+	# ELECTROCUTADO (independiente de la cadena de tintes: la figura NO se tiñe): silueta
+	# blanca intermitente detrás mientras dure el timer
+	if electro_t > 0.0:
+		electro_t = maxf(0.0, electro_t - delta)
+		# pose de ELECTROCUTADO estándar (GUIA-COMUN): si el personaje tiene su anim
+		# "electrocuted" (convulsión estilo Street Fighter), la hace durante la descarga
+		if electro_t > 0.0 and not koed and not is_downed() \
+				and sprite.sprite_frames.has_animation("electrocuted") \
+				and String(sprite.animation) != "electrocuted":
+			sprite.play("electrocuted")
+		if electro_t <= 0.0 and String(sprite.animation) == "electrocuted":
+			sprite.play("pose")
+		_electro_ghost_update()
+	elif electro_ghost != null and electro_ghost.visible:
+		electro_ghost.visible = false
 
 	# squash del estrellon: conserva el volumen (comprime un eje, estira el otro)
 	if wall_squash_t > 0.0:
@@ -1626,7 +2019,7 @@ func _physics_process(delta: float) -> void:
 
 	# memoria del ↓ para detectar el cuarto adelante (↓ luego →+Q)
 	if is_player and input_enabled and Input.is_action_pressed("ui_down"):
-		down_recent_t = 0.3
+		down_recent_t = 0.4
 	else:
 		down_recent_t = maxf(0.0, down_recent_t - delta)
 	# memoria de ADELANTE (hacia el rival) para el comando del ULTRA (→ R R)
@@ -1637,7 +2030,7 @@ func _physics_process(delta: float) -> void:
 		fwd_recent_t = maxf(0.0, fwd_recent_t - delta)
 	# memoria de ATRÁS (lejos del rival) para el motion ←→ del DASH DE AGUJAS de Fe
 	if is_player and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == -facing:
-		back_recent_t = 0.35
+		back_recent_t = 0.45
 	else:
 		back_recent_t = maxf(0.0, back_recent_t - delta)
 	# HCB (→ ↓ ← = ADELANTE, ABAJO, ATRÁS) para el FROST ORB de Aye (+R). Máquina de estados con ventana.
@@ -1727,6 +2120,7 @@ func _physics_process(delta: float) -> void:
 			var vruta := "res://imagen-action/aye/sound-effect/prims-bolt-aye.mp3"
 			if ResourceLoader.exists(vruta):
 				voz_player.stream = load(vruta)
+				voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 				voz_player.play()
 			var mbp := get_parent()
 			if mbp and mbp.has_method("_spawn_crystal_projectile"):
@@ -1771,6 +2165,13 @@ func _physics_process(delta: float) -> void:
 	pw_tap_t = maxf(0.0, pw_tap_t - delta)
 	ultra_r_t = maxf(0.0, ultra_r_t - delta)
 	dash_smoke_cd = maxf(0.0, dash_smoke_cd - delta)
+	# DUST del W de Fe: al disparar la patada ALTA (la 2ª) pivota fuerte en el pie de
+	# apoyo -> ráfaga de polvo en el piso (boceto del usuario #310)
+	if fx_blue and not airborne and String(sprite.animation) == "kick" and sprite.is_playing() \
+			and sprite.frame >= 36 and sprite.frame <= 46 and dash_smoke_cd <= 0.0 \
+			and sprite.sprite_frames.get_frame_count("kick") > 12:
+		_spawn_dash_smoke(0.5, 200.0)
+		dash_smoke_cd = 0.6
 
 	# PARRY (Q+W): CONGELADO en la pose de desvío durante la ventana (~0.5s), con el borde/
 	# aura del color del personaje. Si te pegan acá, main dispara el counter (y pone parry_t=0).
@@ -1799,20 +2200,28 @@ func _physics_process(delta: float) -> void:
 	if ultra_hover:
 		return
 
-	# combo →+Q: cerca del final del primer corte encadena el segundo
-	if punch_followup and not fx_floral and sprite.animation == "punch" and sprite.frame >= 8:
+	# combo →+Q (encadena punch2): SOLO DAM. Fe NO encadena — con su patada alta nueva el
+	# punch2 viejo del sheet hacía que "→Q tirara DOS golpes" (pedido: un solo golpe limpio).
+	if punch_followup and not fx_floral and not fx_blue and sprite.animation == "punch" and sprite.frame >= 8:
 		punch_followup = false
 		sprite.play("punch2")
 
-	# patada giratoria: viaja hacia adelante y se eleva un poco mientras gira
+	# patada giratoria: viaja hacia adelante y se eleva un poco mientras gira.
+	# Fe NUEVA (85 frames de video): gira con los PIES EN EL PISO — sin hover (el clip ya
+	# trae el molinillo completo); solo viaja durante el giro real (frames 16-64).
 	if sprite.animation == "spin_kick" and sprite.is_playing() and not airborne:
-		position.x += facing * SPIN_TRAVEL * delta
-		var hover := 0.0
-		if sprite.frame >= 1 and sprite.frame <= 5:
-			hover = SPIN_HOVER
-		elif sprite.frame == 6:
-			hover = SPIN_HOVER * 0.35
-		position.y = lerpf(position.y, floor_y - hover, minf(14.0 * delta, 1.0))
+		var sp_nueva: bool = fx_blue and sprite.sprite_frames.get_frame_count("spin_kick") > 12
+		if sp_nueva:
+			if sprite.frame >= 16 and sprite.frame <= 64:
+				position.x += facing * SPIN_TRAVEL * delta
+		else:
+			position.x += facing * SPIN_TRAVEL * delta
+			var hover := 0.0
+			if sprite.frame >= 1 and sprite.frame <= 5:
+				hover = SPIN_HOVER
+			elif sprite.frame == 6:
+				hover = SPIN_HOVER * 0.35
+			position.y = lerpf(position.y, floor_y - hover, minf(14.0 * delta, 1.0))
 	elif not airborne and not hit_flying and position.y != floor_y:
 		position.y = floor_y  # al terminar (o si lo interrumpen) vuelve al piso
 
@@ -1830,17 +2239,23 @@ func _physics_process(delta: float) -> void:
 		# jump_kick_cast (salto+E de Aye): mientras GIRA el báculo cae SUAVE (flota) SIEMPRE, para dar
 		# tiempo a que se vea el giro completo (no depende de conectar ni de air_move_used).
 		var jkc_spin: bool = fx_floral and String(sprite.animation) == "jump_kick_cast" and sprite.is_playing()
+		# DAM ↑W: FLOTA mientras DESCARGA el tajo — la animación completa no cabía en la caída
+		# normal (el aterrizaje la cortaba y "solo se veía subir la espada"). Pedido del usuario:
+		# que no caiga tanto para que la animación original se vea entera. Al terminar, cae normal.
+		var dam_jk: bool = not fx_blue and not fx_floral and String(sprite.animation) == "jump_kick" and sprite.is_playing()
 		position.y += vel_y * delta
 		# FLOTA solo si el golpe aéreo CONECTÓ (juggle) Y aún NO gastaste tu siguiente golpe. En cuanto
 		# tiras el próximo golpe (air_move_used) y NO conecta, deja de flotar y CAE NORMAL (no "cae lento").
-		var floating: bool = (air_atk and air_float_t > 0.0 and not air_move_used) or jkc_spin
-		var g_mult := (0.20 if jkc_spin else 0.35) if floating else 1.0
+		var floating: bool = (air_atk and air_float_t > 0.0 and not air_move_used) or jkc_spin or dam_jk
+		var g_mult := (0.30 if dam_jk else (0.20 if jkc_spin else 0.35)) if floating else 1.0
 		# caida BRUSCA del remate del ULTRA: al pasar el ápice se desploma
 		if hard_fall and hit_flying and vel_y > 0.0:
 			g_mult = 2.6
-		# lanzado normal: una vez que YA va cayendo, cae más rápido (menos flote)
+		# lanzado normal: una vez que YA va cayendo, cae más rápido (menos flote)…
+		# …SALVO en pleno juggle (sostén tras rebote): ahí cae LENTO para que el
+		# siguiente golpe del combo aéreo la alcance (estilo pro)
 		elif hit_flying and vel_y > 0.0:
-			g_mult = 1.7
+			g_mult = 0.85 if juggle_hold_t > 0.0 else 1.7
 		# AYE: su salto natural se sentía muy FLOTADO al bajar -> cae más decidida
 		elif fx_floral and vel_y > 0.0 and not floating:
 			g_mult = 1.55
@@ -1852,8 +2267,12 @@ func _physics_process(delta: float) -> void:
 			if vel_y < 0.0:
 				vel_y = 0.0
 		if air_atk:
+			if dam_jk:
+				# ↑W de DAM = SALTO CORTO HACIA ADELANTE (flecha del usuario): mientras
+				# descarga el tajo, avanza en arco y aterriza adelante
+				position.x += facing * 300.0 * CHAR_SCALE * delta
 			if floating:
-				vel_y = minf(vel_y, (190.0 if jkc_spin else 300.0) * CHAR_SCALE)   # descenso lento (más suave en jkc)
+				vel_y = minf(vel_y, (190.0 if (jkc_spin or dam_jk) else 300.0) * CHAR_SCALE)   # descenso lento (más suave en jkc / tajo de DAM)
 			if air_spin:
 				position.x += facing * SPIN_TRAVEL * 0.8 * delta
 		elif hit_flying:
@@ -1881,10 +2300,11 @@ func _physics_process(delta: float) -> void:
 			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
 			if koed:
 				# cayó noqueado desde el aire: queda TENDIDO
+				var sdk := signi(int(vel_x))   # hacia dónde venía deslizando (antes de frenar)
 				vel_x = 0.0
 				hit_flying = false
 				hard_fall = false
-				_spawn_jump_dust(0.9)
+				_spawn_slam_dust(sdk if sdk != 0 else -facing, 1.0)   # AZOTE: cuña barrida
 				if fx_floral and sprite.sprite_frames.has_animation("hit_down"):
 					# AYE: completa su caída normal (hit_down) y queda TENDIDA BOCA ARRIBA
 					# tal como termina esa anim (koed bloquea el get_up)
@@ -1898,6 +2318,7 @@ func _physics_process(delta: float) -> void:
 					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
 				return
 			if hit_flying:
+				var sdh := signi(int(vel_x))   # hacia dónde venía deslizando
 				hit_flying = false
 				vel_x = 0.0
 				if hard_fall:
@@ -1906,12 +2327,13 @@ func _physics_process(delta: float) -> void:
 					squash_horizontal = false   # cae al piso: comprime el alto
 					_burst(1.3)
 					_play_sfx_key("wall_bounce")
-				_spawn_jump_dust(0.9)   # estrellon: polvo grande (los escombros son solo de PARED)
+				# estrellón: AZOTE con la cuña barrida (los escombros son solo de PARED)
+				_spawn_slam_dust(sdh if sdh != 0 else -facing)
 				sprite.play("hit_down")  # se estrella y se levanta
 			else:
 				_spawn_jump_dust(0.6)   # aterrizaje de salto: polvito
-				# AYE: amortigua con las rodillas (land) y se recupera; el resto cae directo a idle
-				if fx_floral and sprite.sprite_frames.has_animation("land"):
+				# amortigua con las rodillas (land) y se recupera — cualquier personaje con la anim
+				if sprite.sprite_frames.has_animation("land"):
 					sprite.play("land")
 				else:
 					sprite.play("pose")
@@ -1934,7 +2356,7 @@ func _physics_process(delta: float) -> void:
 	# buffer de entrada: el boton guardado sale apenas se abre la ventana
 	if buffer_t > 0.0:
 		buffer_t -= delta
-		if _try_attack(buffer_action):
+		if _try_attack(buffer_action, buffer_air):
 			buffer_t = 0.0
 
 	# jump-cancel del lanzador: tras conectar el gancho puedes saltar de una
@@ -1983,12 +2405,8 @@ func _physics_process(delta: float) -> void:
 		airborne = true
 		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(0.6)   # polvo de despegue
-		# salto hacia ADELANTE (hacia el rival) = MORTAL (neutral_spin); neutro/atrás = jump normal
-		var jdir := Input.get_axis("ui_left", "ui_right")
-		if jdir != 0.0 and int(signf(jdir)) == facing and sprite.sprite_frames.has_animation("neutral_spin"):
-			sprite.play("neutral_spin")
-		else:
-			sprite.play("jump")
+		# sin MORTAL: todos los saltos (adelante/neutro/atrás) usan la anim "jump" limpia
+		sprite.play("jump")
 		return
 
 	# AYE: deja que el ATERRIZAJE (land, flexión) se VEA — no lo cortes con caminar/idle mientras juega
@@ -2009,6 +2427,13 @@ func _physics_process(delta: float) -> void:
 	if sprite.animation == "crouch" and sprite.is_playing():
 		return  # levantandose
 
+	# PASO CORTO (doble-tap ←←/→→ de Fe y DAM): desliza con decaimiento y vuelve a guardia
+	if step_t > 0.0:
+		step_t = maxf(0.0, step_t - delta)
+		position.x += step_vx * delta * (0.35 + 0.8 * step_t / STEP_DUR)
+		if step_t <= 0.0 and (String(sprite.animation) in ["step", "backdash"] or _is_locomotion_anim()):
+			sprite.play("pose")
+		return
 	# caminar: hacia el rival = avance, alejandose = retroceso en reversa
 	var dir := Input.get_axis("ui_left", "ui_right")
 	if dir != 0.0:
@@ -2052,7 +2477,7 @@ func _ai_process(delta: float) -> void:
 		else:
 			sprite.play(ai_combo.pop_front())
 			return
-	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "jump_punch", "jump_kick", "jump_kick_cast", "take_hit", "take_hit_low", "block", "block_low", "hit_down", "ko", "victory", "crouch"] \
+	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "jump_punch", "jump_kick", "jump_kick_cast", "take_hit", "take_hit_low", "block", "block_low", "hit_down", "ko", "victory", "crouch", "electrocuted"] \
 			and sprite.is_playing():
 		return
 	var dist := absf(ai_target.position.x - position.x)
@@ -2135,8 +2560,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		crouching = false
 		sprite.play("ko" if koed else "pose")
 		return
-	# doble toque ATRÁS/ADELANTE (Aye): BLINK ~cuerpo y medio (←← escape / →→ avance, gasta maná)
-	if fx_floral and (event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right")):
+	# doble toque ATRÁS/ADELANTE: Aye = BLINK (teleport, maná); Fe y DAM = PASO CORTO
+	# (←← backdash / →→ paso adelante, estilo Street Fighter)
+	if event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
 		var _bd := -1 if event.is_action_pressed("ui_left") else 1
 		if airborne or koed:
 			back_tap_win = 0.0
@@ -2145,14 +2571,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			fwd_tap_win = 0.0   # cambiar de dirección rompe la secuencia contraria
 			if back_tap_win > 0.0:
 				back_tap_win = 0.0
-				_start_blink(false)
+				if fx_floral:
+					_start_blink(false)
+				else:
+					_start_quick_step(false)
 				return
 			back_tap_win = 0.28
 		else:
 			back_tap_win = 0.0
 			if fwd_tap_win > 0.0:
 				fwd_tap_win = 0.0
-				_start_blink(true)
+				if fx_floral:
+					_start_blink(true)
+				else:
+					_start_quick_step(true)
 				return
 			fwd_tap_win = 0.28
 	# doble toque ↑: habilita el breaker con movimiento (↑↑+E)
@@ -2285,6 +2717,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if fx_floral and airborne and ( 			(Input.is_action_pressed("ui_down") and Input.get_axis("ui_left", "ui_right") == 0.0) 			or (vel_y > 0.0 and position.y > floor_y - 150.0)):
 		buffer_action = accion
 		buffer_t = 0.45
+		buffer_air = false   # intención TERRESTRE deliberada de Aye: SÍ abre agachados al aterrizar
 		return
 	# UN solo golpe aéreo por salto (hasta CAER o hasta que CONECTE). Corta el spam
 	# de golpes aéreos (y el sonido agudo repetido).
@@ -2306,12 +2739,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		if airborne and String(sprite.animation) in AIR_MOVES:
 			air_move_used = true
 	else:
-		# aun no se abre la ventana: se guarda y dispara solo en cuanto abra
+		# aun no se abre la ventana: se guarda y dispara solo en cuanto abra.
+		# Si vino del AIRE, el replay al aterrizar NO puede abrir golpes agachados
+		# ("salto + ↓R y sale el tigre" — pedido: los abajo SOLO con press en el suelo)
 		buffer_action = accion
 		buffer_t = 0.3
+		buffer_air = airborne
 
 # intenta ejecutar un boton de ataque respetando ventana, familia y escalera
-func _try_attack(accion: String) -> bool:
+func _try_attack(accion: String, desde_aire := false) -> bool:
 	var anim_actual := String(sprite.animation)
 	if channeling:
 		_stop_channel()   # cualquier ataque CANCELA el canaleo (evita que la anim de carga vuelva)
@@ -2333,7 +2769,9 @@ func _try_attack(accion: String) -> bool:
 				return false
 			if BTN_LEVEL.get(accion, 0) < ANIM_LEVEL.get(anim_actual, 0):
 				return false
-	if crouching or Input.is_action_pressed("ui_down"):
+	# agachados SOLO en el suelo Y con press EN EL SUELO: un botón apretado en el aire
+	# (buffer de aterrizaje, desde_aire) NO abre agachados — evita "salto + ↓R = tigre"
+	if not airborne and not desde_aire and (crouching or Input.is_action_pressed("ui_down")):
 		if accion == "attack":
 			sprite.play("crouch_punch")
 			return true
@@ -2341,6 +2779,32 @@ func _try_attack(accion: String) -> bool:
 			sprite.play("crouch_kick")
 			return true
 		if accion == "weak_punch" and sprite.sprite_frames.has_animation("crouch_jab"):
+			# Fe v2: ↓R es el CAST del tigre — cuesta BARRA Y MEDIA (se cobra aquí).
+			# Sin barra suficiente el cast NO sale (el input se consume igual).
+			if fx_blue and sprite.sprite_frames.get_frame_count("crouch_jab") > 8:
+				var mcj := get_parent()
+				if mcj == null or not mcj.has_method("try_tiger_cost") or not mcj.try_tiger_cost(self):
+					return true
+				sprite.play("crouch_jab")
+				# VOZ: "Let go, Tiger!" — primero la versión BATALLA (procesada ×1.35, tono
+				# intacto); si faltara, el mp3 crudo acelerado por pitch. (No sonaba porque
+				# el .wav no estaba IMPORTADO por Godot — exists() daba false en silencio.)
+				var lgt := "res://imagen-action/favi/Fe-sound-effect/let-go-tiger-battle.wav"
+				var lgt_raw := "res://imagen-action/favi/Fe-sound-effect/let_go_tiger.mp3"
+				if ResourceLoader.exists(lgt):
+					voz_player.stream = load(lgt)
+					voz_player.pitch_scale = 1.0
+					voz_player.play()
+				elif ResourceLoader.exists(lgt_raw):
+					voz_player.stream = load(lgt_raw)
+					voz_player.pitch_scale = 1.3   # la cruda viene MUY lenta
+					voz_player.play()
+				if mcj.has_method("_fe_cast_fx"):
+					mcj._fe_cast_fx(self, true, -84.0)   # cuerpo agachado: 84px tras el centro
+					get_tree().create_timer(0.75).timeout.connect(func() -> void: mcj._fe_cast_fx(self, false), CONNECT_ONE_SHOT)
+				if mcj.has_method("_fe_tiger_attack"):
+					get_tree().create_timer(0.24).timeout.connect(func() -> void: mcj._fe_tiger_attack(self), CONNECT_ONE_SHOT)
+				return true
 			sprite.play("crouch_jab")
 			return true
 		if accion == "spin_kick" and sprite.sprite_frames.has_animation("sweep"):
@@ -2395,7 +2859,19 @@ func _try_attack(accion: String) -> bool:
 				if kade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
 					_start_water_special(2)
 					return true
+			if airborne and fx_floral and down_recent_t > 0.0:
+				# AYE en el AIRE: ↓→+W = BACKSTAB también (teleporta DETRÁS del rival y aterriza)
+				var kdir_a := Input.get_axis("ui_left", "ui_right")
+				if kdir_a != 0.0 and int(signf(kdir_a)) == facing:
+					if not _spell_afford(0.30):
+						return true
+					_start_backstab()
+					return true
 			sprite.play("jump_kick" if airborne else "kick")
+			if airborne and not fx_blue and not fx_floral:
+				# ↑W de DAM = salto CORTO: corta la subida YA y empieza el arco adelante-abajo
+				# (el flote + avance hacen el resto; sin esto seguía subiendo altísimo)
+				vel_y = maxf(vel_y, 90.0)
 			return true
 		"spin_kick":
 			# AYE (E) = CRYSTAL CAST a distancia: grita y alza el báculo (#181). El proyectil que
@@ -2432,6 +2908,7 @@ func _try_attack(accion: String) -> bool:
 						spin_voz_sfx = load(ruta)
 					if spin_voz_sfx != null:
 						voz_player.stream = spin_voz_sfx
+						voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 						voz_player.play()
 				else:
 					var mk := get_parent()          # DAM grita al lanzar la patada giratoria (→E)
@@ -2468,6 +2945,15 @@ func _sfx_cut(st: AudioStream) -> void:
 		sfx_player.stop()
 
 func _on_animation_finished() -> void:
+	# la VOZ "Power Twister" NO queda COLGADA: se corta al terminar la peonza/voladora
+	if String(sprite.animation) in ["spin_kick", "air_spin_kick"] and spin_voz_sfx != null \
+			and voz_player.playing and voz_player.stream == spin_voz_sfx:
+		voz_player.stop()
+	# y el WHOOSH giratorio de la peonza de Fe TAMPOCO: whoosh.mp3 es largo y quedaba
+	# estancado sonando después de que ella ya paró de girar
+	if fx_blue and String(sprite.animation) == "spin_kick" \
+			and sfx_player.playing and sfx_key == "spin_kick":
+		sfx_player.stop()
 	if sprite.animation == "hit_down":
 		# ya se levanto: el castigo termino, se reinician los frenos de combo
 		juggle_hits = 0
@@ -2503,6 +2989,14 @@ func _on_animation_finished() -> void:
 		sprite.play("pose")   # terminó de levantarse -> idle (pose normal)
 		return
 	if sprite.animation == "jump_kick" and airborne:
+		# DAM: corta el WHOOSH del molinete al terminar el giro (que no quede colgado)
+		if not fx_blue and not fx_floral and sfx_player.playing and sfx_key == "jump_kick":
+			sfx_player.stop()
+		# FE: cae con la RECOGIDA de la voladora ("air_fall") — sostenida en el remate
+		# abierto se veía "cayendo de pie, feo". DAM conserva su picada sostenida.
+		if fx_blue and sprite.sprite_frames.has_animation("air_fall"):
+			sprite.play("air_fall")
+			return
 		sprite.stop()
 		sprite.frame = sprite.sprite_frames.get_frame_count("jump_kick") - 1  # sostiene la picada
 		return
@@ -2515,8 +3009,22 @@ func _on_animation_finished() -> void:
 		sprite.play("jump")
 		sprite.frame = sprite.sprite_frames.get_frame_count("jump") - 2
 		return
+	if sprite.animation == "air_fall" and airborne:
+		# terminó de plegar la pierna: sigue cayendo con el frame de caída del salto
+		sprite.play("jump")
+		sprite.frame = sprite.sprite_frames.get_frame_count("jump") - 2
+		return
 	if sprite.animation == "jump" and airborne:
 		return  # mantiene el ultimo frame mientras cae
+	if sprite.animation == "teleport":
+		# GLITCH de teleport/blink/backstab: si el orquestador (main) aún tiene el control
+		# (input deshabilitado), retiene el último frame — sin flash de "pose" a mitad del
+		# efecto aunque la anim termine antes que la ventana. Con control devuelto: idle.
+		if not input_enabled:
+			sprite.stop()
+			return
+		sprite.play("pose")
+		return
 	if sprite.animation == "hit_fly" and hit_flying:
 		sprite.stop()
 		sprite.frame = sprite.sprite_frames.get_frame_count("hit_fly") - 1
@@ -2691,17 +3199,28 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 	var anim := String(sprite.animation)
 	# Aye (fx_floral) puede tener un arco PROPIO por anim (ej. jump_punch barrido grande #171);
 	# si no, cae al arco compartido SWING_FX.
-	var fx_table: Dictionary = AYE_SWING_FX if (fx_floral and AYE_SWING_FX.has(anim)) else SWING_FX
+	var fx_table: Dictionary = SWING_FX
+	if fx_floral and AYE_SWING_FX.has(anim):
+		fx_table = AYE_SWING_FX
+	elif fx_blue and FAVI_SWING_FX.has(anim):
+		fx_table = FAVI_SWING_FX
 	if not fx_table.has(anim):
 		return
 	var fx: Dictionary = fx_table[anim]
+	# las entradas "dark" (rastro de patada) son SOLO de DAM: Fe/Aye tienen sus propias
+	# anims con ese nombre y no deben heredar este efecto
+	if bool(fx.get("dark", false)) and (fx_blue or fx_floral):
+		return
 	var stages: Array = fx["stages"]
 	var stage: int = sprite.frame - int(fx["base"])
-	if stage < 0:
-		return
-	if bool(fx.get("loop_stages", false)):
+	if bool(fx.get("loop_stages", false)) and stage >= 0:
 		stage = stage % stages.size()   # las etapas CICLAN toda la ráfaga (anim larga y fluida)
-	elif stage >= stages.size():
+	# 2ª VENTANA opcional (base2/stages2): anims con DOS golpes separados (doble patada W
+	# de Fe) llevan una estela POR GOLPE sin rellenar el hueco con etapas vacías
+	if (stage < 0 or stage >= stages.size()) and fx.has("base2"):
+		stages = fx["stages2"]
+		stage = sprite.frame - int(fx["base2"])
+	if stage < 0 or stage >= stages.size():
 		return
 	var a0: float = stages[stage][0]
 	var a1: float = stages[stage][1]
@@ -2717,7 +3236,7 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 	# corrido hacia abajo) hay que achicarla y bajarla para que siga sus agujas.
 	# DAM queda idéntico (base_scale 1, offset 0).
 	var bs: float = base_scale.y
-	c = Vector2(c.x * bs, (c.y + sprite.offset.y) * bs)
+	c = Vector2(c.x * bs, (c.y + sprite.offset.y + swing_y_off) * bs)
 	r *= bs
 	w *= bs
 	# color de la estela: MORADO+ROSA floral (Aye) · AZUL-blanco marino (Favi) · naranja de fuego (DAM)
@@ -2736,6 +3255,11 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 		c_out = Color(1.0, 0.42, 0.12, 0.32 * al)
 		c_core = Color(1.0, 0.85, 0.4, 0.55 * al)
 		c_edge = Color(1.6, 1.2, 0.55, 0.75 * al)
+	# "dark": efecto de PATADA — humo carmesí OSCURO (no el fuego brillante de la espada)
+	if bool(fx.get("dark", false)):
+		c_out = Color(0.22, 0.03, 0.05, 0.38 * al)
+		c_core = Color(0.5, 0.09, 0.10, 0.55 * al)
+		c_edge = Color(0.85, 0.18, 0.14, 0.6 * al)
 	# NEÓN (súper crystal_flurry): morado MUCHO más brillante + capa de GLOW ancha (bloom) detrás.
 	if bool(fx.get("neon", false)):
 		c_out = Color(1.15, 0.30, 1.95, 0.42 * al)   # violeta neón (halo)

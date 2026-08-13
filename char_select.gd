@@ -196,12 +196,29 @@ func _build_stage_overlay() -> void:
 	stage_overlay.visible = false
 	stage_overlay.z_index = 4
 	add_child(stage_overlay)
-	# fondo oscuro casi opaco (tapa el char-select detrás)
+	# fondo oscuro base (por si el póster no carga) + póster a pantalla completa
 	var bg := ColorRect.new()
 	bg.color = Color(0.05, 0.03, 0.08, 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage_overlay.add_child(bg)
+	# PÓSTER de fondo (arte generado). Cubre toda la pantalla manteniendo proporción.
+	const STAGE_BG := "res://imagen-action/ui/stage-select-bg.png"
+	if ResourceLoader.exists(STAGE_BG):
+		var poster := TextureRect.new()
+		poster.texture = load(STAGE_BG)
+		poster.set_anchors_preset(Control.PRESET_FULL_RECT)
+		poster.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		poster.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		poster.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stage_overlay.add_child(poster)
+		# velo oscuro encima del póster: baja el brillo del centro/inferior para que el
+		# título, la tarjeta y el hint se lean sin competir con el arte.
+		var veil := ColorRect.new()
+		veil.color = Color(0.03, 0.02, 0.06, 0.45)
+		veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+		veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stage_overlay.add_child(veil)
 	# título
 	var title := Label.new()
 	title.add_theme_font_override("font", big_font)
@@ -241,7 +258,7 @@ func _build_stage_overlay() -> void:
 	hint.add_theme_constant_override("outline_size", 6)
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	hint.add_theme_color_override("font_color", Color(0.85, 0.85, 0.92))
-	hint.text = "← →   ELIGE ESCENARIO        ENTER  CONFIRMAR        ESC  ATRÁS"
+	hint.text = "ENTER  CONFIRM        ESC  BACK"
 	hint.position = Vector2(0, 902); hint.size = Vector2(1920, 40)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE

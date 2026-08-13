@@ -1,5 +1,16 @@
 # DAM — The Flame Wielder · Guía de sprites (personaje)
 
+> ⚠️ **WORKFLOW NUEVO (2026-08): CLIPS DE VIDEO, ya NO hojas de frames.**
+> Cada acción se genera como UN CLIP DE VIDEO con la herramienta de animación:
+> fondo verde puro #00FF00 plano, UNA toma continua, personaje de PERFIL mirando a la
+> DERECHA, cámara TRÍPODE fija (sin zoom/pan), mismo tamaño todo el clip, cuerpo
+> completo con margen. Guardar como `imagen-action/dam/sheets/<accion>.mp4` y avisarme:
+> yo recorto el croma, ELIJO los frames, calibro el TAMAÑO ESTÁNDAR de DAM y lo conecto.
+> Los "conteos de frames", "filas ordenadas" y demás reglas de HOJAS de más abajo son
+> HISTÓRICOS: sirven como descripción de cada movimiento (fases, poses, arma), pero el
+> formato de entrega es SIEMPRE el clip de video. Ver la sección "NIVELACIÓN con AYE"
+> al final para ejemplos de prompts de video ya afinados.
+
 > Esta es la guía ESPECÍFICA de DAM: su identidad y la animación detallada de
 > cada movimiento con su katana. Las reglas de producción, el roster de
 > movimientos y los efectos compartidos están en **`GUIA-COMUN.md`** (sirven
@@ -272,7 +283,7 @@ sueltos por masa corporal para que encajen).
 9. **`jump-punch-sheet.png`** — 4 frames. Corte aéreo: en el aire, corte de
    katana al frente: preparación → corte → extendido → recogida (sigue en el aire).
 
-10. **`jump-kick-sheet.png`** — 3 frames. Ataque aéreo descendente: en el
+10. **`jump_kick`** — 3 frames. Ataque aéreo descendente: en el
     aire, corte o patada en diagonal hacia abajo: preparación → extensión → sostenido.
 
 ### Recibir daño
@@ -339,6 +350,7 @@ CONTRAATAQUE: DAM **desvía** el golpe del rival con la katana y responde con un
 **ráfaga de 3 cortes rápidos**. Perfil a la DERECHA, cuerpo completo, MISMO tamaño en
 los 6 frames. SIN fuego/llamas/partículas (los pone el motor); solo el filo ROJO de
 la katana.
+
 - **f1 — DESVÍO (parry):** katana levantada desviando un golpe entrante, cuerpo
   braced hacia el rival, peso adelantado.
 - **f2 — 1er corte:** tajo rápido al frente.
@@ -347,7 +359,7 @@ la katana.
   golpe más potente.
 - **f5 — follow-through:** la extensión tras el corte, filo ROJO brillante.
 - **f6 — recuperación:** vuelve a la guardia.
-→ alimenta la animación `counter` (el parry-contraataque).
+  → alimenta la animación `counter` (el parry-contraataque).
 
 ### Final de ronda (¡nuevas — completan el juego!)
 
@@ -758,3 +770,42 @@ suave: f4 conecta con f1). Más ancho que alto, pegado al piso.
   antes de guardar la hoja.
 - Yo recorto el verde, alineo y conecto cada hoja — tú solo avísame cuál está.
 - Frames finales: los genero yo en `imagen-action/dam/` como `dam-[accion]-N.png`.
+
+---
+
+## NIVELACIÓN con AYE — clips de VIDEO que faltan (workflow nuevo)
+
+> Estas animaciones se generan como CLIPS DE VIDEO (no hojas): 960×960, fondo verde puro
+> #00FF00 plano, UNA toma continua. Guardar como `imagen-action/dam/sheets/<accion>.mp4`.
+> Yo los proceso a frames. Adjuntar SIEMPRE la referencia de DAM.
+
+**Reglas fijas del clip (pegar al final de cada prompt):**
+
+> Same exact character as the reference image. STRICT SIDE VIEW / PROFILE, facing RIGHT the
+> whole time (NEVER frontal, NEVER three-quarter). Fixed locked TRIPOD camera — no zoom, no
+> pan, no drift. He stays the SAME SIZE and on the SAME SPOT the entire clip. Pure flat green
+> #00FF00 background. Nobody else in the frame; no effects, no particles, no fire, no glow.
+> His oversized sword is a RIGID SOLID blade of CONSTANT length and shape — no bending,
+> stretching, warping or redesign, identical every frame, and it never changes hands.
+
+**`get_up`** _(tendido boca arriba → se para COMPLETO hasta su idle. Hoy el juego lo para de
+golpe con un snap — esta anim lo arregla):_
+
+> He is LYING flat on his BACK on the ground, head toward the LEFT and feet toward the RIGHT,
+> eyes closed, one hand still GRIPPING his big sword which rests flat on the ground beside
+> him. He wakes and GETS UP in one continuous motion: opens his eyes, pushes off the ground
+> with his free hand, brings his legs under himself and RISES all the way up to his FEET,
+> lifting the sword with him. He MUST END standing EXACTLY in his relaxed idle stance from
+> the reference: upright, facing right, the sword resting over his SHOULDER held in one hand,
+> the other arm relaxed at his side. Do NOT stop halfway (no kneeling/sitting end), do NOT
+> jump to his feet instantly — a natural, grounded recovery, slightly heavy (he is a
+> heavyweight fighter). The coat follows the motion and settles at the end.
+
+**`land`** _(aterrizaje del salto: flexión corta de rodillas — hoy cae seco al idle):_
+
+> He is already IN THE AIR just above the ground, falling feet-first (start the clip with his
+> boots a small distance above the floor). He LANDS on both feet on the SAME SPOT: knees BEND
+> deep for one beat absorbing the impact, torso leans slightly forward, the long coat flares
+> up and then settles down, hair bounces once. Then he straightens back up and ENDS standing
+> EXACTLY in his relaxed idle stance from the reference (sword over his shoulder). Short clip,
+> one single landing, no jump afterwards, feet stay planted after touching down.

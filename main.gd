@@ -112,12 +112,14 @@ var _kick_voz_t := 0                        # cooldown (ms) para no solapar la v
 var _voz_cache := {}                        # streams de voz cacheados por nombre
 var ding_stream = null
 var combo_ui := []      # contenedor por lado
-var combo_num := []     # numero gigante
-var combo_ghost := []   # numero FANTASMA gigante detras (estilo GG Strive)
-var combo_nom := []     # nombre del rango
+var combo_plate := []   # placa "N HITS <RANGO>" por lado (arte imagen-action/ui/combo)
+var combo_digits := []  # contenedor de dígitos rojos por lado (van sobre el hueco negro)
+var combo_nom := []     # nombre FORZADO del ultra (APOCALYPSE...); el rango va en la placa
 var combo_font: SystemFont   # fuente heavy del contador
-var combo_band := []    # banda de color del número (verde -> rojo según el combo)
-var combo_face := []    # cara/ojos del ATACANTE como fondo del panel del número
+var combo_plate_tex := {}    # rango -> Texture2D de la placa
+var combo_digit_tex := []    # 0-9 -> Texture2D del dígito
+const COMBO_PLATE_BY_RANK := {"DOUBLE!": "double", "TRIPLE!": "triple", "GREAT!": "great",
+	"MASTER!": "master", "AWESOME!": "awesome", "LEGENDARY!!": "legendary"}
 var combo_rest_x := [270.0, 1650.0]   # x de reposo del cartel (izq / der)
 var combo_show_ms := [-100000, -100000]  # reloj REAL del inicio de la entrada deslizada
 var combo_was_vis := [false, false]   # para detectar cuando aparece (y disparar el slide)
@@ -127,6 +129,7 @@ var dummy_ai_mode := true
 var break_practice := false     # modo BREAK PRACTICE: la IA encadena combos y tú rompes
 var menu_panel: ColorRect
 var moves_panel: ColorRect
+var moves_frame: Control  # marco morado con glow (estilo SF6)
 var moves_title: Label   # título de la lista (cambia según personaje)
 var moves_col1: Label    # columna de MOVES (cambia según personaje)
 var moves_fin: Label     # bloque SPECIALS & FINISHERS (cambia según personaje)
@@ -212,6 +215,18 @@ var anno_sh: Label
 var anno_ms := -100000
 var anno_dur := 0.0
 var anno_side := -1            # lado por el que ENTRA (-1 izq, +1 der); sale por el opuesto
+# BANNERS de inicio de ronda (imágenes GET READY / FIGHT, croma recortado). Entran con
+# GOLPE: zoom enorme -> se cierran de golpe con rebote + sacudida de pantalla.
+const RB_READY := "res://imagen-action/ui/get-ready-cut.png"
+const RB_FIGHT := "res://imagen-action/ui/Fight-cut.png"
+var round_banner: TextureRect = null
+var rb_ready_tex: Texture2D
+var rb_fight_tex: Texture2D
+var rb_ms := -100000
+var rb_dur := 0.0
+var rb_impact_done := false
+const RB_CENTER := Vector2(960.0, 402.0)   # centro en pantalla
+const RB_BOX := Vector2(1200.0, 720.0)     # caja donde encaja la imagen (mantiene proporción)
 var ko_red: ColorRect = null       # velo ROJO del KO (detrás de los peleadores)
 var ko_lines: TextureRect = null   # líneas del ultra en el KO (detrás, tintadas rojo)
 var win_portrait: TextureRect = null   # retrato del GANADOR (estilo cut-in del inferno)
@@ -226,8 +241,10 @@ var pause_lines: TextureRect       # líneas de acción manga tintadas al color 
 var pause_title_lbl: Label         # "PAUSA"
 var pause_sub_lbl: Label           # nombre del personaje elegido
 var pause_hint_lbl: Label          # ayuda de controles
+var pause_desc_lbl: Label          # línea de descripción de la opción (estilo SF6)
+var pause_caret: Label             # ▼ bajo la pestaña activa (chrome SF6)
 var pause_items: Array = []        # labels de las opciones
-var pause_plates: Array = []       # polígonos de fondo de cada opción (para resaltar)
+var pause_plates: Array = []       # barras de resalte (Panel) de cada opción
 var pause_accent := Color(1.7, 0.35, 0.22)   # color del personaje (rojo DAM / azul Fe)
 var pause_sel := 0
 var pause_in_combos := false       # true = viendo la sublista de COMBOS
@@ -239,6 +256,11 @@ var pause_combos_fin: Label
 var pause_combos_border: Array = []
 var pause_combos_avatar: TextureRect   # retrato del personaje que juegas (top-left del panel)
 var pause_combos_avframe: ColorRect    # marco de acento del retrato
+# --- CAMBIAR PERSONAJE en medio del training (overlay desde la pausa) ---
+var charswap_root: Control
+var charswap_fx: Control
+var charswap_cards := []       # [{av, rect}] por personaje
+var charswap_sel := 0
 var combo_seq := []   # secuencia de golpes del combo actual del jugador
 # secuencia exacta que debe ejecutar el jugador para el SUCCESS de cada combo
 const COMBO_SEQS := {
@@ -308,84 +330,30 @@ func _ready() -> void:
 	combo_font = SystemFont.new()
 	combo_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
 	combo_font.font_weight = 900
+	# arte del contador de combo (placas por rango + dígitos rojos, ui/combo)
+	for d in 10:
+		combo_digit_tex.append(load("res://imagen-action/ui/combo/digit-%d.png" % d))
+	for k in ["double", "triple", "great", "master", "awesome", "legendary"]:
+		combo_plate_tex[k] = load("res://imagen-action/ui/combo/plate-%s.png" % k)
 	for i in 2:
 		var c := Node2D.new()
 		c.position = Vector2(270, 335) if i == 0 else Vector2(1650, 335)
 		c.visible = false
 		$UI.add_child(c)
-		# NÚMERO FANTASMA gigante detrás (estilo GG Strive): semitransparente, enorme,
-		# se agrega PRIMERO para quedar por detrás de las bandas/número nítido
-		var gh := Label.new()
-		gh.add_theme_font_override("font", combo_font)
-		gh.add_theme_font_size_override("font_size", 340)
-		gh.add_theme_color_override("font_color", Color(1, 1, 1, 0.13))
-		gh.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.18))
-		gh.add_theme_constant_override("outline_size", 10)
-		gh.position = Vector2(-260, -330)
-		gh.size = Vector2(520, 440)
-		gh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		gh.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		gh.rotation_degrees = -8.0
-		gh.pivot_offset = Vector2(260, 220)
-		gh.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		c.add_child(gh)
-		combo_ghost.append(gh)
-		var slant := 18.0
-		var HW := 186.0   # medio ancho: las dos bandas comparten el MISMO centro y bordes
-		# --- BANDA del número: cartel VERDE inclinado (mismo estilo del BREAK) ---
-		var nb_poly := PackedVector2Array([Vector2(-HW + slant, -100), Vector2(HW + slant, -100),
-				Vector2(HW - slant, 8), Vector2(-HW - slant, 8)])
-		var nb_sh := Polygon2D.new()
-		nb_sh.polygon = nb_poly
-		nb_sh.color = Color(0, 0, 0, 0.32)
-		nb_sh.position = Vector2(6, 8)
-		c.add_child(nb_sh)
-		var nb := Polygon2D.new()
-		nb.polygon = nb_poly
-		nb.color = Color(0.62, 0.86, 0.16)
-		c.add_child(nb)
-		combo_band.append(nb)   # se recolorea (verde->rojo) según crece el combo
-		# número gigante BLANCO con contorno oscuro (resalta sobre el verde), centrado
-		var n := Label.new()
-		n.add_theme_font_override("font", combo_font)
-		n.add_theme_font_size_override("font_size", 128)
-		n.add_theme_color_override("font_color", Color(1, 1, 1))
-		n.add_theme_color_override("font_outline_color", Color(0.05, 0.07, 0.02))
-		n.add_theme_constant_override("outline_size", 12)
-		n.position = Vector2(-HW, -134)
-		n.size = Vector2(2.0 * HW, 128)
-		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		n.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		n.rotation_degrees = -5.0
-		n.pivot_offset = Vector2(HW, 64)
-		c.add_child(n)
-		# etiqueta "HITS" pequeña, PEGADA a la derecha del número
-		# (mismo estilo: blanco con contorno oscuro)
-		var g := Label.new()
-		g.text = "HITS"
-		g.add_theme_font_override("font", combo_font)
-		g.add_theme_font_size_override("font_size", 26)
-		g.add_theme_color_override("font_color", Color(1, 1, 1))
-		g.add_theme_color_override("font_outline_color", Color(0.05, 0.07, 0.02))
-		g.add_theme_constant_override("outline_size", 6)
-		g.position = Vector2(72, -8)
-		g.size = Vector2(120, 36)
-		g.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		g.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		g.rotation_degrees = -5.0
-		c.add_child(g)
-		# --- BANDA del rango: cartel OSCURO inclinado, ALINEADO bajo la verde ---
-		var rb_poly := PackedVector2Array([Vector2(-HW + slant, 20), Vector2(HW + slant, 20),
-				Vector2(HW - slant, 78), Vector2(-HW - slant, 78)])
-		var rb_sh := Polygon2D.new()
-		rb_sh.polygon = rb_poly
-		rb_sh.color = Color(0, 0, 0, 0.3)
-		rb_sh.position = Vector2(6, 7)
-		c.add_child(rb_sh)
-		var rb := Polygon2D.new()
-		rb.polygon = rb_poly
-		rb.color = Color(0.13, 0.14, 0.17, 0.97)
-		c.add_child(rb)
+		# PLACA "N HITS <RANGO>" (arte splash con hueco negro a la izquierda): el rango
+		# va HORNEADO en el arte; encima del hueco van los dígitos rojos sueltos
+		var pl := Sprite2D.new()
+		pl.scale = Vector2(0.36, 0.36)   # 1230x810 -> ~443x292 en pantalla
+		c.add_child(pl)
+		combo_plate.append(pl)
+		# dígitos: contenedor centrado en el HUECO de la placa (centro medido 398,388
+		# del lienzo 1230x810 cuyo centro es 615,405)
+		var dg := Node2D.new()
+		dg.position = Vector2((398.0 - 615.0) * 0.36, (388.0 - 405.0) * 0.36)
+		c.add_child(dg)
+		combo_digits.append(dg)
+		# nombre FORZADO del ultra (APOCALYPSE...): solo se ve en el remate; el rango
+		# normal ya viene pintado en la placa
 		var nm := Label.new()
 		nm.add_theme_font_override("font", combo_font)
 		nm.add_theme_font_size_override("font_size", 42)
@@ -393,25 +361,24 @@ func _ready() -> void:
 				Color(1.0, 0.9, 0.35) if i == 0 else Color(1.0, 0.55, 0.4))
 		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
 		nm.add_theme_constant_override("outline_size", 6)
-		nm.position = Vector2(-HW, 22)
-		nm.size = Vector2(2.0 * HW, 58)
+		nm.position = Vector2(-186, 180)
+		nm.size = Vector2(372, 58)
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		nm.rotation_degrees = -5.0
-		nm.pivot_offset = Vector2(HW, 29)
+		nm.visible = false
 		c.add_child(nm)
-		# daño total del combo, centrado debajo
+		# daño total del combo: PEGADO bajo la placa y en letras GORDAS (Arial Black)
 		var dl := Label.new()
-		dl.add_theme_font_size_override("font_size", 28)
+		dl.add_theme_font_override("font", combo_font)
+		dl.add_theme_font_size_override("font_size", 32)
 		dl.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0))
 		dl.add_theme_color_override("font_outline_color", Color(0.05, 0.05, 0.08))
-		dl.add_theme_constant_override("outline_size", 9)
-		dl.position = Vector2(-HW, 88)
-		dl.size = Vector2(2.0 * HW, 40)
+		dl.add_theme_constant_override("outline_size", 12)
+		dl.position = Vector2(-186, 138)
+		dl.size = Vector2(372, 40)
 		dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		c.add_child(dl)
 		combo_ui.append(c)
-		combo_num.append(n)
 		combo_nom.append(nm)
 		combo_dmg_lbl.append(dl)
 	# fogonazo de pantalla del BREAK (encima de todo, invisible en reposo)
@@ -520,6 +487,7 @@ func _ready() -> void:
 		code_stage = esc
 	_build_cutin()      # cut-in del INFIERNO: detrás de la acción, delante del escenario
 	_build_announce()   # anuncios + KO + retrato del ganador: DETRÁS de los peleadores
+	_build_round_banner()   # banners GET READY / FIGHT (imágenes): DELANTE, con golpe
 	# ===== PANTALLA PRINCIPAL (title): banner + VS CPU / TRAINER / VS ONLINE =====
 	var tp := Control.new()
 	tp.position = Vector2.ZERO
@@ -683,24 +651,36 @@ func _ready() -> void:
 	char_vs_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	char_vs_label.visible = false
 	$UI.add_child(char_vs_label)
+	# panel de MOVE LIST del TRAINER: centrado, grande y con clip para que el texto NO
+	# pueda salirse (las columnas usan autowrap para partir las líneas largas).
+	var mv_w := 1520.0
+	var mv_h := 968.0
+	var mv_mid := mv_w * 0.5 + 20.0    # separador vertical
 	var vp := ColorRect.new()
-	vp.color = Color(0.03, 0.03, 0.07, 0.93)
-	vp.position = Vector2(310, 110)
-	vp.size = Vector2(1300, 850)
+	vp.color = Color(0.10, 0.055, 0.19, 0.96)   # morado oscuro (paleta del logo)
+	vp.position = Vector2((1920.0 - mv_w) * 0.5, (1080.0 - mv_h) * 0.5)
+	vp.size = Vector2(mv_w, mv_h)
+	vp.clip_contents = true
 	vp.visible = false
 	$UI.add_child(vp)
 	moves_panel = vp
+	# MARCO morado con borde FINO (dibujado en _draw_moves_frame, lee el tamaño del nodo)
+	moves_frame = Control.new()
+	moves_frame.position = Vector2.ZERO; moves_frame.size = Vector2(mv_w, mv_h)
+	moves_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp.add_child(moves_frame)
+	moves_frame.draw.connect(_draw_moves_frame)
 	var vt := Label.new()
 	vt.text = "DAM — MOVE LIST"
 	vt.add_theme_font_size_override("font_size", 46)
-	vt.position = Vector2(0, 26)
-	vt.size = Vector2(1300, 60)
+	vt.position = Vector2(0, 28)
+	vt.size = Vector2(mv_w, 60)
 	vt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vp.add_child(vt)
 	moves_title = vt
 	# AVATAR del personaje (top-left) con marco de acento
 	var mvfr := ColorRect.new()
-	mvfr.position = Vector2(36, 16); mvfr.size = Vector2(108, 108)
+	mvfr.position = Vector2(39, 19); mvfr.size = Vector2(102, 102)
 	mvfr.color = Color(1.7, 0.4, 0.24, 1.0)
 	vp.add_child(mvfr)
 	moves_avframe = mvfr
@@ -712,64 +692,40 @@ func _ready() -> void:
 	mav.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vp.add_child(mav)
 	moves_avatar = mav
+	# lista de MOVES (columna izquierda). El texto por-personaje ya trae el encabezado "MOVES:".
 	var col1 := Label.new()
 	col1.add_theme_font_size_override("font_size", 24)
-	col1.position = Vector2(80, 118)
-	col1.size = Vector2(560, 520)
-	col1.text = "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\nJump + R  —  Air double slash\nJump →  —  forward flip\n\n▲ = launches into the air     ▼ = knocks down"
+	col1.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col1.position = Vector2(70, 160)
+	col1.size = Vector2(mv_mid - 70.0 - 30.0, mv_h - 160.0 - 80.0)
+	col1.text = "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)"
 	vp.add_child(col1)
 	moves_col1 = col1
 	# divisiones: linea bajo el titulo, columna central y pie
-	for dv in [[80.0, 98.0, 1140.0, 3.0], [648.0, 115.0, 3.0, 660.0], [80.0, 780.0, 1140.0, 3.0]]:
+	for dv in [[70.0, 118.0, mv_w - 140.0, 3.0], [mv_mid, 150.0, 3.0, mv_h - 258.0], [70.0, mv_h - 96.0, mv_w - 140.0, 3.0]]:
 		var linea := ColorRect.new()
 		linea.position = Vector2(dv[0], dv[1])
 		linea.size = Vector2(dv[2], dv[3])
-		linea.color = Color(0.95, 0.75, 0.3, 0.45)
+		linea.color = Color(0.62, 0.42, 1.0, 0.5)
 		vp.add_child(linea)
-	var ch := Label.new()
-	ch.text = "COMBOS   (Q = watch demo)"
-	ch.add_theme_font_size_override("font_size", 28)
-	ch.add_theme_color_override("font_color", Color(0.95, 0.8, 0.4))
-	ch.position = Vector2(690, 120)
-	ch.size = Vector2(560, 40)
-	vp.add_child(ch)
-	for k in DEMO_COMBOS.size():
-		var it := Label.new()
-		it.add_theme_font_size_override("font_size", 22)
-		it.position = Vector2(690, 158 + k * 44)
-		it.size = Vector2(590, 42)
-		vp.add_child(it)
-		moves_items.append(it)
-	# reglas de combo (movidas a la columna izquierda, bajo los golpes)
-	var regla := Label.new()
-	regla.text = "Combo rules: never repeat a move,\ngo WEAK → STRONG (R → Q → W → E).\nIn the air the ladder is free."
-	regla.add_theme_font_size_override("font_size", 21)
-	regla.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
-	regla.position = Vector2(80, 648)
-	regla.size = Vector2(560, 90)
-	vp.add_child(regla)
-	# separador dorado y bloque FINISHERS & POWER (derecha, bajo los combos)
-	var fsep := ColorRect.new()
-	fsep.position = Vector2(690, 604)
-	fsep.size = Vector2(600, 3)
-	fsep.color = Color(1.0, 0.6, 0.2, 0.6)
-	vp.add_child(fsep)
+	# bloque SPECIALS & FINISHERS (columna derecha completa)
 	var fin := Label.new()
-	fin.add_theme_font_size_override("font_size", 22)
-	fin.add_theme_color_override("font_color", Color(1.0, 0.82, 0.28))
-	fin.add_theme_color_override("font_outline_color", Color(0.22, 0.03, 0.0))
+	fin.add_theme_font_size_override("font_size", 24)
+	fin.add_theme_color_override("font_color", Color(0.82, 0.66, 1.0))
+	fin.add_theme_color_override("font_outline_color", Color(0.10, 0.02, 0.20))
 	fin.add_theme_constant_override("outline_size", 4)
-	fin.position = Vector2(690, 616)
-	fin.size = Vector2(600, 190)
+	fin.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fin.position = Vector2(mv_mid + 34.0, 160)
+	fin.size = Vector2(mv_w - (mv_mid + 34.0) - 40.0, mv_h - 160.0 - 80.0)
 	fin.text = "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP"
 	vp.add_child(fin)
 	moves_fin = fin
 	var vb := Label.new()
-	vb.text = "↑↓ select    Q watch demo    W pin/unpin on screen    ESC back"
+	vb.text = "ESC  back"
 	vb.add_theme_font_size_override("font_size", 26)
-	vb.add_theme_color_override("font_color", Color(1.0, 0.85, 0.25))
-	vb.position = Vector2(0, 790)
-	vb.size = Vector2(1300, 40)
+	vb.add_theme_color_override("font_color", Color(0.78, 0.6, 1.0))
+	vb.position = Vector2(0, mv_h - 52.0)
+	vb.size = Vector2(mv_w, 40)
 	vb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vp.add_child(vb)
 	var pp := ColorRect.new()
@@ -788,6 +744,7 @@ func _ready() -> void:
 	pp.add_child(pl)
 	pin_label = pl
 	_build_pause()          # menú de pausa de la pelea (ESC): CONTINUAR / COMBOS / SALIR
+	_build_charswap()       # overlay para cambiar de personaje en medio del training
 	if TRAINING:
 		_enter_training()
 	elif Sel.configured:
@@ -823,6 +780,10 @@ func _open_menu() -> void:
 	for i in 2:
 		combo_n[i] = 0
 		combo_ui[i].visible = false
+		fe_marks[i] = 0            # ronda nueva: sin marcas de Fe
+		fe_mark_decay[i] = 0.0
+	player.set_fe_marks(0)
+	dummy.set_fe_marks(0)
 	if moves_panel:
 		moves_panel.visible = false
 	if trainer_panel:
@@ -1008,6 +969,7 @@ func on_parry(quien: Node2D, atacante: Node2D) -> void:
 			dummy_hp = maxi(0, dummy_hp - d)
 		else:
 			player_hp = maxi(0, player_hp - d)
+		_dmg_number(atacante, d)
 		atacante._burst(0.95, false, 1, quien.fx_blue)
 		_shake(12.0, 0.1)
 	# NO lo ALEJA: queda cerca en take_hit para que el que hizo el counter SIGA COMBEANDO.
@@ -1046,14 +1008,32 @@ func _char_move_text(cid: String) -> Dictionary:
 	if cid == "favi":
 		return {
 			"title": "FE — MOVE LIST",
-			"moves": "MOVES:\n\nR  —  Quick needle jab (4)\n↓ + R  —  Low needle jab (4)\nQ  —  Scissor slash (10)\n→ + Q  —  Double scissor\nW  —  Heavy scissor (10)\n↓ + Q  —  Crouch scissor (3)\n↓ + W  —  Rising needles (5) ▲\nE  —  Needle spin · 2 hits\n↓ + E  —  Ground sweep (6) ▼\nJump + Q  —  Air scissor (4)\nJump + W  —  Dive needle (4)\nJump + E  —  Air somersault (8) ▲\n\n▲ = launches into the air     ▼ = knocks down",
-			"fin": "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  WATER GEYSER · 1/2/3 bodies\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick\n\nPARRY (Q + W together):  counter · 1 bar · breaks their combo",
+			"moves": "MOVES:\n\nR  —  Quick needle jab\n↓ + R  —  WHITE TIGER · 1.5 bars (drags · 4 hits)\nQ  —  High spin kick\nW  —  Double kick · high launches ▲\n↓ + Q  —  Crouch scissor\n↓ + W  —  Rising needles ▲\nE  —  Needle top-spin · 2 hits\n↓ + E  —  Ground sweep ▼\n←→ + Q  —  NEEDLE DASH · 3 hits\n↓→ + Q  —  THUNDER strike (close)\n↓→ + W  —  THUNDER strike (far)\nJump + Q  —  Air scissor\nJump + W  —  Needle dive\nJump + E  —  Flying kick ▲\nJump + R  —  Double air kick\n\n▲ = launches into the air     ▼ = knocks down",
+			"fin": "★  SPECIALS  &  FINISHERS  (meter: ↑E=2 · ↓←E=1)\n↑ + E  —  Combo Breaker (while hit) · or ANNIHILATION ultra\n        (2 bars + 3-hit combo + rival ≤25% HP)\n↓ → + R  —  APOCALYPSE · long ultra (3 bars + combo + rival ≤25% HP)\n↓ ↘ → + Q/W/E  —  THUNDER · 1/2/3 bodies · ½ bar\n← → + Q  —  NEEDLE DASH · rush, 3-hit combo\n↓ ← + E  —  WHIRLPOOL · 1 bar + combo (deadly spin ~40% HP)\nJump →  —  forward flip   ·   Jump + R  —  air double kick\n\nPARRY (Q + W together):  counter · 1 bar · breaks their combo",
 		}
 	return {
 		"title": "DAM — MOVE LIST",
 		"moves": "MOVES:\n\nR  —  Quick jab (4)\n↓ + R  —  Low jab (4)\nQ  —  Horizontal slash (8)\n→ + Q  —  Double slash (8+6)\n↓ ↘ →  + Q  —  EMBER DASH (15), wall slam\nW  —  Heavy slash (12)\n↓ + Q  —  Crouch slash (6)\n↓ + W  —  Rising launcher (9) ▲\nE  —  Traveling spin kick (13) ▲\n↓ + E  —  Ground sweep (12) ▼\nJump + Q  —  Air slash (9)\nJump + W  —  Dive kick (10)\nJump + E  —  Somersault kick (13) ▲\n\n▲ = launches into the air     ▼ = knocks down",
 		"fin": "★  SPECIALS  &  FINISHERS\n↑ + E  —  Combo Breaker (while hit, 1/round)\n↓ ↓ + E  —  INFERNO · his power\n        (after a 7-hit combo · 50 dmg)\n→ R  —  ANNIHILATION · short ultra (16 hits)\n→ E  —  APOCALYPSE · long ultra (31 hits)\n        ultras: 3-hit combo + rival ≤ 25% HP\n\nPARRY (Q + W together):  counter · 1 bar · breaks their combo",
 	}
+
+# marco morado con glow del panel de movimientos (estilo SF6)
+func _draw_moves_frame() -> void:
+	var PUR := Color(0.62, 0.40, 1.0)
+	var sz := moves_frame.size
+	var r := Rect2(0, 0, sz.x, sz.y)
+	# glow exterior MUY sutil (1 capa) + borde FINO de 1.5px
+	moves_frame.draw_rect(r.grow(3.0), Color(PUR.r, PUR.g, PUR.b, 0.10), false, 1.5)
+	moves_frame.draw_rect(r, PUR, false, 1.5)
+	# esquinas: brackets finos que dan el toque SF6 sin engordar el marco
+	var cs := 40.0
+	var br := Color(0.85, 0.7, 1.0)
+	for c in [[Vector2(0, 0), 1, 1], [Vector2(sz.x, 0), -1, 1], [Vector2(0, sz.y), 1, -1], [Vector2(sz.x, sz.y), -1, -1]]:
+		var p: Vector2 = c[0]
+		var sx: float = c[1]
+		var sy: float = c[2]
+		moves_frame.draw_line(p, p + Vector2(cs * sx, 0), br, 2.0)
+		moves_frame.draw_line(p, p + Vector2(0, cs * sy), br, 2.0)
 
 func _set_moves_text() -> void:
 	if moves_title == null:
@@ -1077,12 +1057,31 @@ func _set_moves_text() -> void:
 #  Estilo tipo SF6/Guilty Gear: velo oscuro + líneas de acción manga tintadas
 #  al color del personaje, placas inclinadas que se encienden al seleccionar.
 # ============================================================================
-const PAUSE_LABELS := ["CONTINUE", "COMBOS", "QUIT TO MENU"]
+const PAUSE_LABELS := ["CONTINUE", "COMBOS", "CHANGE CHARACTER", "QUIT TO MENU"]
 
-func _pause_plate_poly(w: float, h: float, slant: float) -> PackedVector2Array:
-	# paralelogramo inclinado (misma estética que los carteles de BREAK/COUNTER)
-	return PackedVector2Array([Vector2(slant, 0.0), Vector2(w, 0.0),
-			Vector2(w - slant, h), Vector2(0.0, h)])
+# === MENÚ DE PAUSA estilo SF6: panel de cristal violeta centrado con borde en glow,
+#     pestaña activa con caret ▼, filas centradas (la seleccionada resaltada en barra)
+#     y una línea de descripción abajo. Mismo overlay para VS y para TRAINING. ===
+const PAUSE_PANEL := Rect2(280, 160, 1360, 760)   # panel de cristal centrado
+# descripción de cada opción (una frase, en la voz del menú)
+const PAUSE_DESCS := [
+	"Resume the fight right where you left off.",
+	"Open the move list for your character.",
+	"Swap your fighter without leaving the match.",
+	"Return to the main menu. The current match ends.",
+]
+
+func _pause_glass_style(bg: Color, border: Color, radius: int, glow: float) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(2)
+	sb.border_color = border
+	if glow > 0.0:
+		sb.shadow_color = Color(border.r, border.g, border.b, 0.40)
+		sb.shadow_size = int(glow)
+	sb.anti_aliasing = true
+	return sb
 
 func _build_pause() -> void:
 	var root := Control.new()
@@ -1093,95 +1092,142 @@ func _build_pause() -> void:
 	root.visible = false
 	$UI.add_child(root)
 	pause_root = root
-	# velo oscuro casi opaco
+	# velo oscuro sobre la pelea congelada (deja ver el escenario tenue detrás del cristal)
 	var veil := ColorRect.new()
-	veil.color = Color(0.02, 0.02, 0.06, 0.9)
+	veil.color = Color(0.02, 0.02, 0.06, 0.72)
 	veil.position = Vector2.ZERO; veil.size = Vector2(1920, 1080)
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(veil)
-	# líneas de acción manga (ciclan y se tintan al color del personaje en _open/_process)
+	# líneas de acción manga MUY tenues detrás del panel (se recolorean por personaje)
 	var lines := TextureRect.new()
 	lines.size = Vector2(1920, 1080)
 	lines.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	lines.stretch_mode = TextureRect.STRETCH_SCALE
 	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lines.modulate = Color(1.7, 0.35, 0.22, 0.14)
+	lines.modulate = Color(1.7, 0.35, 0.22, 0.06)
 	if ultra_panels.size() > 0:
 		lines.texture = ultra_panels[0]
 	root.add_child(lines)
 	pause_lines = lines
-	# barras diagonales de acento (arriba y abajo) para enmarcar
-	for yb in [Vector2(0.0, 96.0), Vector2(0.0, 968.0)]:
-		var bar := Polygon2D.new()
-		bar.polygon = PackedVector2Array([Vector2(0, yb.y), Vector2(1920, yb.y - 34.0),
-				Vector2(1920, yb.y + 12.0), Vector2(0, yb.y + 46.0)])
-		bar.color = Color(1.7, 0.35, 0.22, 0.55)
-		bar.name = "AccentBar"
-		root.add_child(bar)
-	# título "PAUSA"
+	# ---- PANEL de cristal violeta con borde en glow (firma visual SF6) ----
+	var glass := Panel.new()
+	glass.position = PAUSE_PANEL.position
+	glass.size = PAUSE_PANEL.size
+	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_theme_stylebox_override("panel",
+		_pause_glass_style(Color(0.28, 0.13, 0.52, 0.82), Color(0.80, 0.52, 1.0, 0.95), 22, 18.0))
+	root.add_child(glass)
+	# brillo superior sutil (da sensación de cristal iluminado arriba)
+	var sheen := Panel.new()
+	sheen.position = Vector2(16, 14); sheen.size = Vector2(PAUSE_PANEL.size.x - 32, 150)
+	sheen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sheen.add_theme_stylebox_override("panel",
+		_pause_glass_style(Color(0.55, 0.32, 0.85, 0.28), Color(0, 0, 0, 0), 18, 0.0))
+	glass.add_child(sheen)
+	# fila de puntos de página (chrome decorativo SF6, arriba del todo)
+	var dots := Label.new()
+	dots.add_theme_font_size_override("font_size", 20)
+	dots.add_theme_color_override("font_color", Color(0.85, 0.7, 1.0, 0.7))
+	dots.text = "•  •  ●  •  •"
+	dots.position = Vector2(0, 20); dots.size = Vector2(PAUSE_PANEL.size.x, 26)
+	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(dots)
+	# ---- PESTAÑA ACTIVA (hace de título): "PAUSED" ----
 	var ttl := Label.new()
 	ttl.text = "PAUSED"
 	ttl.add_theme_font_override("font", combo_font)
-	ttl.add_theme_font_size_override("font_size", 150)
-	ttl.add_theme_color_override("font_color", Color(0.97, 0.97, 1.0))
-	ttl.add_theme_color_override("font_outline_color", Color(1.7, 0.35, 0.22))
-	ttl.add_theme_constant_override("outline_size", 14)
-	ttl.position = Vector2(230, 150)
-	ttl.size = Vector2(900, 170)
-	root.add_child(ttl)
+	ttl.add_theme_font_size_override("font_size", 56)
+	ttl.add_theme_color_override("font_color", Color(0.98, 0.97, 1.0))
+	ttl.add_theme_color_override("font_outline_color", Color(0.5, 0.2, 0.85))
+	ttl.add_theme_constant_override("outline_size", 8)
+	ttl.position = Vector2(0, 44); ttl.size = Vector2(PAUSE_PANEL.size.x, 70)
+	ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ttl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(ttl)
 	pause_title_lbl = ttl
-	# subtítulo: nombre del personaje elegido
+	# caret ▼ bajo la pestaña activa
+	var caret := Label.new()
+	caret.text = "▼"
+	caret.add_theme_font_size_override("font_size", 30)
+	caret.add_theme_color_override("font_color", Color(0.82, 0.55, 1.0))
+	caret.position = Vector2(0, 108); caret.size = Vector2(PAUSE_PANEL.size.x, 34)
+	caret.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caret.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(caret)
+	pause_caret = caret
+	# separador bajo la barra de pestaña
+	var topsep := ColorRect.new()
+	topsep.position = Vector2(60, 150); topsep.size = Vector2(PAUSE_PANEL.size.x - 120, 2)
+	topsep.color = Color(0.75, 0.55, 1.0, 0.35)
+	topsep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(topsep)
+	# subtítulo: personaje elegido — "AYE — ROUND PAUSED"
 	var sub := Label.new()
 	sub.add_theme_font_override("font", combo_font)
-	sub.add_theme_font_size_override("font_size", 46)
+	sub.add_theme_font_size_override("font_size", 30)
 	sub.add_theme_color_override("font_color", Color(1.7, 0.4, 0.24))
-	sub.position = Vector2(244, 322)
-	sub.size = Vector2(900, 56)
-	root.add_child(sub)
+	sub.position = Vector2(0, 166); sub.size = Vector2(PAUSE_PANEL.size.x, 40)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(sub)
 	pause_sub_lbl = sub
-	# placas del menú (inclinadas), una por opción
+	# ---- FILAS de opciones (centradas; la seleccionada se resalta con barra) ----
 	pause_items.clear()
 	pause_plates.clear()
-	var pw := 640.0
-	var ph := 92.0
-	var slant := 34.0
+	var row_x := 80.0
+	var row_w := PAUSE_PANEL.size.x - 160.0
+	var row_h := 84.0
+	var row_y0 := 250.0
+	var row_gap := 108.0
 	for i in PAUSE_LABELS.size():
-		var pos := Vector2(240.0, 468.0 + float(i) * 118.0)
-		# sombra
-		var sh := Polygon2D.new()
-		sh.polygon = _pause_plate_poly(pw, ph, slant)
-		sh.color = Color(0, 0, 0, 0.4)
-		sh.position = pos + Vector2(9, 10)
-		root.add_child(sh)
-		# placa
-		var plate := Polygon2D.new()
-		plate.polygon = _pause_plate_poly(pw, ph, slant)
-		plate.color = Color(0.08, 0.09, 0.14, 0.92)
-		plate.position = pos
-		root.add_child(plate)
-		pause_plates.append(plate)
-		# texto
+		var ry := row_y0 + float(i) * row_gap
+		# barra de resalte (visible solo en la fila seleccionada)
+		var bar := Panel.new()
+		bar.position = Vector2(row_x, ry)
+		bar.size = Vector2(row_w, row_h)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.add_theme_stylebox_override("panel",
+			_pause_glass_style(Color(1.0, 0.95, 1.0, 0.16), Color(0.9, 0.68, 1.0, 0.85), 12, 0.0))
+		bar.visible = false
+		glass.add_child(bar)
+		pause_plates.append(bar)
+		# texto de la opción
 		var lab := Label.new()
 		lab.add_theme_font_override("font", combo_font)
-		lab.add_theme_font_size_override("font_size", 48)
-		lab.add_theme_color_override("font_color", Color(0.6, 0.62, 0.7))
-		lab.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
-		lab.add_theme_constant_override("outline_size", 5)
-		lab.position = pos + Vector2(slant + 40.0, 16.0)
-		lab.size = Vector2(pw, ph)
+		lab.add_theme_font_size_override("font_size", 44)
+		lab.add_theme_color_override("font_color", Color(0.72, 0.68, 0.82))
+		lab.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.12, 0.8))
+		lab.add_theme_constant_override("outline_size", 4)
+		lab.position = Vector2(row_x, ry)
+		lab.size = Vector2(row_w, row_h)
+		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lab.text = PAUSE_LABELS[i]
-		root.add_child(lab)
+		glass.add_child(lab)
 		pause_items.append(lab)
-	# ayuda de controles (abajo)
+	# ---- línea de descripción (abajo, dentro del panel) ----
+	var desc := Label.new()
+	desc.add_theme_font_size_override("font_size", 28)
+	desc.add_theme_color_override("font_color", Color(0.86, 0.82, 0.94))
+	desc.position = Vector2(60, PAUSE_PANEL.size.y - 66)
+	desc.size = Vector2(PAUSE_PANEL.size.x - 120, 40)
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(desc)
+	pause_desc_lbl = desc
+	# ---- ayuda de controles (fuera del panel, abajo) ----
 	var hint := Label.new()
-	hint.add_theme_font_size_override("font_size", 30)
-	hint.add_theme_color_override("font_color", Color(1.0, 0.7, 0.5))
+	hint.add_theme_font_size_override("font_size", 28)
+	hint.add_theme_color_override("font_color", Color(0.85, 0.72, 1.0))
 	hint.add_theme_constant_override("outline_size", 4)
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
-	hint.text = "↑ ↓  MOVE       Q / ENTER  SELECT       ESC  RESUME FIGHT"
-	hint.position = Vector2(240, 900)
-	hint.size = Vector2(1440, 40)
+	hint.text = "↑ ↓  SELECT        Q / ENTER  CONFIRM        ESC  RESUME"
+	hint.position = Vector2(0, PAUSE_PANEL.end.y + 14)
+	hint.size = Vector2(1920, 40)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint)
 	pause_hint_lbl = hint
 	# ---- SUBPANEL DE COMBOS (lista de movimientos del personaje) ----
@@ -1194,80 +1240,93 @@ func _build_pause() -> void:
 	# fondo OPACO a pantalla completa: tapa el menú de pausa por completo (sin transparentar)
 	var backdrop := ColorRect.new()
 	backdrop.position = Vector2.ZERO; backdrop.size = Vector2(1920, 1080)
-	backdrop.color = Color(0.02, 0.01, 0.04, 1.0)
+	backdrop.color = Color(0.03, 0.02, 0.07, 0.96)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cp.add_child(backdrop)
-	var panel := ColorRect.new()
-	panel.color = Color(0.05, 0.04, 0.10, 1.0)
-	panel.position = Vector2(250, 96)
-	panel.size = Vector2(1420, 890)
+	# PANEL de cristal violeta con borde en glow (mismo look SF6 que el menú de pausa).
+	# clip_contents = true → NADA de texto puede escapar del cristal (ni por la derecha ni
+	# por abajo); combinado con autowrap en las columnas evita los desbordes.
+	const CB_W := 1520.0
+	const CB_H := 968.0
+	var panel := Panel.new()
+	panel.position = Vector2((1920.0 - CB_W) * 0.5, (1080.0 - CB_H) * 0.5)
+	panel.size = Vector2(CB_W, CB_H)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.clip_contents = true
+	panel.add_theme_stylebox_override("panel",
+		_pause_glass_style(Color(0.24, 0.11, 0.46, 0.94), Color(0.80, 0.52, 1.0, 0.95), 22, 18.0))
 	cp.add_child(panel)
 	pause_combos_border.clear()
-	# marco de acento (4 líneas)
-	for r in [Rect2(0, 0, 1420, 6), Rect2(0, 884, 1420, 6), Rect2(0, 0, 6, 890), Rect2(1414, 0, 6, 890)]:
-		var br := ColorRect.new()
-		br.position = r.position; br.size = r.size
-		br.color = Color(1.7, 0.4, 0.24, 0.6)
-		panel.add_child(br)
-		pause_combos_border.append(br)
+	# brillo superior sutil (cristal iluminado arriba)
+	var csheen := Panel.new()
+	csheen.position = Vector2(16, 14); csheen.size = Vector2(CB_W - 32.0, 130)
+	csheen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	csheen.add_theme_stylebox_override("panel",
+		_pause_glass_style(Color(0.55, 0.32, 0.85, 0.26), Color(0, 0, 0, 0), 18, 0.0))
+	panel.add_child(csheen)
 	var ct := Label.new()
 	ct.add_theme_font_override("font", combo_font)
-	ct.add_theme_font_size_override("font_size", 54)
+	ct.add_theme_font_size_override("font_size", 52)
 	ct.add_theme_color_override("font_color", Color(1.7, 0.4, 0.24))
-	ct.position = Vector2(0, 30); ct.size = Vector2(1420, 66)
+	ct.position = Vector2(0, 28); ct.size = Vector2(CB_W, 66)
 	ct.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(ct)
 	pause_combos_title = ct
-	# AVATAR del personaje (top-left) con marco de acento + brillo detrás
+	# AVATAR del personaje (top-left) con marco de acento FINO + halo mínimo detrás
 	var avglow := ColorRect.new()
-	avglow.position = Vector2(30, 12); avglow.size = Vector2(140, 140)
-	avglow.color = Color(1.7, 0.4, 0.24, 0.22)
+	avglow.position = Vector2(38, 14); avglow.size = Vector2(116, 116)
+	avglow.color = Color(1.7, 0.4, 0.24, 0.20)
 	panel.add_child(avglow)
 	pause_combos_border.append(avglow)
 	var avfr := ColorRect.new()
-	avfr.position = Vector2(40, 18); avfr.size = Vector2(120, 120)
+	avfr.position = Vector2(42, 18); avfr.size = Vector2(112, 112)
 	avfr.color = Color(1.7, 0.4, 0.24, 1.0)
 	panel.add_child(avfr)
 	pause_combos_avframe = avfr
 	var av := TextureRect.new()
-	av.position = Vector2(45, 23); av.size = Vector2(110, 110)
+	av.position = Vector2(44, 20); av.size = Vector2(108, 108)
 	av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	av.clip_contents = true
 	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(av)
 	pause_combos_avatar = av
-	# separador bajo el título
+	# separador bajo el título — ARRANCA DESPUÉS del avatar (ya no lo cruza) + morado
 	var sep := ColorRect.new()
-	sep.position = Vector2(90, 116); sep.size = Vector2(1240, 3)
-	sep.color = Color(1.0, 0.6, 0.3, 0.5)
+	sep.position = Vector2(190, 118); sep.size = Vector2(CB_W - 230.0, 3)
+	sep.color = Color(0.62, 0.42, 1.0, 0.55)
 	panel.add_child(sep)
-	pause_combos_border.append(sep)
+	# columnas: izquierda MOVES / derecha SPECIALS. AUTOWRAP para que las líneas largas
+	# (sobre todo las de la derecha) se partan en vez de salirse del panel.
+	var col_top := 160.0
+	var col_h := 740.0
+	var mid_x := CB_W * 0.5 + 20.0    # separador vertical algo a la derecha del centro
 	var cm := Label.new()
-	cm.add_theme_font_size_override("font_size", 27)
+	cm.add_theme_font_size_override("font_size", 25)
 	cm.add_theme_color_override("font_color", Color(0.92, 0.92, 0.96))
-	cm.position = Vector2(90, 150); cm.size = Vector2(640, 700)
+	cm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cm.position = Vector2(70, col_top); cm.size = Vector2(mid_x - 70.0 - 30.0, col_h)
 	panel.add_child(cm)
 	pause_combos_moves = cm
-	# separador vertical
+	# separador vertical (morado fijo)
 	var vsep := ColorRect.new()
-	vsep.position = Vector2(720, 140); vsep.size = Vector2(3, 700)
-	vsep.color = Color(1.0, 0.6, 0.3, 0.4)
+	vsep.position = Vector2(mid_x, col_top - 10.0); vsep.size = Vector2(3, col_h + 20.0)
+	vsep.color = Color(0.62, 0.42, 1.0, 0.45)
 	panel.add_child(vsep)
-	pause_combos_border.append(vsep)
 	var cf := Label.new()
-	cf.add_theme_font_size_override("font_size", 27)
-	cf.add_theme_color_override("font_color", Color(1.0, 0.82, 0.4))
-	cf.add_theme_color_override("font_outline_color", Color(0.22, 0.03, 0.0))
+	cf.add_theme_font_size_override("font_size", 25)
+	cf.add_theme_color_override("font_color", Color(0.82, 0.66, 1.0))
+	cf.add_theme_color_override("font_outline_color", Color(0.10, 0.02, 0.20))
 	cf.add_theme_constant_override("outline_size", 4)
-	cf.position = Vector2(760, 150); cf.size = Vector2(600, 700)
+	cf.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cf.position = Vector2(mid_x + 34.0, col_top); cf.size = Vector2(CB_W - (mid_x + 34.0) - 40.0, col_h)
 	panel.add_child(cf)
 	pause_combos_fin = cf
 	var cb := Label.new()
 	cb.add_theme_font_size_override("font_size", 28)
-	cb.add_theme_color_override("font_color", Color(1.0, 0.75, 0.45))
+	cb.add_theme_color_override("font_color", Color(0.78, 0.6, 1.0))
 	cb.text = "ESC / W  —  back"
-	cb.position = Vector2(0, 838); cb.size = Vector2(1420, 40)
+	cb.position = Vector2(0, CB_H - 52.0); cb.size = Vector2(CB_W, 40)
 	cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(cb)
 
@@ -1287,13 +1346,12 @@ func _open_pause() -> void:
 	pause_sub_lbl.add_theme_color_override("font_color", pause_accent)
 	pause_title_lbl.add_theme_color_override("font_outline_color", pause_accent)
 	pause_hint_lbl.add_theme_color_override("font_color", pause_accent.lerp(Color(1, 1, 1), 0.45))
-	pause_lines.modulate = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.14)
+	if pause_caret != null:
+		pause_caret.add_theme_color_override("font_color", pause_accent.lerp(Color(1, 1, 1), 0.35))
+	pause_lines.modulate = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.06)
 	pause_combos_title.add_theme_color_override("font_color", pause_accent)
 	for b in pause_combos_border:
 		(b as ColorRect).color = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.6)
-	for a in pause_root.get_children():
-		if a is Polygon2D and (a as Polygon2D).name == "AccentBar":
-			(a as Polygon2D).color = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.55)
 	pause_combos.visible = false
 	pause_root.visible = true
 	_pause_refresh()
@@ -1303,10 +1361,13 @@ func _pause_refresh() -> void:
 	for i in pause_items.size():
 		var selq := i == pause_sel
 		var lab := pause_items[i] as Label
-		var plate := pause_plates[i] as Polygon2D
-		lab.text = ("▶   " if selq else "     ") + String(PAUSE_LABELS[i])
-		lab.add_theme_color_override("font_color", Color(1, 1, 1) if selq else Color(0.58, 0.6, 0.7))
-		plate.color = pause_accent if selq else Color(0.08, 0.09, 0.14, 0.92)
+		var plate := pause_plates[i] as Panel
+		lab.text = String(PAUSE_LABELS[i])
+		lab.add_theme_color_override("font_color", Color(1, 1, 1) if selq else Color(0.72, 0.68, 0.82))
+		plate.visible = selq
+		plate.self_modulate = Color(1, 1, 1, 1)
+	if pause_desc_lbl != null and pause_sel < PAUSE_DESCS.size():
+		pause_desc_lbl.text = String(PAUSE_DESCS[pause_sel])
 
 # color de acento por personaje (morado Aye / azul Fe / rojo DAM)
 func _char_accent(cid: String) -> Color:
@@ -1343,6 +1404,127 @@ func _pause_show_combos(show: bool) -> void:
 				pause_combos_avatar.texture = load(avp)
 	pause_combos.visible = show
 
+# ============================================================================
+#  CAMBIAR PERSONAJE en medio del training (overlay estilo select morado)
+# ============================================================================
+func _build_charswap() -> void:
+	charswap_root = Control.new()
+	charswap_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	charswap_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charswap_root.visible = false
+	charswap_root.z_index = 60
+	$UI.add_child(charswap_root)
+	var bg := ColorRect.new()
+	bg.color = Color(0.05, 0.03, 0.09, 0.97)
+	bg.position = Vector2.ZERO; bg.size = Vector2(1920, 1080)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charswap_root.add_child(bg)
+	var title := Label.new()
+	title.add_theme_font_override("font", combo_font)
+	title.add_theme_font_size_override("font_size", 66)
+	title.add_theme_color_override("font_color", Color(0.82, 0.66, 1.0))
+	title.add_theme_constant_override("outline_size", 8)
+	title.add_theme_color_override("font_outline_color", Color(0.10, 0.0, 0.20))
+	title.text = "CHANGE CHARACTER"
+	title.position = Vector2(0, 120); title.size = Vector2(1920, 80)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	charswap_root.add_child(title)
+	# capa de marcos (encima de los avatares)
+	charswap_fx = Control.new()
+	charswap_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	charswap_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charswap_root.add_child(charswap_fx)
+	charswap_fx.draw.connect(_draw_charswap_fx)
+	# tarjetas (avatar + nombre) por personaje
+	var n := CHARS.size()
+	var cw := 300.0
+	var ch := 380.0
+	var gap := 70.0
+	var total := n * cw + (n - 1) * gap
+	var x0 := 960.0 - total / 2.0
+	var cy := 340.0
+	charswap_cards.clear()
+	for i in n:
+		var x := x0 + i * (cw + gap)
+		var av := TextureRect.new()
+		var ap := String(CHARS[i]["avatar"])
+		if ResourceLoader.exists(ap):
+			av.texture = load(ap)
+		av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		av.clip_contents = true
+		av.position = Vector2(x, cy); av.size = Vector2(cw, ch)
+		av.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		charswap_root.add_child(av)
+		var nm := Label.new()
+		nm.add_theme_font_override("font", combo_font)
+		nm.add_theme_font_size_override("font_size", 40)
+		nm.add_theme_constant_override("outline_size", 6)
+		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		nm.text = String(CHARS[i]["name"])
+		nm.position = Vector2(x, cy + ch + 16); nm.size = Vector2(cw, 50)
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		charswap_root.add_child(nm)
+		charswap_cards.append({"av": av, "name": nm, "rect": Rect2(x, cy, cw, ch)})
+	var hint := Label.new()
+	hint.add_theme_font_override("font", combo_font)
+	hint.add_theme_font_size_override("font_size", 28)
+	hint.add_theme_color_override("font_color", Color(0.78, 0.6, 1.0))
+	hint.text = "← →   ELEGIR      ENTER / Q   CONFIRMAR      ESC   CANCELAR"
+	hint.position = Vector2(0, 900); hint.size = Vector2(1920, 40)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	charswap_root.add_child(hint)
+
+func _draw_charswap_fx() -> void:
+	var pulse := 0.6 + 0.4 * sin(float(Time.get_ticks_msec()) / 1000.0 * 5.0)
+	var PUR := Color(0.7, 0.5, 1.0)
+	for i in charswap_cards.size():
+		var r: Rect2 = charswap_cards[i]["rect"]
+		if i == charswap_sel:
+			for k in range(4, 0, -1):
+				charswap_fx.draw_rect(r.grow(k * 4.0), Color(PUR.r, PUR.g, PUR.b, 0.10 * pulse), false, 3.0)
+			charswap_fx.draw_rect(r.grow(5.0), Color(PUR.r, PUR.g, PUR.b, 0.95), false, 7.0)
+			var cxm := r.position.x + r.size.x * 0.5
+			charswap_fx.draw_colored_polygon(PackedVector2Array([
+					Vector2(cxm - 18, r.position.y - 32), Vector2(cxm + 18, r.position.y - 32), Vector2(cxm, r.position.y - 8)]),
+					Color(PUR.r, PUR.g, PUR.b, pulse))
+		else:
+			charswap_fx.draw_rect(r.grow(3.0), Color(0.5, 0.5, 0.6, 0.6), false, 3.0)
+
+func _open_charswap() -> void:
+	# índice del personaje actual
+	charswap_sel = 0
+	for i in CHARS.size():
+		if String(CHARS[i]["id"]) == selected_char:
+			charswap_sel = i
+			break
+	# atenúa/apaga las tarjetas no elegidas
+	for i in charswap_cards.size():
+		(charswap_cards[i]["av"] as TextureRect).modulate = Color(1, 1, 1, 1.0 if i == charswap_sel else 0.55)
+	pause_root.visible = false
+	charswap_root.visible = true
+	charswap_fx.queue_redraw()
+	state = "charswap"
+
+func _charswap_confirm() -> void:
+	var new_id := String(CHARS[charswap_sel]["id"])
+	selected_char = new_id
+	_apply_char(player, new_id)
+	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
+	player.revive()
+	player.position = Vector2(630, 625)
+	player.set_facing(1)
+	_refresh_hud_chars()
+	charswap_root.visible = false
+	# reanuda la pelea directamente
+	pause_root.visible = false
+	pause_in_combos = false
+	pause_combos.visible = false
+	state = "fight"
+	Engine.time_scale = 1.0
+	player.input_enabled = true
+	dummy.ai_enabled = dummy_ai_mode
+
 func _pause_confirm() -> void:
 	match pause_sel:
 		0:
@@ -1350,6 +1532,8 @@ func _pause_confirm() -> void:
 		1:
 			_pause_show_combos(true)         # COMBOS
 		2:
+			_open_charswap()                 # CAMBIAR PERSONAJE (en medio del training)
+		3:
 			# SALIR AL MENÚ PRINCIPAL (restaurar time_scale ANTES de cambiar de escena)
 			Engine.time_scale = 1.0
 			Sel.configured = false
@@ -1636,7 +1820,7 @@ func _favi_action_frames(accion: String) -> Array:
 
 const FAVI_SPD := 1.2   # Favi es assassin ágil: anima y se desplaza ~20% más rápido que DAM
 # Favi es una NENA de ~10 años al lado de DAM (joven adulto): se ve más baja.
-const FAVI_SCALE := 0.85            # ~68% de la altura de DAM (su cabeza a la altura del pecho)
+const FAVI_SCALE := 1.0             # Fe (~10 años) claramente MÁS ALTA que Aye (~5): 1.0 -> ~496px vs 458 de Aye (+8%) AUN en guardia agachada. Con 0.95 quedaban casi iguales en pantalla.
 # En la textura (1300x1280, centrada) los pies están ~500px bajo el centro (feetY 1140 - 640).
 # A escala 1.0 (como DAM) los pies caen en el PISO; para otra escala se compensa el offset
 # para que los pies sigan cayendo en ese MISMO piso (y no floten ni se hundan).
@@ -1653,6 +1837,32 @@ const AYE_FEET_FROM_CENTER := 500.0
 # así que sube proporcional. El offset compensa para que los pies sigan en el piso.
 const DAM_SCALE := 1.10
 const DAM_FEET_FROM_CENTER := 500.0
+
+# registra una ANIM ESTÁNDAR compartida (GUIA-COMUN: frozen, electrocuted, step, ...),
+# solo si ya existen sus frames — el patrón común para TODOS los personajes
+func _register_shared_anim(sf: SpriteFrames, nombre: String, frames: Array, fps: float, en_loop := true) -> void:
+	if frames.is_empty() or sf.has_animation(nombre):
+		return
+	sf.add_animation(nombre)
+	sf.set_animation_loop(nombre, en_loop)
+	sf.set_animation_speed(nombre, fps)
+	for t in frames:
+		sf.add_frame(nombre, t)
+
+func _favi_register_frozen(sf: SpriteFrames) -> void:
+	# ELECTROCUTADO estándar (GUIA-COMUN): convulsión SF mientras dura la descarga
+	_register_shared_anim(sf, "electrocuted", _favi_action_frames("electrocuted"), 24.0)
+	# PASO CORTO / BACKDASH (doble-tap, GUIA-COMUN): un disparo, sin loop
+	_register_shared_anim(sf, "step", _favi_action_frames("step"), 30.0, false)
+	_register_shared_anim(sf, "backdash", _favi_action_frames("backdash"), 30.0, false)
+	# CONGELADO estándar (GUIA-COMUN): solo si ya hay frames en favi/frozen/
+	var ffz := _favi_action_frames("frozen")
+	if not ffz.is_empty() and not sf.has_animation("frozen"):
+		sf.add_animation("frozen")
+		sf.set_animation_loop("frozen", true)
+		sf.set_animation_speed("frozen", 12.0)
+		for t in ffz:
+			sf.add_frame("frozen", t)
 
 func _build_favi_frames() -> SpriteFrames:
 	var dam := load("res://fighter_frames.tres") as SpriteFrames
@@ -1683,12 +1893,25 @@ func _build_favi_frames() -> SpriteFrames:
 		else:
 			for t in real:
 				sf.add_frame(anim, t)
-	# animación EXCLUSIVA de Fe: water_cast (especial de agua ↓↘→+W). Placeholder = pose
-	# hasta tener water-cast-fe-sheet.png (5 frames) procesado en favi/water_cast/.
+	# animación EXCLUSIVA de Fe: water_cast = THUNDER-CAST (invoca el rayo, especiales
+	# ↓↘→). v2 de video: 50 frames (subida al cielo f1-17 + latigazo adelante f78-110;
+	# el hold estático del clip se saltó). 90fps ≈ 0.55s, rápido para encadenar.
 	if not sf.has_animation("water_cast"):
 		sf.add_animation("water_cast")
 	sf.set_animation_loop("water_cast", false)
-	sf.set_animation_speed("water_cast", 15.0)   # cast RÁPIDO para poder encadenar el combo
+	sf.set_animation_speed("water_cast", 90.0 if _favi_action_frames("water_cast").size() > 5 else 15.0)
+	# AÉREAS RÁPIDAS (pedido global del usuario)
+	if sf.has_animation("jump_punch"):
+		sf.set_animation_speed("jump_punch", 28.0)
+	if sf.has_animation("jump_kick"):
+		# v2 del clavado: 22 frames completos del clip (f66-87) -> 70fps para el mismo
+		# ~0.31s veloz; los 8 frames viejos (submuestreados) iban a 28
+		sf.set_animation_speed("jump_kick", 70.0 if sf.get_frame_count("jump_kick") > 12 else 28.0)
+	# walk NUEVO: UN PASO limpio (f13..36 del clip, 24 frames) con el pase elegante erguido.
+	# Las dos piernas de Fe se ven iguales => un paso en loop = caminata completa. Paso de
+	# 267px de pantalla a 484px/s -> 0.55s = 24f a 44fps: sin patinar
+	if sf.has_animation("walk"):
+		sf.set_animation_speed("walk", 44.0)
 	var wc := _favi_action_frames("water_cast")
 	if wc.is_empty():
 		for i in 5:
@@ -1717,12 +1940,15 @@ func _build_favi_frames() -> SpriteFrames:
 		for t in whl:
 			sf.add_frame("whirlpool", t)
 	# PATADA AÉREA DOBLE (salto+R): animación EXCLUSIVA de Fe (no existe en DAM).
+	# v2 (42 frames): DOBLE ARMADA A MANO del clip air_jab.mp4 (chamber → patada →
+	# recoge → patada otra vez → recogida) porque la herramienta solo generaba UNA.
 	var aj := _favi_action_frames("air_jab")
 	if not aj.is_empty():
 		if not sf.has_animation("air_jab"):
 			sf.add_animation("air_jab")
+		sf.clear("air_jab")
 		sf.set_animation_loop("air_jab", false)
-		sf.set_animation_speed("air_jab", 16.0)   # 4 frames ~0.25s = doble patadita rápida
+		sf.set_animation_speed("air_jab", 85.0 if aj.size() > 8 else 16.0)   # v2 VELOZ ~0.49s / sheet viejo 0.25s
 		for t in aj:
 			sf.add_frame("air_jab", t)
 	# MORTAL AÉREO HACIA ADELANTE (salto + alante): flip que rota, EXCLUSIVA de Fe.
@@ -1743,11 +1969,132 @@ func _build_favi_frames() -> SpriteFrames:
 		sf.set_animation_speed("counter", 16.0)
 		for t in cnt:
 			sf.add_frame("counter", t)
-	# el mortal aéreo (salto+E) va MÁS RÁPIDO que el resto de las animaciones de Fe
-	if sf.has_animation("air_spin_kick"):
+	# SALTO+E NUEVO (clip air_spin_kick): PATADA VOLADORA de agujas — carga + extensión +
+	# recogida del video (40 frames). Reemplaza el mortal del sheet viejo.
+	var fask := _favi_action_frames("air_spin_kick")
+	if fask.size() > 8:
+		if not sf.has_animation("air_spin_kick"):
+			sf.add_animation("air_spin_kick")
+		sf.clear("air_spin_kick")
+		for t in fask:
+			sf.add_frame("air_spin_kick", t)
+		sf.set_animation_loop("air_spin_kick", false)
+		sf.set_animation_speed("air_spin_kick", 78.0)   # aérea RÁPIDA (~0.51s)
+		# CAÍDA AÉREA de Fe ("air_fall"): la RECOGIDA de la voladora (pierna plegándose,
+		# frames 28-39) como anim de caída tras un ataque aéreo — sin ventanas de golpe.
+		# El jump W congelado en su remate se veía "cayendo de pie con los pies abiertos".
+		if not sf.has_animation("air_fall"):
+			sf.add_animation("air_fall")
+			sf.set_animation_loop("air_fall", false)
+			sf.set_animation_speed("air_fall", 26.0)
+			for i in range(28, fask.size()):
+				sf.add_frame("air_fall", fask[i])
+	elif sf.has_animation("air_spin_kick"):
+		# fallback sheet viejo: va MÁS RÁPIDO que el resto de las anims de Fe
 		sf.set_animation_speed("air_spin_kick", sf.get_animation_speed("air_spin_kick") * 1.5)
+	# Q NUEVO (clip punch.mp4): PATADA ALTA GIRADA de suelo — planta el pie, la pierna
+	# sube vertical y barre adelante (26 frames). Reemplaza la tijera del sheet viejo.
+	var fpn := _favi_action_frames("punch")
+	if fpn.size() > 12:
+		if not sf.has_animation("punch"):
+			sf.add_animation("punch")
+		sf.clear("punch")
+		for t in fpn:
+			sf.add_frame("punch", t)
+		sf.set_animation_loop("punch", false)
+		sf.set_animation_speed("punch", 50.0)   # Q ligero y SNAPPY (26 frames ~0.52s)
+	# W NUEVO (clip kick.mp4): DOBLE PATADA con la MISMA pierna — cintura y luego ALTA a
+	# la cara (73 frames; la pausa muerta del clip entre patadas se excluyó). La ALTA lanza.
+	var fkn := _favi_action_frames("kick")
+	if fkn.size() > 12:
+		if not sf.has_animation("kick"):
+			sf.add_animation("kick")
+		sf.clear("kick")
+		for t in fkn:
+			sf.add_frame("kick", t)
+		sf.set_animation_loop("kick", false)
+		sf.set_animation_speed("kick", 105.0)   # doble patada VELOZ ~0.70s (Fe es assassin)
+	# AGACHARSE NUEVO (clip crouch.mp4): transición parada→agache con TODOS los frames
+	# (22). Rápida — y al soltar ↓ el juego la reproduce en REVERSA para levantarse.
+	if sf.has_animation("crouch") and sf.get_frame_count("crouch") > 8:
+		sf.set_animation_speed("crouch", 75.0)
+	# ↓R NUEVO (clip crouch_jab_1.mp4): CAST DEL TIGRE — agachada señala al frente
+	# comandando el ataque (54 frames). NO golpea: el daño lo hará el TIGRE de energía.
+	var fcj := _favi_action_frames("crouch_jab")
+	if fcj.size() > 8:
+		if not sf.has_animation("crouch_jab"):
+			sf.add_animation("crouch_jab")
+		sf.clear("crouch_jab")
+		for t in fcj:
+			sf.add_frame("crouch_jab", t)
+		sf.set_animation_loop("crouch_jab", false)
+		sf.set_animation_speed("crouch_jab", 95.0)   # cast ~0.57s
+	# ↓E NUEVO (clip sweep.mp4): BARRIDA rasante — carga, pierna barre el piso, se
+	# incorpora con el impulso y asienta al agache (87 frames, TODOS: movimiento continuo).
+	var fsw := _favi_action_frames("sweep")
+	if fsw.size() > 8:
+		if not sf.has_animation("sweep"):
+			sf.add_animation("sweep")
+		sf.clear("sweep")
+		for t in fsw:
+			sf.add_frame("sweep", t)
+		sf.set_animation_loop("sweep", false)
+		sf.set_animation_speed("sweep", 105.0)   # barrida ~0.83s
+	# ↓W NUEVO (clip crouch_kick.mp4): LANZADOR — del agache sube clavando la aguja en
+	# lunge hacia adelante (48 frames; el lunge sostenido del clip se comprimió).
+	var fck := _favi_action_frames("crouch_kick")
+	if fck.size() > 8:
+		if not sf.has_animation("crouch_kick"):
+			sf.add_animation("crouch_kick")
+		sf.clear("crouch_kick")
+		for t in fck:
+			sf.add_frame("crouch_kick", t)
+		sf.set_animation_loop("crouch_kick", false)
+		sf.set_animation_speed("crouch_kick", 95.0)   # lanzador ~0.51s
+	# ↓Q NUEVO (clip crouch_punch.mp4): DOBLE ESTOCADA AGACHADA — ambos brazos juntos
+	# (40 frames; la extensión sostenida del clip se comprimió). Arranca YA agachada.
+	var fcp := _favi_action_frames("crouch_punch")
+	if fcp.size() > 8:
+		if not sf.has_animation("crouch_punch"):
+			sf.add_animation("crouch_punch")
+		sf.clear("crouch_punch")
+		for t in fcp:
+			sf.add_frame("crouch_punch", t)
+		sf.set_animation_loop("crouch_punch", false)
+		sf.set_animation_speed("crouch_punch", 100.0)   # poke agachado rápido (~0.40s)
+	# R NUEVO (clip weak_punch.mp4): JAB DE AGUJA — subida + estocada de esgrima +
+	# recogida (35 frames; la extensión sostenida del clip se comprimió). SNAPPY.
+	var fwp := _favi_action_frames("weak_punch")
+	if fwp.size() > 8:
+		if not sf.has_animation("weak_punch"):
+			sf.add_animation("weak_punch")
+		sf.clear("weak_punch")
+		for t in fwp:
+			sf.add_frame("weak_punch", t)
+		sf.set_animation_loop("weak_punch", false)
+		sf.set_animation_speed("weak_punch", 95.0)   # jab rápido (~0.37s)
+	# E NUEVO (clip spin_kick.mp4): PEONZA de video — molinillo completo con frenado y
+	# vuelta a guardia (85 frames; la cola estática del clip se excluyó). RÁPIDA: es su spin.
+	var fsp := _favi_action_frames("spin_kick")
+	if fsp.size() > 12:
+		if not sf.has_animation("spin_kick"):
+			sf.add_animation("spin_kick")
+		sf.clear("spin_kick")
+		for t in fsp:
+			sf.add_frame("spin_kick", t)
+		sf.set_animation_loop("spin_kick", false)
+		sf.set_animation_speed("spin_kick", 130.0)   # trompo VELOZ (~0.65s)
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
+	_favi_register_frozen(sf)   # CONGELADO estándar si ya hay frames
+	# land NUEVO (5 frames del clip de jump: toque->flexión->recuperación)
+	var fln := _favi_action_frames("land")
+	if not fln.is_empty() and not sf.has_animation("land"):
+		sf.add_animation("land")
+		sf.set_animation_loop("land", false)
+		sf.set_animation_speed("land", 17.0)
+		for t in fln:
+			sf.add_frame("land", t)
 	return sf
 
 func _char_data(id: String) -> Dictionary:
@@ -1848,6 +2195,16 @@ func _build_aye_frames() -> SpriteFrames:
 		for t in mc_frames:
 			sf.add_frame("mana_charge", t)
 	# PUMMELED (tambaleo en LOOP mientras la comban en el super/finishers): 23 frames @20fps (~1.15s).
+	# CONGELADO estándar (GUIA-COMUN): solo si ya hay frames en aye/frozen/
+	var azf := _aye_action_frames("frozen")
+	if not azf.is_empty() and not sf.has_animation("frozen"):
+		sf.add_animation("frozen")
+		sf.set_animation_loop("frozen", true)
+		sf.set_animation_speed("frozen", 12.0)
+		for t in azf:
+			sf.add_frame("frozen", t)
+	# ELECTROCUTADO estándar (GUIA-COMUN): convulsión SF mientras dura la descarga
+	_register_shared_anim(sf, "electrocuted", _aye_action_frames("electrocuted"), 24.0)
 	var pm_frames := _aye_action_frames("pummeled")
 	if not pm_frames.is_empty():
 		if not sf.has_animation("pummeled"):
@@ -1948,8 +2305,12 @@ func _build_aye_frames() -> SpriteFrames:
 			sf.add_animation("teleport")
 		sf.set_animation_loop("teleport", false)
 		sf.set_animation_speed("teleport", 30.0)
-		for t in aye_tp:
-			sf.add_frame("teleport", t)
+		# SOLO frames 1-6 (rayitas glitch PEGADAS al cuerpo). Del 7 en adelante el clip
+		# se vuelve una BANDA/CUADRO rectangular a pantalla (el "cuadrado" que se veía
+		# en teleport aéreo y backstab). Los orquestadores retienen el último frame
+		# (fighter._on_animation_finished) hasta reaparecer.
+		for i in mini(6, aye_tp.size()):
+			sf.add_frame("teleport", aye_tp[i])
 	# JUMP_KICK_CAST (salto+Q de Aye): gira el báculo (molinete) y al LANZARLO al frente invoca 3
 	# proyectiles de cristal RECTOS (frames 6-9). NO es anim de DAM -> se agrega aparte. 9 frames @ 22fps
 	# = ~0.41s (cabe en el airtime; los 3 disparos salen en la fase de lanzamiento). Tuneable.
@@ -1982,7 +2343,7 @@ func _build_aye_frames() -> SpriteFrames:
 	# pummeled/get_up (ya tuneadas), ko/ko_air/victory (escenas), pose (idle), crystal_flurry (ultra).
 	for aa in ["walk", "walk_back", "jump", "land", "weak_punch", "punch", "kick",
 			"crouch_punch", "crouch_kick", "crouch_jab", "sweep", "jump_punch", "jump_kick",
-			"jump_kick_cast", "crystal_cast", "teleport", "counter", "air_jab",
+			"jump_kick_cast", "crystal_cast", "counter", "air_jab",
 			"take_hit", "take_hit_low"]:
 		if sf.has_animation(aa) and not _aye_action_frames(aa).is_empty():
 			sf.set_animation_speed(aa, sf.get_animation_speed(aa) * 1.25)
@@ -2006,6 +2367,71 @@ func _dam_action_frames(accion: String) -> Array:
 
 func _build_dam_frames() -> SpriteFrames:
 	var sf := load("res://fighter_frames.tres") as SpriteFrames
+	# jump NUEVO (8 frames del clip: agacharse->despegue->vuelo->pose de caída al final;
+	# el .tres solo traía 4) + land (5 frames: toque->flexión profunda->recuperación)
+	var djn := _dam_action_frames("jump")
+	if djn.size() > 4:
+		sf.clear("jump")
+		for t in djn:
+			sf.add_frame("jump", t)
+		sf.set_animation_speed("jump", 14.0)
+	# estados ESTÁNDAR compartidos (GUIA-COMUN), solo si ya hay frames en dam/<estado>/
+	_register_shared_anim(sf, "frozen", _dam_action_frames("frozen"), 12.0)
+	_register_shared_anim(sf, "electrocuted", _dam_action_frames("electrocuted"), 24.0)
+	_register_shared_anim(sf, "step", _dam_action_frames("step"), 30.0, false)
+	_register_shared_anim(sf, "backdash", _dam_action_frames("backdash"), 30.0, false)
+	var dln := _dam_action_frames("land")
+	if not dln.is_empty() and not sf.has_animation("land"):
+		sf.add_animation("land")
+		sf.set_animation_loop("land", false)
+		sf.set_animation_speed("land", 15.0)
+		for t in dln:
+			sf.add_frame("land", t)
+	# jump_punch NUEVO (8 frames: espada arriba -> TAJO down-forward -> follow; el .tres traía 3)
+	var djp := _dam_action_frames("jump_punch")
+	if djp.size() > 4:
+		sf.clear("jump_punch")
+		for t in djp:
+			sf.add_frame("jump_punch", t)
+		sf.set_animation_speed("jump_punch", 42.0)   # aéreas MUY rápidas
+	# SALTO+R NUEVO (clip jum-mortal): MORTAL completo, reemplaza el doble corte air_jab
+	var daj := _dam_action_frames("air_jab")
+	if daj.size() > 4:
+		sf.clear("air_jab")
+		for t in daj:
+			sf.add_frame("air_jab", t)
+		sf.set_animation_speed("air_jab", 92.0)   # mortal en ~0.47s (aéreas MUY rápidas)
+	# SALTO+E NUEVO (clip jump_kick_2): PATADA VOLADORA, reemplaza el air_spin_kick viejo
+	var dask := _dam_action_frames("air_spin_kick")
+	if dask.size() > 6:
+		sf.clear("air_spin_kick")
+		for t in dask:
+			sf.add_frame("air_spin_kick", t)
+		sf.set_animation_speed("air_spin_kick", 95.0)   # voladora en ~0.56s
+	# jump_kick NUEVO (6 frames: espada arriba en el salto -> TAJO que baja; el .tres traía 3)
+	var djk := _dam_action_frames("jump_kick")
+	if djk.size() > 4:
+		sf.clear("jump_kick")
+		for t in djk:
+			sf.add_frame("jump_kick", t)
+		sf.set_animation_speed("jump_kick", 70.0)   # MOLINETE: 65 frames (~0.93s) — hélice veloz, 3 pasadas
+	# walk NUEVO: el ciclo del arte cubre 840px de lienzo (924 en pantalla) y su velocidad
+	# (620*0.65*1.1 = 443px/s) recorre eso en 2.08s -> 24 frames a 11.5fps = CERO patinaje
+	# (el .tres solo traía 8 frames w1-w8: se limpia y se recarga desde la carpeta)
+	var dwn := _dam_action_frames("walk")
+	if dwn.size() > 8:
+		sf.clear("walk")
+		for t in dwn:
+			sf.add_frame("walk", t)
+	sf.set_animation_speed("walk", 11.5)
+	# CONGELADO estándar (GUIA-COMUN): se registra solo si ya hay frames en dam/frozen/
+	var dfz := _dam_action_frames("frozen")
+	if not dfz.is_empty() and not sf.has_animation("frozen"):
+		sf.add_animation("frozen")
+		sf.set_animation_loop("frozen", true)
+		sf.set_animation_speed("frozen", 12.0)
+		for t in dfz:
+			sf.add_frame("frozen", t)
 	# Salto + R = DOBLE CORTE AÉREO (air_jab)
 	if not sf.has_animation("air_jab"):
 		var aj := _dam_action_frames("air_jab")
@@ -2039,7 +2465,12 @@ func _apply_char(f: Node2D, id: String) -> void:
 	var c := _char_data(id)
 	f.archetype = String(c["arch"])
 	f.fx_blue = id == "favi"   # estela del arma AZUL para Favi (naranja fuego para DAM)
+	if id == "favi":
+		f.swing_y_off = 144.0   # sus frames llevan el cuerpo MÁS ABAJO en el lienzo (coronilla 644 vs 500 de DAM): baja las estelas a su cuerpo
 	f.fx_floral = id == "aye"  # estela MORADA+ROSA para Aye (se resetea para los demas)
+	# ALTURA corporal real vs DAM (arte 638×1.10=702): Fe 496×1.0=496 -> 0.71;
+	# Aye 632×0.72=455 -> 0.65. Escala alcances verticales y chispas de impacto.
+	f.body_k = 0.71 if id == "favi" else (0.65 if id == "aye" else 1.0)
 	if id == "favi":
 		f.sprite.sprite_frames = _build_favi_frames()
 		# base_scale (no sprite.scale directo): el efecto squash del fighter reescribe
@@ -2061,7 +2492,8 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, DAM_FEET_FROM_CENTER / DAM_SCALE - DAM_FEET_FROM_CENTER)
-		f.spd = 0.9   # TANK: se desplaza más lento (le cuesta acercarse a un zoner) -> su debilidad
+		f.spd = 1.1   # con el walk nuevo (zancada larga, espada al frente) 0.9 lo hacía PATINAR: anim rápida y cuerpo lento. 1.1 + anim a 11fps sincronizan el paso
+		f.jump_mult = 1.26   # el jump nuevo (impulso + vuelo recogido) pide MÁS altura (1.18 se quedaba corto)
 		f.has_super_armor = true   # TANK: super armor en el arranque de su pesado (kick)
 		# KO tendido de DAM: el cuerpo flotaba (el pixel más bajo era la mano/katana).
 		# Se baja el boca-arriba y se sube el boca-abajo (que estaba hundido ~100px).
@@ -2080,14 +2512,16 @@ const WATER_LIFT := [1.1, 1.5, 2.0]   # altura de lanzamiento por nivel (más al
 # efecto visual del cast de Fe: borde AZUL eléctrico brillante + pocas partículas azules
 var _fe_cast_mat: ShaderMaterial = null
 var _fe_cast_particles: CPUParticles2D = null
-func _fe_cast_fx(caster: Node2D, on: bool) -> void:
+func _fe_cast_fx(caster: Node2D, on: bool, body_dx := 0.0) -> void:
+	# body_dx: offset local X del CUERPO vs el centro del nodo (el arte agachado de Fe
+	# vive ~84px detrás del centro tras plantar los pies; se voltea con el facing)
 	if on:
 		if _fe_cast_mat == null:
 			var sh := Shader.new()
 			sh.code = _OUTLINE_CODE
 			_fe_cast_mat = ShaderMaterial.new()
 			_fe_cast_mat.shader = sh
-			_fe_cast_mat.set_shader_parameter("line_color", Color(0.35, 0.75, 2.0, 1.0))  # azul marino eléctrico
+			_fe_cast_mat.set_shader_parameter("line_color", Color(1.5, 1.7, 2.3, 1.0))  # BLANCO-azulado (energía pura, pivote del poder de Fe)
 			_fe_cast_mat.set_shader_parameter("intensity", 0.95)
 		caster.sprite.material = _fe_cast_mat
 		if not is_instance_valid(_fe_cast_particles):
@@ -2105,11 +2539,11 @@ func _fe_cast_fx(caster: Node2D, on: bool) -> void:
 			p.initial_velocity_max = 140.0
 			p.scale_amount_min = 2.2
 			p.scale_amount_max = 4.5
-			p.color = Color(0.5, 0.85, 1.7, 0.9)   # azul eléctrico marino claro
+			p.color = Color(1.4, 1.6, 2.1, 0.9)   # blanco-azulado (energía pura)
 			p.z_index = 4
 			add_child(p)
 			_fe_cast_particles = p
-		_fe_cast_particles.global_position = caster.to_global(Vector2(0, 320.0))  # torso de Fe
+		_fe_cast_particles.global_position = caster.to_global(Vector2(body_dx * caster.facing, 320.0))  # torso de Fe
 		_fe_cast_particles.emitting = true
 	else:
 		if caster.sprite.material == _fe_cast_mat:
@@ -2124,15 +2558,20 @@ func _fe_cast_fx(caster: Node2D, on: bool) -> void:
 func _fe_water_special(caster: Node2D, bodies: int) -> void:
 	var victima: Node2D = dummy if caster == player else player
 	_fe_cast_fx(caster, true)                            # borde + partículas azules
-	get_tree().create_timer(0.45).timeout.connect(func() -> void:   # se apaga al terminar el cast
+	get_tree().create_timer(0.55).timeout.connect(func() -> void:   # se apaga al terminar el cast (~50f @90)
 		if is_instance_valid(caster): _fe_cast_fx(caster, false))
-	await get_tree().create_timer(0.18).timeout          # windup corto del cast (grita)
+	# windup: el RAYO cae justo cuando el latigazo del thunder-cast baja (frame ~25 @90fps)
+	await get_tree().create_timer(0.28).timeout
 	if not is_instance_valid(caster) or not is_instance_valid(victima):
 		return
 	# NO auto-apunta: brota a 1/2/3 CUERPOS adelante de Fe (el jugador adivina la posición)
 	var gx: float = caster.position.x + float(caster.facing) * GEYSER_BODY * float(bodies)
 	gx = clampf(gx, 120.0, 1800.0)                        # dentro del escenario
 	caster.spawn_water_geyser(gx)
+	# FOGONAZO BLANCO de pantalla un instante: el flash del relámpago (el decay de
+	# flash_ms lo desvanece solo en 0.3s)
+	flash_rect.color = Color(1, 1, 1, 0.55)
+	flash_ms = Time.get_ticks_msec()
 	_shake(9.0, 0.14)
 	await get_tree().create_timer(0.10).timeout           # sube el chorro y conecta
 	if not is_instance_valid(victima) or not is_instance_valid(caster):
@@ -2143,14 +2582,13 @@ func _fe_water_special(caster: Node2D, bodies: int) -> void:
 		var dir: int = signi(victima.position.x - caster.position.x)
 		if dir == 0:
 			dir = caster.facing
-		var h: float = WATER_LIFT[bodies - 1]
-		var res: String = victima.receive_hit(false, true, dir, "kick_impact", false, h)
-		if res == "launched":
-			victima.water_flash_t = 0.45                 # capa azul: golpeado por el agua
-			victima.water_bg = true                      # estela de sombras AZULES + cuerpo azul hasta caer
-			# deriva ~1 CUERPO hacia atrás por golpe: pasa de 1→2→3 cuerpos para encadenar Q→W→E
-			victima.vel_x = float(dir) * 450.0
+		# el RAYO NO lanza (pedido): golpe seco en el sitio + ELECTROCUTADO — la víctima
+		# parpadea blanco-azul semitransparente intermitente (electro_t en su cadena de tintes)
+		var res: String = victima.receive_hit(false, false, dir, "kick_impact")
+		if res == "hit" or res == "launched":
+			victima.electro_t = 0.55
 			var dmg: int = WATER_DMG[bodies - 1]
+			_dmg_number(victima, dmg)
 			if victima == dummy:
 				dummy_hp = maxi(0, dummy_hp - dmg)
 				if dummy_hp <= 0:
@@ -2207,6 +2645,7 @@ func _fe_dash_attack(caster: Node2D) -> void:
 			victima.water_flash_t = 0.22          # leve toque azul del agua
 			_shake(5.0, 0.08)
 			var dmg: int = DASH_DMG[i]
+			_dmg_number(victima, dmg)
 			if victima == dummy:
 				dummy_hp = maxi(0, dummy_hp - dmg)
 				if dummy_hp <= 0:
@@ -2232,8 +2671,9 @@ func _refresh_hud_chars() -> void:
 		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			hud_avatar[side].texture = load(String(c["avatar"]))
 			_cover_avatar(hud_avatar[side], 114, 114, 1.4 if ids[side] == "aye" else 1.0)   # Aye: acerca su cara
-		# MANA: ¿este lado es mago (wizard)? -> muestra el anillo y carga su retrato
-		var is_mage: bool = String(c.get("arch", "")) == "wizard"
+		# ANILLO de recurso: magos (wizard = maná) y FE (assassin = INSTINTO de las
+		# marcas: se llena con tiempo, el crítico lo vacía)
+		var is_mage: bool = String(c.get("arch", "")) == "wizard" or String(c["id"]) == "favi"
 		mana_is_mage[side] = is_mage
 		if mana_hud[side] != null:
 			mana_hud[side].visible = is_mage
@@ -2266,22 +2706,46 @@ func _start_round() -> void:
 		combo_t[i] = 99.0
 		combo_last[i] = ""
 		combo_ui[i].visible = false
-	meter = [1.0, 1.0]        # arranca con 1 barra (solo INFERNO); las otras 2 se ganan
+	meter = [METER_MAX, METER_MAX]   # arranca con las barras CARGADAS (pedido del usuario)
 	mana = [1.0, 1.0]        # mana lleno al empezar la ronda (los magos arrancan con hechizos)
 	mana_flash_t = [0.0, 0.0]
 	mana_full_flash_t = [0.0, 0.0]
 	mana_was_full = [true, true]   # arranca full: no destella en el intro
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	announce.visible = false
-	# READY cruza desde la IZQUIERDA -> FIGHT! entra desde la DERECHA casi cuando READY se va
-	_show_announce("READY", Color(0.88, 0.74, 0.20), 1.0, -1)   # sólido, bajo el umbral de glow
-	await get_tree().create_timer(0.82).timeout
-	_show_announce("FIGHT!", Color(0.88, 0.31, 0.18), 0.9, 1)
+	# GET READY (golpe) -> FIGHT (golpe) usando las imágenes con croma recortado
+	_show_round_banner("ready", 1.05)
+	await get_tree().create_timer(0.95).timeout
+	_show_round_banner("fight", 0.85)
 	await get_tree().create_timer(0.55).timeout
 	state = "fight"
 	player.input_enabled = true
 	dummy.ai_enabled = dummy_ai_mode
 	dummy.ai_break_drill = break_practice   # en BREAK PRACTICE la IA se lanza a encadenar combos
+
+# ===== MARCAS de Fe (mecánica firma del assassin) =====
+# Cada 3 golpes ENCADENADOS de Fe plantan una MARCA en el rival (diamantes azules sobre
+# su cabeza). Con 3 marcas, el PRÓXIMO golpe FÍSICO revienta un CRÍTICO fijo de 300
+# (número gigante) y consume las marcas. Sin marcar en un rato, se van cayendo de a una.
+var fe_marks := [0, 0]          # marcas puestas POR el lado i (viven en su rival)
+var fe_mark_decay := [0.0, 0.0]
+const FE_MARK_MAX := 3
+const FE_MARK_DECAY := 6.0      # segundos sin marcar para que se caiga una
+const FE_CRIT_DMG := 300
+
+func _fe_add_mark(idx: int) -> void:
+	# INSTINTO (anillo tipo maná, azul): las marcas SOLO se acumulan con el anillo
+	# LLENO — así no puede aplicar la mecánica todo el tiempo. Sin instinto: blink rojo.
+	if mana[idx] < 0.999:
+		mana_flash_t[idx] = 0.5
+		return
+	fe_mark_decay[idx] = FE_MARK_DECAY
+	if fe_marks[idx] >= FE_MARK_MAX:
+		return
+	fe_marks[idx] += 1
+	var victima: Node2D = dummy if idx == 0 else player
+	if is_instance_valid(victima):
+		victima.set_fe_marks(fe_marks[idx])
 
 func _combo_name(n: int) -> String:
 	if n >= 11: return "LEGENDARY!!"
@@ -2312,6 +2776,9 @@ func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 	if combo_n[idx] > 3:
 		factor = maxf(1.0 - 0.1 * float(combo_n[idx] - 3), 0.5)
 	var dmg_real := maxi(1, int(round(dmg * factor)))
+	# MARCA de Fe: cada 3 golpes encadenados planta una marca en el rival
+	if is_instance_valid(atk_f) and atk_f.fx_blue and combo_n[idx] % 3 == 0:
+		_fe_add_mark(idx)
 	if combo_n[idx] == 1:
 		combo_dmg[idx] = dmg_real
 	else:
@@ -2338,15 +2805,42 @@ func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 		ding_player.play()
 	if combo_n[idx] >= 2:
 		var c: Node2D = combo_ui[idx]
-		combo_num[idx].text = str(combo_n[idx])
-		combo_ghost[idx].text = str(combo_n[idx])
-		var nombre := _combo_name(combo_n[idx])
-		combo_nom[idx].text = nombre
-		combo_nom[idx].visible = nombre != ""
+		_combo_display(idx, combo_n[idx])
 		c.modulate = Color(1, 1, 1, 1)
 		c.scale = Vector2(1.35, 1.35)
 		c.visible = true
 	return dmg_real
+
+# arma el cartel de combo con el ARTE nuevo: placa por rango + dígitos rojos en el hueco
+# negro. nombre != "" (ultras: APOCALYPSE...) agrega el label extra bajo la placa.
+func _combo_display(idx: int, n: int, nombre := "") -> void:
+	var rango := _combo_name(n)
+	var pkey: String = COMBO_PLATE_BY_RANK.get(rango, "double")
+	combo_plate[idx].texture = combo_plate_tex[pkey]
+	combo_nom[idx].text = nombre
+	combo_nom[idx].visible = nombre != ""
+	var dg: Node2D = combo_digits[idx]
+	for ch in dg.get_children():
+		ch.queue_free()
+	var s := str(n)
+	# 1 dígito grande; 2+ más chicos, solapando los splashes para leerse como uno.
+	# Tamaños DENTRO del hueco (~223px): con 0.23 el dígito se salía y tapaba el rango
+	var sc := 0.175 if s.length() == 1 else (0.135 if s.length() == 2 else 0.11)
+	var cxs := []
+	var acc := 0.0
+	for k in s.length():
+		if k > 0:
+			var wprev: float = combo_digit_tex[int(String(s[k - 1]))].get_width()
+			var wcur: float = combo_digit_tex[int(String(s[k]))].get_width()
+			acc += (wprev + wcur) * 0.5 * sc * 0.76
+		cxs.append(acc)
+	var mid: float = (cxs[0] + cxs[cxs.size() - 1]) * 0.5
+	for k in s.length():
+		var sp := Sprite2D.new()
+		sp.texture = combo_digit_tex[int(String(s[k]))]
+		sp.scale = Vector2(sc, sc)
+		sp.position = Vector2(cxs[k] - mid, 0.0)
+		dg.add_child(sp)
 
 # ---- ULTRA COMBO (estilo Killer Instinct) ----
 # se dispara con → R R cuando el rival esta a <=15% de vida y traes un combo de
@@ -2380,13 +2874,9 @@ func try_ultra(atacante: Node2D, largo := false) -> bool:
 func _ultra_count(idx: int, n: int, nombre := "") -> void:
 	combo_n[idx] = n
 	combo_t[idx] = 0.0
-	combo_num[idx].text = str(n)
-	combo_ghost[idx].text = str(n)
-	# sin nombre forzado, usa el RANGO normal (DOUBLE, TRIPLE, ...); el nombre del
-	# ultra (APOCALYPSE, etc.) solo se muestra en el remate
-	var rango := nombre if nombre != "" else _combo_name(n)
-	combo_nom[idx].text = rango
-	combo_nom[idx].visible = rango != ""
+	# sin nombre forzado, la placa trae el RANGO normal (DOUBLE, TRIPLE, ...); el nombre
+	# del ultra (APOCALYPSE, etc.) solo se muestra en el remate como label extra
+	_combo_display(idx, n, nombre)
 	var c: Node2D = combo_ui[idx]
 	c.modulate = Color(1, 1, 1, 1)
 	c.scale = Vector2(1.5, 1.5)
@@ -2736,6 +3226,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 				dummy_hp = maxi(0, dummy_hp - d)
 			else:
 				player_hp = maxi(0, player_hp - d)
+			_dmg_number(victima, d)
 			_ultra_count(idx, n0 + hit_i)                # rango normal (sube hit por hit)
 			combo_dmg[idx] += d                          # el daño total se va sumando
 			combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
@@ -2814,6 +3305,7 @@ func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
 	var vflur := "res://imagen-action/aye/sound-effect/crystal_flurry_Cupcake_Eleven_v3_019ff390-2631-7f3d-8d53-c74ae4ef5664.mp3"
 	if ResourceLoader.exists(vflur):
 		atacante.voz_player.stream = load(vflur)
+		atacante.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		atacante.voz_player.play()
 	var combo_x: float = float(combo_rest_x[idx])
 	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)
@@ -2992,9 +3484,11 @@ func _aye_blink(caster: Node2D, fwd := false) -> void:
 	caster.ai_enabled = false
 	if caster.sprite.sprite_frames.has_animation("teleport"):
 		caster.sprite.play("teleport")
+	caster._spawn_jump_dust(0.65)   # poof de SALIDA (el blink es solo de suelo)
 	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
 	if ResourceLoader.exists(vr):
 		caster.voz_player.stream = load(vr)
+		caster.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		caster.voz_player.play()
 	var base_off: float = caster.sprite.offset.x
 	var t := 0.0
@@ -3017,12 +3511,12 @@ func _aye_blink(caster: Node2D, fwd := false) -> void:
 				_bdest = minf(caster.position.x, maxf(_bdest, _bopp.position.x + BODY_SEP))
 		caster.position.x = clampf(_bdest, LEFT_LIMIT, RIGHT_LIMIT)
 		caster.position.y = caster.floor_y
+		caster._spawn_jump_dust(0.65)   # poof de LLEGADA
 		if caster.sprite.sprite_frames.has_animation("teleport"):
-			# glitch de ENTRADA: la anim AL REVÉS desde el frame 6 (el glitch se disuelve).
-			# NO reproducirla completa hacia adelante: los frames 10-11 son el CUADRO glitch
-			# a pantalla completa (55%+ del lienzo) y se veía un rectángulo gigante.
+			# glitch de ENTRADA: la anim AL REVÉS (el glitch se disuelve sobre el cuerpo);
+			# arranca sola en el último frame registrado (la anim solo tiene los frames
+			# buenos 1-6, el cuadro del clip quedó fuera en _build_aye_frames)
 			caster.sprite.play_backwards("teleport")
-			caster.sprite.frame = 6
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
 
@@ -3046,9 +3540,12 @@ func _aye_teleport(caster: Node2D, from_air := false) -> void:
 	# GLITCH OUT en el sitio + sonido + TIEMBLA (jitter del sprite + shake de cámara)
 	if caster.sprite.sprite_frames.has_animation("teleport"):
 		caster.sprite.play("teleport")
+	if not from_air:
+		caster._spawn_jump_dust(0.7)   # poof de SALIDA — SOLO en el suelo (aéreo no)
 	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
 	if ResourceLoader.exists(vr):
 		caster.voz_player.stream = load(vr)
+		caster.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		caster.voz_player.play()
 	var base_off: float = caster.sprite.offset.x
 	var hold_y: float = caster.position.y   # en el aire: congela su altura durante el glitch (sin caer)
@@ -3069,6 +3566,8 @@ func _aye_teleport(caster: Node2D, from_air := false) -> void:
 	# REAPARECE justo AL FRENTE del rival, encarándolo, con un GOLPE
 	var dir := 1 if opp.position.x >= caster.position.x else -1
 	caster.position.x = clampf(opp.position.x - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
+	if not from_air:
+		caster._spawn_jump_dust(0.7)   # poof de LLEGADA — SOLO en el suelo
 	if from_air:
 		# EN EL AIRE: reaparece a la altura del rival (si también está arriba) o mantiene su altura
 		# aérea, y remata con un GOLPE AÉREO. Luego cae normal (gravedad).
@@ -3095,8 +3594,9 @@ func try_whirlpool(atacante: Node2D) -> bool:
 	var idx := 0 if atacante == player else 1
 	if meter[idx] < 1.0:
 		return false          # cuesta 1 BARRA (el "primer poder", como el INFERNO de DAM)
-	if combo_n[idx] < 2 or combo_t[idx] > COMBO_WINDOW:
-		return false          # necesita 2-3 golpes encadenados vivos
+	if combo_n[idx] < 2 or combo_t[idx] > COMBO_WINDOW + 0.45:
+		return false          # necesita 2-3 golpes encadenados; ventana EXTENDIDA (~1.2s):
+		# el motion ↓←E toma su tiempo tras el último hit (con 0.75 justos casi nunca salía)
 	meter[idx] -= 1.0
 	_run_whirlpool(atacante, idx)
 	return true
@@ -3104,9 +3604,12 @@ func try_whirlpool(atacante: Node2D) -> bool:
 func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
-	# SOLO agarra al rival si está EN EL SUELO y CERCA. Si está en el aire o lejos, Fe gira en
-	# VACÍO (whiff): hace el remolino pero NO lo teletransporta ni le pega.
-	var alcanza: bool = (not victima.airborne) and absf(victima.position.x - atacante.position.x) < 450.0
+	# agarra al rival si está CERCA y: en el SUELO, o en el AIRE BAJO (cayendo) — el combo
+	# natural Q→W LANZA y el whirlpool debe TRAGARSE al rival cuando cae (el vórtice de
+	# agua sube alto). Lejos o demasiado alto: whiff (gira en vacío).
+	var v_alt: float = victima.floor_y - victima.position.y
+	var alcanza: bool = absf(victima.position.x - atacante.position.x) < 450.0 \
+			and ((not victima.airborne) or v_alt < 380.0)
 	ultra_active = true
 	state = "ultra"
 	player.input_enabled = false
@@ -3127,6 +3630,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	var voz = load("res://imagen-action/favi/Fe-sound-effect/whirlpool-fe.wav")
 	if voz != null and atacante.voz_player != null:
 		atacante.voz_player.stream = voz
+		atacante.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		atacante.voz_player.play()
 	# CUT-IN del PERSONAJE (como el inferno de DAM): retrato de Fe en el lado opuesto al combo
 	var combo_x: float = float(combo_rest_x[idx])
@@ -3137,9 +3641,12 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(0.28, true, false, true).timeout
 	Engine.time_scale = 1.0
-	# el rival queda atrapado AL LADO de Fe (SOLO si estaba en el suelo y cerca)
+	# el rival queda atrapado AL LADO de Fe (en el suelo, o cayendo BAJO tras un lanzador)
 	if alcanza:
 		victima.airborne = false
+		victima.hit_flying = false   # si venía LANZADO (Q→W→whirlpool), el vórtice lo baja
+		victima.vel_x = 0.0
+		victima.vel_y = 0.0
 		victima.crouching = false
 		victima.position.y = victima.floor_y
 		victima.set_facing(-dir)
@@ -3167,7 +3674,9 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 		spin_clock += dt
 		atacante.sprite.frame = 1 + (int(spin_clock / 0.045) % 3)
 		if alcanza:
-			victima.position.x = clampf(atacante.position.x + float(dir) * 190.0, 120.0, 1800.0)
+			# a BODY_SEP justo (con 190 quedaba SOLAPADA con Fe y el empuje anti-traspaso
+			# arrastraba al par por el piso durante todo el huracán)
+			victima.position.x = clampf(atacante.position.x + float(dir) * BODY_SEP, 120.0, 1800.0)
 			victima.position.y = victima.floor_y
 		# HURACÁN: suelta SOMBRAS azules y levanta POLVO bajo sus pies mientras gira
 		ghost_cd -= dt
@@ -3190,6 +3699,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 				dummy_hp = maxi(0, dummy_hp - d)
 			else:
 				player_hp = maxi(0, player_hp - d)
+			_dmg_number(victima, d)
 			_ultra_count(idx, n0 + hit_i)
 			combo_dmg[idx] += d
 			combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
@@ -3431,6 +3941,7 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 		atacante.sprite.play("water_cast")
 		if atacante.voz_player != null:
 			atacante.voz_player.stream = load("res://imagen-action/favi/Fe-sound-effect/water-cast-fe-energetica.wav")
+			atacante.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 			atacante.voz_player.play()
 		if atacante.has_method("spawn_water_geyser"):
 			atacante.spawn_water_geyser(victima.position.x)
@@ -3864,6 +4375,7 @@ func _play_victory_line(who = null) -> void:
 		# pequeño delay para que la voz caiga cuando la boca empieza a moverse (frame ~4)
 		await get_tree().create_timer(0.35).timeout
 		voz_player.stream = stream
+		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
 
 # grito de finisher: reproduce voz-<nombre>.wav si existe (voz infernal)
@@ -3874,6 +4386,7 @@ func _play_voz(nombre: String) -> void:
 	var st = _voz_cache[nombre]
 	if st != null and voz_player != null:
 		voz_player.stream = st
+		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
 
 # voz de la patada giratoria (E): reproductor propio + cooldown para que no
@@ -3889,6 +4402,7 @@ func _play_kick_voz() -> void:
 	if st != null and kick_voz_player != null:
 		_kick_voz_t = ahora
 		kick_voz_player.stream = st
+		kick_voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		kick_voz_player.play()
 
 # dispara un temblor de pantalla (amp en px, dur en seg); se acumula al mayor
@@ -4092,6 +4606,63 @@ func _build_announce() -> void:
 	anno_main.position = Vector2(0, 356)
 	anno_root.add_child(anno_main)
 
+# --- banners de inicio de ronda (imágenes GET READY / FIGHT) ---
+func _build_round_banner() -> void:
+	round_banner = TextureRect.new()
+	round_banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	round_banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	round_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	round_banner.size = RB_BOX
+	round_banner.pivot_offset = RB_BOX * 0.5           # escala desde el centro (para el golpe)
+	round_banner.position = RB_CENTER - RB_BOX * 0.5
+	round_banner.z_index = 100                          # DELANTE de peleadores y HUD
+	round_banner.z_as_relative = false
+	round_banner.visible = false
+	add_child(round_banner)
+	if ResourceLoader.exists(RB_READY):
+		rb_ready_tex = load(RB_READY)
+	if ResourceLoader.exists(RB_FIGHT):
+		rb_fight_tex = load(RB_FIGHT)
+
+func _show_round_banner(which: String, dur: float) -> void:
+	if round_banner == null:
+		return
+	var tex: Texture2D = rb_ready_tex if which == "ready" else rb_fight_tex
+	if tex == null:
+		return
+	round_banner.texture = tex
+	rb_dur = dur
+	rb_ms = Time.get_ticks_msec()
+	rb_impact_done = false
+	round_banner.position = RB_CENTER - RB_BOX * 0.5
+	round_banner.visible = true
+	round_banner.scale = Vector2(2.6, 2.6)
+	round_banner.modulate.a = 0.0
+
+# GOLPE: entra ENORME y se cierra de golpe con rebote (ease_out_back) + sacudida al aterrizar;
+# sale creciendo un pelín y desvaneciéndose. Reloj REAL (inmune al time_scale del intro).
+func _round_banner_tick() -> void:
+	if round_banner == null or not round_banner.visible:
+		return
+	var t := float(Time.get_ticks_msec() - rb_ms) / 1000.0
+	if t < 0.0 or t > rb_dur:
+		round_banner.visible = false
+		return
+	var IN := 0.20
+	var OUT := 0.22
+	var pin := clampf(t / IN, 0.0, 1.0)
+	var pout := clampf((t - (rb_dur - OUT)) / OUT, 0.0, 1.0)
+	var sc := lerpf(2.6, 1.0, _ease_out_back(pin))     # zoom de golpe con rebote
+	var a := clampf(pin * 4.0, 0.0, 1.0)
+	if pout > 0.0:
+		sc = lerpf(1.0, 1.16, _ease_in_cubic(pout))    # al irse crece un poco
+		a = 1.0 - pout
+	round_banner.scale = Vector2(sc, sc)
+	round_banner.modulate.a = a
+	if not rb_impact_done and pin >= 0.6:              # dispara la sacudida al aterrizar
+		rb_impact_done = true
+		_shake(22.0, 0.28)
+
 func _show_announce(txt: String, col: Color, dur: float, side := -1) -> void:
 	if anno_root == null:
 		return
@@ -4288,15 +4859,6 @@ func _focus_tick() -> void:
 	_focus_apply()
 
 # color de la banda del combo: VERDE (pocos hits) -> rojo CLARO -> rojo INTENSO
-func _combo_band_color(n: int) -> Color:
-	var t := clampf((float(n) - 2.0) / 8.0, 0.0, 1.0)   # 0 en 2 hits, 1 en 10+
-	var verde := Color(0.62, 0.86, 0.16)
-	var rojo_claro := Color(1.55, 0.5, 0.38)            # rojo claro (HDR, con bloom)
-	var rojo_int := Color(1.95, 0.11, 0.11)             # rojo intenso
-	if t < 0.5:
-		return verde.lerp(rojo_claro, t / 0.5)
-	return rojo_claro.lerp(rojo_int, (t - 0.5) / 0.5)
-
 func _ease_out_back(p: float) -> float:
 	# entrada con rebote: pasa el destino y regresa (overshoot)
 	var c1 := 1.70158
@@ -4332,6 +4894,13 @@ func _physics_process(_delta: float) -> void:
 		if victima.hit_flying:
 			combo_t[i] = 0.0  # mientras la victima vuela, el combo sigue vivo
 		combo_t[i] += _delta
+		# MARCAS de Fe: sin marcar en un rato, se van cayendo de a una
+		if fe_marks[i] > 0 and state == "fight":
+			fe_mark_decay[i] -= _delta
+			if fe_mark_decay[i] <= 0.0:
+				fe_marks[i] -= 1
+				fe_mark_decay[i] = FE_MARK_DECAY
+				victima.set_fe_marks(fe_marks[i])
 		var c: Node2D = combo_ui[i]
 		# al APARECER (combo nuevo): fija el lado CONTRARIO a donde mira el atacante
 		# (i=0 ataca el jugador, i=1 ataca el rival) y dispara la entrada deslizada
@@ -4341,8 +4910,6 @@ func _physics_process(_delta: float) -> void:
 			combo_rest_x[i] = 270.0 if atk.facing > 0 else 1650.0
 		combo_was_vis[i] = c.visible
 		if c.visible:
-			# la banda vira de VERDE a ROJO (claro->intenso) según crece el combo
-			combo_band[i].color = _combo_band_color(combo_n[i])
 			# ENTRA deslizando desde SU borde (el opuesto a donde mira el atacante)
 			var rest_x: float = combo_rest_x[i]
 			var off_x: float = rest_x - 780.0 if rest_x < 960.0 else rest_x + 780.0
@@ -4457,30 +5024,51 @@ func _physics_process(_delta: float) -> void:
 					_open_menu()
 		return
 	if state == "moves":
-		var dirm2 := 0
-		if Input.is_action_just_pressed("ui_up"):
-			dirm2 = -1
-		if Input.is_action_just_pressed("ui_down"):
-			dirm2 = 1
-		moves_sel = posmod(moves_sel + dirm2, moves_items.size())
-		if Input.is_action_just_pressed("kick"):
-			pinned_combo = -1 if pinned_combo == moves_sel else moves_sel
-		for j in moves_items.size():
-			moves_items[j].modulate = Color(1.0, 0.85, 0.25) if j == moves_sel else Color(0.85, 0.85, 0.9)
-			moves_items[j].text = ("▶ " if j == moves_sel else "   ") \
-					+ ("★ " if j == pinned_combo else "") + DEMO_COMBOS[j][0]
-		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
-			_run_demo(String(DEMO_COMBOS[moves_sel][1]))
-		elif Input.is_action_just_pressed("ui_cancel"):
+		if Input.is_action_just_pressed("ui_cancel"):
 			moves_panel.visible = false
 			state = "trainer"
 			trainer_panel.visible = true
+			return
+		# navegación/demo de combos (solo si hay lista de combos; el panel simple no la tiene)
+		if moves_items.size() > 0:
+			var dirm2 := 0
+			if Input.is_action_just_pressed("ui_up"):
+				dirm2 = -1
+			if Input.is_action_just_pressed("ui_down"):
+				dirm2 = 1
+			moves_sel = posmod(moves_sel + dirm2, moves_items.size())
+			if Input.is_action_just_pressed("kick"):
+				pinned_combo = -1 if pinned_combo == moves_sel else moves_sel
+			for j in moves_items.size():
+				moves_items[j].modulate = Color(1.0, 0.85, 0.25) if j == moves_sel else Color(0.85, 0.85, 0.9)
+				moves_items[j].text = ("▶ " if j == moves_sel else "   ") \
+						+ ("★ " if j == pinned_combo else "") + DEMO_COMBOS[j][0]
+			if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
+				_run_demo(String(DEMO_COMBOS[moves_sel][1]))
 		return
 	if state == "demo":
 		if Input.is_action_just_pressed("ui_cancel"):
 			_open_moves()
 			return
 	# ===== MENÚ DE PAUSA (mientras está congelado el combate) =====
+	if state == "charswap":
+		charswap_fx.queue_redraw()
+		var dcs := 0
+		if Input.is_action_just_pressed("ui_left"):
+			dcs = -1
+		if Input.is_action_just_pressed("ui_right"):
+			dcs = 1
+		if dcs != 0:
+			charswap_sel = posmod(charswap_sel + dcs, charswap_cards.size())
+			for i in charswap_cards.size():
+				(charswap_cards[i]["av"] as TextureRect).modulate = Color(1, 1, 1, 1.0 if i == charswap_sel else 0.55)
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
+			_charswap_confirm()
+		elif Input.is_action_just_pressed("ui_cancel"):
+			charswap_root.visible = false
+			pause_root.visible = true
+			state = "pause"
+		return
 	if state == "pause":
 		# animación en tiempo REAL (el juego está en time_scale 0): líneas manga ciclan
 		# y la placa activa PULSA. Time.get_ticks_msec NO se ve afectado por time_scale.
@@ -4488,9 +5076,8 @@ func _physics_process(_delta: float) -> void:
 		if pause_lines and ultra_panels.size() > 0:
 			pause_lines.texture = ultra_panels[int(pt * 6.0) % ultra_panels.size()]
 		if not pause_in_combos and pause_sel < pause_plates.size():
-			var pulse := 0.68 + 0.32 * absf(sin(pt * 5.0))
-			var c := Color(pause_accent.r * pulse, pause_accent.g * pulse, pause_accent.b * pulse, 1.0)
-			(pause_plates[pause_sel] as Polygon2D).color = c
+			var pulse := 0.72 + 0.28 * absf(sin(pt * 4.0))
+			(pause_plates[pause_sel] as Panel).self_modulate = Color(1, 1, 1, pulse)
 		if pause_in_combos:
 			if Input.is_action_just_pressed("ui_cancel") or Input.is_action_just_pressed("kick"):
 				_pause_show_combos(false)
@@ -4518,8 +5105,11 @@ func _physics_process(_delta: float) -> void:
 		return
 
 	# cajas de empuje: los cuerpos no se traspasan (salvo saltando por encima
-	# o cuando uno esta derribado)
-	if not player.airborne and not dummy.airborne \
+	# o cuando uno esta derribado). NO durante un ULTRA: esos coreografían las
+	# posiciones a mano y el empuje DESLIZABA al par (whirlpool contra la pared
+	# se corría al centro arrastrando a la víctima).
+	if not ultra_active \
+			and not player.airborne and not dummy.airborne \
 			and not player.koed and not dummy.koed \
 			and not player.is_downed() and not dummy.is_downed():
 		var sep_dx: float = dummy.position.x - player.position.x
@@ -4631,17 +5221,20 @@ func _physics_process(_delta: float) -> void:
 		if mana_full_flash_t[mside] > 0.0:
 			mana_full_flash_t[mside] = maxf(0.0, mana_full_flash_t[mside] - _delta)
 		var fk: float = mana_full_flash_t[mside] / 0.6
+		# color del anillo por personaje: MORADO (maná de maga) / AZUL (instinto de Fe)
+		var _mfb: Node2D = player if mside == 0 else dummy
+		var _azul: bool = is_instance_valid(_mfb) and _mfb.fx_blue
 		if mana_flash_t[mside] > 0.0:
-			rfl.default_color = Color(1.9, 0.22, 0.32)          # falta mana: rojo
+			rfl.default_color = Color(1.9, 0.22, 0.32)          # falta recurso: rojo
 			rfl.width = MANA_RING_W
 		elif fk > 0.0:
-			rfl.default_color = Color(0.95, 0.60, 2.05).lerp(Color(2.4, 2.1, 3.0), fk)   # DESTELLO al llenarse
+			rfl.default_color = (Color(0.50, 1.15, 2.10) if _azul else Color(0.95, 0.60, 2.05)).lerp(Color(2.4, 2.3, 3.0), fk)   # DESTELLO al llenarse
 			rfl.width = MANA_RING_W + 7.0 * fk
 		elif full_now:
-			rfl.default_color = Color(0.95, 0.60, 2.05)         # lleno: brilla
+			rfl.default_color = Color(0.50, 1.15, 2.10) if _azul else Color(0.95, 0.60, 2.05)   # lleno: brilla
 			rfl.width = MANA_RING_W
 		else:
-			rfl.default_color = Color(0.58, 0.30, 1.45)         # cargando: morado
+			rfl.default_color = Color(0.30, 0.65, 1.50) if _azul else Color(0.58, 0.30, 1.45)   # cargando
 			rfl.width = MANA_RING_W
 	# DOTS de rounds: encendidos = rondas ganadas
 	for side in 2:
@@ -4661,7 +5254,8 @@ func _process(_dt: float) -> void:
 		position = Vector2.ZERO
 	_focus_tick()   # suaviza el borde rojo hacia su intensidad objetivo
 	_cutin_tick()   # anima el cut-in del INFIERNO (entrada/salida, reloj REAL)
-	_announce_tick()  # anima el anuncio grande (READY/FIGHT/K.O.)
+	_announce_tick()  # anima el anuncio grande (COUNTER/K.O.)
+	_round_banner_tick()  # anima los banners GET READY / FIGHT (golpe, reloj REAL)
 	var t := float(ahora - break_ms) / 1000.0
 	if t >= 0.0 and t < 1.7:
 		break_node.visible = true
@@ -4737,6 +5331,7 @@ func _aye_air_barrage(caster: Node2D, down := false) -> void:
 	var vr := "res://imagen-action/aye/sound-effect/prims-bolt-aye.mp3"
 	if ResourceLoader.exists(vr):
 		caster.voz_player.stream = load(vr)
+		caster.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		caster.voz_player.play()
 	for i in range(3):
 		if not is_instance_valid(caster) or state != "fight":
@@ -4877,6 +5472,7 @@ func _crystal_travel(proj: AnimatedSprite2D, caster: Node2D, dir: int, py: float
 				dummy_hp = maxi(0, dummy_hp - dmg_real)
 			else:
 				player_hp = maxi(0, player_hp - dmg_real)
+			_dmg_number(target, dmg_real)
 			meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.0020)   # el proyectil también CARGA barra
 			_shake(9.0, 0.12)
 
@@ -4958,6 +5554,7 @@ func _spawn_frost_orb(caster: Node2D) -> void:
 	var vr := "res://imagen-action/aye/sound-effect/PRISM_ORB_Cupcake_Eleven_v3_019ff62a-9604-703e-9275-380f8bbbd818.mp3"
 	if ResourceLoader.exists(vr):
 		caster.voz_player.stream = load(vr)
+		caster.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		caster.voz_player.play()
 	caster._cast_border_on(0.6)
 	var s: float = 0.55 * base
@@ -5068,6 +5665,7 @@ func _aye_backstab(caster: Node2D) -> void:
 	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
 	if ResourceLoader.exists(vr):
 		caster.voz_player.stream = load(vr)
+		caster.voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		caster.voz_player.play()
 	# GLITCH OUT en el sitio + TIEMBLA (jitter del sprite + shake), igual que el teleport
 	var base_off: float = caster.sprite.offset.x
@@ -5104,6 +5702,7 @@ func _aye_backstab(caster: Node2D) -> void:
 		dummy_hp = maxi(0, dummy_hp - d)
 	else:
 		player_hp = maxi(0, player_hp - d)
+	_dmg_number(opp, d)
 	# EMPUJA al rival ~3 cuerpos hacia ADELANTE (dir -to_opp, hacia donde estaba Aye / la orbe) con un SLIDE.
 	# Si toca la orbe durante el slide, el coroutine del orb pone frozen_t>0 y aquí paramos.
 	var push_dir := -to_opp
@@ -5122,6 +5721,177 @@ func _aye_backstab(caster: Node2D) -> void:
 		await get_tree().process_frame
 		st += get_process_delta_time()
 
+# feedback "SIN BARRA": el medidor PARPADEA (apaga/prende 3 veces) — sin esto el comando
+# parecía ROTO. OJO: nada de tintes sobre el relleno verde (rojo×verde se veía GRIS sucio);
+# el tono gris es EXCLUSIVO del personaje (_deny_flash del fighter).
+func _meter_deny_flash(idx: int) -> void:
+	for k in 3:
+		for seg in meter_fill[idx]:
+			if is_instance_valid(seg):
+				seg.visible = false
+		await get_tree().create_timer(0.07).timeout
+		for seg in meter_fill[idx]:
+			if is_instance_valid(seg):
+				seg.visible = true
+		await get_tree().create_timer(0.07).timeout
+
+# el TIGRE cuesta BARRA Y MEDIA: se cobra al INICIAR el cast (como el whirlpool su barra)
+# gasto GENÉRICO de barra con deny (personaje gris + blink de la barra si no alcanza)
+func try_meter_cost(caster: Node2D, costo: float) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	var idx := 0 if caster == player else 1
+	if meter[idx] < costo:
+		_meter_deny_flash(idx)
+		caster._deny_flash()
+		return false
+	meter[idx] -= costo
+	return true
+
+# THUNDER de Fe (↓↘→ Q/W/E): cuesta MEDIA barra
+func try_thunder_cost(caster: Node2D) -> bool:
+	return try_meter_cost(caster, 0.5)
+
+func try_tiger_cost(caster: Node2D) -> bool:
+	if state != "fight" or ultra_active or _fe_tiger_active:
+		return false
+	var idx := 0 if caster == player else 1
+	if meter[idx] < 1.5:
+		_meter_deny_flash(idx)
+		caster._deny_flash()   # GRIS: no pudo castear por falta de barra
+		return false
+	meter[idx] -= 1.5
+	return true
+
+# ---- FE: TIGRE DE ENERGÍA BLANCA (↓R = cast agachada + tigre que corre y ARRASTRA) ----
+# El tigre corre hacia adelante; al tocar al rival lo AGARRA y lo arrastra pegándole 4
+# veces, remata DERRIBANDO y sigue de largo hasta disolverse. La guardia lo deshace.
+var _fe_tiger_frames: SpriteFrames = null
+var _fe_tiger_active := false
+func _fe_tiger_attack(caster: Node2D) -> void:
+	if state != "fight" or ultra_active or _fe_tiger_active:
+		return
+	if String(caster.sprite.animation) != "crouch_jab":
+		return   # el cast fue interrumpido (recibió un golpe, etc.): el tigre no sale
+	if _fe_tiger_frames == null:
+		if not ResourceLoader.exists("res://imagen-action/impact-effect/tiger-fe/run-1.png"):
+			return
+		_fe_tiger_frames = SpriteFrames.new()
+		for anim in [["run", true, 40.0], ["out", false, 34.0]]:
+			_fe_tiger_frames.add_animation(anim[0])
+			_fe_tiger_frames.set_animation_loop(anim[0], anim[1])
+			_fe_tiger_frames.set_animation_speed(anim[0], anim[2])
+			var fi := 1
+			while ResourceLoader.exists("res://imagen-action/impact-effect/tiger-fe/%s-%d.png" % [anim[0], fi]):
+				_fe_tiger_frames.add_frame(anim[0], load("res://imagen-action/impact-effect/tiger-fe/%s-%d.png" % [anim[0], fi]))
+				fi += 1
+	_fe_tiger_active = true
+	var victima: Node2D = dummy if caster == player else player
+	var idx := 0 if caster == player else 1
+	var dir := 1 if caster.facing >= 0 else -1
+	var tg := AnimatedSprite2D.new()
+	tg.sprite_frames = _fe_tiger_frames
+	tg.flip_h = dir < 0
+	tg.scale = Vector2(0.72, 0.72)   # un poco más chico (pedido del usuario)
+	tg.z_index = 5
+	# PATAS en la línea de piso REAL: los nodos de los peleadores llevan scale 0.65 en la
+	# escena -> sus pies visuales están a +324 del nodo (499×0.65), NO a +499 (ese error
+	# hundía al tigre 175px). Patas del tigre a +190 del centro del recorte ×0.72 = 137.
+	# 324 - 137 = +187.
+	tg.position = Vector2(caster.position.x + float(dir) * 210.0, caster.floor_y + 187.0)
+	add_child(tg)
+	tg.play("run")
+	# RUGIDO al aparecer — en un player PROPIO del tigre (la voz de Fe "Let go, Tiger!"
+	# va por su canal y NO deben cortarse entre sí)
+	var roar := "res://imagen-action/favi/Fe-sound-effect/tiger-roar.mp3"
+	if ResourceLoader.exists(roar):
+		var rp := AudioStreamPlayer.new()
+		rp.stream = load(roar)
+		rp.volume_db = 7.0   # el mp3 crudo viene BAJO: el rugido debe imponerse
+		tg.add_child(rp)
+		rp.play()
+	var speed := 1500.0
+	var hits_left := 4
+	var hit_cd := 0.0
+	var grabbed := false
+	var traveled := 0.0
+	# el tigre corre CORTO (~2 cuerpos) y se desvanece; si AGARRA al rival dentro de ese
+	# rango, el presupuesto se extiende para completar el arrastre de 4 golpes
+	var run_max := 500.0
+	while is_instance_valid(tg) and state == "fight":
+		var dt := get_process_delta_time()
+		tg.position.x += float(dir) * speed * dt
+		traveled += speed * dt
+		if grabbed and is_instance_valid(victima) and not victima.koed:
+			# ARRASTRE: el rival va pegado al frente del tigre recibiendo golpes
+			victima.position.x = clampf(tg.position.x + float(dir) * 60.0, LEFT_LIMIT, RIGHT_LIMIT)
+			victima.position.y = victima.floor_y
+			hit_cd -= dt
+			if hit_cd <= 0.0 and hits_left > 0:
+				hit_cd = 0.13
+				hits_left -= 1
+				if idx == 0:
+					dummy_hp = maxi(0, dummy_hp - 25)
+				else:
+					player_hp = maxi(0, player_hp - 25)
+				_dmg_number(victima, 25)
+				victima._burst(1.0, false, 1, true)
+				victima.sprite.play("take_hit")
+				victima._play_sfx_key("take_hit")
+				_shake(9.0, 0.08)
+			if hits_left <= 0:
+				victima.receive_hit(false, false, dir, "", true, 1.0)   # remate: DERRIBA
+				grabbed = false
+				speed = 1800.0   # suelta a la presa y sigue un TOQUE más antes de esfumarse
+				run_max = traveled + 240.0
+		elif not grabbed and hits_left == 4 and is_instance_valid(victima) and not victima.koed \
+				and absf(victima.position.x - tg.position.x) < 140.0 \
+				and (not victima.airborne or (victima.floor_y - victima.position.y) < 260.0):
+			var res: String = victima.receive_hit(false, false, dir, "kick_impact")
+			if res == "blocked" or res == "armored" or res == "ignored":
+				break   # la guardia deshace al tigre
+			victima.airborne = false
+			victima.hit_flying = false
+			victima.vel_x = 0.0
+			victima.vel_y = 0.0
+			grabbed = true
+			hit_cd = 0.05
+			speed = 1050.0   # frena un poco mientras lo maulea (se leen los golpes)
+			run_max = traveled + 900.0   # presupuesto extra para el arrastre completo
+		if tg.position.x < LEFT_LIMIT - 240.0 or tg.position.x > RIGHT_LIMIT + 240.0 \
+				or (not grabbed and traveled > run_max):
+			break
+		await get_tree().process_frame
+	if is_instance_valid(tg):
+		tg.play("out")   # se DISUELVE en energía blanca (frames reales del clip)
+		await get_tree().create_timer(0.5).timeout
+		tg.queue_free()
+	_fe_tiger_active = false
+	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
+	if murio and dummy_ai_mode:
+		_end_round(idx == 0)
+
+# ---- NÚMEROS DE DAÑO: "-20" ROJO flotando sobre el golpeado en CADA impacto ----
+func _dmg_number(victima: Node2D, dmg: int, grande := false) -> void:
+	# grande = CRÍTICO de Fe (-300): número mucho más gordo, brillante y sube más
+	if dmg <= 0 or not is_instance_valid(victima):
+		return
+	var l := Label.new()
+	l.text = "-%d" % dmg
+	if combo_font != null:
+		l.add_theme_font_override("font", combo_font)
+	l.add_theme_font_size_override("font_size", 92 if grande else 46)
+	l.add_theme_color_override("font_color", Color(1.9, 0.32, 0.2) if grande else Color(1.0, 0.24, 0.18))
+	l.add_theme_color_override("font_outline_color", Color(0.10, 0.0, 0.0, 0.92))
+	l.add_theme_constant_override("outline_size", 18 if grande else 12)
+	l.z_index = 30
+	l.position = Vector2(victima.position.x + randf_range(-55.0, 25.0), victima.position.y + 40.0)
+	add_child(l)
+	var tw := create_tween()
+	tw.tween_property(l, "position:y", l.position.y - (215.0 if grande else 140.0), 0.7 if grande else 0.6).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.5 if grande else 0.45).set_delay(0.3 if grande else 0.2)
+	tw.tween_callback(l.queue_free)
+
 func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bool) -> String:
 	var atk: Dictionary = att.current_attack()
 	if atk.is_empty():
@@ -5138,15 +5908,39 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	if String(atk["name"]) in ["air_jab", "air_jab_2"] and not att.fx_blue \
 			and not (def.airborne and (def.floor_y - def.position.y) > 40.0):
 		return done
+	# el JUMP Q de DAM (estocada horizontal): la espada va a SU altura en el aire ->
+	# AIRE-A-AIRE, no le pega a un rival PARADO en el suelo desde el cielo
+	if String(atk["name"]) == "jump_punch" and att.airborne \
+			and not att.fx_blue and not att.fx_floral \
+			and not (def.airborne and (def.floor_y - def.position.y) > 40.0):
+		return done
+	# el MOLINETE de DAM (salto+W): ANTES era aire-a-aire PURO; ahora "depende la
+	# situación" (pedido): si pasa BAJITO sobre un rival parado, la espada girando SÍ
+	# lo toca — lo decide la banda vertical de contacto real de más abajo (|Δy| ≤ 360):
+	# desde lo alto del salto sigue sin pegar al suelo, pegado al cuerpo sí.
 	# los golpes BAJOS raspan el piso: fallan contra un rival en el aire
 	if bool(atk.get("low", false)) and def.airborne \
 			and (def.floor_y - def.position.y) > 40.0:
 		return done
 	var dx: float = def.position.x - att.position.x
-	# el ALCANCE escala con el CUERPO del atacante (Fe/Aye son más chicas que DAM): sin esto
-	# Fe pegaba desde "cuerpo y medio" porque usaba el reach tuneado para DAM. DAM = idéntico.
-	var reach: float = float(atk["reach"]) * (att.base_scale.x / DAM_SCALE)
-	if absf(dx) > reach + HIT_MARGIN:
+	# DIRECCIONAL: un golpe pega hacia donde MIRA el atacante, NO de espaldas (al saltar
+	# POR ENCIMA del rival el golpe registraba ya pasado, con el arma apuntando al lado
+	# contrario = hit fantasma). Cuerpos ENCIMADOS (<60px) cuentan como contacto. Los
+	# giros CIRCULARES (peonza de Fe, molinete de DAM) sí barren ambos lados.
+	var circular: bool = String(atk["name"]) in ["spin_kick", "spin_kick_2", "jump_kick_h2", "jump_kick_h3"] \
+			or (String(atk["name"]) == "jump_kick" and not att.fx_blue and not att.fx_floral)
+	if not circular and absf(dx) > 60.0 and int(signf(dx)) != att.facing:
+		if String(atk["name"]) in ["air_spin_kick", "ember_dash"]:
+			return ""   # los que VIAJAN siguen probando (el rival puede quedar delante)
+		return done
+	# el ALCANCE (y el margen) escalan con la ALTURA REAL del cuerpo del atacante (body_k:
+	# DAM 1.0, Fe 0.71, Aye 0.65). ANTES escalaba por base_scale — y Fe renderiza a escala
+	# 1.0 con un CUERPO chico: TODOS sus golpes registraban ~30% más allá de la punta del
+	# arte ("hits fantasma"). AUDITADO contra los frames horneados: con body_k el alcance
+	# máximo (reach+margen) cae exactamente en la punta del pie/aguja de cada golpe.
+	# DAM queda idéntico; Aye ya calzaba (su base_scale 0.655 ≈ su cuerpo real 0.65).
+	var reach: float = float(atk["reach"]) * att.body_k
+	if absf(dx) > reach + HIT_MARGIN * att.body_k:
 		# la giratoria y el dash viajan: si aun no alcanza, sigue intentando cada frame
 		if String(atk["name"]) in ["spin_kick", "air_spin_kick", "ember_dash"]:
 			return ""
@@ -5157,13 +5951,20 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 	if att.airborne or def.airborne:
 		# las giratorias barren mas banda vertical (el mortal cubre todo el giro)
 		var v_max := 420.0 if String(atk["name"]) in ["spin_kick", "air_spin_kick"] else 360.0
+		# salto+E de Fe: pega donde LLEGA EL PIE (contacto real, no desde media pantalla)
+		if String(atk["name"]) == "air_spin_kick" and att.fx_blue:
+			v_max = 420.0   # (x body_k abajo -> ~300 real)
 		# EN EL SUELO no se alcanza a un rival ALTO en el aire (no pegar desde abajo al aire
 		# vacío): sólo llega a un rival BAJO, recién lanzado. Los LANZADORES (giratoria /
-		# crouch_kick) llegan un poco más para poder encadenar el juggle. Aplica a ambos.
+		# crouch_kick / patada alta de Fe) llegan un poco más para poder encadenar el juggle.
 		if not att.airborne and def.airborne \
 				and (def.floor_y - def.position.y) > 60.0:
-			v_max = 250.0 if String(atk["name"]) in ["spin_kick", "crouch_kick"] else 150.0
-		alcanza = absf(att.position.y - def.position.y) <= v_max
+			v_max = 250.0 if String(atk["name"]) in ["spin_kick", "crouch_kick", "kick_h2"] else 150.0
+		# la banda vertical escala por el cuerpo MÁS GRANDE de los dos (body_k: DAM 1.0,
+		# Fe 0.71, Aye 0.65): a un modelo GRANDE le pegás donde su cuerpo llega (Fe en el
+		# aire SÍ alcanza la cabeza de DAM parado — su centro queda lejos porque él es
+		# alto, pero el contacto es real); a un modelo BAJITO solo si estás cerca.
+		alcanza = absf(att.position.y - def.position.y) <= v_max * maxf(att.body_k, def.body_k)
 	if not alcanza:
 		if String(atk["name"]) in ["spin_kick", "air_spin_kick", "ember_dash"]:
 			return ""
@@ -5187,12 +5988,17 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# TANK aguantó con super armor: recibe CHIP (daño reducido), SIN combo/hitstop/empuje.
 		# El chip NO lo mata (min 1) para que su pesado alcance a rematar al assassin.
 		var chip := maxi(1, int(float(atk.get("damage", 50)) * 0.45))
+		_dmg_number(def, chip)
 		if att_is_player:
 			dummy_hp = maxi(1, dummy_hp - chip)
 		else:
 			player_hp = maxi(1, player_hp - chip)
 		_shake(6.0, 0.08)
 	if result == "hit" or result == "launched" or result == "frozen":
+		# golpe AÉREO con separación vertical: reubica la CHISPA a la altura del ARMA del
+		# atacante (no en el pecho del defensor) — el impacto se ve pegado a la espada/aguja
+		if att.airborne and absf(att.position.y - def.position.y) > 80.0:
+			def._burst(1.0, false, 1, att.fx_blue, clampf(att.position.y - def.position.y, -300.0 * att.body_k, 60.0))
 		# HITSTOP: ambos se CONGELAN unos frames en el impacto (peso + pausa entre golpes,
 		# como los juegos pro). La duración escala con el PESO del golpe: jab ligero =
 		# congelamiento corto y ágil; golpe fuerte / lanzador = largo y con más impacto. El
@@ -5214,13 +6020,38 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# encadenar OTRO golpe aéreo (distinto, por la regla de oro). Si falla NO flota
 		# ni puede repetir: cae normal.
 		if att.airborne:
-			att.air_float_t = 0.32
+			att.air_float_t = 0.36
 			att.air_move_used = false
+			# REBOTE DEL IMPACTO: al conectar, el golpe lo IMPULSA un poco hacia ARRIBA
+			# (no sigue cayendo): esa altura extra es la que deja ENCADENAR el próximo aéreo
+			att.vel_y = minf(att.vel_y, -700.0 * att.CHAR_SCALE)
 		var hidx := 0 if att_is_player else 1
+		# CRÍTICO de Fe: con 3 MARCAS en el rival, este golpe físico revienta 300 FIJO
+		var fe_crit: bool = att.fx_blue and fe_marks[hidx] >= FE_MARK_MAX
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
 				String(atk["name"]), att.airborne or def.airborne)
-		# temblorcito por cada golpe conectado (crece un poco con el combo)
-		_shake(clampf(4.0 + float(combo_n[hidx]) * 0.7, 4.0, 13.0), 0.08)
+		if fe_crit:
+			combo_dmg[hidx] += FE_CRIT_DMG - dmg_real   # el DMG del combo cuenta el crítico real
+			combo_dmg_lbl[hidx].text = "DMG  %d" % combo_dmg[hidx]
+			dmg_real = FE_CRIT_DMG                      # fijo: sin escalado anti-infinito
+			fe_marks[hidx] = 0
+			fe_mark_decay[hidx] = FE_MARK_DECAY
+			def.set_fe_marks(0)
+			# el crítico VACÍA el INSTINTO: a recargar con tiempo antes de volver a marcar
+			mana[hidx] = 0.0
+			mana_was_full[hidx] = false
+			# CINE del CRÍTICO (mismo esquema del BREAK, timers de reloj REAL): FREEZE
+			# total en el impacto -> cámara LENTA -> normal, con la pantalla en ROJO
+			flash_ms = Time.get_ticks_msec()
+			flash_rect.color = Color(1.0, 0.12, 0.08, 0.6)
+			Engine.time_scale = 0.0
+			get_tree().create_timer(0.18, true, false, true).timeout.connect(
+				func() -> void: Engine.time_scale = 0.3)
+			get_tree().create_timer(0.62, true, false, true).timeout.connect(
+				func() -> void: Engine.time_scale = 1.0)
+		_dmg_number(def, dmg_real, fe_crit)
+		# temblorcito por cada golpe conectado (el crítico sacude FUERTE)
+		_shake(14.0 if fe_crit else clampf(4.0 + float(combo_n[hidx]) * 0.7, 4.0, 13.0), 0.16 if fe_crit else 0.08)
 		# el METER carga: el que pega gana más, el que recibe un poco
 		meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.0020)   # pegar CARGA
 		meter[1 - hidx] = maxf(0.0, meter[1 - hidx] - float(dmg_real) * HIT_DRAIN)   # recibir DRENA

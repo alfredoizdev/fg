@@ -1,5 +1,17 @@
 # FAVI — The Twin Fang · Guía de sprites (personaje)
 
+> ⚠️ **WORKFLOW NUEVO (2026-08): CLIPS DE VIDEO, ya NO hojas de frames.**
+> Cada acción se genera como UN CLIP DE VIDEO con la herramienta de animación:
+> fondo verde puro #00FF00 plano, UNA toma continua, personaje de PERFIL mirando a la
+> DERECHA (si sale a la izquierda no importa: lo volteo yo), cámara TRÍPODE fija (sin
+> zoom/pan — OJO: la herramienta suele hacer ZOOM-IN en los saltos; igual lo corrijo
+> midiendo por frame), mismo tamaño todo el clip, cuerpo completo con margen. Guardar
+> como `imagen-action/favi/sheets/<accion>.mp4` y avisarme: yo recorto el croma, ELIJO
+> los frames, calibro el TAMAÑO ESTÁNDAR de Fe y lo conecto. Los "conteos de frames" y
+> reglas de HOJAS de más abajo son HISTÓRICOS: valen como descripción del movimiento
+> (fases, poses, agujas), pero el formato de entrega es SIEMPRE el clip. Ver la sección
+> "NIVELACIÓN con AYE" al final para prompts de video ya afinados.
+
 > Esta es la guía ESPECÍFICA de FAVI: su identidad y la animación detallada de
 > cada movimiento con sus DOS AGUJAS. Las reglas de producción, el roster de
 > movimientos y los efectos compartidos están en **`GUIA-COMUN.md`** (sirven
@@ -22,66 +34,64 @@
 >    Agujas"** — lanza una ráfaga de agujas de energía AZUL que viaja hacia el
 >    rival. Alternativa: una _onda/filo azul_ en media luna.
 
-## Reglas generales (van en TODOS los prompts)
+## Reglas generales (van en TODOS los prompts de clip)
 
-Pega esto al final de cada prompt, junto con la **imagen de referencia de FAVI**
-(su hoja de diseño) adjunta:
+Cada prompt de clip lleva SIEMPRE: la **imagen de referencia de FAVI** adjunta
++ el bloque **IDENTITY** al inicio + los párrafos **STATIC POSITION** y
+**WEAPONS LOCKED** al final, pegados tal cual (en inglés — la herramienta
+obedece mejor).
 
-> Mismo personaje exacto de la referencia: chica de pelo castaño oscuro largo y
-> lacio, ojos cafés grandes, piel morena clara. Lleva una gabardina AZUL REY con
-> capucha, larga y abierta (en la ESPALDA del abrigo va un logo grande de cabeza
-> de TIGRE blanco); debajo una camiseta azul con estampado blanco de tigre,
-> falda plisada LILA/lavanda, calcetas blancas, tenis altos AZUL-Y-BLANCO,
-> guantes negros SIN dedos, y un dije/llavero de BALÓN DE FÚTBOL colgando del
-> abrigo. Su arma son DOS AGUJAS: hojas largas, muy finas y afiladas, de metal
-> AZUL, con una ANILLA (aro) en el mango; ligeras y precisas, con un brillo azul
-> frío sutil en la punta. Lleva UNA aguja en CADA mano. Sin fuego, sin llamas,
-> sin partículas: son agujas de metal, NO una katana, NO una espada ancha, NO una
-> sola hoja. Misma paleta de colores exacta y mismo estilo de línea. Vista
-> lateral de juego de pelea 2D (estilo KOF), personaje mirando a la DERECHA
-> en TODOS los frames — nunca de frente a la cámara, nunca de espaldas.
-> Los frames van en UNA o DOS filas, ordenados de izquierda a derecha (la
-> fila de ARRIBA primero). Todos los personajes a la MISMA escala; dentro de
-> cada fila los pies en la MISMA línea. Si hay dos filas, deja una franja
-> horizontal VACÍA entre ellas: nada de la fila de arriba puede tocar la de
-> abajo. Personaje completo en cada frame con margen (nada cortado
-> por el borde). Deja espacio VACÍO claro entre personaje y personaje: las
-> agujas de frames vecinos NUNCA deben tocarse ni traslaparse. Ojo con
-> los frames de aguja EXTENDIDA al frente: entre la PUNTA de una aguja y el
-> siguiente personaje debe quedar MÍNIMO medio cuerpo de espacio vacío.
-> ANATOMÍA correcta: exactamente DOS brazos, DOS piernas, DOS manos de 5 dedos
-> y EXACTAMENTE DOS agujas (una por mano) — ni una aguja de más ni de menos,
-> nunca tres o cuatro agujas, nunca una sola. Cada aguja es una pieza continua
-> sujeta por su anilla en la mano: nunca fragmentada, nunca tirada en el piso ni
-> bajo los pies. Cada frame es UN solo personaje completo — jamás dos poses
-> pegadas o fusionadas dentro del mismo frame.
-> La gabardina azul mantiene su borde inferior NORMAL y limpio, exactamente
-> como en la referencia: NO la dibujes rasgada, rota ni hecha jirones.
-> Fondo VERDE PURO #00FF00 completamente plano y SIN NINGUNA marca: no
-> pongas números, letras, rótulos ni líneas guía en la hoja — solo los
-> personajes sobre el verde. Sin sombra en el piso. Sin desenfoque ni
-> líneas de velocidad.
+**IDENTITY (pegar al inicio de cada prompt):**
 
-Guarda cada hoja en `imagen-action/favi/sheets/` con el nombre indicado.
+> Same girl as the reference image: long straight dark-brown hair, big brown
+> eyes, light tan skin. She wears a ROYAL BLUE hooded long open coat (big white
+> TIGER-head logo on the back), a blue t-shirt with a white tiger print, a
+> LILAC/lavender pleated skirt, white socks, blue-and-white high-top sneakers,
+> black fingerless gloves and a small soccer-ball keychain hanging from the
+> coat. STRICT SIDE VIEW facing RIGHT the whole clip (never frontal, never from
+> behind), flat pure green #00FF00 background, nothing else in frame — no
+> effects, no particles, no floor shadow, no motion blur, no text or marks. One
+> single continuous take, fixed TRIPOD camera (no zoom, no pan), she stays the
+> SAME SIZE the whole clip, full body always inside the frame with margin.
 
-**Nitidez:** mientras menos frames por FILA, más grande y nítido sale cada
-personaje. Para animaciones largas usa DOS FILAS en la misma hoja (mi
-procesador las lee solo: fila de arriba primero, de izquierda a derecha), o
-divide en dos hojas: `walk-sheet.png` y `walk-sheet-2.png` — también las
-une solo. Ambas cosas a la vez funcionan.
+**STATIC POSITION (pegar en cada prompt — el desplazamiento lo pone el juego):**
 
-**Frames rebeldes:** si un frame concreto sale mal una y otra vez (pose de
-espaldas, agujas quietas, tres agujas, etc.), deja de pedir la secuencia
-completa: pide ESE frame SOLO, en su propia hoja de UN personaje, con
-descripción hiperdetallada y prohibiciones explícitas. Nómbrala
-`<accion>-f<numero>-sheet.png` (ej. `crouch-kick-f3-sheet.png`). Con un
-solo personaje por imagen la IA obedece mucho mejor, y yo empalmo el frame
-nuevo con los buenos de la hoja anterior (mi procesador escala frames
-sueltos por masa corporal para que encajen).
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip —
+> the whole action happens ON ONE SPOT. She does NOT walk, slide or drift
+> forward/backward; if the move includes a jump, the jump goes STRAIGHT UP and
+> she lands on the EXACT SAME SPOT. Camera completely fixed, no panning, no
+> zooming.
+
+**WEAPONS LOCKED (pegar en cada prompt):**
+
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+Guarda cada clip como `imagen-action/favi/sheets/<accion>.mp4` y avísame: yo
+recorto el croma, elijo la sección (usando TODOS sus frames — el ritmo lo pongo
+con los FPS), calibro el TAMAÑO ESTÁNDAR de Fe y lo conecto al juego. Si sale
+mirando a la IZQUIERDA no pasa nada: lo volteo yo al procesar.
+
+**Clips rebeldes:** si la herramienta muta algo una y otra vez (katana, tres
+agujas, se va del centro, gira la cámara), NO alargues el prompt: pide un clip
+más CORTO de SOLO esa fase del movimiento, con la prohibición explícita en
+MAYÚSCULAS. Los SHORT PROMPTS (ver `jump_kick` y `air_jab` al final) están
+funcionando mejor que los prompts largos.
 
 ---
 
-## Las 17 hojas que necesitamos
+## El kit de movimientos (descripción de cada acción)
+
+> ⚠️ Estas entradas describen el MOVIMIENTO de cada acción (fases, poses, qué
+> hacen las agujas) y siguen siendo la referencia de diseño. Pero IGNORA todo
+> lo de "N frames / filas / hoja .png" que quede en el texto: para regenerar
+> una acción, convierte su descripción en un SHORT PROMPT de clip (inglés) +
+> IDENTITY + STATIC POSITION + WEAPONS LOCKED, y guárdala como `<accion>.mp4`.
 
 ### Básicas (empezar por estas 4)
 
@@ -222,7 +232,7 @@ sueltos por masa corporal para que encajen).
    flexionadas) → subiendo (cuerpo estirado) → punto más alto → cayendo. Las dos
    agujas recogidas junto al cuerpo.
 
-9. **`jump-punch-sheet.png`** — 4 frames. Corte aéreo doble: en el aire, doble
+9. **`jump_punch`** — 4 frames. Corte aéreo doble: en el aire, doble
    estocada de agujas al frente: preparación → corte → extendido → recogida
    (sigue en el aire).
 
@@ -246,14 +256,14 @@ sueltos por masa corporal para que encajen).
     la IA las marca. Describí solo el movimiento del cuerpo.)
 
 12b. **`pummeled-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3** (fila
-    arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE puro
-    #00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:** pared,
-    piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la niña sobre
-    el verde. Los 6 frames al **MISMO tamaño de personaje** que las demás hojas.
-    Contenido apto: NADA de sangre, heridas ni violencia gráfica — es puro lenguaje
-    corporal de videojuego.
-    (Nota: evitá las palabras "golpe/golpeada/impacto"; el filtro de la IA las marca.
-    Describí SOLO el movimiento del cuerpo.)
+arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE puro
+#00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:** pared,
+piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la niña sobre
+el verde. Los 6 frames al **MISMO tamaño de personaje** que las demás hojas.
+Contenido apto: NADA de sangre, heridas ni violencia gráfica — es puro lenguaje
+corporal de videojuego.
+(Nota: evitá las palabras "golpe/golpeada/impacto"; el filtro de la IA las marca.
+Describí SOLO el movimiento del cuerpo.)
 
     ESTADO: Favi **tambalea DE PIE** sin control, sacudida hacia atrás una y otra vez
     por una ráfaga que llega de frente (desde su derecha). **NUNCA cae ni apoya la
@@ -300,10 +310,10 @@ sueltos por masa corporal para que encajen).
     → alimenta la animación `hit_down`.
 
 13c. **`wall-bounce-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3**
-    (fila arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE
-    puro #00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:**
-    pared, piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la
-    niña flotando sobre el verde (la pared y el golpe los pone el motor).
+(fila arriba = f1 f2 f3 izq→der; fila abajo = f4 f5 f6 izq→der). Fondo VERDE
+puro #00FF00. Favi SIEMPRE de **perfil mirando a la DERECHA**. **NO dibujes:**
+pared, piso, líneas de velocidad, polvo, chispas ni ningún efecto — SOLO la
+niña flotando sobre el verde (la pared y el golpe los pone el motor).
 
     ⚠️ **PROPORCIONES (LO MÁS IMPORTANTE — antes salió MAL):** mismas proporciones
     que sus otras hojas (caminar/vuelo). Cuerpo **ESBELTO y ÁGIL de asesina
@@ -366,7 +376,7 @@ sueltos por masa corporal para que encajen).
     - **f5 — follow-through:** la extensión tras el 3er golpe, agujas al frente,
       brillo azul en las puntas.
     - **f6 — recuperación:** vuelve a la guardia baja.
-    → alimenta la animación `counter` (el parry-contraataque).
+      → alimenta la animación `counter` (el parry-contraataque).
 
 ### Defensa
 
@@ -500,7 +510,6 @@ sueltos por masa corporal para que encajen).
 
     > ⚠️ CLAVE: la BOCA se mueve como si GRITARA/llamara el poder — forma DISTINTA
     > en cada frame (cerrada, entreabierta, bien abierta). NO la dejes igual.
-
     - f1: postura de invocación: apunta una aguja hacia ABAJO al piso frente a
       ella, la otra mano empieza a subir; concentrada, boca CERRADA apretada
     - f2: la aguja firme apuntando al SUELO, la mano libre subiendo, aura AZUL/agua
@@ -531,7 +540,6 @@ sueltos por masa corporal para que encajen).
 
     **El sheet = la corrida (los 5 frames abajo).** El golpe de arranque del combo lo mete
     el juego reproduciendo `punch` justo al terminar la embestida (los 3 pinchazos = daño).
-
     - f1: casi de pie, empieza a impulsarse, remolino de agua naciendo en las agujas
     - f2: se inclina hacia adelante, remolino de agua azul creciendo alrededor del torso
     - f3: **plena corrida baja** — torso muy inclinado, pierna estirada, máximo remolino
@@ -614,7 +622,7 @@ efecto.
     - f4: recoge el brazo y vuelve a la guardia agachada
       El movimiento es PEQUEÑO y seco: no se levanta, no gira, no salta.
 
-25. **`air-jab-sheet.png`** — 4 frames. **PATADA AÉREA DOBLE** (salto + R): en el
+24. **`air-jab-sheet.png`** — 4 frames. **PATADA AÉREA DOBLE** (salto + R): en el
     AIRE se encoge SEMISENTADA (rodillas arriba, como sentada flotando) y agita los
     pies pateando al frente DOS veces seguidas — un pie y luego el otro (shuffle
     alante-atrás), rápido. NO usa las agujas para pegar (las lleva recogidas, una en
@@ -630,7 +638,7 @@ efecto.
       Movimiento compacto y rápido (doble patadita aérea); el torso semisentado,
       agujas siempre recogidas, misma altura en los 4 frames.
 
-24. **`sweep-sheet.png` + `sweep-sheet-2.png`** — 6 frames en DOS hojas de
+25. **`sweep-sheet.png` + `sweep-sheet-2.png`** — 6 frames en DOS hojas de
     **3 frames cada una** (f1-f2-f3 en la primera, f4-f5-f6 en la segunda).
     IMPORTANTE: sólo **3 frames por hoja** para que cada personaje tenga MUCHO
     espacio y la aguja extendida al frente NUNCA toque ni se acerque al frame
@@ -678,7 +686,7 @@ efecto.
     toca al personaje del frame de al lado. ANATOMÍA correcta: DOS brazos, DOS
     piernas, DOS manos de 5 dedos, EXACTAMENTE DOS agujas (una por mano).
 
-25. **`wall-bounce-sheet.png`** — 6 frames. VUELO RECTO Y ESTRELLÓN
+26. **`wall-bounce-sheet.png`** — 6 frames. VUELO RECTO Y ESTRELLÓN
     CONTRA LA PARED. TODO de perfil, SIN pared, SIN piso, SIN líneas ni
     marcas de impacto, SIN efectos (solo el personaje sobre verde).
     El personaje está NOQUEADA EN EL AIRE: cuerpo suelto de muñeco de
@@ -701,7 +709,7 @@ efecto.
       (~45°), cayendo suelta de bruces, extremidades colgando muertas
       Misma escala en todos los frames.
 
-26. **`pummeled-sheet.png`** — 4 frames (loop). FAVI SIENDO MACHACADA de
+27. **`pummeled-sheet.png`** — 4 frames (loop). FAVI SIENDO MACHACADA de
     pie durante el super: se tambalea recibiendo golpes rápidos de
     frente, pies plantados en el piso (NO flota, NO salta). Todo de
     perfil, las dos agujas en manos flojas y bajas. CRÍTICO: los 4 frames miran
@@ -717,7 +725,7 @@ efecto.
       Cara de dolor, cuerpo suelto de muñeca pero DE PIE. El f4 conecta
       con el f1 (loop infinito rápido).
 
-27. **`flame-cast-sheet.png`** — 5 frames. FAVI LANZA LA TORMENTA DE AGUJAS
+28. **`flame-cast-sheet.png`** — 5 frames. FAVI LANZA LA TORMENTA DE AGUJAS
     (su crítico/especial): junta la energía entre sus dos agujas y la suelta al
     frente. Perfil, mira a la derecha, pies plantados, agujas con brillo azul.
 
@@ -740,16 +748,520 @@ efecto.
 
 ## Fase 2 (más adelante, no ahora)
 
-- `needle-dash-sheet.png` — dash veloz dejando estela azul de agujas
-- `needle-storm-burst-sheet.png` — super ataque en área (lluvia de agujas)
-- `intro-sheet.png` — entrada al escenario antes del Round 1
+- `needle-dash.mp4` — dash veloz dejando estela azul de agujas
+- `needle-storm-burst.mp4` — super ataque en área (lluvia de agujas)
+- `intro.mp4` — entrada al escenario antes del Round 1
 
 ## Recordatorios
 
 - Genera TODO en la misma conversación con tu IA, siempre adjuntando la
-  referencia de FAVI. Si un frame sale con otros colores, con una katana, con
-  una sola aguja o con agujas de más, repítelo antes de guardar la hoja.
-- Yo recorto el verde, alineo y conecto cada hoja — tú solo avísame cuál está.
-- Frames finales: los genero yo en `imagen-action/favi/` como `favi-[accion]-N.png`.
-- El moveset, los conteos de frames y los timings son EXACTAMENTE los de DAM
-  (ver `GUIA-SPRITES.md` y `GUIA-COMUN.md`). Si algo no cuadra, manda la de DAM.
+  referencia de FAVI. Si el clip sale con otros colores, con una katana, con
+  una sola aguja o con agujas de más, repítelo antes de guardar.
+- Yo recorto el verde, elijo la sección del clip y lo conecto — tú solo avísame
+  cuál está. Frames finales: los genero yo en `imagen-action/favi/` como
+  `favi-[accion]-N.png`.
+- El moveset y los timings son los de DAM (ver `GUIA-SPRITES.md` y
+  `GUIA-COMUN.md`). Si algo no cuadra, manda la de DAM.
+
+---
+
+## NIVELACIÓN con AYE — clips de VIDEO que faltan (workflow nuevo)
+
+> Estas animaciones se generan como CLIPS DE VIDEO (no hojas): 960×960, fondo verde puro
+> #00FF00 plano, UNA toma continua. Guardar como `imagen-action/favi/sheets/<accion>.mp4`.
+> Yo los proceso a frames. Adjuntar SIEMPRE la referencia de FAVI.
+> OJO facing: si el clip sale mirando a la IZQUIERDA no pasa nada — aviso: lo volteo yo al
+> procesar (gotcha conocida de las hojas de Fe).
+
+**Reglas fijas del clip (pegar al final de cada prompt):**
+
+> Same exact character as the reference image. STRICT SIDE VIEW / PROFILE, facing RIGHT the
+> whole time (NEVER frontal, NEVER three-quarter). Fixed locked TRIPOD camera — no zoom, no
+> pan, no drift. She stays the SAME SIZE and on the SAME SPOT the entire clip. Pure flat
+> green #00FF00 background. Nobody else in the frame; no effects, no particles, no glow.
+> Her TWO thin needles are RIGID SOLID straight rods of CONSTANT length — one in EACH hand,
+> no bending, stretching or warping, identical every frame.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward; if the
+> move includes a jump, the jump goes STRAIGHT UP and she lands on the EXACT SAME SPOT.
+> Camera completely fixed, no panning, no zooming.
+
+**`get_up`** _(tendida boca arriba → se para COMPLETA hasta su idle. Hoy se para con snap):_
+
+> She is LYING flat on her BACK on the ground, head toward the LEFT and feet toward the
+> RIGHT, eyes closed, still holding her two thin needles, arms relaxed on the ground. She
+> wakes and GETS UP in one continuous, light, agile motion: opens her eyes, rolls her weight
+> forward, brings her legs under herself and springs up to her FEET — quick and nimble (she
+> is a fast assassin, NOT heavy). She MUST END standing EXACTLY in her relaxed idle stance
+> from the reference: upright, facing right, one needle in each hand held low at her sides.
+> Do NOT stop halfway (no kneeling/sitting end). Her long hair follows the motion and
+> settles at the end.
+
+**`ko_air`** _(derrota cayendo BOCA ABAJO — hoy recicla el KO boca arriba. Anti-filtro: es
+"desmayo por agotamiento", cero combate):_
+
+> She is STANDING, completely exhausted and dizzy, eyes closing. She FAINTS forward gently:
+> her knees give in, she drops onto her knees, then her body tips FORWARD and she ends LYING
+> flat FACE-DOWN on the ground, head toward the RIGHT and feet toward the LEFT, arms loose
+> beside her head, her two needles dropped on the ground next to her hands, eyes closed,
+> completely still. The LAST third of the clip she stays MOTIONLESS lying face-down (hold
+> that final pose — the game freezes on it). Soft, slow collapse — like falling asleep
+> standing up; NO bouncing, NO jumping, and she does NOT end on her back.
+
+**`land`** _(aterrizaje del salto: flexión corta — hoy cae seca al idle):_
+
+> She is already IN THE AIR just above the ground, falling feet-first (start the clip with
+> her boots a small distance above the floor). She LANDS lightly on both feet on the SAME
+> SPOT like a cat: knees bend briefly absorbing the impact, torso dips a touch, her long
+> hair and outfit bounce once and settle. Then she straightens up and ENDS standing EXACTLY
+> in her relaxed idle stance from the reference (one needle in each hand, held low). Short
+> clip, one single soft landing, no jump afterwards, feet stay planted after touching down.
+
+
+**`jump_kick` (Jump + W — needle dive) — SHORT PROMPT (copy everything below as one prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background, fixed camera, she stays the SAME SIZE the whole clip. She starts STANDING on
+> the ground in her fighting stance (the reference pose). Then, in ONE continuous motion:
+> she bends her knees, JUMPS powerfully straight UP off the ground, rises into the air, and
+> AT THE TOP of the jump she tilts her body forward and DIVES down-forward, striking with
+> ONE needle pointed diagonally DOWN in front of her, the other arm swept back, hair and
+> open coat trailing upward. She falls with the dive and lands back on her feet. She never
+> hovers or floats in place — it is one athletic jump, dive, land.
+>
+> STATIC POSITION: keep her near the CENTER of the frame the whole clip — the dive is
+> SHORT and steep (she lands barely one step forward of where she jumped), she never
+> crosses the screen. Camera completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+
+**`air_jab` (Jump + R — double air kick) — SHORT PROMPT (copy everything below as one prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background, fixed camera, she stays the SAME SIZE the whole clip. She starts STANDING in
+> her fighting stance, bends her knees and JUMPS powerfully straight UP, rising HIGH into
+> the air. While she hangs at the top of the jump, with BOTH feet clearly OFF the ground
+> the whole time (she never touches the floor between the kicks), she kicks TWO TIMES —
+> TWO separate kicks, NOT one:
+>
+> KICK 1: her LEFT leg snaps straight FORWARD at chest height — then she PULLS IT BACK in.
+>
+> KICK 2: immediately after, her RIGHT leg snaps straight FORWARD slightly HIGHER — then
+> pulls back in.
+>
+> One-two rhythm, like a mid-air scissor combo: the clip must clearly show the FIRST kick
+> fully RETRACT before the SECOND kick fires. Her torso leans back slightly and both
+> needles stay gripped in her hands close to her body (the kicks do the hitting, not the
+> needles). ONLY AFTER the second kick finishes does she FALL back down, land on both feet
+> on the same spot, and END standing in the EXACT SAME fighting stance she started in
+> (hold that final stance for a beat).
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the jump goes
+> STRAIGHT UP and she lands on the EXACT SAME SPOT. She does NOT travel forward, backward,
+> or drift to the sides; only vertical movement. Camera completely fixed, no panning, no
+> zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`kick` (Ground + W — double rising kick, same leg) — SHORT PROMPT (copy everything below
+as one prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background, fixed camera, she stays the SAME SIZE the whole clip. She starts STANDING on
+> the ground in her fighting stance (the reference pose). She stays STANDING ON THE GROUND
+> the whole clip — her support leg stays PLANTED on the floor at all times, she never jumps.
+> Then she kicks TWO TIMES with the SAME leg — TWO separate kicks, NOT one:
+>
+> KICK 1: her front leg snaps straight FORWARD at WAIST height — then she pulls the foot
+> back to a chambered position WITHOUT putting it down on the floor.
+>
+> KICK 2: immediately after, the SAME leg snaps UP much HIGHER — a rising kick at FACE
+> height, powerful, her torso leaning back for the height.
+>
+> One-two rhythm: the clip must clearly show the FIRST kick fully RETRACT (foot chambered,
+> knee up) before the SECOND kick fires upward. Both needles stay gripped in her hands
+> close to her body (the kicks do the hitting, not the needles). After the second kick she
+> lowers the leg and ENDS standing in the EXACT SAME fighting stance she started in (hold
+> that final stance for a beat).
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`spin_kick` (Ground + E — needle top-spin) — SHORT PROMPT (copy everything below as one
+prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background, fixed camera, she stays the SAME SIZE the whole clip. She starts STANDING on
+> the ground in her fighting stance (the reference pose). Then she SPINS IN PLACE at very
+> high speed like a spinning top, arms and needles held straight OUT to the sides, one
+> full clean turn after another. She stays ON THE GROUND the whole clip — feet
+> planted/pivoting on one spot, no jump.
+>
+> Sequence: quick wind-up (she coils, arms crossing in) → FAST TOP SPIN (2-3 full turns,
+> fastest here) → the spin SLOWS DOWN GRADUALLY over several frames (a smooth, natural
+> deceleration — NOT a sudden stop) → she ENDS standing in the EXACT SAME fighting stance
+> she started in, in the SAME strict SIDE VIEW facing RIGHT (hold that final stance for a
+> beat). She must NEVER end facing the camera: the final frames are pure PROFILE view,
+> identical to the first frame of the clip.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`weak_punch` (Ground + R — quick needle jab) — SHORT PROMPT (copy everything below as one
+prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background, fixed camera, she stays the SAME SIZE the whole clip. She starts STANDING on
+> the ground in her fighting stance (the reference pose), knees slightly bent. Then she
+> throws ONE quick needle JAB: her FRONT arm snaps straight FORWARD at chest height,
+> stabbing with the needle held in that hand — a fast, precise fencing-style thrust, arm
+> FULLY extended for an instant, her body leaning just slightly into it, back arm guarding
+> at her hip. Then she snaps the arm back and ENDS standing in the EXACT SAME fighting
+> stance she started in (hold that final stance for a beat). It is ONE single fast jab —
+> no combo, no spin, no kick, her feet stay planted the whole time.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`whirlpool` (↓←+E finisher — WHIRLPOOL, water vortex spin) — SHORT PROMPT (copy
+everything below as one prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background, fixed camera, she stays the SAME SIZE the whole clip. She starts STANDING on
+> the ground in her fighting stance (the reference pose). Then she performs her ultimate
+> technique: she coils, then SPINS IN PLACE at extreme speed, and a spiral of PURE WHITE
+> ENERGY rises from the ground and wraps around her body like a small TORNADO — she
+> becomes the core of a spinning column of blinding white light with silver-white electric
+> arcs crackling around it, needles held out as the vortex whirls around her. Hold the
+> full raging vortex for the middle of the clip (this is the loop the game will cycle).
+> Then the energy bursts apart into white sparks, the spin slows down gradually, and she
+> ENDS standing in the EXACT SAME fighting stance she started in, in the SAME strict SIDE
+> VIEW facing RIGHT — she must NEVER end facing the camera.
+>
+> The energy is WHITE and SILVER only (no blue, no fire colors, no green tint anywhere).
+> The vortex stays TIGHT around her body — it does NOT fill the frame, and nothing
+> touches the frame edges; full column always visible with margin.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**LOS 4 AGACHADOS** — cada prompt es AUTOCONTENIDO (copia el bloque entero tal cual, con
+sus párrafos STATIC POSITION y WEAPONS LOCKED incluidos). El arma va anclada desde la
+PRIMERA línea: es donde más muta la herramienta. Guardar como `crouch_jab.mp4` /
+`crouch_punch.mp4` / `crouch_kick.mp4` / `sweep.mp4`.
+
+**`crouch_jab` (↓ + R — CAST del TIGRE: señala al frente agachada) — SHORT PROMPT (copy
+everything below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. She is CROUCHED LOW on deeply bent knees, compact
+> guard. She stays CROUCHED the ENTIRE clip — she never stands up. From the crouch her
+> front arm sweeps out and POINTS straight FORWARD, needle in hand aimed forward like a
+> general commanding an attack, her face fierce and focused, hair and coat reacting with
+> a small burst of wind. She HOLDS that commanding pointing pose for a moment. Then she
+> pulls the arm back and ENDS in the EXACT SAME crouched guard she started in (hold it a
+> beat). No jab, no kick — just the commanding point-forward gesture. She is ALONE in the
+> frame the entire clip. NO effects of any kind: no glow, no aura, no particles, no
+> energy, no light rays, no sparks — ONLY the girl on the flat green background (the game
+> engine adds all effects separately).
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
+> the camera is a fixed tripod for the ENTIRE clip. Her body must be the SAME SIZE in
+> pixels in the FIRST frame and the LAST frame (only her arm pose changes, never her
+> scale). This is a SIMPLE, SUBTLE animation — do NOT invent extra action or camera
+> drama.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`tiger.mp4` (el TIGRE DE ENERGÍA BLANCA del ↓R — efecto SIN personaje) — SHORT PROMPT
+(copy everything below as one prompt):**
+
+> Pure visual effect on a flat pure green #00FF00 background — NO human character, NO
+> floor, NO shadow, nothing else in frame. A fierce TIGER made of PURE WHITE ENERGY (white
+> spectral tiger, glowing white body with wisps of white flame-like energy tracing it,
+> mouth open in a roar — like the reference image). The clip has 3 phases:
+>
+> PHASE 1 — APPEAR: the tiger MATERIALIZES from swirling wisps of white energy that
+> gather and take its shape (fast, dramatic).
+>
+> PHASE 2 — RUN: in STRICT SIDE VIEW it RUNS powerfully from the LEFT side toward the
+> RIGHT side of the frame at a constant height, full gallop with claws out and mouth
+> roaring, leaving a short trail of white energy wisps behind it. Make the RUN CYCLE clean
+> and even (the game will loop these frames while the tiger travels and mauls the enemy).
+>
+> PHASE 3 — DISSOLVE: the tiger breaks apart and DISSOLVES into white energy wisps and
+> sparks that fade out.
+>
+> The energy is WHITE and SILVER only — no blue, no orange, no green tint anywhere. The
+> tiger is the ONLY thing in the frame.
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
+> the camera is a fixed tripod for the ENTIRE clip. The tiger stays the EXACT SAME SIZE
+> in pixels from the moment it forms until it dissolves — it does NOT grow, does NOT get
+> closer to the camera, does NOT get bigger as it runs. Its body height is the same in
+> every frame; only its legs and energy wisps move.
+
+**`crouch_punch` (↓ + Q — crouch double thrust) — SHORT PROMPT (copy everything below as
+one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — the needles stay
+> SEPARATE at all times, one per hand, they NEVER touch each other, NEVER cross, NEVER
+> join together, and must stay IDENTICAL to the reference in every frame. STRICT SIDE
+> VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she stays the SAME
+> SIZE the whole clip. She is CROUCHED LOW on deeply bent knees, compact guard. She stays
+> CROUCHED the ENTIRE clip — she never stands up. From the crouch, BOTH arms punch
+> straight FORWARD SIMULTANEOUSLY — the two arms move as ONE, launching at the EXACT SAME
+> MOMENT and arriving at the EXACT SAME MOMENT (NOT one hand first and then the other,
+> NOT a one-two: a single synchronized double stab). Fast DOUBLE STAB at waist height,
+> needles pointing forward SIDE BY SIDE and PARALLEL, one hand slightly above the other,
+> clearly separated. Arms fully extended for an instant. Then she pulls both arms back
+> TOGETHER and ENDS in the EXACT SAME crouched guard she started in (hold it a beat).
+> Feet planted, no kick, no spin.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`crouch_kick` (↓ + W — rising needles, launcher) — SHORT PROMPT (copy everything below
+as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT for the ENTIRE clip — pure PROFILE, she NEVER turns
+> toward the camera. Flat pure green #00FF00 background, fixed camera, she stays the SAME
+> SIZE the whole clip. The move has 3 phases:
+>
+> PHASE 1: she is CROUCHED LOW on deeply bent knees, compact guard, needles held low.
+>
+> PHASE 2: she thrusts BOTH needles in a fast rising DIAGONAL strike IN FRONT of her
+> body: the needles travel from her KNEES up to her FACE level, ending pointed diagonally
+> UP-FORWARD at 45 degrees IN FRONT of her chest — an anti-air uppercut with the blades.
+> Her legs push up into a forward LUNGE (half-rise) but her feet STAY PLANTED on the
+> floor — she does NOT jump. IMPORTANT: the needles STOP at face height IN FRONT of her.
+> They NEVER go above her head, NEVER behind her head, and her arms NEVER cross each
+> other — both blades point the same diagonal direction, up and forward.
+>
+> PHASE 3: she sinks straight back down and ENDS in the EXACT SAME crouched guard from
+> PHASE 1 (hold it a beat).
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`sweep` (↓ + E — ground leg sweep) — SHORT PROMPT (copy everything below as one
+prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip, they stay GRIPPED in her hands and IDENTICAL to the
+> reference in every frame (the KICK does the hitting, the needles never strike). STRICT
+> SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she stays the
+> SAME SIZE the whole clip. She is CROUCHED VERY LOW, hands near the ground for balance.
+> She stays LOW the ENTIRE clip — she never stands up. From that low crouch she sweeps
+> ONE leg in a wide fast arc along the GROUND in front of her — a classic fighting-game
+> leg sweep at ankle height, skirt and coat flaring with the motion — and brings the leg
+> back under her. She ENDS in the EXACT SAME low crouched guard she started in, in the
+> SAME strict SIDE VIEW facing RIGHT (never facing the camera). One single sweep, the
+> sweeping foot skims just above the floor.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward. Camera
+> completely fixed, no panning, no zooming.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`crouch` (↓ — solo agacharse y quedarse) — SHORT PROMPT (copy everything below as one
+prompt):**
+
+> Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
+> background. This is a SIMPLE, SUBTLE animation — almost nothing happens, do NOT invent
+> extra action. She starts STANDING in her fighting stance (the reference pose). She
+> smoothly LOWERS into a DEEP CROUCH: knees bend fully, hips drop, torso stays upright and
+> compact, keeping her guard — one needle in each hand, held close. Then she HOLDS that
+> crouched guard for the REST of the clip, completely still except a subtle breathing
+> motion. She does NOT attack, does NOT stand back up, does NOT walk.
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
+> the camera must be a fixed tripod for the ENTIRE clip. Her body must be the SAME SIZE in
+> pixels in the FIRST frame and the LAST frame (only her pose changes, never her scale).
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+---
+
+## ⚡ CAMBIO DE PODER (2026-08): ENERGÍA PURA BLANCA (ya NO agua)
+
+> El elemento de Fe pivota de AGUA a **ENERGÍA PURA BLANCA** (enlaza con el TIGRE de su
+> abrigo). Reemplazos: los géiseres de agua (↓→Q/W/E) pasan a ser **THUNDER**: un rayo
+> anime (núcleo blanco + glow azul eléctrico, como la imagen de referencia del rayo) que
+> CAE del cielo y revienta en el suelo. Y gana un proyectil nuevo: el **TIGRE DE
+> ENERGÍA**. Los clips de EFECTO van SIN personaje, solo el efecto sobre verde puro.
+
+**`thunder-cast.mp4` (Fe INVOCA el rayo — personaje solo, sin efectos) — SHORT PROMPT
+(copy everything below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. From her standing fighting guard she THRUSTS her
+> front arm up to the SKY, needle held high overhead pointing straight UP like a
+> conductor's baton commanding the heavens, chin lifted, face fierce, hair and coat
+> reacting with a small burst of wind. She HOLDS the sky-point for a beat, then WHIPS the
+> arm down in one sharp motion so the needle points straight FORWARD at chest height,
+> like ordering a strike. Then she returns to the EXACT SAME standing guard she started
+> in (hold it a beat). No jab, no kick, no jump — just the sky-point and the downward
+> command whip. She is ALONE in the frame the entire clip. NO effects of any kind: no
+> glow, no aura, no particles, no energy, no light rays, no sparks — ONLY the girl on
+> the flat green background (the game engine adds all effects separately).
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
+> the camera is a fixed tripod for the ENTIRE clip. Her body must be the SAME SIZE in
+> pixels in the FIRST frame and the LAST frame (only her arms change, never her scale).
+> This is a SIMPLE, SUBTLE animation — do NOT invent extra action or camera drama.
+>
+> STATIC POSITION: she stays in the CENTER of the frame for the ENTIRE clip — the whole
+> action happens ON ONE SPOT. She does NOT walk, slide or drift forward/backward.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`thunder.mp4` (el RAYO que cae — efecto SIN personaje; adjunta la imagen del rayo como
+referencia) — SHORT PROMPT (copy everything below as one prompt):**
+
+> Animate the attached image. The attached image is the EXACT artwork: a THIN, WIRY,
+> needle-thin electric CRACK of white light — a jagged broken LINE with long thin sharp
+> spikes and hard angular turns — with a blinding white core and an electric cyan-blue
+> glow, reaching down into a white spiky impact STARBURST at the bottom, on a flat pure
+> green #00FF00 background. NO character, NO person, NO floor, NO ground plane, NO
+> shading on the background, NO clouds, NO rain — the green is one single flat tone edge
+> to edge. KEEP THE EXACT SILHOUETTE of the electric crack from the attached image — the
+> same thin zigzag path, the same angles, the same thin spikes, the same proportions. Do
+> NOT redesign it, do NOT simplify it, do NOT thicken it.
+>
+> The animation is simple, ONE single strike: the thin electric crack SNAPS into view
+> from the top in 1-2 frames, the starburst FLARES at the impact point for a brief
+> moment, then the whole crack breaks into thin white arcs and sparks and DISAPPEARS,
+> the cyan glow fading last until the frame is pure green again. It appears ONCE and
+> vanishes — no repeated strikes, no flickering loop. Fixed camera, NO zoom, NO pan. The
+> impact point stays at the SAME SPOT the whole clip; the crack does not travel sideways.
+>
+> SHAPE LOCKED: the electric crack is a THIN broken LINE (like a crack in glass), never
+> a thick solid shape. It is NOT a lightning-bolt icon, NOT a thunderbolt symbol, NOT a
+> logo, NOT an emoji, NOT a wide filled arrow shape — if the shape becomes a fat solid
+> zigzag ribbon it is WRONG. Every segment stays needle-thin with a soft glow, exactly
+> like the attached image, in EVERY frame.
+
+**`tiger.mp4`** _(el PROYECTIL nuevo: tigre de energía del ↓R — el prompt canónico está
+en la sección de los AGACHADOS, justo debajo del cast `crouch_jab`; con fases APPEAR /
+RUN / DISSOLVE)._
+
+> _Nota de cableado (para mí): thunder reemplaza los frames de
+> `impact-effect/water-geyser-fe/` (drop-in, mismo código) pero ANCLADO POR EL IMPACTO:
+> la base del starburst va a la línea de suelo del canvas (el rayo cae de arriba; el
+> géiser subía — el punto de spawn en el suelo no cambia). thunder-cast reemplaza los
+> frames de `favi/water_cast/` (drop-in). Los tintes azules en juego (water_flash, borde
+> de cast) YA calzan con el glow azul de la referencia — no hay que tocarlos._
+
+> _Note: reuse the "WEAPONS LOCKED" paragraph verbatim in EVERY short Fe prompt — it is what
+> stops the tool from mutating her needles._

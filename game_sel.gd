@@ -5,16 +5,18 @@ extends Node
 var mode := "vs_cpu"        # "vs_cpu" | "practice" | "break"
 var p1 := "dam"             # personaje del jugador (P1)
 var p2 := "dam"             # personaje del rival / CPU (P2)
-var stage := 3              # escenario elegido (código STAGE de main.gd): 1=ciudad, 2=noche, 3=templo, 4=santuario
+var stage := 4              # escenario elegido (código STAGE de main.gd): 1=ciudad, 2=noche, 3=templo, 4=santuario
 var configured := false     # true cuando el char-select terminó (la pelea arranca directo)
 
 # ESCENARIOS elegibles en el char-select. "code" = el número que main.gd usa para montar
 # el stage; "thumb" = miniatura para la tarjeta de selección.
+# Por ahora SOLO un stage disponible (Santuario Dorado). Los demás quedan comentados
+# para reactivarlos cuando estén listos.
 const STAGES := [
-	{"code": 3, "name": "TEMPLO",           "thumb": "res://imagen-action/ui/stage-thumbs/templo.png"},
-	{"code": 1, "name": "CIUDAD EN LLAMAS", "thumb": "res://imagen-action/ui/stage-thumbs/city.png"},
-	{"code": 2, "name": "NOCHE DE LUNA",    "thumb": "res://imagen-action/ui/stage-thumbs/night.png"},
-	{"code": 4, "name": "SANTUARIO DORADO", "thumb": "res://imagen-action/ui/stage-thumbs/santuario.png"},
+	{"code": 4, "name": "GOLDEN SHRINE", "thumb": "res://imagen-action/ui/stage-thumbs/santuario.png"},
+	# {"code": 3, "name": "TEMPLE",       "thumb": "res://imagen-action/ui/stage-thumbs/templo.png"},
+	# {"code": 1, "name": "BURNING CITY", "thumb": "res://imagen-action/ui/stage-thumbs/city.png"},
+	# {"code": 2, "name": "MOONLIT NIGHT", "thumb": "res://imagen-action/ui/stage-thumbs/night.png"},
 ]
 
 # lista de personajes jugables (id, nombre, arquetipo, avatar busto, pose full-body de pie)
@@ -48,6 +50,10 @@ var _music: AudioStreamPlayer = null
 const MENU_MUSIC := "res://imagen-action/sound-effect/main-song-screen.mp3"
 
 func play_menu_music() -> void:
+	# en HEADLESS (tests/CI) el driver dummy nunca mezcla audio: el playback quedaría
+	# retenido hasta el exit y Godot avisa "ObjectDB instances leaked". Sin música ahí.
+	if DisplayServer.get_name() == "headless":
+		return
 	if _music != null and _music.playing:
 		return   # ya está sonando: NO reiniciar al cambiar de título a char-select
 	if _music == null:
