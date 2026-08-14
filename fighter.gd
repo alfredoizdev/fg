@@ -1262,6 +1262,50 @@ func spawn_fire_wave() -> Node2D:
 	w.play("spin")
 	return w
 
+# INFIERNO v2 (arte "faller" del usuario): el FUEGO se junta y crece en DOMO fundido
+# frente a DAM ("build" 22f), explota (los 2 impact-frames de pantalla los pone main
+# con _inferno_boom_overlay) y deja escombros ("out" 7f, se libera solo al terminar).
+var inferno_dome_frames: SpriteFrames = null
+func spawn_inferno_dome(dir: int) -> AnimatedSprite2D:
+	if inferno_dome_frames == null:
+		if not ResourceLoader.exists("res://imagen-action/impact-effect/faller-fx/build-1.png"):
+			return null
+		inferno_dome_frames = SpriteFrames.new()
+		inferno_dome_frames.add_animation("build")
+		inferno_dome_frames.set_animation_speed("build", 26.0)   # 22f ≈ 0.85s de carga
+		inferno_dome_frames.set_animation_loop("build", false)
+		var bi := 1
+		while ResourceLoader.exists("res://imagen-action/impact-effect/faller-fx/build-%d.png" % bi):
+			inferno_dome_frames.add_frame("build", load("res://imagen-action/impact-effect/faller-fx/build-%d.png" % bi))
+			bi += 1
+		inferno_dome_frames.add_animation("out")
+		inferno_dome_frames.set_animation_speed("out", 18.0)     # escombros flotando
+		inferno_dome_frames.set_animation_loop("out", false)
+		var oi := 1
+		while ResourceLoader.exists("res://imagen-action/impact-effect/faller-fx/out-%d.png" % oi):
+			inferno_dome_frames.add_frame("out", load("res://imagen-action/impact-effect/faller-fx/out-%d.png" % oi))
+			oi += 1
+	var e := AnimatedSprite2D.new()
+	e.sprite_frames = inferno_dome_frames
+	e.animation = "build"
+	e.frame = 0
+	e.z_index = 6
+	e.flip_h = dir < 0
+	var s := 0.55
+	e.scale = Vector2(s, s)
+	get_parent().add_child(e)
+	# lienzo 1800x1200 con la base del fuego en y=1150 (550 bajo el centro): base al piso,
+	# el domo crece ADELANTE de DAM engullendo la zona del rival
+	var ground_y := to_global(Vector2(0.0, SHADOW_FEET_OFFSET * base_scale.y)).y
+	# +70: el fuego ABRAZA el piso (con la base exacta al suelo se veía flotando alto).
+	# clamp: en la esquina el domo NO se sale de pantalla (medio domo ≈ 340)
+	var gx := clampf(position.x + float(dir) * 520.0, 340.0, 1580.0)
+	e.global_position = Vector2(gx, ground_y - 550.0 * s + 70.0)
+	e.animation_finished.connect(func() -> void:
+		if String(e.animation) == "out":
+			e.queue_free())
+	return e
+
 # SUPER combinado del INFIERNO: DAM + la GRAN OLA de fuego en una sola animación
 # (5 frames). Se muestra ocultando el sprite normal de DAM; los pies de DAM del
 # super (local 80,219) se anclan a los pies reales del fighter. La ola sale al
@@ -1673,7 +1717,8 @@ func _spawn_fire_pillar(escala := 1.0) -> void:
 	add_child(f)
 	f.finished.connect(f.queue_free)
 
-func _spawn_ghost(blue := false) -> void:
+func _spawn_ghost(blue := false, blanco := false) -> void:
+	# blanco: estela de ENERGÍA PURA BLANCA (whirlpool nuevo de Fe)
 	var tex: Texture2D = sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
 	if tex == null:
 		return
@@ -1685,7 +1730,9 @@ func _spawn_ghost(blue := false) -> void:
 	g.offset = sprite.offset
 	# nace CLARO (HDR) y se apaga hacia OSCURO/transparente: estela clara junto al cuerpo,
 	# oscura en la cola. AZUL agua para la víctima del poder de Fe / ROJO fuego para el dash.
-	if fx_floral:
+	if blanco:
+		g.modulate = Color(1.85, 1.95, 2.2, 0.6)     # BLANCO energía pura (whirlpool Fe)
+	elif fx_floral:
 		g.modulate = Color(1.25, 0.45, 1.75, 0.62)   # MORADO (Aye)
 	elif blue:
 		g.modulate = Color(0.42, 0.78, 1.9, 0.62)

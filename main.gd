@@ -219,9 +219,11 @@ var anno_side := -1            # lado por el que ENTRA (-1 izq, +1 der); sale po
 # GOLPE: zoom enorme -> se cierran de golpe con rebote + sacudida de pantalla.
 const RB_READY := "res://imagen-action/ui/get-ready-cut.png"
 const RB_FIGHT := "res://imagen-action/ui/Fight-cut.png"
+const RB_COUNTER := "res://imagen-action/ui/counter-cut.png"
 var round_banner: TextureRect = null
 var rb_ready_tex: Texture2D
 var rb_fight_tex: Texture2D
+var rb_counter_tex: Texture2D
 var rb_ms := -100000
 var rb_dur := 0.0
 var rb_impact_done := false
@@ -487,7 +489,7 @@ func _ready() -> void:
 		code_stage = esc
 	_build_cutin()      # cut-in del INFIERNO: detrás de la acción, delante del escenario
 	_build_announce()   # anuncios + KO + retrato del ganador: DETRÁS de los peleadores
-	_build_round_banner()   # banners GET READY / FIGHT (imágenes): DELANTE, con golpe
+	_build_round_banner()   # banners GET READY / FIGHT (imágenes): DETRÁS de los peleadores, con golpe
 	# ===== PANTALLA PRINCIPAL (title): banner + VS CPU / TRAINER / VS ONLINE =====
 	var tp := Control.new()
 	tp.position = Vector2.ZERO
@@ -930,7 +932,7 @@ func on_parry(quien: Node2D, atacante: Node2D) -> void:
 	# --- CINE del COUNTER (como el ULTRA): todo va DETRÁS de los peleadores (z=-1) para que
 	# los personajes Y el texto SOBRESALGAN por encima del OSCURO. Nada de velo amarillo encima. ---
 	break_side = 1 if quien.position.x >= 960.0 else -1
-	_show_announce("COUNTER", Color(1.0, 0.9, 0.25), 1.6, break_side)
+	_show_round_banner("counter", 1.4)                   # imagen COUNTER con golpe (detrás de los peleadores)
 	_play_voz("counter")                                 # voz épica (efecto tipo apocalypse) al ejecutar el counter
 	var line_col: Color = Color(0.55, 0.85, 1.7) if quien.fx_blue else Color(1.7, 0.42, 0.28)  # líneas AZUL (Fe) / ROJO (DAM)
 	quien.breaker_fx_t = 1.8
@@ -1951,6 +1953,14 @@ func _build_favi_frames() -> SpriteFrames:
 		sf.set_animation_speed("air_jab", 85.0 if aj.size() > 8 else 16.0)   # v2 VELOZ ~0.49s / sheet viejo 0.25s
 		for t in aj:
 			sf.add_frame("air_jab", t)
+	# HIT_FLY v2 (49 frames del clip, vuelo estabilizado por centroide): mucho más
+	# fluido que los 4 del sheet — la velocidad acompaña el arco del lanzamiento
+	if sf.has_animation("hit_fly") and sf.get_frame_count("hit_fly") > 8:
+		sf.set_animation_speed("hit_fly", 45.0)
+	# KO v2 (41 frames: impacto -> asienta -> tendida, de la cola del mismo clip):
+	# con peso — el juego sostiene el último frame (tendida boca arriba)
+	if sf.has_animation("ko") and sf.get_frame_count("ko") > 8:
+		sf.set_animation_speed("ko", 30.0)
 	# MORTAL AÉREO HACIA ADELANTE (salto + alante): flip que rota, EXCLUSIVA de Fe.
 	var nsp := _favi_action_frames("neutral_spin")
 	if not nsp.is_empty():
@@ -3118,6 +3128,49 @@ func try_critical(atacante: Node2D) -> bool:
 	_run_critical(atacante, idx)
 	return true
 
+# BOOM del INFIERNO v2: los 2 IMPACT FRAMES de anime toman TODA la pantalla (flat art)
+# con DAM dibujado POR ARRIBA (sube su z sobre el pantallazo un instante)
+func _inferno_boom_overlay(atacante: Node2D, arriba: Node2D = null, foco_x := 960.0) -> void:
+	# arriba: el nodo de ARTE de DAM que debe quedar sobre el pantallazo (p.ej. el super
+	# congelado en su pose de mano); si no se pasa, se sube el fighter mismo.
+	# foco_x: el CENTRO del arte se corre hacia donde ESTÁ la explosión (el domo) — con
+	# margen extra de escala (1.45x) para que aun corrido siga cubriendo toda la pantalla.
+	var texs := []
+	for n in ["boom-1", "boom-2"]:
+		var pth := "res://imagen-action/impact-effect/faller-fx/%s.png" % n
+		if ResourceLoader.exists(pth):
+			texs.append(load(pth))
+	if texs.is_empty():
+		return
+	const BOOM_M := 1.45   # margen: ancho en pantalla 1920*1.45 => el centro puede correrse ±432
+	var ov := Sprite2D.new()
+	ov.texture = texs[0]
+	ov.z_index = 20                        # sobre stage, rivales y efectos (< 10)
+	ov.position = Vector2(clampf(foco_x, 960.0 - 432.0, 960.0 + 432.0), 540.0)
+	ov.scale = Vector2(1920.0 * BOOM_M / float(texs[0].get_width()), 1080.0 * BOOM_M / float(texs[0].get_height()))
+	add_child(ov)
+	var subir: Node2D = arriba if arriba != null else atacante
+	var zprev: int = subir.z_index
+	subir.z_index = 21                     # el ARTE de DAM queda POR ARRIBA del pantallazo
+	# ESTALLIDO (explotion-boom, del usuario): revienta justo con el pantallazo
+	if ResourceLoader.exists("res://imagen-action/impact-effect/explotion-boom.wav"):
+		var bp := AudioStreamPlayer.new()
+		bp.stream = load("res://imagen-action/impact-effect/explotion-boom.wav")
+		bp.volume_db = 3.0
+		add_child(bp)
+		bp.finished.connect(bp.queue_free)
+		bp.play()
+	if texs.size() > 1:
+		get_tree().create_timer(0.09, true, false, true).timeout.connect(func() -> void:
+			if is_instance_valid(ov):
+				ov.texture = texs[1]
+				ov.scale = Vector2(1920.0 * BOOM_M / float(texs[1].get_width()), 1080.0 * BOOM_M / float(texs[1].get_height())))
+	get_tree().create_timer(0.18, true, false, true).timeout.connect(func() -> void:
+		if is_instance_valid(ov):
+			ov.queue_free()
+		if is_instance_valid(subir):
+			subir.z_index = zprev)
+
 func _run_critical(atacante: Node2D, idx: int) -> void:
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
@@ -3131,18 +3184,32 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	atacante.set_facing(dir)
 	_focus_start(atacante)         # borde rojo eléctrico (aparece gradual)
 	_focus_set(0.35)               # arranca tenue mientras carga la katana
-	# SUPER pre-animado DESDE EL ARRANQUE: OCULTA por completo a DAM (nada de arte
-	# viejo, nada de doble DAM) y muestra la animación combinada (DAM casteando +
-	# GRAN OLA de fuego roja) como UNA sola pieza. El frame 1 (DAM cargando) queda
-	# CONGELADO durante la pausa dramática; el rayo se suelta al reanudar el tiempo.
-	var sup: AnimatedSprite2D = atacante.spawn_inferno_super()
-	if sup != null:
-		atacante.sprite.visible = false        # esconde el DAM vivo (no más doble)
-		atacante.fx_sprite.visible = false     # sin fantasma de arte viejo
-		# el super queda en su frame 0 (DAM cargando) durante el freeze: entre el
-		# spawn y el time_scale=0 no se dibuja ningún frame, así que no avanza.
+	# INFIERNO v2 (arte "faller"): DAM se queda VIVO casteando (girando la katana) y el
+	# FUEGO se junta y crece en DOMO adelante; en el BOOM los 2 impact-frames toman la
+	# PANTALLA con DAM por arriba. Fallback: el super pre-animado viejo (oculta a DAM).
+	var dome: AnimatedSprite2D = atacante.spawn_inferno_dome(dir)
+	# OJO: dome se AUTO-LIBERA al terminar sus escombros (un objeto liberado == null en
+	# GDScript) — el MODO se captura acá para que el remate no caiga en la rama vieja
+	var modo_domo: bool = dome != null
+	var sup: AnimatedSprite2D = null
+	if dome != null:
+		# pose de CASTEO "por ahora" (pedido): el PRIMER cuadro del super viejo — DAM
+		# canalizando con la MANO extendida — CONGELADO (nunca reproduce la ola vieja)
+		sup = atacante.spawn_inferno_super()
+		if sup != null:
+			sup.pause()
+			sup.frame = 0
+			atacante.sprite.visible = false
+			atacante.fx_sprite.visible = false
+		else:
+			atacante.sprite.play("pose")
 	else:
-		atacante.sprite.play("pose")           # respaldo: pose NUEVA (nunca flame_cast viejo)
+		sup = atacante.spawn_inferno_super()
+		if sup != null:
+			atacante.sprite.visible = false        # esconde el DAM vivo (no más doble)
+			atacante.fx_sprite.visible = false     # sin fantasma de arte viejo
+		else:
+			atacante.sprite.play("pose")           # respaldo: pose NUEVA (nunca flame_cast viejo)
 	_play_voz("inferno")                   # GRITA el poder al alzar la katana (ANTES de la bola)
 	# CUT-IN: el retrato sale en el lado OPUESTO al contador de combo (para no chocar).
 	var combo_x: float = float(combo_rest_x[idx])
@@ -3157,10 +3224,23 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	# ...y AHÍ suelta la descarga: fogonazo naranja de ignición + DISPARA el rayo
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.3, 0.5, 0.12, 0.5)
-	if sup != null:
-		sup.play("cast")                   # AHORA sí: DAM suelta la GRAN OLA de fuego
-	# espera a que la ola crezca y alcance al rival antes del impacto
-	await get_tree().create_timer(0.42).timeout
+	if dome != null:
+		dome.play("build")                 # el fuego se junta y el DOMO crece (0.85s)
+		await get_tree().create_timer(0.85).timeout
+		# BOOM: los 2 IMPACT FRAMES a PANTALLA COMPLETA con DAM por arriba, con el
+		# arte CENTRADO donde está el domo (la explosión sale del punto real)
+		_inferno_boom_overlay(atacante, sup, dome.global_position.x)
+		await get_tree().create_timer(0.18).timeout
+		if is_instance_valid(dome):
+			# los ESCOMBROS/HUMO post-explosión vienen ALTOS en el arte: se baja el nodo
+			# para que queden pegados al SUELO (pedido)
+			dome.position.y += 150.0
+			dome.play("out")               # se libera solo al terminar
+	else:
+		if sup != null:
+			sup.play("cast")               # viejo: DAM suelta la GRAN OLA de fuego
+		# espera a que la ola crezca y alcance al rival antes del impacto
+		await get_tree().create_timer(0.42).timeout
 	# ¿el FUEGO toca de verdad al rival? Debe estar DELANTE de DAM, dentro del alcance
 	# del rayo y NO demasiado alto. Si saltó por encima o está lejos, el poder PASA DE
 	# LARGO: se ve la gran ola pero NO golpea (nada de golpes "fantasma").
@@ -3208,7 +3288,8 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	var fin := float(HITS) * PASO + 0.06
 	while empuje < fin:
 		var dt := get_process_delta_time()
-		var avance := float(dir) * 1050.0 * dt           # empujón veloz
+		# con el DOMO nuevo la víctima NO se arrastra: el fuego revienta DEBAJO de ella
+		var avance := float(dir) * (0.0 if modo_domo else 1050.0) * dt
 		victima.position.x = clampf(victima.position.x + avance, 120.0, 1800.0)
 		victima.position.y = hit_y                        # a la ALTURA donde lo tocó el fuego
 		polvo_cd -= dt
@@ -3242,9 +3323,15 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	if sup != null:
 		sup.queue_free()                                 # quita el super pre-animado
 	atacante.sprite.visible = true                       # DAM vuelve a su sprite normal
-	# REMATE: el estallido lo derriba al piso
+	# REMATE
 	victima.hard_fall = false
-	victima.receive_hit(false, false, dir, "", true, 1.0)   # trip -> derribo corto
+	if modo_domo:
+		# el DOMO revienta DEBAJO de ella: sale volando RECTO HACIA ARRIBA (pedido —
+		# nada de atrás-y-arriba: se anula el empuje horizontal del lanzador)
+		victima.receive_hit(false, true, dir, "", false, 1.7)
+		victima.vel_x = 0.0
+	else:
+		victima.receive_hit(false, false, dir, "", true, 1.0)   # trip -> derribo corto
 	# NO se espera el aterrizaje: si murió, _end_round maneja la caída→boca abajo→freeze
 	_focus_end()                  # quita el borde rojo y restaura el brillo
 	ultra_active = false
@@ -3620,10 +3707,18 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	atacante.airborne = false
 	atacante.position.y = atacante.floor_y
 	atacante.set_facing(dir)
-	_fe_cast_fx(atacante, true)                    # borde AZUL eléctrico + partículas (solo Fe)
-	atacante.sprite.animation = "whirlpool"
+	_fe_cast_fx(atacante, true)                    # borde BLANCO-azul eléctrico + partículas (solo Fe)
+	# ARTE NUEVO (pedido): SU PROPIO GIRO (spin_kick v2) acelerado con efectos BLANCOS
+	# por código (borde + sombras + destellos) — ya no el tornado de agua. Fallback: viejo.
+	var usa_spin: bool = atacante.sprite.sprite_frames.has_animation("spin_kick") \
+			and atacante.sprite.sprite_frames.get_frame_count("spin_kick") > 40
+	var ganim := "spin_kick" if usa_spin else "whirlpool"
+	var cyc0 := 12 if usa_spin else 1        # donde ARRANCA el ciclo de rotación pura
+	var cyclen := 28 if usa_spin else 3      # largo del ciclo (f12..39 del trompo)
+	var paso_g := 0.007 if usa_spin else 0.045   # ROTACIÓN FURIOSA: vuelta completa ~0.2s
+	atacante.sprite.animation = ganim
 	atacante.sprite.stop()
-	atacante.sprite.frame = 0                      # f1: pose de arranque (se ve durante el freeze)
+	atacante.sprite.frame = 0                      # pose de arranque (se ve durante el freeze)
 	if atacante.has_method("_spawn_jump_dust"):
 		atacante._spawn_jump_dust(0.55)   # un toque de polvo al arrancar (sutil, no tapa)
 	# GRITA en su player de VOZ propio (no lo corta el sonido de impacto)
@@ -3635,9 +3730,9 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	# CUT-IN del PERSONAJE (como el inferno de DAM): retrato de Fe en el lado opuesto al combo
 	var combo_x: float = float(combo_rest_x[idx])
 	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)
-	# entrada cinemática: congela un instante + velo AZUL marino
+	# entrada cinemática: congela un instante + velo BLANCO-azul (energía pura)
 	flash_ms = Time.get_ticks_msec()
-	flash_rect.color = Color(0.05, 0.12, 0.35, 0.5)
+	flash_rect.color = Color(0.5, 0.65, 1.0, 0.4)
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(0.28, true, false, true).timeout
 	Engine.time_scale = 1.0
@@ -3651,10 +3746,10 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 		victima.position.y = victima.floor_y
 		victima.set_facing(-dir)
 	_shake(20.0, 0.3)
-	# ARRANQUE del giro: acelera del reposo (f1) al tornado completo (f4)
-	for fr in range(1, atacante.sprite.sprite_frames.get_frame_count("whirlpool")):
+	# ARRANQUE del giro: acelera del reposo hasta la rotación plena
+	for fr in range(1, cyc0 + 1):
 		atacante.sprite.frame = fr
-		await get_tree().create_timer(0.045).timeout
+		await get_tree().create_timer(0.03).timeout
 	var spin_clock := 0.0   # reloj del giro (cicla los frames de tornado)
 	# MULTI-HIT del remolino (HURACÁN): golpea repetido y MUY RÁPIDO SIN lanzarlo; ~40% de su vida
 	var n0: int = combo_n[idx]
@@ -3672,7 +3767,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 		var dt := get_process_delta_time()
 		# GIRA: cicla los frames de TORNADO (f2,f3,f4) rápido — nunca vuelve a la pose f1
 		spin_clock += dt
-		atacante.sprite.frame = 1 + (int(spin_clock / 0.045) % 3)
+		atacante.sprite.frame = cyc0 + (int(spin_clock / paso_g) % cyclen)
 		if alcanza:
 			# a BODY_SEP justo (con 190 quedaba SOLAPADA con Fe y el empuje anti-traspaso
 			# arrastraba al par por el piso durante todo el huracán)
@@ -3683,7 +3778,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 		if ghost_cd <= 0.0:
 			ghost_cd = 0.04
 			if atacante.has_method("_spawn_ghost"):
-				atacante._spawn_ghost(true)
+				atacante._spawn_ghost(false, true)   # estela BLANCA (energía pura)
 		polvo_cd -= dt
 		if polvo_cd <= 0.0:
 			polvo_cd = 0.30   # MUY espaciado: solo un par de puffs chicos (antes se enredaba)
@@ -3707,17 +3802,16 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 			_shake(11.0, 0.09)
 			victima._play_sfx_key("take_hit")            # impacto en SU player (no corta la voz de Fe)
 			victima.sprite.play("pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit")
-			victima.water_flash_t = 0.25                 # tinte azul del agua
+			victima.water_flash_t = 0.25                 # tinte azul-blanco del golpe
 			flash_ms = Time.get_ticks_msec()
-			flash_rect.color = Color(0.3, 0.55, 1.2, 0.35)
+			flash_rect.color = Color(0.8, 0.9, 1.4, 0.3)   # destello BLANCO-azul (energía)
 		t += dt
 		await get_tree().process_frame
-	# RECUPERACIÓN: desacelera saliendo del giro reproduciendo los frames AL REVÉS
-	# (f4 -> f1): da la sensación de que el tornado se FRENA y Favi vuelve a la pose.
-	var nfr: int = atacante.sprite.sprite_frames.get_frame_count("whirlpool")
-	for fr in range(nfr - 1, -1, -1):
+	# RECUPERACIÓN: desacelera saliendo del giro reproduciendo la ENTRADA al revés
+	# (rotación -> guardia): el trompo se FRENA y Fe vuelve a la pose.
+	for fr in range(cyc0, -1, -1):
 		atacante.sprite.frame = fr
-		await get_tree().create_timer(0.06).timeout
+		await get_tree().create_timer(0.05).timeout
 	_fe_cast_fx(atacante, false)                         # apaga el borde azul
 	atacante.sprite.play("pose")
 	# REMATE: lo derriba al piso (solo si el remolino lo atrapó)
@@ -4615,7 +4709,7 @@ func _build_round_banner() -> void:
 	round_banner.size = RB_BOX
 	round_banner.pivot_offset = RB_BOX * 0.5           # escala desde el centro (para el golpe)
 	round_banner.position = RB_CENTER - RB_BOX * 0.5
-	round_banner.z_index = 100                          # DELANTE de peleadores y HUD
+	round_banner.z_index = -1                           # DETRÁS de los peleadores (sobre el escenario)
 	round_banner.z_as_relative = false
 	round_banner.visible = false
 	add_child(round_banner)
@@ -4623,11 +4717,17 @@ func _build_round_banner() -> void:
 		rb_ready_tex = load(RB_READY)
 	if ResourceLoader.exists(RB_FIGHT):
 		rb_fight_tex = load(RB_FIGHT)
+	if ResourceLoader.exists(RB_COUNTER):
+		rb_counter_tex = load(RB_COUNTER)
 
 func _show_round_banner(which: String, dur: float) -> void:
 	if round_banner == null:
 		return
-	var tex: Texture2D = rb_ready_tex if which == "ready" else rb_fight_tex
+	var tex: Texture2D = rb_ready_tex
+	if which == "fight":
+		tex = rb_fight_tex
+	elif which == "counter":
+		tex = rb_counter_tex
 	if tex == null:
 		return
 	round_banner.texture = tex

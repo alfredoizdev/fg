@@ -1184,6 +1184,82 @@ prompt):**
 
 ---
 
+## SALE VOLANDO (`hit_fly`) — pendiente: el arte actual es de hojas viejas (4 frames tiesos)
+
+**`hit_fly` (sale VOLANDO por un lanzador — la mueve el motor, ella solo vuela) — SHORT
+PROMPT (copy everything below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. ONE single knockback, in ONE direction only: she
+> has just been BLASTED off her feet and flies BACKWARD (toward the LEFT side of the
+> frame) in ONE clean arc — launched up-and-back with her back arched belly-up, head
+> thrown back, arms whipping loosely, legs trailing bent, hair and coat lashing, eyes
+> squeezed shut, mouth open in pain — the arc peaks, she starts to DROP, and she FALLS
+> to the ground landing flat on her BACK, sliding a tiny bit, ending lying on the
+> ground. The flight is ONE continuous smooth trajectory: up-back, arc over, fall down,
+> land. ORIENTATION LOCKED the whole clip: her HEAD points toward the RIGHT side of the
+> frame and her FEET toward the LEFT side, from the first frame of the flight to the
+> final landing — she lands on her back with her head STILL toward the RIGHT and her
+> feet STILL toward the LEFT, exactly the same orientation she flew with. The direction
+> of travel NEVER reverses: she moves steadily toward the LEFT from launch to landing —
+> she does NOT turn around, does NOT flip head-to-feet, does NOT come back toward the
+> right, does NOT bounce mid-air, does NOT float in place. NO effects: no glow, no
+> aura, no particles, no dust, no motion lines — only the girl.
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
+> the camera is a fixed tripod for the ENTIRE clip. Her body must be the SAME SIZE in
+> pixels in the FIRST frame and the LAST frame.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+> _Guardar como `sheets/hit-fly.mp4` → lo proceso a `favi/hit_fly/` (drop-in: el juego
+> ya usa esa anim al salir volando)._
+
+## K.O. (`ko`) — colapso final (hoy usa la cola del clip de hit_fly; clip propio pendiente)
+
+**`ko` (recibe el GOLPE FINAL de pie y colapsa) — SHORT PROMPT (copy everything below
+as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. She has just taken the FINAL blow of the fight and
+> is KNOCKED OUT: from her standing guard her head snaps back, her arms drop LIMP (the
+> needles still loosely in her hands), her knees BUCKLE under her, and she COLLAPSES
+> BACKWARD in one continuous fall — landing flat on her BACK on the ground, head toward
+> the LEFT side of the frame and feet toward the RIGHT, hair spilling on the floor. She
+> ends COMPLETELY STILL, lying flat on her back, eyes closed, mouth slightly open,
+> defeated — HOLD that final lying pose for a good beat. Her feet stay roughly planted
+> where she stood while the body falls back — she does NOT walk, does NOT get thrown
+> across the frame, does NOT get up, does NOT bounce. One single collapse, one
+> direction, ending still on the floor. NO effects: no glow, no aura, no particles, no
+> dust, no motion lines — only the girl.
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
+> the camera is a fixed tripod for the ENTIRE clip. Her body must be the SAME SIZE in
+> pixels in the FIRST frame and the LAST frame.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+> _Guardar como `sheets/ko.mp4` → lo proceso a `favi/ko/` (drop-in: reemplaza la
+> versión provisional sacada del aterrizaje de hit_fly)._
+
 ## ⚡ CAMBIO DE PODER (2026-08): ENERGÍA PURA BLANCA (ya NO agua)
 
 > El elemento de Fe pivota de AGUA a **ENERGÍA PURA BLANCA** (enlaza con el TIGRE de su
