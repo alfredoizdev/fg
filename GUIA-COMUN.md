@@ -146,6 +146,7 @@ CADA prompt (más la imagen de referencia):
 > Mismo personaje exacto de la referencia: [ROPA — prendas, capucha, etc.],
 > [COLORES/PALETA], [PELO], [OJOS], [DETALLES: guantes, accesorios]. Su arma es
 > [ARMA — descripción, material, color, brillo]. [Prohibiciones del arma si
+>
 > > aplica: sin fuego, sin partículas, etc.].
 
 Ejemplo (DAM): abrigo rojo con capucha, ropa negra, tenis negros con detalles
@@ -405,7 +406,6 @@ snappy. NO character.
 When you have it, tell me "**impact-slash is ready**" and I'll process it and wire it
 as the **low-hit** effect (sweeps, crouching hits, take_hit_low).
 
-
 ---
 
 ## CONGELADO (`frozen`) — estado estándar para TODOS los personajes
@@ -427,10 +427,14 @@ pelo y ropa temblando apenas. **SIN bloque de hielo, SIN escarcha, SIN partícul
 si existe la carpeta con frames, usa esta anim (con el tiritón corriendo) en vez de pausar
 el frame; si no existe, sigue el comportamiento actual. Nada que tocar en código.
 
-**Prompt (pegar el BLOQUE DE IDENTIDAD del personaje + las reglas de clip de su guía):**
+**Prompt (100% inglés, copy-paste TAL CUAL con la imagen de referencia del personaje;
+opcional: pegar antes su bloque de identidad — p. ej. el WEAPONS LOCKED de Fe):**
 
-> [IDENTIDAD DEL PERSONAJE + reglas fijas del clip: perfil DERECHA, cámara trípode fija,
-> mismo tamaño y punto, verde #00FF00 plano, arma rígida]
+> The character from the reference image, holding their signature weapon — the weapon
+> stays RIGID and IDENTICAL to the reference in every frame, it never changes shape,
+> never grows parts, never disappears. STRICT SIDE VIEW facing RIGHT, flat pure green
+> #00FF00 background, fixed camera, the character stays the SAME SIZE and on the SAME
+> SPOT the whole clip.
 >
 > The character is STANDING, FROZEN STIFF as if caught by extreme sudden cold: body tense
 > and hunched slightly inward, shoulders raised, arms pulled tight against the chest, fists
@@ -447,7 +451,7 @@ El ELECTROCUTAMIENTO es mecánica global: el THUNDER de Fe (↓↘→) electrocu
 del personaje — funciona, pero la pose propia de convulsión estilo **Street Fighter** (la
 clásica: cuerpo arqueado rígido, brazos tiesos abiertos, pelo erizado) se ve pro.
 
-**Especificación:** clip corto en LOOP: convulsión violenta EN EL SITIO — el cuerpo se
+Especificación: clip corto en LOOP: convulsión violenta EN EL SITIO — el cuerpo se
 arquea RÍGIDO, brazos disparados a los lados tiesos con los dedos abiertos como garras
 (el arma sigue agarrada), rodillas flexionadas hacia adentro, pelo ERIZADO hacia afuera
 como cargado de estática, ojos muy abiertos, dientes apretados en mueca de dolor. La pose
@@ -463,20 +467,37 @@ ESTA anim en loop mientras dura la descarga (con la silueta blanca parpadeando e
 vuelve a su pose al terminar; si no existe, se queda el comportamiento actual. Nada que
 tocar en código.
 
-**Prompt (pegar el BLOQUE DE IDENTIDAD del personaje + las reglas de clip de su guía):**
+**Prompt (100% inglés, copy-paste TAL CUAL con la imagen de referencia del personaje;
+opcional: pegar antes su bloque de identidad — p. ej. el WEAPONS LOCKED de Fe):**
 
-> [IDENTIDAD DEL PERSONAJE + reglas fijas del clip: perfil DERECHA, cámara trípode fija,
-> mismo tamaño y punto, verde #00FF00 plano, arma rígida]
+> The character from the reference image, holding their signature weapon — the weapon
+> stays RIGID and IDENTICAL to the reference in every frame, it never changes shape,
+> never grows parts, never disappears. STRICT SIDE VIEW facing RIGHT, flat pure green
+> #00FF00 background, fixed camera, the character stays the SAME SIZE and on the SAME
+> SPOT the whole clip.
 >
 > The character is STANDING and being violently JOLTED in place: body arched stiff and
 > RIGID, both arms flung OUT to the sides locked stiff with fingers spread like claws
-> (weapon still gripped), knees bent inward, hair BRISTLING outward as if charged with
-> static, eyes wide open, teeth clenched in a pained grimace. The pose HOLDS the entire
-> clip — the ONLY motion is a VIOLENT rapid full-body SHAKE (much stronger than a shiver),
-> hair and clothes whipping with each jolt. The character stays ON ONE SPOT the whole
-> clip — no walking, no falling, no turning. Seamless LOOP: last frame identical to the
-> first. No lightning, no sparks, no electricity, no glow, no smoke — only the character
+> (weapon still gripped), knees bent inward, head tipped slightly back, hair BRISTLING
+> outward as if charged with static. The pose HOLDS the entire clip — the ONLY motion
+> is a VIOLENT rapid full-body SHAKE (much stronger than a shiver), hair and clothes
+> whipping with each jolt. The character stays ON ONE SPOT the whole clip — no walking,
+> no falling, no turning. Seamless LOOP: last frame identical to the first. No
+> lightning, no sparks, no electricity, no glow, no smoke — only the character
 > convulsing in place (the game engine draws all electric effects on top).
+>
+> CAMERA HARD-LOCKED — this is STATIC WIDE footage, like a fixed security camera on a
+> tripod bolted to the floor: the framing of the FIRST frame is the framing of EVERY
+> frame. WIDE FULL-BODY SHOT the ENTIRE clip: the whole body from the top of the head
+> to the soles of the shoes visible in every frame, with clear green margin ABOVE the
+> head and BELOW the feet at least ONE HEAD TALL — that empty green space is CORRECT
+> and REQUIRED, do NOT reframe, crop or move closer to fill it, and the SAME margin
+> must still be there in the MIDDLE of the clip and in the LAST frame. Absolutely NO
+> zoom in, NO zoom out, NO push-in, NO pan, NO tilt, NO drift, NO slow creep toward
+> the character for drama — the shake is violent but the camera does NOT react to it.
+> The head must be the SAME SIZE in pixels in the first frame, the middle frame and
+> the last frame — if the character gets bigger at ANY point, the clip is WRONG. This
+> is a SIMPLE hold-and-shake animation — do NOT invent extra action or camera drama.
 
 ## PASO CORTO (`step`) y BACKDASH (`backdash`) — doble-tap para Fe y DAM
 
@@ -497,10 +518,14 @@ inclinado atrás, un brinquito bajo rasante hacia atrás, aterriza en guardia. M
 proceso a `<personaje>/step/` y `<personaje>/backdash/`. **El juego ya está cableado
 (Fe y DAM):** si existen los frames, el doble-tap usa la anim propia; si no, el placeholder.
 
-**Prompt `step` (pegar el BLOQUE DE IDENTIDAD del personaje + reglas de clip de su guía):**
+**Prompt `step` (100% inglés, copy-paste TAL CUAL con la imagen de referencia del
+personaje; opcional: pegar antes su bloque de identidad):**
 
-> [IDENTIDAD DEL PERSONAJE + reglas fijas del clip: perfil DERECHA, cámara trípode fija,
-> mismo tamaño y punto, verde #00FF00 plano, arma rígida]
+> The character from the reference image, holding their signature weapon — the weapon
+> stays RIGID and IDENTICAL to the reference in every frame, it never changes shape,
+> never grows parts, never disappears. STRICT SIDE VIEW facing RIGHT, flat pure green
+> #00FF00 background, fixed camera, the character stays the SAME SIZE and on the SAME
+> SPOT the whole clip.
 >
 > From their fighting guard, the character does ONE quick LOW forward hop-step: both feet
 > leave the ground for a brief instant in a LOW skimming hop (never a high jump — the feet
@@ -510,10 +535,13 @@ proceso a `<personaje>/step/` y `<personaje>/backdash/`. **El juego ya está cab
 > frame — the hop happens ON ONE SPOT (the game engine moves them across the stage). No
 > effects, no dust, no motion lines — only the character.
 
-**Prompt `backdash` (igual, pegar identidad + reglas):**
+**Prompt `backdash` (100% inglés, copy-paste TAL CUAL con la imagen de referencia):**
 
-> [IDENTIDAD DEL PERSONAJE + reglas fijas del clip: perfil DERECHA, cámara trípode fija,
-> mismo tamaño y punto, verde #00FF00 plano, arma rígida]
+> The character from the reference image, holding their signature weapon — the weapon
+> stays RIGID and IDENTICAL to the reference in every frame, it never changes shape,
+> never grows parts, never disappears. STRICT SIDE VIEW facing RIGHT, flat pure green
+> #00FF00 background, fixed camera, the character stays the SAME SIZE and on the SAME
+> SPOT the whole clip.
 >
 > From their fighting guard, the character does ONE quick LOW hop BACKWARD (away from
 > where they are facing): a sharp push off the front foot, body leaning BACK, both feet

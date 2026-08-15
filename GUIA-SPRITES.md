@@ -245,35 +245,27 @@ sueltos por masa corporal para que encajen).
    La ropa se mueve acorde al movimiento si se agacha la cola del sobretodo va hacia arriva ligeramnte y
    cuando ya se agacha cae
 
-6. **`crouch-punch-sheet.png`** — 3 frames. Corte rápido de katana desde la
-   posición agachada, al frente y a media altura: carga → corte → recogida.
+6. **`crouch-punch.mp4`** ✅ HECHO (2026-08-15) — ↓Q, estocada agachada. Prompt (pegar
+   con la referencia + el bloque "Reglas fijas del clip" de GOLPES v2 al final):
 
-7. **`crouch-kick-sheet.png`** — **4 frames en 1 fila** (f1 f2 f3 f4 de izq→der).
-   GANCHO ASCENDENTE (uppercut de arma pesada, anti-aéreo): un corte que arranca
-   cargado ABAJO y termina con la katana ARRIBA tras el hombro. Es UN SOLO golpe.
-   **TODO de PERFIL mirando a la DERECHA** — se ve su mejilla y ojo derechos, el
-   pecho apunta a la derecha. **REGLA:** si se ve el logo del LOBO de la espalda del
-   abrigo, el frame está MAL (la espalda NUNCA apunta a la cámara). Los pies SIEMPRE
-   tocan el piso (NO es un salto). Fondo VERDE #00FF00. **Mismo tamaño de personaje
-   en los 4 frames.** Katana bien AGARRADA (dedos cerrados en el mango), nunca suelta.
-   - **f1 — CARGA:** en cuclillas profundas, torso volcado sobre la rodilla
-     delantera, katana con AMBAS manos AL FRENTE, la hoja apuntando al PISO (cargando,
-     como un leñador a punto de arrancar el hacha del suelo).
-   - **f2 — CORTE (impacto):** en zancada baja (rodilla delantera flexionada, pierna
-     trasera estirada), torso inclinado HACIA ADELANTE. Los DOS brazos lanzados hacia
-     adelante-arriba, ESTIRADOS, katana en DIAGONAL ASCENDENTE: empuñadura a la altura
-     del pecho, PUNTA de la hoja a la altura de los ojos, apuntando arriba-adelante.
-     Es el momento EXACTO de un corte hacia arriba EN MOVIMIENTO (NO una guardia
-     quieta), cuerpo tenso, abrigo volando hacia atrás.
-   - **f3 — REMATE (follow-through):** ya de pie en zancada (ambos pies firmes en el
-     piso), los dos brazos CRUZADOS por ENCIMA de la cabeza: la katana terminó el
-     corte y apunta hacia ATRÁS-ARRIBA por detrás del hombro. Pecho y cadera hacia la
-     derecha, abrigo asentándose tras el movimiento.
-   - **f4 — RECOGIDA:** baja la katana y vuelve a las cuclillas del f1.
+   > He is CROUCHED LOW on one knee in his guard and stays crouched the ENTIRE clip.
+   > ONE quick strike from the crouch: the big sword pulls back and up, then DRIVES
+   > forward in a long low THRUST at waist height, both arms extending fully, torso
+   > leaning into it, coat snapping — then recovers back into the same crouched
+   > guard. Small, fast, compact — he never stands up, knees stay bent in every frame.
 
-   El arco de la hoja debe quedar CLARAMENTE distinto en cada frame: al piso →
-   diagonal subiendo al frente → arriba tras el hombro → bajando. PROHIBIDO: pose de
-   frente simétrica, pose de espaldas, o la espada quieta en vertical de guardia.
+7. **`crouch-kick.mp4`** — ↓W, gancho ascendente antiaéreo. Prompt (pegar con la
+   referencia + el bloque "Reglas fijas del clip" de GOLPES v2 al final):
+
+   > He starts CROUCHED LOW, torso folded over his front knee, the big sword held
+   > with BOTH hands low in front, blade tip pointing at the GROUND — loaded like a
+   > lumberjack about to rip an axe out of the earth. Then ONE explosive RISING cut:
+   > he drives upward into a low lunge, both arms launching forward-and-up, the blade
+   > sweeping a rising diagonal until it ends crossed high behind his shoulder
+   > pointing back-and-up, chest and hips still pointing RIGHT, coat blasted backward
+   > by the motion. Then he lowers the sword and sinks back down into the starting
+   > crouch. ONE single uppercut swing, his feet stay on the ground the whole time —
+   > this is NOT a jump, he never leaves the floor.
 
 ### Salto
 
@@ -544,84 +536,53 @@ en el efecto.
 
 ## Movimientos agachados nuevos (personaje: aplican las reglas generales)
 
-23. **`crouch-jab-sheet.png`** — 4 frames. PINCHAZO BAJO (↓R): estocada
-    corta y veloz con una mano desde la guardia agachada. TODO de perfil,
-    pies plantados, altura agachada en los 4 frames:
-    - f1: agachado de perfil, carga corta — la mano del arma retrocede
-      junto a la cadera, la hoja apunta adelante-abajo
-    - f2: ESTOCADA — brazo extendido, hoja horizontal a la altura de la
-      espinilla, punta hacia adelante (dejar medio cuerpo de espacio
-      libre delante para la hoja)
-    - f3: sostiene la estocada con leve vibración del impacto
-    - f4: recoge el brazo y vuelve a la guardia agachada
-      El movimiento es PEQUEÑO y seco: no se levanta, no gira, no salta.
+23. **`crouch-jab.mp4`** — ↓R, pinchazo bajo. Prompt para el tool de animación (pegar
+    con la referencia + el bloque "Reglas fijas del clip" de GOLPES v2 al final):
 
-24. **`sweep-sheet.png`** — 6 frames. BARRIDO DERRIBADOR (↓E): corte
-    amplio a RAS DEL PISO que cruza todo el frente, para tumbar al rival.
-    TODO de perfil, agachado, pies plantados:
-    - f1: carga — el torso gira levemente atrás, la katana cargada
-      atrás-abajo con la punta casi tocando el piso detrás
-    - f2: arranca el barrido — la hoja corta bajando, raspando el piso
-      por detrás y por debajo
-    - f3: PICO — la hoja COMPLETAMENTE extendida al frente a ras del
-      piso, brazo estirado, el corte cruza todo el frente (dejar medio
-      cuerpo de espacio libre delante para la hoja extendida)
-    - f4: el arco continúa — la hoja sigue el barrido apenas subiendo,
-      el torso gira con el impulso
-    - f5: frenado — la hoja termina cruzada del otro lado del cuerpo,
-      aún agachado
-    - f6: vuelve a la guardia agachada
-      NO es una patada: DAM barre con la katana. NO se pone de pie en
-      ningún frame.
+    > He is CROUCHED LOW in his guard and stays crouched the ENTIRE clip. ONE short
+    > quick one-hand THRUST low to the front: the sword hand pulls back beside his
+    > hip, then the blade shoots straight forward HORIZONTAL at SHIN height, point
+    > first, arm extending — then retracts just as fast back into the same crouched
+    > guard. Short and DRY: minimal body motion, no wide swings, he never stands up,
+    > never jumps. The fastest, lightest low poke he has.
+    >
+    > SIDE VIEW LOCKED: this is a STRICT PROFILE in every single frame — his face in
+    > profile pointing at the RIGHT edge of the screen, ONE shoulder toward the
+    > camera, his chest NEVER square to the camera. He NEVER turns around, NEVER
+    > faces the viewer, we NEVER see the wolf logo on the back of his coat — even at
+    > the peak of the thrust his nose keeps pointing at the RIGHT edge of the screen.
+    >
+    > ONE SWORD ONLY: he owns exactly ONE sword — the same single sword the WHOLE
+    > clip, gripped in his forward hand. It NEVER splits in two, never duplicates,
+    > never becomes two blades, and NO second weapon ever appears anywhere. His
+    > OTHER hand stays EMPTY (a bare closed fist near his body) in every frame.
 
-25. **`wall-bounce-sheet.png`** — EXACTAMENTE **6 frames** en **2 filas de 3**
-    (fila de arriba = f1 f2 f3 de izq→der; fila de abajo = f4 f5 f6 de izq→der).
-    Fondo VERDE puro #00FF00. Personaje SIEMPRE de **perfil mirando a la DERECHA**.
-    **NO dibujes:** pared, piso, líneas de velocidad, polvo, chispas ni ningún
-    efecto — SOLO el personaje flotando sobre el verde (la pared y el golpe los
-    pone el motor). Los 6 frames al **MISMO tamaño de personaje** (misma escala).
+24. **`sweep.mp4`** — ↓E, barrido derribador a ras de piso. Prompt para el tool de
+    animación (pegar con la referencia + el bloque "Reglas fijas del clip" al final):
 
-    ESTADO: DAM está **NOQUEADO en el aire**, cuerpo de **muñeco de trapo** sin
-    control, ojos cerrados/apretados, cara floja. NO hay ninguna pose de fuerza
-    ni de ataque en NINGÚN frame.
+    > He is CROUCHED LOW and stays crouched the ENTIRE clip — he never stands up in
+    > any frame. ONE wide floor-scraping sweep WITH THE SWORD (this is NOT a kick):
+    > the blade loads low BEHIND him toward the LEFT edge of the screen, tip almost
+    > touching the ground, then sweeps LOW across the front toward the RIGHT edge of
+    > the screen at ankle height hugging the floor, arm fully extended at the peak,
+    > his torso leaning into it — and the blade brakes low in front — then he returns
+    > to the same crouched guard.
+    >
+    > SIDE VIEW LOCKED: this is a STRICT PROFILE in every single frame — his face in
+    > profile pointing at the RIGHT edge of the screen, ONE shoulder toward the
+    > camera, his chest NEVER square to the camera. He NEVER turns around, NEVER
+    > spins his body, NEVER faces the viewer, and we NEVER see the wolf logo on the
+    > back of his coat. The sweep is done with the ARM and a slight lean of the torso
+    > — his knees, chest and NOSE keep pointing at the RIGHT edge of the screen in
+    > EVERY frame, even at the peak of the sweep. Only the SWORD travels across the
+    > screen; the man does not rotate.
 
-    KATANA (regla fija en los 6 frames — SIEMPRE bien AGARRADA):
-    - **La mano NUNCA la suelta.** En CADA UNO de los 6 frames se ven los
-      **dedos cerrados envolviendo el mango**, la mano PEGADA al mango. La katana
-      está SIEMPRE unida a la mano — PROHIBIDO que flote suelta, separada de la
-      mano, o cayéndose aparte (esto pasa mucho, EVÍTALO en todos los frames).
-    - La sujeta con **una sola mano** por el mango, con el brazo estirado **hacia
-      ADELANTE** (en la dirección del vuelo/caída), de modo que la **hoja apunta
-      hacia ADELANTE-abajo**, arrastrándose por DELANTE del cuerpo (no colgando
-      recta hacia abajo ni hacia atrás).
-    - PROHIBIDO: soltarla, que quede flotando separada de la mano, dos manos,
-      agarrarla por la hoja, levantarla, o cualquier pose de ataque.
+    > ONE SWORD ONLY: he owns exactly ONE sword — the same single sword the WHOLE
+    > clip, gripped in his forward hand. It NEVER splits in two, never duplicates,
+    > never becomes two blades, and NO second weapon ever appears anywhere. His
+    > OTHER hand stays EMPTY (a bare closed fist near his body) in every frame.
 
-    La animación es UN SOLO movimiento continuo: **vuela horizontal → choca y se
-    comprime → se despega cayendo de bruces.** Cada frame CONTINÚA el anterior.
-    Piensa el ángulo del EJE del cuerpo (línea cabeza→pies) en cada frame:
-    - **f1 — VUELO:** cuerpo **totalmente HORIZONTAL** (tumbado en el aire, eje
-      cabeza→pies paralelo al piso). La ESPALDA va por delante, la cabeza cae
-      hacia atrás, brazos y piernas arrastran hacia atrás, el abrigo ondea FUERTE
-      hacia atrás. (Imagínalo acostado boca-arriba sobre una cama invisible.)
-    - **f2 — VUELO 2:** igual de horizontal, leve balanceo de trapo (las piernas
-      suben un poco y la cabeza baja un poco). Mismo cuerpo suelto.
-    - **f3 — IMPACTO:** el cuerpo gira de golpe a **VERTICAL** y se **APLASTA de
-      espaldas** contra una superficie invisible detrás: columna arqueada en "C"
-      (hombros y cadera echados atrás), brazos y piernas **lanzados hacia
-      ADELANTE** por la inercia, pelo y abrigo aplastados hacia adelante.
-    - **f4 — REBOTE:** sigue casi vertical pero ya despegándose; la cabeza cae
-      hacia adelante, hombros vencidos, brazos colgando muertos.
-    - **f5 — DESPEGUE:** el cuerpo se inclina hacia adelante **~45°**, empezando a
-      caer de bruces, extremidades colgando flojas.
-    - **f6 — CAÍDA:** casi HORIZONTAL otra vez pero **boca abajo**, todo el cuerpo
-      flojo cayendo, cabeza, brazos, piernas y abrigo colgando hacia abajo.
-
-    TIP para que la AI lo respete: adjunta el model sheet de DAM como referencia,
-    y si falla, genera SOLO la fila de arriba (f1-f3) y luego SOLO la de abajo
-    (f4-f6) en dos pasadas — le cuesta menos 3 poses que 6 de una.
-
-26. **`jump-dust-sheet.png`** — 6 frames. POLVO DE SALTO (anillo de
+25. **`jump-dust-sheet.png`** — 6 frames. POLVO DE SALTO (anillo de
     despegue). SOLO el humo, sin personaje ni piso. Fondo verde puro
     #00FF00. Estilo cel-anime: humo gris claro/blanco con bordes de
     línea definidos y sombras grises (nubes de humo de anime de peleas),
@@ -638,7 +599,7 @@ en el efecto.
       (Después haremos `land-dust-sheet.png` para la caída: más pesado,
       el polvo se aplasta hacia afuera al golpear el piso.)
 
-27. **`dash-smoke-sheet.png`** — 6 frames. RÁFAGA DE HUMO DE DASH/GOLPE.
+26. **`dash-smoke-sheet.png`** — 6 frames. RÁFAGA DE HUMO DE DASH/GOLPE.
     SOLO el humo, sin personaje. Fondo verde puro #00FF00. Estilo
     cel-anime: humo blanco con bordes de línea definidos y sombras gris
     claro, NADA borroso. Nube esponjosa que brota hacia arriba con un
@@ -653,7 +614,7 @@ en el efecto.
     - f5: se disuelve en jirones sueltos
     - f6: casi ido, hilitos tenues
 
-28. **`pummeled-sheet.png`** — 4 frames (loop). DAM SIENDO MACHACADO de
+27. **`pummeled-sheet.png`** — 4 frames (loop). DAM SIENDO MACHACADO de
     pie durante el super: se tambalea recibiendo golpes rápidos de
     frente, pies plantados en el piso (NO flota, NO salta). Todo de
     perfil, katana en mano floja y baja. CRÍTICO: los 4 frames miran a
@@ -671,7 +632,7 @@ en el efecto.
       Cara de dolor, cuerpo suelto de muñeco pero DE PIE. El f4 conecta
       con el f1 (loop infinito rápido).
 
-29. **`flame-cast-sheet.png`** — 5 frames. DAM LANZA EL INFIERNO (crítico
+28. **`flame-cast-sheet.png`** — 5 frames. DAM LANZA EL INFIERNO (crítico
     de fuego): alza la katana y suelta el poder. Perfil, mira a la
     derecha, pies plantados, katana incandescente:
     - f1: carga — baja apenas, lleva la katana ATRÁS-ABAJO juntando
@@ -686,7 +647,7 @@ en el efecto.
       adelante-abajo (postura de recuperación)
       (Yo sincronizo el proyectil de fuego para que salga en el f4.)
 
-30. **`fire-wave-sheet.png`** — 6 frames en 2 filas de 3. GRAN OLA DE FUEGO que
+29. **`fire-wave-sheet.png`** — 6 frames en 2 filas de 3. GRAN OLA DE FUEGO que
     BARRE el carril hacia adelante (el INFIERNO) — como una MURALLA/ola de fuego
     ancha y alta que erupciona y se estira a lo LARGO, NO un vórtice compacto.
     SOLO el fuego, sin personaje. Fondo verde puro #00FF00. Estilo cel-anime,
@@ -787,6 +748,15 @@ suave: f4 conecta con f1). Más ancho que alto, pegado al piso.
 > #00FF00 background. Nobody else in the frame; no effects, no particles, no fire, no glow.
 > His oversized sword is a RIGID SOLID blade of CONSTANT length and shape — no bending,
 > stretching, warping or redesign, identical every frame, and it never changes hands.
+> He owns exactly ONE sword: it never SPLITS in two, never duplicates, never mirrors —
+> NO second blade or extra weapon ever appears in any frame; his free hand stays EMPTY.
+> CAMERA HARD-LOCKED — this is STATIC WIDE footage, like a fixed security camera: the framing
+> of the FIRST frame is the framing of EVERY frame. WIDE FULL-BODY SHOT the entire clip: his
+> whole body from the top of his head to the soles of his boots visible in every frame, with
+> clear green margin above his head and below his feet — that empty green space is CORRECT
+> and REQUIRED, do NOT reframe or move closer to fill it. His head must be the SAME SIZE in
+> pixels in the first frame, the middle frame and the last frame — if he gets bigger at ANY
+> point, the clip is WRONG.
 
 **`get_up`** _(tendido boca arriba → se para COMPLETO hasta su idle. Hoy el juego lo para de
 golpe con un snap — esta anim lo arregla):_
@@ -809,3 +779,116 @@ golpe con un snap — esta anim lo arregla):_
 > up and then settles down, hair bounces once. Then he straightens back up and ENDS standing
 > EXACTLY in his relaxed idle stance from the reference (sword over his shoulder). Short clip,
 > one single landing, no jump afterwards, feet stay planted after touching down.
+
+## GOLPES v2 (clips de video) — de pie, bajos e INFERNO cast
+
+> Cada acción = UN clip. Guardar como `imagen-action/dam/sheets/<accion>.mp4` y me avisas.
+> **Pegar al final de CADA prompt el bloque "Reglas fijas del clip" de arriba** (perfil
+> derecha + cámara de seguridad fija + espada rígida) y adjuntar la referencia de DAM.
+> El arco/estela del corte lo dibuja el MOTOR: la espada va SIEMPRE nítida, sin líneas de
+> velocidad. Todos los golpes: UN solo ataque, EN EL SITIO, y termina de vuelta en guardia.
+
+**`punch.mp4` (Q — corte horizontal al pecho):**
+
+> From his fighting guard he delivers ONE single powerful HORIZONTAL slash at chest height:
+> first he COILS — torso twisting, the big sword pulled back across his body like a loaded
+> spring — then the blade sweeps FLAT across the front from left to right, arm fully
+> extended at the peak, body leaning hard into the cut, long coat and hair whipping with it,
+> and the swing OVERSHOOTS past his other side before he pulls the sword back and settles
+> into the same guard. The blade stays BELOW head height the whole swing. FAST and heavy —
+> one clean slash, no combo, no second swing.
+
+**`punch2.mp4` (encadenado — corte de REVÉS):**
+
+> From a stance with his big sword already crossed to his LEFT side (as if he just finished
+> a slash), he whips ONE single BACKHAND horizontal cut the opposite way — the blade sweeps
+> FLAT back across the front at chest height, arm extending fully, torso uncoiling into it,
+> coat snapping with the motion — then he recovers into his fighting guard. One clean
+> return-slash, blade below head height, fast and heavy.
+
+**`kick.mp4` (W — tajo vertical PESADO):**
+
+> From his fighting guard he raises the big sword ALL THE WAY overhead — body arching back,
+> loaded like a spring, feet planted (only the SWORD goes high, his body and head stay the
+> same size) — then CRASHES it down in one heavy vertical cleave to the low front, body
+> pitching forward into a deep lunge with the weight of the blow, coat flying up behind him,
+> the blade ending low in front — then he straightens back up into the same guard. ONE
+> single overhead cleave, slow to load and BRUTAL coming down.
+
+**`weak_punch.mp4` (R — piquete rápido a UNA mano):**
+
+> From his fighting guard he snaps ONE short quick THRUST with the sword in ONE hand — the
+> blade shoots straight forward horizontal at chest height, point first, shoulder driving
+> in, the other hand staying loose near his body — and he retracts it just as fast back
+> into the same guard. A SHORT, DRY poke: minimal body motion, no wide swings, no torso
+> spin — pure arm speed. The fastest, lightest move he has.
+
+**`spin_kick.mp4` (E — patada giratoria estilo tatsumaki):**
+
+> From a slight crouch he ROTATES 360 degrees on his axis with one leg extended straight
+> out horizontal at chest height, kicking all the way around — the ONLY allowed exception
+> to the side-view rule: as he spins, intermediate frames naturally show his front and his
+> back. The big sword stays GRIPPED in his hand, pulled in TIGHT against his body for the
+> whole spin — it never swings, never leaves his hand. He spins ON ONE SPOT (no traveling),
+> lands back in his side-view fighting guard facing RIGHT. One or two full spins, fast.
+
+**`crouch_punch.mp4` (↓Q — corte rápido agachado):**
+
+> He is CROUCHED LOW in his guard and stays crouched the ENTIRE clip. ONE quick mid-height
+> slash from the crouch: the sword pulls back short, then sweeps a fast FLAT cut forward at
+> waist height, arm extending, torso leaning in — then recovers back into the same crouched
+> guard. Small, fast, compact — he never stands up, never rises, knees stay bent in every
+> frame.
+
+**`crouch_jab.mp4` (↓R — estocada baja a una mano):**
+
+> He is CROUCHED LOW in his guard and stays crouched the ENTIRE clip. ONE short one-hand
+> THRUST low to the front: the sword hand pulls back beside his hip, then the blade shoots
+> straight forward HORIZONTAL at SHIN height, point first — then retracts back into the
+> same crouched guard. Short and dry, minimal motion, he never stands up, never rises.
+
+**`crouch_kick.mp4` (↓W — gancho ascendente de arma pesada, antiaéreo):**
+
+> He starts CROUCHED LOW, torso folded over his front knee, the big sword held with BOTH
+> hands low in front, blade tip pointing at the GROUND — loaded like a lumberjack about to
+> rip an axe out of the earth. Then ONE explosive RISING cut: he drives upward into a low
+> lunge, both arms launching forward-and-up, the blade sweeping a rising diagonal until it
+> ends crossed high behind his shoulder pointing back-and-up, chest and hips still pointing
+> RIGHT, coat blasted backward by the motion. Then he lowers the sword and sinks back down
+> into the starting crouch. ONE single uppercut swing, feet on the ground the whole time —
+> this is NOT a jump.
+
+**`sweep.mp4` (↓E — barrido derribador a ras de piso):**
+
+> He is CROUCHED LOW and stays crouched the ENTIRE clip — he never stands up in any frame.
+> ONE wide floor-scraping sweep WITH THE SWORD (this is NOT a kick): the blade loads
+> back-and-down behind him, tip almost touching the ground, then sweeps LOW across the
+> entire front at ankle height hugging the floor, arm fully extended at the peak, torso
+> rotating with the momentum, and the blade brakes crossed on his other side — then he
+> returns to the same crouched guard.
+
+**`inferno_cast.mp4` (canaleo del INFERNO — reemplaza el frame congelado del super viejo):**
+
+> He RESTS his big sword over his SHOULDER (one clean motion: the flat of the blade
+> comes to rest on his shoulder, held relaxed in one hand — his signature idle carry —
+> and it STAYS there the rest of the clip). Then he plants his feet WIDE and THRUSTS
+> his OTHER hand out open-palmed toward the RIGHT edge of the screen, arm locked
+> straight. The moment the palm opens, a HURRICANE-FORCE WIND slams against him from
+> the right: his long coat and his hair get BLASTED violently BACKWARD (toward the
+> LEFT edge of the screen), whipping and snapping, his sleeve rippling, his stance low
+> and rigid leaning INTO the wind, the outstretched arm trembling with strain. He
+> HOLDS this pose for the whole clip — the only motion is the violent backward
+> whipping of coat and hair and small tense shudders of the body. He stays ON ONE
+> SPOT, never walks, the sword never leaves his shoulder.
+>
+> HIS HAND IS EMPTY: the open palm is a BARE gloved hand — NOTHING comes out of it,
+> NOTHING appears in it or around it. NO fire, NO flames, NO glow, NO energy ball, NO
+> light, NO smoke, NO particles ANYWHERE in the clip — only the man and the wind. (The
+> game engine draws all the fire later; this clip is ONLY the actor performing.)
+>
+> CAMERA HARD-LOCKED — STATIC WIDE footage, like a fixed security camera: the framing
+> of the FIRST frame is the framing of EVERY frame. His whole body head-to-boots
+> visible always, with clear green margin above his head and below his feet — that
+> empty space is REQUIRED, do NOT move closer to fill it. NO zoom in, NO push-in, NO
+> pan, NO drift, NO slow creep for drama. His head must be the SAME SIZE in pixels in
+> the first, middle and last frame — if he gets bigger at ANY point, the clip is WRONG.

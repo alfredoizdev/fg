@@ -13,7 +13,8 @@ var hp_max := [1200, 1200]   # vida máxima por lado [P1, P2], se setea de cada 
 const HIT_MARGIN := 59.0     # tolerancia extra de alcance
 const AIR_REACH_H := 302.0   # altura maxima a la que un golpe aereo alcanza a un rival en el piso
 const WINS_NEEDED := 2       # rondas para ganar el combate
-const BODY_SEP := 225.0      # distancia minima entre cuerpos en el piso (antes 143 = se metían uno dentro del otro)
+const BODY_SEP := 225.0      # distancia de COREOGRAFIA (blink, colocado del inferno: con 190 la victima quedaba solapada)
+# (el empuje al CAMINAR ya no usa una constante: suma los body_halfw de la pareja — ver _char_data)
 const TRAINING := false      # modo entrenamiento: sin rival, sin escenario, sin UI
 var STAGE: int = Sel.stage   # escenario elegido en el char-select (1=ciudad, 2=noche, 3=templo, 4=santuario)
 const CITY_NODES := ["BG", "StageBase", "Flame1", "Patch1", "Patch2", "Patch3",
@@ -99,6 +100,12 @@ const ATK_LEVEL := {
 	"spin_kick": 4, "air_spin_kick": 4, "sweep": 4, "crystal_cast": 4,   # E de Aye = nivel 4 (no resetea el combo)
 	# 3 proyectiles aéreos de jump_kick_cast: nombres DISTINTOS (mismo nivel 4) para contar como 3 hits
 	"crystal_air_a": 4, "crystal_air_b": 4, "crystal_air_c": 4,
+	# SEGUNDAS VENTANAS de golpes multi-hit: sin nivel propio caian a 0 y el 2o impacto
+	# RESETEABA el combo a 1 ("quita doble pero cuenta uno" — torbellino de DAM, doble
+	# patada de Fe). Mismo nivel que su golpe madre = el hit 2 SUMA.
+	"spin_kick_2": 4, "kick_h2": 3, "jump_kick_h2": 3, "air_jab": 1, "air_jab_2": 1,
+	"weak_punch_2": 1, "weak_punch_3": 1,   # patadas POGO de DAM (R): 3 hits que cuentan
+	"crouch_jab_2": 1,   # giro de hoja del ↓R de DAM (2o golpe de la estocada)
 	"ember_dash": 5,
 }
 var combo_dmg_lbl := []
@@ -291,6 +298,9 @@ const DEMO_COMBOS := [
 ]
 
 func _ready() -> void:
+	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
+	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
+	get_window().title = "FG Fighter — build 2026-08-15 U"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -388,6 +398,7 @@ func _ready() -> void:
 	flash_rect.size = Vector2(1920, 1080)
 	flash_rect.color = Color(1, 1, 1, 0.0)
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash_rect.z_index = -1   # el fogonazo tinta el MUNDO pero NUNCA tapa el HUD (vida/barras visibles, pedido)
 	$UI.add_child(flash_rect)
 	# paneles manga (líneas de acción) a pantalla completa durante el ULTRA:
 	# van SOBRE los peleadores pero DEBAJO del contador de combo (se agregan antes)
@@ -396,6 +407,7 @@ func _ready() -> void:
 	ultra_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ultra_panel.stretch_mode = TextureRect.STRETCH_SCALE
 	ultra_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ultra_panel.z_index = -1   # las lineas manga tampoco tapan el HUD
 	ultra_panel.visible = false
 	ultra_panel.z_index = 3   # POR ENCIMA del flash (z=0) para que el fogonazo no lo lave
 	$UI.add_child(ultra_panel)
@@ -1855,7 +1867,9 @@ func _favi_register_frozen(sf: SpriteFrames) -> void:
 	# ELECTROCUTADO estándar (GUIA-COMUN): convulsión SF mientras dura la descarga
 	_register_shared_anim(sf, "electrocuted", _favi_action_frames("electrocuted"), 24.0)
 	# PASO CORTO / BACKDASH (doble-tap, GUIA-COMUN): un disparo, sin loop
-	_register_shared_anim(sf, "step", _favi_action_frames("step"), 30.0, false)
+	# STEP v2 (clip dash-f, 20 frames): brinco rasante — 70fps ~0.29s: el deslizamiento
+	# del motor (0.16s) cubre empuje+vuelo y el aterrizaje remata en el sitio
+	_register_shared_anim(sf, "step", _favi_action_frames("step"), 70.0, false)
 	_register_shared_anim(sf, "backdash", _favi_action_frames("backdash"), 30.0, false)
 	# CONGELADO estándar (GUIA-COMUN): solo si ya hay frames en favi/frozen/
 	var ffz := _favi_action_frames("frozen")
@@ -1961,13 +1975,32 @@ func _build_favi_frames() -> SpriteFrames:
 	# con peso — el juego sostiene el último frame (tendida boca arriba)
 	if sf.has_animation("ko") and sf.get_frame_count("ko") > 8:
 		sf.set_animation_speed("ko", 30.0)
+	# VICTORY v2 (84 frames con zoom compensado): giro -> puño al cielo -> sostiene
+	if sf.has_animation("victory") and sf.get_frame_count("victory") > 8:
+		sf.set_animation_speed("victory", 30.0)
+	# BLOCK v2 (clip, 31 frames): guardia extendida -> la segunda aguja CRUZA en X ->
+	# jolt de absorcion. 68fps ~= 0.46s: mismo blockstun que el frame estatico viejo.
+	if sf.has_animation("block") and sf.get_frame_count("block") > 8:
+		sf.set_animation_speed("block", 68.0)
+	# BLOCK_LOW v2 (clip, 25 frames): agachada cierra los brazos al cruce. 55fps ~= 0.45s
+	if sf.has_animation("block_low") and sf.get_frame_count("block_low") > 8:
+		sf.set_animation_speed("block_low", 55.0)
+	# TAKE_HIT v2 (clip, 25 frames n2-26): LATIGAZO atras (pelo volando) + regreso
+	# aturdido. 100fps ~= 0.25s: mismo hitstun que los 4 frames viejos — combos intactos.
+	if sf.has_animation("take_hit") and sf.get_frame_count("take_hit") > 8:
+		sf.set_animation_speed("take_hit", 100.0)
+	# TAKE_HIT_LOW v2 (clip, 21 frames n114-134): jolt agachado (pelo volando) que se
+	# asienta a la guardia baja. 100fps ~= 0.21s (viejo: 2 frames ~0.14s, reaccion baja corta)
+	if sf.has_animation("take_hit_low") and sf.get_frame_count("take_hit_low") > 8:
+		sf.set_animation_speed("take_hit_low", 100.0)
 	# MORTAL AÉREO HACIA ADELANTE (salto + alante): flip que rota, EXCLUSIVA de Fe.
 	var nsp := _favi_action_frames("neutral_spin")
 	if not nsp.is_empty():
 		if not sf.has_animation("neutral_spin"):
 			sf.add_animation("neutral_spin")
 		sf.set_animation_loop("neutral_spin", false)   # UN solo giro; luego cae (frame de salto)
-		sf.set_animation_speed("neutral_spin", 18.0)
+		# v2 del clip (78 frames): veloz para que el flip quepa en el arco del salto
+		sf.set_animation_speed("neutral_spin", 88.0 if nsp.size() > 20 else 18.0)
 		for t in nsp:
 			sf.add_frame("neutral_spin", t)
 	# COUNTER (parry-contraataque, ↓+E): desvío (f1) + 3 estocadas (f2-f5) + recuperación (f6)
@@ -2105,6 +2138,14 @@ func _build_favi_frames() -> SpriteFrames:
 		sf.set_animation_speed("land", 17.0)
 		for t in fln:
 			sf.add_frame("land", t)
+	# ASSASSIN (pedido): sus GOLPES van aún más veloces que lo tuneado — multiplicador
+	# global 1.2x sobre las anims de ataque. Los hit_frame son índices de FRAME, así que
+	# el impacto cae en el mismo cuadro (solo llega antes): hitboxes intactas.
+	for a_atk in ["punch", "punch2", "kick", "spin_kick", "weak_punch", "crouch_punch",
+			"crouch_kick", "sweep", "crouch_jab", "jump_punch", "jump_kick", "air_jab",
+			"air_spin_kick"]:
+		if sf.has_animation(a_atk):
+			sf.set_animation_speed(a_atk, sf.get_animation_speed(a_atk) * 1.2)
 	return sf
 
 func _char_data(id: String) -> Dictionary:
@@ -2397,6 +2438,89 @@ func _build_dam_frames() -> SpriteFrames:
 		sf.set_animation_speed("land", 15.0)
 		for t in dln:
 			sf.add_frame("land", t)
+	# E: TORBELLINO (clip hit-e RECUPERADO, 71 frames): giro con arcos propios + remate
+	# en dam-pose-1. 95fps ~0.75s, 2 golpes (uno por vuelta) que ahora SI cuentan 2.
+	var dsk := _dam_action_frames("spin_kick")
+	if dsk.size() > 8:
+		sf.clear("spin_kick")
+		for t in dsk:
+			sf.add_frame("spin_kick", t)
+		sf.set_animation_speed("spin_kick", 95.0)
+	# CROUCH v2 (clip crouch.mp4, 33 frames): parado -> rodilla en tierra con la espada al
+	# frente. Sostiene el ultimo frame abajo; se levanta en REVERSA (logica generica).
+	var dcr := _dam_action_frames("crouch")
+	if dcr.size() > 8:
+		sf.clear("crouch")
+		for t in dcr:
+			sf.add_frame("crouch", t)
+		sf.set_animation_speed("crouch", 100.0)   # ~0.33s: responsivo (bloqueo bajo)
+	# INFERNO CAST (clip, 130 frames, zoom anulado): espada al hombro -> palma -> canaleo
+	# con viento. No-loop 70fps ~1.9s: la ventana del rito (~1.05s) muestra intro + hold.
+	var difc := _dam_action_frames("inferno_cast")
+	if not difc.is_empty():
+		if not sf.has_animation("inferno_cast"):
+			sf.add_animation("inferno_cast")
+		sf.clear("inferno_cast")
+		sf.set_animation_loop("inferno_cast", false)
+		sf.set_animation_speed("inferno_cast", 95.0)   # SYNC (pedido): la palma se extiende a ~0.48s, a MITAD de la bola (build 0.85s)
+		for t in difc:
+			sf.add_frame("inferno_cast", t)
+	# ↓E v2 (clip sweep, 62 frames): BARRIDO derribador a ras del piso. 120fps ~0.52s.
+	var dswv := _dam_action_frames("sweep")
+	if dswv.size() > 12:
+		sf.clear("sweep")
+		for t in dswv:
+			sf.add_frame("sweep", t)
+		sf.set_animation_speed("sweep", 120.0)
+	# ↓R v3 (clip crouch-jab, 60 frames): estocada + GIRO DE HOJA = DOS golpes. 120fps ~0.5s.
+	var dcjv := _dam_action_frames("crouch_jab")
+	if dcjv.size() > 8:
+		sf.clear("crouch_jab")
+		for i in dcjv.size():
+			# el GIRO DE HOJA (frames 33+) va a camara mas lenta (x1.7) — a velocidad
+			# plana casi no se leia (pedido); la estocada mantiene su snap
+			sf.add_frame("crouch_jab", dcjv[i], 1.0 if i < 33 else 1.7)
+		sf.set_animation_speed("crouch_jab", 120.0)
+	# ↓W v2 (clip crouch-kick, 74 frames): GANCHO ASCENDENTE con arco propio del clip;
+	# recuperacion que TERMINA AGACHADA. 120fps ~0.62s (lanzador pesado).
+	var dckv := _dam_action_frames("crouch_kick")
+	if dckv.size() > 12:
+		sf.clear("crouch_kick")
+		for t in dckv:
+			sf.add_frame("crouch_kick", t)
+		sf.set_animation_speed("crouch_kick", 120.0)
+	# ↓Q v3 (clip crouch-punch NUEVO, 62 frames): carga sobre la cabeza + TAJO + estocada
+	# extendida + recuperacion que TERMINA AGACHADA. 120fps ~0.52s (pesado con autoridad).
+	var dcp := _dam_action_frames("crouch_punch")
+	if dcp.size() > 8:
+		sf.clear("crouch_punch")
+		for t in dcp:
+			sf.add_frame("crouch_punch", t)
+		sf.set_animation_speed("crouch_punch", 120.0)
+	# R POGO (clip hit-r, 43 frames): las TRES patadas apoyado en la espada — cada una
+	# levanta RECTO y la siguiente lo recoge (pedido).
+	var dwp := _dam_action_frames("weak_punch")
+	if dwp.size() > 8:
+		sf.clear("weak_punch")
+		for t in dwp:
+			sf.add_frame("weak_punch", t)
+		sf.set_animation_speed("weak_punch", 45.0)   # POGO: ~0.27s entre patadas (el rival sube y cae justo)
+	# W v3 (clip kick-2 NUEVO, 43 frames): MACHETAZO — alza a coil + descarga baja con
+	# follow; remata dam-pose-1. Reemplaza el tajo de kick.mp4 (no gusto). 90fps ~= 0.48s.
+	var dkw := _dam_action_frames("kick")
+	if dkw.size() > 12:
+		sf.clear("kick")
+		for t in dkw:
+			sf.add_frame("kick", t)
+		sf.set_animation_speed("kick", 90.0)
+	# PUNCH v2 (clip punsh.mp4, 48 frames): carga enroscada -> TAJO smear (f12-16) ->
+	# LUNGE extendido -> recuperacion. 105fps ~= 0.46s (el viejo de 6 frames iba en 0.43s).
+	var dpn := _dam_action_frames("punch")
+	if dpn.size() > 8:
+		sf.clear("punch")
+		for t in dpn:
+			sf.add_frame("punch", t)
+		sf.set_animation_speed("punch", 105.0)
 	# jump_punch NUEVO (8 frames: espada arriba -> TAJO down-forward -> follow; el .tres traía 3)
 	var djp := _dam_action_frames("jump_punch")
 	if djp.size() > 4:
@@ -2481,6 +2605,9 @@ func _apply_char(f: Node2D, id: String) -> void:
 	# ALTURA corporal real vs DAM (arte 638×1.10=702): Fe 496×1.0=496 -> 0.71;
 	# Aye 632×0.72=455 -> 0.65. Escala alcances verticales y chispas de impacto.
 	f.body_k = 0.71 if id == "favi" else (0.65 if id == "aye" else 1.0)
+	# medio ANCHO para el empuje al caminar: DAM abre una postura ANCHA, Aye es diminuta.
+	# Separacion minima de una pareja = suma (DAM+Aye 210, Fe+Aye 165, DAM+Fe 225 como antes)
+	f.body_halfw = 90.0 if id == "favi" else (75.0 if id == "aye" else 150.0)   # DAM 150: su postura ABRE muchisimo (con 135 Aye le llegaba a la rodilla)
 	if id == "favi":
 		f.sprite.sprite_frames = _build_favi_frames()
 		# base_scale (no sprite.scale directo): el efecto squash del fighter reescribe
@@ -2865,6 +2992,9 @@ const ULTRA_FLURRY := [
 func try_ultra(atacante: Node2D, largo := false) -> bool:
 	if state != "fight" or ultra_active:
 		return false
+	# REGLA (pedido): los ULTRAS solo con los PIES EN EL SUELO — golpeando en el aire fallan
+	if atacante.airborne or atacante.hit_flying or atacante.position.y < atacante.floor_y - 4.0:
+		return false
 	var idx := 0 if atacante == player else 1
 	var costo := 3.0 if largo else 2.0   # APOCALYPSE (largo) = 3 barras, ANNIHILATION = 2
 	if meter[idx] < costo:
@@ -3117,6 +3247,10 @@ const CRIT_DMG := 50   # el golpe mas fuerte del juego
 func try_critical(atacante: Node2D) -> bool:
 	if state != "fight" or ultra_active:
 		return false
+	# REGLA (pedido): el INFERNO solo se ejecuta CON LOS PIES EN EL SUELO — ni en el
+	# aire ni golpeando en el aire (el casteo planta la pose; volando se rompia el rito)
+	if atacante.airborne or atacante.hit_flying or atacante.position.y < atacante.floor_y - 4.0:
+		return false
 	var idx := 0 if atacante == player else 1
 	if meter[idx] < 1.0:
 		return false          # INFERNO cuesta 1 barra
@@ -3192,7 +3326,11 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	# GDScript) — el MODO se captura acá para que el remate no caiga en la rama vieja
 	var modo_domo: bool = dome != null
 	var sup: AnimatedSprite2D = null
-	if dome != null:
+	# CAST v3 (clip inferno_cast): DAM canaliza EN VIVO — espada al hombro, palma
+	# extendida, abrigo azotado por el viento. Reemplaza el frame congelado del super.
+	if atacante.sprite.sprite_frames.has_animation("inferno_cast"):
+		atacante.sprite.play("inferno_cast")
+	elif dome != null:
 		# pose de CASTEO "por ahora" (pedido): el PRIMER cuadro del super viejo — DAM
 		# canalizando con la MANO extendida — CONGELADO (nunca reproduce la ola vieja)
 		sup = atacante.spawn_inferno_super()
@@ -3225,17 +3363,23 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(1.3, 0.5, 0.12, 0.5)
 	if dome != null:
+		# SYNC (pedido): tras el cut-in la anim quedo congelada en la intro — saltar al
+		# frame previo al empuje: la PALMA se extiende JUSTO cuando la bola empieza a salir
+		if String(atacante.sprite.animation) == "inferno_cast":
+			atacante.sprite.frame = 40
 		dome.play("build")                 # el fuego se junta y el DOMO crece (0.85s)
 		await get_tree().create_timer(0.85).timeout
 		# BOOM: los 2 IMPACT FRAMES a PANTALLA COMPLETA con DAM por arriba, con el
 		# arte CENTRADO donde está el domo (la explosión sale del punto real)
 		_inferno_boom_overlay(atacante, sup, dome.global_position.x)
-		await get_tree().create_timer(0.18).timeout
-		if is_instance_valid(dome):
-			# los ESCOMBROS/HUMO post-explosión vienen ALTOS en el arte: se baja el nodo
-			# para que queden pegados al SUELO (pedido)
-			dome.position.y += 150.0
-			dome.play("out")               # se libera solo al terminar
+		# el flujo NO espera: la victima reacciona y recibe el castigo DURANTE la
+		# explosion (pedido) — los escombros salen solos 0.18s despues por timer
+		get_tree().create_timer(0.18).timeout.connect(func() -> void:
+			if is_instance_valid(dome):
+				# los ESCOMBROS/HUMO vienen ALTOS en el arte: se baja el nodo al SUELO
+				dome.position.y += 150.0
+				dome.play("out"),
+			CONNECT_ONE_SHOT)
 	else:
 		if sup != null:
 			sup.play("cast")               # viejo: DAM suelta la GRAN OLA de fuego
@@ -4457,7 +4601,11 @@ func _play_victory_line(who = null) -> void:
 		stream = _victory_stream_aye
 	elif es_fe:
 		if _victory_stream_fe == null:
-			var rfe := "res://imagen-action/favi/Fe-sound-effect/victory-fe-energetica.wav"
+			# "No... that was easy" — la línea presumida que ACTÚA el clip de victory
+			# (la anim nueva la muestra hablando); fallback a la vieja enérgica
+			var rfe := "res://imagen-action/favi/Fe-sound-effect/was-easy-fe.wav"
+			if not ResourceLoader.exists(rfe):
+				rfe = "res://imagen-action/favi/Fe-sound-effect/victory-fe-energetica.wav"
 			_victory_stream_fe = load(rfe) if ResourceLoader.exists(rfe) else null
 		stream = _victory_stream_fe
 	else:
@@ -4466,8 +4614,9 @@ func _play_victory_line(who = null) -> void:
 			_victory_stream = load(ruta) if ResourceLoader.exists(ruta) else null
 		stream = _victory_stream
 	if stream != null and voz_player != null:
-		# pequeño delay para que la voz caiga cuando la boca empieza a moverse (frame ~4)
-		await get_tree().create_timer(0.35).timeout
+		# delay para que la voz caiga CUANDO la boca se mueve: Fe primero da su GIRO y
+		# habla al plantarse (frame ~40 @30fps ≈ 1.3s); los demás casi de inmediato
+		await get_tree().create_timer(1.55 if es_fe else 0.35).timeout
 		voz_player.stream = stream
 		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
@@ -5213,7 +5362,7 @@ func _physics_process(_delta: float) -> void:
 			and not player.koed and not dummy.koed \
 			and not player.is_downed() and not dummy.is_downed():
 		var sep_dx: float = dummy.position.x - player.position.x
-		var overlap := BODY_SEP - absf(sep_dx)
+		var overlap: float = (player.body_halfw + dummy.body_halfw) - absf(sep_dx)
 		if overlap > 0.0:
 			var dir := 1.0 if sep_dx >= 0.0 else -1.0
 			player.position.x -= dir * overlap * 0.5
@@ -5503,10 +5652,13 @@ func _crystal_travel(proj: AnimatedSprite2D, caster: Node2D, dir: int, py: float
 		if ghost_t >= 0.028:
 			ghost_t = 0.0
 			_spawn_moon_ghost(arena, proj)
-		# DOWN: pega si la diagonal PASA CERCA del cuerpo del rival PARADO (aire-contra-suelo)
+		# DOWN: pega si la diagonal PASA por el CUERPO del rival PARADO (aire-contra-suelo).
+		# Caja de cuerpo COMPLETO (pecho±330 en Y, ±250 en X): la ventanita vieja (165/200,
+		# solo el pecho) fallaba con la postura ANCHA de DAM — las medialunas le reventaban
+		# en la pierna delantera (a ~250 del centro) sin registrar el golpe.
 		if down and not target.koed and (target.floor_y - target.position.y) < 90.0:
 			var tch: float = target.position.y + 500.0 - 485.0 * target.base_scale.y
-			if absf(proj.position.x - target.position.x) < 165.0 and absf(proj.position.y - tch) < 200.0:
+			if absf(proj.position.x - target.position.x) < 250.0 and absf(proj.position.y - tch) < 330.0:
 				dhit = true
 				break
 		var reached: bool = (dir > 0 and proj.position.x >= target.position.x) or (dir < 0 and proj.position.x <= target.position.x)
@@ -6059,7 +6211,12 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# crouch_kick / patada alta de Fe) llegan un poco más para poder encadenar el juggle.
 		if not att.airborne and def.airborne \
 				and (def.floor_y - def.position.y) > 60.0:
-			v_max = 250.0 if String(atk["name"]) in ["spin_kick", "crouch_kick", "kick_h2"] else 150.0
+			# PATADAS POGO de DAM (R): la bota patea ALTO — recoge al rival en TODO el
+			# rebote (con 150 las patadas 2 y 3 pasaban por DEBAJO del que iba subiendo)
+			if String(atk["name"]).begins_with("weak_punch") and not att.fx_blue and not att.fx_floral:
+				v_max = 480.0
+			else:
+				v_max = 250.0 if String(atk["name"]) in ["spin_kick", "crouch_kick", "kick_h2"] else 150.0
 		# la banda vertical escala por el cuerpo MÁS GRANDE de los dos (body_k: DAM 1.0,
 		# Fe 0.71, Aye 0.65): a un modelo GRANDE le pegás donde su cuerpo llega (Fe en el
 		# aire SÍ alcanza la cabeza de DAM parado — su centro queda lejos porque él es
@@ -6077,6 +6234,23 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		return done
 	var push := 1 if dx >= 0.0 else -1
 	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)), false, bool(atk.get("freeze", false)))
+	# lanzador VERTICAL (patadas POGO de DAM): sube RECTO, sin empuje lateral — la
+	# siguiente patada lo recoge exactamente donde cayo
+	if result == "launched" and bool(atk.get("vertical", false)):
+		def.vel_x = 0.0
+		# tope de ALTURA del pogo: rebote a la altura del PECHO, atrapable por la
+		# siguiente patada (sin tope salia disparado hasta el techo de la pantalla)
+		def.vel_y = maxf(def.vel_y, -950.0)
+	# PUSHBACK del GIRO (E): cada golpe EMPUJA al rival — tras 2-3 E seguidos queda FUERA
+	# de alcance y el "combo infinito con una tecla" se corta solo (blockstring estilo SF).
+	# En la ESQUINA no se puede empujar a la victima: se empuja al ATACANTE (regla clasica).
+	if result in ["hit", "blocked"] and String(atk["name"]) == "spin_kick_2" \
+			and not def.airborne:
+		var _pp: float = float(1 if dx >= 0.0 else -1) * 130.0
+		if def.position.x <= 121.0 or def.position.x >= 1799.0:
+			att.position.x = clampf(att.position.x - _pp, 120.0, 1800.0)
+		else:
+			def.position.x = clampf(def.position.x + _pp, 120.0, 1800.0)
 	if result != "ignored":
 		att.duck_swing()
 	# BLOQUEAR gasta energía: mantener la guardia mientras recibís golpes drena el meter
@@ -6310,9 +6484,7 @@ func _end_round(player_won: bool) -> void:
 	ko_lines.visible = false
 	ko_lines.modulate.a = 0.0
 	if wins_p1 >= WINS_NEEDED or wins_p2 >= WINS_NEEDED:
-		var winner_name := String(Sel.data(selected_char if player_won else cpu_char)["name"])
-		announce.visible = true
-		announce.text = "MATCH WINNER:\n" + winner_name
+		# sin cartel "MATCH WINNER:" (pedido): la pose de victoria + el WINS ya lo cuentan
 		await get_tree().create_timer(3.0).timeout
 		wins_p1 = 0
 		wins_p2 = 0

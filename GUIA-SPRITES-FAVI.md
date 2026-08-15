@@ -37,9 +37,10 @@
 ## Reglas generales (van en TODOS los prompts de clip)
 
 Cada prompt de clip lleva SIEMPRE: la **imagen de referencia de FAVI** adjunta
-+ el bloque **IDENTITY** al inicio + los párrafos **STATIC POSITION** y
-**WEAPONS LOCKED** al final, pegados tal cual (en inglés — la herramienta
-obedece mejor).
+
+- el bloque **IDENTITY** al inicio + los párrafos **STATIC POSITION** y
+  **WEAPONS LOCKED** al final, pegados tal cual (en inglés — la herramienta
+  obedece mejor).
 
 **IDENTITY (pegar al inicio de cada prompt):**
 
@@ -818,7 +819,6 @@ efecto.
 > in her relaxed idle stance from the reference (one needle in each hand, held low). Short
 > clip, one single soft landing, no jump afterwards, feet stay planted after touching down.
 
-
 **`jump_kick` (Jump + W — needle dive) — SHORT PROMPT (copy everything below as one prompt):**
 
 > Same girl as the reference image. STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00
@@ -841,7 +841,6 @@ efecto.
 > blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
 > handle and guard, no extra weapons, they never disappear, never change hands, never
 > change length, never grow a handle.
-
 
 **`air_jab` (Jump + R — double air kick) — SHORT PROMPT (copy everything below as one prompt):**
 
@@ -1234,16 +1233,93 @@ as one prompt):**
 > the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
 > STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
 > stays the SAME SIZE the whole clip. She has just taken the FINAL blow of the fight and
-> is KNOCKED OUT: from her standing guard her head snaps back, her arms drop LIMP (the
-> needles still loosely in her hands), her knees BUCKLE under her, and she COLLAPSES
-> BACKWARD in one continuous fall — landing flat on her BACK on the ground, head toward
-> the LEFT side of the frame and feet toward the RIGHT, hair spilling on the floor. She
+> is KNOCKED OUT: from her standing guard her head snaps back, her arms drop LIMP —
+> BOTH needles STAY in her hands, exactly the same two thin plain rods, all the way
+> down — her knees BUCKLE under her, and she COLLAPSES BACKWARD in one continuous fall,
+> landing flat on her BACK on the ground, head toward the LEFT side of the frame and
+> feet toward the RIGHT, hair spilling on the floor, the two needles still in her limp
+> hands resting on the floor beside her. She
 > ends COMPLETELY STILL, lying flat on her back, eyes closed, mouth slightly open,
 > defeated — HOLD that final lying pose for a good beat. Her feet stay roughly planted
 > where she stood while the body falls back — she does NOT walk, does NOT get thrown
 > across the frame, does NOT get up, does NOT bounce. One single collapse, one
 > direction, ending still on the floor. NO effects: no glow, no aura, no particles, no
 > dust, no motion lines — only the girl.
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt,
+> NO drift — the camera is a fixed tripod for the ENTIRE clip. CRITICAL: when she falls,
+> the camera does NOT follow her down and does NOT push in to reframe her — she simply
+> ends up LOW in the frame, lying small near the bottom, and the large EMPTY green space
+> left above her is CORRECT and REQUIRED. Her head must be the SAME SIZE in pixels
+> standing in the first frame and lying in the last frame. If the body gets bigger at
+> any point, it is WRONG. This is a SIMPLE, SUBTLE animation — do NOT invent extra
+> action or camera drama.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle. AND DURING THE FALL: the needles stay the EXACT
+> same two thin plain rods while her arms go limp, while she collapses and while she
+> lies on the ground — falling does NOT change them, they do NOT transform into daggers
+> or swords when the hands relax, they do NOT fly away, and in the final lying pose both
+> rods are still visible in or beside her open hands, identical to the first frame.
+
+> _Guardar como `sheets/ko.mp4` → lo proceso a `favi/ko/` (drop-in: reemplaza la
+> versión provisional sacada del aterrizaje de hit_fly)._
+
+## VICTORIA (`victory`) y MORTAL AÉREO (`neutral_spin`) — mejoras opcionales
+
+**`victory` (pose de VICTORIA al ganar la ronda) — SHORT PROMPT (copy everything below
+as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. WIDE FULL-BODY SHOT in EVERY frame: her whole
+> body from the top of her head to the soles of her shoes is visible the entire clip,
+> with clear green margin above her head and below her feet, in the FIRST frame, in
+> the MIDDLE and in the LAST frame. She just WON the fight and celebrates with BODY
+> language only: from her fighting guard she spins ONE quick playful twirl on the spot,
+> then plants her feet, throws ONE fist up to the sky (needle still in that hand
+> pointing up), tosses her head back with a small confident shrug — and HOLDS that
+> victory pose, proud, only her hair and coat swaying gently. Cheerful winner energy,
+> like a kid champion. She stays ON ONE SPOT the whole clip — no walking, no jumping
+> out of frame. NO effects: no glow, no aura, no particles, no confetti — only the girl.
+>
+> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt,
+> NO drift — the camera is a fixed tripod for the ENTIRE clip. The wide full-body
+> framing described above holds in EVERY single frame: same distance, same size, feet
+> and head always inside the frame with margin. This is a SIMPLE, SUBTLE animation —
+> do NOT invent extra action or camera drama.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle.
+
+**`neutral_spin` (MORTAL hacia adelante en el aire — "si sale bien, lo usamos") — SHORT
+PROMPT (copy everything below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. She is AIRBORNE the entire clip — her feet never
+> touch the ground, there is only air below her. She does ONE tight FORWARD SOMERSAULT
+> (a front flip rotating toward the RIGHT): body TUCKS into a compact ball — knees
+> pulled to her chest, chin down — rotates ONE full clean revolution forward, then
+> OPENS back up stretched with her body upright again, hair and coat whipping around
+> the spin. ONE single revolution, smooth and athletic like a gymnast — not two, not
+> half. The flip happens ON ONE SPOT in the CENTER of the frame (the game engine moves
+> her through the jump arc). NO effects: no glow, no aura, no particles, no motion
+> lines — only the girl.
 >
 > CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO drift —
 > the camera is a fixed tripod for the ENTIRE clip. Her body must be the SAME SIZE in
@@ -1257,8 +1333,201 @@ as one prompt):**
 > handle and guard, no extra weapons, they never disappear, never change hands, never
 > change length, never grow a handle.
 
-> _Guardar como `sheets/ko.mp4` → lo proceso a `favi/ko/` (drop-in: reemplaza la
-> versión provisional sacada del aterrizaje de hit_fly)._
+## BLOQUEOS (`block` y `block_low`) — guardia de pie y agachada
+
+**`block` (BLOQUEO de pie: aguanta golpes cubierta) — SHORT PROMPT (copy everything
+below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. She is BLOCKING incoming blows: standing braced,
+> both forearms raised CROSSED in front of her face and chest like a shield. She holds
+> her needles in ASSASSIN REVERSE GRIP (icepick grip): each fist is CLOSED around its
+> needle and the needle lies FLAT along the OUTSIDE of her forearm, tip pointing DOWN
+> toward her elbow — the needles hug her forearms, they are NOT raised, NOT pointing
+> up, nothing sticks up above her fists. Chin tucked behind the arms, eyes peeking
+> over the guard, knees slightly bent, back foot dug in. The pose HOLDS the entire clip — the
+> ONLY motion is the strain of absorbing impacts: tiny sharp JOLTS pushing her guard
+> back every beat (like blows landing on her arms), shoulders tensing, hair and coat
+> shivering with each jolt. She stays ON ONE SPOT — no walking, no stepping back, no
+> counterattack, she never drops the guard. Seamless LOOP: last frame identical to the
+> first. NO effects: no glow, no sparks, no impact flashes — only the girl bracing.
+>
+> CAMERA HARD-LOCKED — WIDE FULL-BODY SHOT in EVERY frame: her whole body from the top
+> of her head to the soles of her shoes is visible the ENTIRE clip, with clear green
+> margin above her head and below her feet, in the FIRST frame, in the MIDDLE and in
+> the LAST frame. Absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt, NO
+> drift — the camera is a fixed tripod bolted to the floor. Her head must be the SAME
+> SIZE in pixels in the first frame and the last frame — if her body gets bigger at ANY
+> point, it is WRONG. This is a SIMPLE, SUBTLE hold animation — do NOT invent extra
+> action or camera drama.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle. AND IN THE
+> GUARD POSITION: each needle stays lying FLAT along the outside of her forearm inside
+> her closed fist for the WHOLE clip — it never rises, never crosses in front of her
+> face, and it remains the same plain thin bare rod: NO crossguard or hand-guard ever
+> appears at her fists, her gloved FINGERS wrap directly around the bare thin rod with
+> nothing between hand and rod. If you cannot keep the needles plain, keep her fists
+> CLOSED and EMPTY instead — a bare-fisted guard is correct, a sword is WRONG.
+
+**`block_low` (BLOQUEO AGACHADO: cubierta abajo) — SHORT PROMPT (copy everything below
+as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — these two needles are
+> the ONLY weapons in the clip and must stay IDENTICAL to the reference in every frame.
+> STRICT SIDE VIEW facing RIGHT, flat pure green #00FF00 background, fixed camera, she
+> stays the SAME SIZE the whole clip. She is CROUCHED LOW blocking incoming blows: deep
+> knee bend, compact and small, both forearms raised CROSSED in front of her face like
+> a shield. She holds her needles in ASSASSIN REVERSE GRIP (icepick grip): each fist
+> is CLOSED around its needle and the needle lies FLAT along the OUTSIDE of her
+> forearm, tip pointing DOWN toward her elbow — the needles hug her forearms, they are
+> NOT raised, NOT pointing up, nothing sticks up above her fists. Chin tucked, eyes
+> peeking over the guard. She stays CROUCHED the ENTIRE clip — she NEVER stands up, never rises,
+> never straightens her legs. The pose HOLDS the whole clip — the ONLY motion is the
+> strain of absorbing impacts: tiny sharp JOLTS pushing her guard back every beat,
+> shoulders tensing, hair and coat shivering with each jolt. She stays ON ONE SPOT — no
+> walking, no counterattack, she never drops the guard. Seamless LOOP: last frame
+> identical to the first. NO effects: no glow, no sparks, no impact flashes — only the
+> girl bracing low.
+>
+> CAMERA HARD-LOCKED — WIDE SHOT in EVERY frame: her whole crouched body is visible the
+> ENTIRE clip with LOTS of clear green margin around her (she is small and low in the
+> frame — that empty space above her is CORRECT and REQUIRED, do NOT reframe to fill
+> it). Absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt, NO drift — the
+> camera is a fixed tripod bolted to the floor. Her head must be the SAME SIZE in
+> pixels in the first frame and the last frame — if her body gets bigger at ANY point,
+> it is WRONG. This is a SIMPLE, SUBTLE hold animation — do NOT invent extra action or
+> camera drama.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, NOT a dagger with a
+> handle and guard, no extra weapons, they never disappear, never change hands, never
+> change length, never grow a handle. AND IN THE
+> GUARD POSITION: each needle stays lying FLAT along the outside of her forearm inside
+> her closed fist for the WHOLE clip — it never rises, never crosses in front of her
+> face, and it remains the same plain thin bare rod: NO crossguard or hand-guard ever
+> appears at her fists, her gloved FINGERS wrap directly around the bare thin rod with
+> nothing between hand and rod. If you cannot keep the needles plain, keep her fists
+> CLOSED and EMPTY instead — a bare-fisted guard is correct, a sword is WRONG.
+
+> _Guardar como `sheets/block.mp4` y `sheets/block_low.mp4` → los proceso a
+> `favi/block/` y `favi/block_low/` (drop-in sobre las anims existentes)._
+
+## RECIBE DAÑO v2 (`take_hit` de pie y `take_hit_low` agachada)
+
+> ⚠️ Igual que con los sheets viejos: NO usar las palabras "hit / struck / punched /
+> impact / golpe" en el prompt — el filtro de contenido de la IA las marca. Se
+> describe SOLO el movimiento del cuerpo (un retroceso brusco, como empujada por
+> una fuerza invisible). Nada de sangre ni heridas.
+
+**`take_hit` (reacción de pie: retroceso de cabeza/pecho) — SHORT PROMPT (copy
+everything below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand, held DOWN at her
+> sides in loose fists — these two needles are the ONLY weapons in the clip and must
+> stay IDENTICAL to the reference in every frame. STRICT SIDE VIEW facing RIGHT, flat
+> pure green #00FF00 background, fixed camera, she stays the SAME SIZE the whole clip.
+> She stands UPRIGHT in PROFILE, chest and toes pointing at the RIGHT side of the
+> screen, feet planted shoulder-width. HER LEGS, FEET AND HIPS DO NOT MOVE AT ALL
+> for the ENTIRE clip — frozen in the exact same position in every frame. ONLY her
+> head and upper torso move, and the motion is INVOLUNTARY — a violent WHIPLASH that
+> happens TO her, NOT a dodge: her head and shoulders get FLUNG backward toward the
+> LEFT side of the screen in a split second — chin flung UP, hair tossed, like a
+> ragdoll yanked by the collar — and then they sag SLOWLY back forward to the
+> upright start position, heavy and dazed. The backward fling is INSTANT (a snap);
+> the forward return takes three times longer. This repeats 3 times. She has NO
+> control of the motion: she is NOT dodging, NOT weaving, NOT ducking, NOT leaning
+> away on purpose, NOT watching anything — her upper body is loose and LIMP, shaken
+> like a ragdoll. The travel is SMALL: her head moves only about half a head-width
+> back and returns — NO big dramatic movement. Her arms hang
+> DOWN at her sides the whole clip, fists closed around the needles, swaying only
+> slightly with each jolt — the arms NEVER spread out, NEVER rise, NEVER strike a
+> pose. She NEVER turns: this is a SIDE VIEW in every single frame — her face in
+> PROFILE pointing at the RIGHT edge of the screen, ONE shoulder toward the camera,
+> her chest NEVER square to the camera, she NEVER faces the viewer, we NEVER see
+> both shoulders equally — even at the peak of the backward fling her nose keeps
+> pointing at the RIGHT edge of the screen (just tilted up), NOT at the camera. The
+> LAST frame is the SAME upright profile pose as the FIRST frame. ABSOLUTELY NO
+> effects: no motion lines, no stars, no sparks, no flashes, no dust — only the
+> girl's upper body rocking.
+>
+> CAMERA HARD-LOCKED — WIDE FULL-BODY SHOT in EVERY frame: her whole body from the top
+> of her head to the soles of her shoes is visible the ENTIRE clip, with clear green
+> margin above her head and below her feet, in the FIRST frame, in the MIDDLE and in
+> the LAST frame. Absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt, NO
+> drift — the camera is a fixed tripod bolted to the floor. Her head must be the SAME
+> SIZE in pixels in the first frame and the last frame — if her body gets bigger at
+> ANY point, it is WRONG. This is a SIMPLE, SHORT body-language animation — do NOT
+> invent extra action or camera drama.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, no extra weapons, they
+> never disappear, never change hands, never change length, never grow a handle. During
+> the recoil her fists stay CLOSED around the bare thin rods, arms loose at her sides —
+> the needles just ride along with her arms, they do not swing, point or attack.
+
+**`take_hit_low` (reacción AGACHADA: sobresalto en cuclillas) — SHORT PROMPT (copy
+everything below as one prompt):**
+
+> Same girl as the reference image, holding her signature weapons: TWO identical SHORT
+> THIN STRAIGHT needles (slim metal stilettos), ONE in each hand — the ONLY weapons in
+> the clip, IDENTICAL to the reference in every frame. STRICT SIDE VIEW facing RIGHT,
+> flat pure green #00FF00 background, fixed camera, she stays the SAME SIZE the whole
+> clip. She is CROUCHED LOW — deep knee bend, compact and small, hips near her heels —
+> fists closed low in front of her chest, each needle lying FLAT along its forearm
+> pointing down. THE ACTION: her crouched body gets SHAKEN hard 3 times, as if the
+> ground under her feet JUMPS upward. Each shake is BIG and sudden: her chin is thrown
+> UP, her shoulders pop up, her whole upper body rocks back toward the LEFT side of
+> the screen, her long hair FLIES up — then she sags slowly back down into the exact
+> same crouch, heavy and dazed. Shake = instant snap; sag = slow. She is LIMP like a
+> ragdoll — not dodging, not posing, the shake happens TO her. Through all of it her
+> feet stay planted and she STAYS CROUCHED at the same height — the shake happens
+> INSIDE the crouch, she never stands up. SIDE VIEW every frame: her profile keeps
+> pointing at the RIGHT edge of the screen, she never turns to the camera. The LAST
+> frame is the SAME crouched pose as the FIRST frame. NO effects: no motion lines, no
+> sparks, no flashes, no dust.
+>
+> CAMERA HARD-LOCKED — WIDE SHOT in EVERY frame: her whole crouched body is visible the
+> ENTIRE clip with LOTS of clear green margin around her (she is small and low in the
+> frame — that empty space above her is CORRECT and REQUIRED, do NOT reframe to fill
+> it). Absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt, NO drift — the
+> camera is a fixed tripod bolted to the floor. Her head must be the SAME SIZE in
+> pixels in the first frame and the last frame — if her body gets bigger at ANY point,
+> it is WRONG. This is a SIMPLE, SHORT body-language animation — do NOT invent extra
+> action or camera drama.
+>
+> WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),
+> ONE in each hand, exact same size and shape in EVERY frame. Each needle is ONE PLAIN
+> SMOOTH THIN METAL ROD with the same thin thickness from end to end, like a long sewing
+> needle — NO handle, NO grip, NO crossguard, NO hilt, NO pommel. NOT swords, NOT long
+> blades, NOT curved knives, NOT kunai with rings, NOT daggers, no extra weapons, they
+> never disappear, never change hands, never change length, never grow a handle. AND IN
+> THE REVERSE GRIP: each needle stays lying FLAT along the outside of her forearm
+> inside her closed fist for the WHOLE clip — it never rises, never crosses in front
+> of her face, never goes anywhere near her head, and it remains the same plain thin
+> bare rod: NO crossguard or hand-guard ever appears at her fists, her gloved FINGERS
+> wrap directly around the bare thin rod with nothing between hand and rod. If you
+> cannot keep the needles plain, keep her fists CLOSED and EMPTY instead — bare fists
+> are correct, a sword is WRONG.
+
+> _Guardar como `sheets/take_hit.mp4` y `sheets/take_hit_low.mp4` → los proceso a
+> `favi/take_hit/` y `favi/take_hit_low/` (drop-in sobre las anims del sheet viejo)._
 
 ## ⚡ CAMBIO DE PODER (2026-08): ENERGÍA PURA BLANCA (ya NO agua)
 
