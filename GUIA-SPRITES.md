@@ -892,3 +892,112 @@ golpe con un snap — esta anim lo arregla):_
 > empty space is REQUIRED, do NOT move closer to fill it. NO zoom in, NO push-in, NO
 > pan, NO drift, NO slow creep for drama. His head must be the SAME SIZE in pixels in
 > the first, middle and last frame — if he gets bigger at ANY point, the clip is WRONG.
+
+### DEFENSA v2 (clips de video) — `block`, `block_low` y `parry`
+
+> Igual que los GOLPES v2: cada acción = UN clip, guardar como
+> `imagen-action/dam/sheets/<accion>.mp4` y me avisas. **Pegar al final de CADA prompt
+> el bloque "Reglas fijas del clip"** y adjuntar la referencia de DAM. IMPORTANTE en
+> los tres: NADIE lo ataca en el clip (no hay rival), y CERO efectos — sin chispas,
+> sin destellos, sin ondas de choque (los pone el motor al bloquear).
+
+**`block.mp4` (bloqueo DE PIE — aguanta golpes cubierto):**
+
+> From his fighting guard he snaps into a braced DEFENSIVE stance: the big sword raised
+> VERTICAL in front of his body, blade edge facing forward, both hands gripping the
+> handle, body turned slightly behind the flat of the blade like a shield, knees bent,
+> weight low. Holding that guard, his body ROCKS under heavy invisible pressure two or
+> three times during the clip — sharp little jolts BACKWARD: shoulders compressing, head
+> ducking a touch, boots sliding back an inch on the ground, coat jumping with each jolt
+> — but the sword NEVER drops and the guard NEVER breaks. Between jolts he re-plants and
+> braces harder. At the end he lowers the sword back into his normal fighting guard.
+> Nothing touches him and nothing appears in the clip: NO flashes, NO sparks, NO shock
+> waves, NO opponent — only the man bracing and rocking. He stays ON ONE SPOT, SAME SIZE
+> the whole clip.
+
+**`block_low.mp4` (bloqueo AGACHADO — cubierto abajo):**
+
+> He is CROUCHED LOW and stays crouched the ENTIRE clip — deep squat, body COMPACT and
+> tucked, head DOWN at the same height as his normal crouch (never rising, never
+> kneeling upright). He holds the big sword HORIZONTAL above his head like a ROOF — the
+> flat of the blade facing up, both hands bracing it, the blade NEVER pointing at the
+> sky. Under that roof his body COMPRESSES two or three times during the clip — sharp
+> little downward jolts, like heavy pressure landing on the blade from above: elbows
+> flexing, torso crunching tighter, coat puffing out with each jolt — but the roof
+> guard NEVER collapses. At the end he eases back into his normal crouched guard, still
+> low. Nothing touches him and nothing appears in the clip: NO flashes, NO sparks, NO
+> opponent — only the crouched man bracing. He stays ON ONE SPOT, SAME SIZE the whole
+> clip, knees bent in every frame.
+
+**`parry.mp4` (postura de DESVÍO — ventana del counter Q+W):**
+
+> ONE quick defensive SNAP and then a tense HOLD: from his fighting guard he whips the
+> big sword up-and-across in one sharp motion into a DEFLECT position — the blade held
+> DIAGONAL in front of his chest and face, edge facing forward-and-up, both hands on the
+> handle, elbows tucked, body coiled sideways behind the blade, front foot braced, eyes
+> locked forward over the guard. He then HOLDS that coiled deflect stance for the REST
+> of the clip, perfectly ready: the only motion is tense breathing, tiny adjustments of
+> his grip, and his coat and hair settling from the snap. He does NOT swing, does NOT
+> attack, does NOT return to guard — the clip ENDS still holding the deflect stance.
+> Nothing touches him and nothing appears: NO flashes, NO glow, NO sparks, NO opponent.
+> He stays ON ONE SPOT, SAME SIZE the whole clip.
+
+> _Guardar como `sheets/block.mp4`, `sheets/block_low.mp4` y `sheets/parry.mp4` → los
+> proceso a `dam/block/`, `dam/block-low/` (drop-in sobre los frames estáticos de 1
+> cuadro) y a la anim nueva `parry` (la postura del desvío Q+W; el contraataque de 3
+> cortes sigue siendo la anim `counter` existente)._
+
+### REACCIONES v2 (clip de video) — `hit_fly` + `hit_down` (UN solo clip)
+
+> Guardar como `imagen-action/dam/sheets/hit-fly.mp4` y me avisas. **Pegar al final el
+> bloque "Reglas fijas del clip"** y adjuntar la referencia de DAM. De este ÚNICO clip
+> saco DOS animaciones: los frames del vuelo alimentan `hit_fly` (el arco por los aires
+> lo mueve el motor) y los del choque contra el piso alimentan `hit_down`.
+
+**`hit-fly.mp4` (lanzado por los aires → se estrella contra el suelo):**
+
+> An invisible force BLASTS him off his feet: from his fighting guard his whole body is
+> LAUNCHED backward and upward into the air toward the LEFT edge of the screen — a total
+> knockout ragdoll: head thrown back, back arched, arms flailing loose, legs trailing,
+> long coat and hair whipping forward past him from the force. He is UNCONSCIOUS in the
+> air: slack face, eyes shut, ZERO control, a rag doll — no bracing, no attack pose, no
+> landing on his feet. He flies in a high arc and CRASHES flat onto his BACK on the
+> ground, bounces once with the impact, slides a little, and ends LYING sprawled on his
+> back, motionless, limbs loose — except ONE thing: his sword hand. A lifelong
+> warrior's reflex keeps that fist DEATH-GRIPPED around the handle even unconscious:
+> the sword arm hugs the big sword IN AGAINST his body, pinned across his chest and
+> side, and it rides the whole flight and the whole crash PINNED there, slamming into
+> the ground together WITH him, never separating from his fist. Nothing else appears
+> in the clip: NO opponent, NO impact flashes, NO speed lines — and ABSOLUTELY NO
+> SMOKE: no dust clouds, no dirt kicked up, no debris, no haze — the crash raises
+> NOTHING from the ground, the floor stays perfectly clean (the game engine draws all
+> dust later). If any smoke or dust appears in ANY frame, the clip is WRONG.
+>
+> SCREEN DIRECTION LOCKED: at the start he stands in SIDE VIEW facing the RIGHT edge of
+> the screen; the invisible force comes FROM the right, so he travels toward the LEFT.
+> His ragdoll body may tumble and rotate naturally during the flight, but the SCENE
+> must NEVER mirror or flip horizontally — the first frame's left-right orientation is
+> the orientation of the WHOLE clip. If at any point he appears standing in guard
+> facing the LEFT edge, the clip is WRONG.
+>
+> THE SWORD — THE MOST IMPORTANT RULE OF THIS CLIP. The sword NEVER leaves his fist:
+> not at the launch, not during the flight, not at the crash, not in the bounce, not
+> in the final sprawl. Frame by frame his fingers stay CLOSED around the handle, the
+> blade PINNED against his body by his own arm — it does NOT wave around loose, it
+> does NOT fly off, it does NOT land on the ground away from him. In the final lying
+> pose the sword rests ON him / in his closed fist. If the sword is separated from
+> his hand in ANY frame, the clip is WRONG — regenerate. It is ONE single greatsword,
+> EXACTLY the design in the reference image: same LENGTH, same SHAPE, same THICKNESS
+> in every frame — never transforms, never bends, never splits into two, never
+> shrinks or grows, never disappears. His other hand is EMPTY the whole clip.
+>
+> CAMERA HARD-LOCKED — STATIC WIDE footage, like a fixed security camera: the framing
+> of the FIRST frame is the framing of EVERY frame. NO zoom in, NO push-in, NO pan, NO
+> drift, NO following him through the air — his whole body stays fully INSIDE the fixed
+> frame during the entire flight, crash and slide, with clear green margin all around;
+> that empty space is REQUIRED, do NOT move closer to fill it. His head must be the
+> SAME SIZE in pixels in the first, middle and last frame — if he gets bigger at ANY
+> point, the clip is WRONG.
+
+> _Del vuelo saco `hit_fly` (pose de muñeco por los aires) y del estrellón `hit_down`
+> (choca de espaldas, rebota y queda tendido). El levantarse ya lo cubre `get_up`._

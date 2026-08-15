@@ -297,6 +297,9 @@ var down_tap_t := 0.0
 var double_down_t := 0.0
 var pq_tap_t := 0.0   # instante reciente del tap de Q (para exigir Q+W SIMULTÁNEOS en el parry)
 var pw_tap_t := 0.0   # instante reciente del tap de W
+var pe_tap_t := 0.0   # tap reciente de E (para la RABIA de DAM: E+R simultáneas)
+var pr_tap_t := 0.0   # tap reciente de R
+var rage_mode := false   # BERSERK de DAM activo (lo prende/apaga main): oscuro + sombras + más rápido/fuerte
 var breaker_fx_t := 0.0
 var debris_frames: SpriteFrames = null  # escombros del estrellon (carga perezosa)
 # comando del ULTRA (→ R R): cuenta las R con adelante reciente
@@ -666,6 +669,33 @@ func _play_ko_cry() -> void:
 	voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 	voz_player.play()
 
+# BERSERK: chispas ROJAS tipo ascua saliendo de los OJOS mientras dura la rabia
+# (como las particulas del cut-in pero rojas). Cuadraditos que vuelan hacia atras y suben.
+var rage_eyes: CPUParticles2D = null
+func _update_rage_eyes() -> void:
+	if rage_mode and rage_eyes == null:
+		rage_eyes = CPUParticles2D.new()
+		rage_eyes.amount = 16
+		rage_eyes.lifetime = 0.65
+		rage_eyes.local_coords = false          # la estela queda flotando en el mundo al moverse
+		rage_eyes.spread = 22.0
+		rage_eyes.gravity = Vector2(0, -70)     # ascuas: flotan hacia ARRIBA levemente
+		rage_eyes.initial_velocity_min = 70.0
+		rage_eyes.initial_velocity_max = 190.0
+		rage_eyes.scale_amount_min = 3.5
+		rage_eyes.scale_amount_max = 7.0        # cuadraditos pixel (sin textura = cuadrado)
+		var g := Gradient.new()
+		g.colors = PackedColorArray([Color(2.2, 0.55, 0.25, 1.0), Color(1.6, 0.12, 0.08, 0.85), Color(0.7, 0.03, 0.02, 0.0)])
+		g.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+		rage_eyes.color_ramp = g
+		sprite.add_child(rage_eyes)
+	if rage_eyes == null:
+		return
+	rage_eyes.emitting = rage_mode and not koed and frozen_t <= 0.0
+	# nacen AL FRENTE de la cara (voltean con el facing) y vuelan hacia ATRÁS
+	rage_eyes.position = Vector2(42.0 * float(facing), -95.0)
+	rage_eyes.direction = Vector2(-float(facing), -0.35)
+
 # 2ª patada del air_jab DOBLE de Fe: suena en el canal de VOZ (aparte) para no cortar la 1ª
 func _play_kick2() -> void:
 	if sfx.has("kick_effect"):
@@ -691,7 +721,8 @@ func current_attack() -> Dictionary:
 	if fe_dash_active:
 		return {}
 	# durante el EMBER DASH el golpe es el especial (reusa el corte como pose)
-	if special_t > 0.0 and sprite.is_playing():
+	# OJO: el casteo del BERSERK también usa special_t como candado — NO es un golpe
+	if special_t > 0.0 and sprite.is_playing() and String(sprite.animation) != "berserk_cast":
 		return {"name": "ember_dash", "frame": int(sprite.frame), "hit_frame": 1,
 			"reach": 520.0 * CHAR_SCALE, "low": false, "strong": true,
 			"damage": 130, "wall_launch": true, "impact_sfx": "kick_impact"}
@@ -800,7 +831,11 @@ func current_attack() -> Dictionary:
 		"kick": {"freeze": true, "reach": 2600.0},
 		# ↓W de Aye = LUNA DE HIELO (lanzador): lanza al rival un POCO más ALTO para encadenar el
 		# combo aéreo (salto+E). Tuneable (1.0 = normal; sube el número = más alto).
-		"crouch_kick": {"launch_mult": 1.15},
+		# reach = el SOBRE VISUAL de la LUNA, no el del báculo (la luna del piso pega SOLA,
+		# Aye no tiene que estar pegada): nodo a +190 + creciente ~600 + pierna del rival
+		# ~250 => contacto real ~850. El árbitro multiplica por body_k de Aye (0.65):
+		# 1300*0.65 = 845 reales. (Igual que la regla de oro del pilar.)
+		"crouch_kick": {"launch_mult": 1.15, "reach": 1300.0},
 	}
 	if fx_floral and sprite.animation in ATTACKS and sprite.is_playing():
 		var aa: Dictionary = ATTACKS[sprite.animation].duplicate()
@@ -978,8 +1013,9 @@ func force_grounded_ko() -> void:
 		sprite.play("hit_down")
 		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("hit_down") - 1)
 	elif ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
-		sprite.play("ko_air")   # TENDIDO boca abajo
-		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)
+		sprite.play("ko_air")   # TENDIDO boca abajo (v2: anima el choque desde #74)
+		var _kaf := sprite.sprite_frames.get_frame_count("ko_air")
+		sprite.frame = (73 if _kaf > 100 else maxi(0, _kaf - 1))
 		sprite.position.y = ko_lie_drop_down   # asienta el cuerpo en el piso (ver ko_lie_drop_*)
 	else:
 		sprite.play("ko")
@@ -2225,6 +2261,9 @@ func _physics_process(delta: float) -> void:
 		deny_t = maxf(0.0, deny_t - delta)
 		var dk := clampf(deny_t / 0.2, 0.0, 1.0)   # los últimos 0.2s se desvanece
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.42, 0.42, 0.48, 1.0), dk)
+	elif rage_mode:
+		# BERSERK de DAM: figura OSCURA con dejo rojizo mientras dura la rabia
+		sprite.modulate = Color(0.52, 0.34, 0.34, 1.0)
 	elif sprite.modulate != Color(1, 1, 1, 1):
 		sprite.modulate = Color(1, 1, 1, 1)
 		if burn_smoke != null:
@@ -2302,8 +2341,11 @@ func _physics_process(delta: float) -> void:
 	if fe_dash_t > 0.0:
 		fe_dash_t = maxf(0.0, fe_dash_t - delta)
 		position.x += float(facing) * FE_DASH_SPEED * delta
+	# candado del CASTEO del BERSERK: usa special_t pero NO es el dash — quieto EN EL SITIO
+	if special_t > 0.0 and String(sprite.animation) == "berserk_cast":
+		special_t = maxf(0.0, special_t - delta)
 	# EMBER DASH en curso: avanza ardiendo y suelta sombras
-	if special_t > 0.0:
+	elif special_t > 0.0:
 		special_t = maxf(0.0, special_t - delta)
 		position.x += float(facing) * SPECIAL_SPEED * delta
 		fire_trail.direction = Vector2(-float(facing), -0.3)
@@ -2324,6 +2366,9 @@ func _physics_process(delta: float) -> void:
 	# sombras fantasma: dash especial / mortal del breaker (rojas), volando por el agua o
 	# el DASH DE AGUJAS de Fe (AZULES)
 	breaker_fx_t = maxf(0.0, breaker_fx_t - delta)
+	if rage_mode:
+		breaker_fx_t = maxf(breaker_fx_t, 0.2)   # BERSERK: sombras ROJAS continuas mientras dure
+	_update_rage_eyes()                          # chispas rojas de los OJOS en berserk
 	if special_t > 0.0 or breaker_fx_t > 0.0 or water_bg or fe_dash_t > 0.0:
 		ghost_timer -= delta
 		if ghost_timer <= 0.0:
@@ -2433,6 +2478,8 @@ func _physics_process(delta: float) -> void:
 	double_down_t = maxf(0.0, double_down_t - delta)
 	pq_tap_t = maxf(0.0, pq_tap_t - delta)
 	pw_tap_t = maxf(0.0, pw_tap_t - delta)
+	pe_tap_t = maxf(0.0, pe_tap_t - delta)
+	pr_tap_t = maxf(0.0, pr_tap_t - delta)
 	ultra_r_t = maxf(0.0, ultra_r_t - delta)
 	dash_smoke_cd = maxf(0.0, dash_smoke_cd - delta)
 	# DUST del AZOTE del KO de pie de Fe: su colapso nuevo toca el piso en el frame ~26
@@ -2512,9 +2559,12 @@ func _physics_process(delta: float) -> void:
 	if airborne:
 		# MUERTE AÉREA: sube con la pose de vuelo (el "vuelo por los aires"); en cuanto
 		# EMPIEZA A BAJAR, pasa a BOCA ABAJO (ko_air) para caer y estrellarse de bruces.
-		if koed and ko_facedown and vel_y > 0.0 and String(sprite.animation) != "ko_air" \
-				and sprite.sprite_frames.has_animation("ko_air"):
-			sprite.play("ko_air")
+		# KO AÉREO (pedido final): el VUELO entero usa hit_fly (el que se ve bien); el
+		# clip ko-fly solo pone el CHOQUE y el tendido AL TOCAR el piso (aterrizaje)
+		if koed and ko_facedown and String(sprite.animation) != "hit_fly" \
+				and String(sprite.animation) != "ko_air" \
+				and sprite.sprite_frames.has_animation("hit_fly"):
+			sprite.play("hit_fly")
 		var air_spin: bool = sprite.animation in ["spin_kick", "air_spin_kick"] and sprite.is_playing()
 		# TODOS los ataques aéreos flotan: mientras golpeas en el aire, bajas
 		# poco a poco (feel de combo aéreo de fighting game), no caes en picada.
@@ -2575,7 +2625,7 @@ func _physics_process(delta: float) -> void:
 		elif is_player:
 			var air_dir := Input.get_axis("ui_left", "ui_right")
 			if air_dir != 0.0:
-				position.x += air_dir * WALK_SPEED * spd * delta
+				position.x += air_dir * WALK_SPEED * (1.30 if rage_mode else 1.0) * spd * delta
 		if position.y >= floor_y and vel_y >= 0.0:   # solo aterriza si NO va subiendo
 			position.y = floor_y
 			airborne = false
@@ -2595,8 +2645,12 @@ func _physics_process(delta: float) -> void:
 					sprite.play("hit_down")
 					return
 				if ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
-					sprite.play("ko_air")   # BOCA ABAJO (coherente con el despedido)
-					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko_air") - 1)  # tendido
+					# v2 (clip 103f): venía VOLANDO con hit_fly; al tocar el suelo arranca
+					# el CHOQUE del ko-fly (#73) y el estrellón/rebote se ANIMA en el piso
+					var _kac := sprite.sprite_frames.get_frame_count("ko_air")
+					sprite.speed_scale = 1.0
+					sprite.play("ko_air")
+					sprite.frame = (73 if _kac > 100 else maxi(0, _kac - 1))
 				else:
 					sprite.play("ko")        # boca arriba (caída de espaldas)
 					sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
@@ -2735,7 +2789,7 @@ func _physics_process(delta: float) -> void:
 	var dir := Input.get_axis("ui_left", "ui_right")
 	if dir != 0.0:
 		var forward := signi(int(dir)) == facing
-		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * spd * delta
+		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * (1.30 if rage_mode else 1.0) * spd * delta
 		var want := 1 if forward else -1
 		if walk_dir != want or not _is_locomotion_anim():
 			_play_locomotion(forward)
@@ -2760,7 +2814,8 @@ func _play_locomotion(forward: bool) -> void:
 		sprite.play_backwards("walk")
 
 func _ai_process(delta: float) -> void:
-	if not ai_enabled or koed or ai_target == null or airborne:
+	# special_t: no camina/ataca durante un especial NI durante el casteo del berserk
+	if not ai_enabled or koed or ai_target == null or airborne or special_t > 0.0:
 		return
 	# combo en curso: encadena el siguiente golpe al abrirse la ventana de cancel
 	if ai_combo.size() > 0:
@@ -2807,7 +2862,7 @@ func _ai_process(delta: float) -> void:
 			else: ai_action = "idle"
 	match ai_action:
 		"advance":
-			position.x += facing * WALK_SPEED * 0.95 * spd * delta   # persigue más rápido
+			position.x += facing * WALK_SPEED * 0.95 * (1.30 if rage_mode else 1.0) * spd * delta   # persigue más rápido
 			if sprite.animation != "walk" or walk_dir != 1:
 				sprite.play("walk")
 			walk_dir = 1
@@ -2856,6 +2911,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		koed = not koed
 		crouching = false
 		sprite.play("ko" if koed else "pose")
+		return
+	# tecla de prueba I: KO VOLANDO — lanzado por los aires y muere en pleno vuelo
+	# (vuelo hit_fly subiendo -> ko_air bajando boca abajo -> se estrella y queda tendido)
+	if event.is_action_pressed("ko_fly_test") and not airborne and not koed:
+		receive_hit(false, true, -facing)   # lanzador
+		die_ko()                            # muere EN EL AIRE -> completa el arco
 		return
 	# doble toque ATRÁS/ADELANTE: Aye = BLINK (teleport, maná); Fe y DAM = PASO CORTO
 	# (←← backdash / →→ paso adelante, estilo Street Fighter)
@@ -2944,6 +3005,19 @@ func _unhandled_input(event: InputEvent) -> void:
 				if _mbq.has_method("on_parry_start"):
 					_mbq.on_parry_start(self)
 				return
+	# RABIA de DAM (E+R A LA VEZ, con el anillo LLENO): castea el berserk. Misma regla de
+	# simultaneidad que el parry — mantener una y luego tocar la otra NO activa.
+	if event.is_action_pressed("spin_kick"):
+		pe_tap_t = PARRY_SIMUL
+	if event.is_action_pressed("weak_punch"):
+		pr_tap_t = PARRY_SIMUL
+	if not airborne and not rage_mode \
+			and Input.is_action_pressed("spin_kick") and Input.is_action_pressed("weak_punch") \
+			and ((event.is_action_pressed("spin_kick") and pr_tap_t > 0.0) \
+				or (event.is_action_pressed("weak_punch") and pe_tap_t > 0.0)):
+		var _mbr := get_parent()
+		if _mbr and _mbr.has_method("try_rage") and _mbr.try_rage(self):
+			return
 	# teclas de prueba de dano sobre uno mismo (E/R/T); el golpe llega de frente
 	if event.is_action_pressed("take_hit") and not airborne:
 		receive_hit(false, false, -facing)
@@ -3246,10 +3320,8 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 						voz_player.stream = spin_voz_sfx
 						voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 						voz_player.play()
-				else:
-					var mk := get_parent()          # DAM grita al lanzar la patada giratoria (→E)
-					if mk and mk.has_method("_play_kick_voz"):
-						mk._play_kick_voz()
+				# DAM: SU voz ("Dancing Sword") ya suena desde _on_animation_changed —
+				# FUERA la vieja "FURIOUS KICKING" (_play_kick_voz), se solapaban las dos
 				return true
 			return false
 		"weak_punch":
@@ -3303,8 +3375,9 @@ func _on_animation_finished() -> void:
 			sprite.stop()
 			sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("hit_down") - 1)
 			return
-		# AYE: reproduce la anim de LEVANTARSE (tendida -> de pie) antes de volver a idle
-		if fx_floral and sprite.sprite_frames.has_animation("get_up"):
+		# LEVANTARSE (tendido -> de pie) antes de volver a idle: Aye y DAM tienen su anim
+		if sprite.sprite_frames.has_animation("get_up") \
+				and sprite.sprite_frames.get_frame_count("get_up") > 1:
 			sprite.play("get_up")
 			return
 	if sprite.animation == "ko" or sprite.animation == "ko_air":
@@ -3321,7 +3394,13 @@ func _on_animation_finished() -> void:
 		sprite.play("pose")   # terminó de amortiguar el aterrizaje -> vuelve a idle
 		return
 	if sprite.animation == "get_up":
-		# "usa un poder" para levantarse: aura MORADA + sombras de poder -> ENMASCARA el snap del
+		# DAM: su get_up ya empalma EXACTO con la pose (652 vs 650) — solo unas sombras
+		# breves para vestir el levantón, sin aura ni sonido de maná (eso es de Aye)
+		if not fx_floral:
+			breaker_fx_t = maxf(breaker_fx_t, 0.35)
+			sprite.play("pose")
+			return
+		# AYE "usa un poder" para levantarse: aura MORADA + sombras de poder -> ENMASCARA el snap del
 		# último frame (#248, dos manos) a la pose idle relajada.
 		_cast_border_on(0.6)
 		breaker_fx_t = maxf(breaker_fx_t, 0.55)

@@ -78,6 +78,18 @@ const MANA_CY := 968.0               # centro Y (esquina de abajo)
 const MANA_CX_L := 92.0              # centro X lado izquierdo (P1)
 const MANA_CX_R := 1828.0            # centro X lado derecho (P2)
 const MANA_AV_BOX := 104.0           # caja del retrato (circulo que llena el anillo)
+# ---- RABIA de DAM (berserk): el anillo (mismo slot que el maná) se llena al PERDER vida.
+# Lleno + E+R simultáneas -> castea el berserk (anim + onda expansiva) y la barra se DRENA
+# mientras dura el modo: más rápido, pega más duro, oscuro con sombras rojas.
+var rage := [0.0, 0.0]               # carga de rabia por lado (0..1)
+var rage_on := [false, false]        # ¿berserk activo? (drenando)
+var rage_side := [false, false]      # ¿ese lado es DAM? (se setea en _refresh_hud_chars)
+var rage_prev_hp := [-1, -1]         # hp del frame anterior (detecta vida perdida; -1 = sin iniciar)
+const RAGE_FULL_LOST := 0.60         # se llena tras perder este % de la vida máxima
+const RAGE_DRAIN := 0.167            # drenaje por segundo en berserk (~6s de modo, pedido: más rápido)
+var rage_dim: ColorRect = null       # velo oscuro de pantalla mientras hay un berserk activo
+const RAGE_DMG := 1.35               # multiplicador de daño en berserk
+const RAGE_NOVA_DMG := 70            # daño de la onda expansiva del casteo
 var match_time := MATCH_TIME
 var timer_label: Label
 var win_dots := [[], []]       # puntos de victoria por lado
@@ -300,7 +312,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-15 U"
+	get_window().title = "FG Fighter — build 2026-08-15 AU"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -2465,6 +2477,108 @@ func _build_dam_frames() -> SpriteFrames:
 		sf.set_animation_speed("inferno_cast", 95.0)   # SYNC (pedido): la palma se extiende a ~0.48s, a MITAD de la bola (build 0.85s)
 		for t in difc:
 			sf.add_frame("inferno_cast", t)
+	# BLOCK v2 (clip block, frames 1-21 pre-zoom): alza el espadón VERTICAL como escudo
+	# y se asienta. TRIPLE de rápido (pedido): 135fps ≈ 0.16s — la guardia sube al instante.
+	var dblk := _dam_action_frames("block")
+	if dblk.size() > 8:
+		sf.clear("block")
+		sf.set_animation_loop("block", false)
+		sf.set_animation_speed("block", 135.0)
+		for t in dblk:
+			sf.add_frame("block", t)
+	# HIT_FLY v2 (clip hit-fly f21-95): VUELO ragdoll noqueado — arqueado, brazos sueltos,
+	# espada abrazada al cuerpo. Cuerpo centrado en (650,670) como el de Fe. 60fps.
+	var dhf := _dam_action_frames("hit_fly")
+	if dhf.size() > 8:
+		sf.clear("hit_fly")
+		sf.set_animation_loop("hit_fly", false)
+		sf.set_animation_speed("hit_fly", 60.0)
+		for t in dhf:
+			sf.add_frame("hit_fly", t)
+	# HIT_DOWN v2 (clip hit-fly f96-145): el ESTRELLÓN — choca de espaldas, rebota,
+	# desliza y queda tendido (retiene el último cuadro). 45fps.
+	var dhd := _dam_action_frames("hit_down")
+	if dhd.size() > 8:
+		if not sf.has_animation("hit_down"):
+			sf.add_animation("hit_down")
+		sf.clear("hit_down")
+		sf.set_animation_loop("hit_down", false)
+		sf.set_animation_speed("hit_down", 45.0)
+		for t in dhd:
+			sf.add_frame("hit_down", t)
+	# GET_UP v3 (12 frames sueltos de get-up-frames, normalizados por masa): tendido ->
+	# se incorpora -> rodilla con la espada -> se para a su guardia (empalma exacto:
+	# tendido = canon 1019, guardia final = idle 650). 13fps ≈ 0.9s.
+	var dgu := _dam_action_frames("get_up")
+	if dgu.size() > 8:
+		if not sf.has_animation("get_up"):
+			sf.add_animation("get_up")
+		sf.clear("get_up")
+		sf.set_animation_loop("get_up", false)
+		sf.set_animation_speed("get_up", 21.0)   # rápido (pedido): ~0.57s de levantada
+		for t in dgu:
+			sf.add_frame("get_up", t)
+	# KO v2 (clip ko-face-up, 121 frames, canvas 1920): KO de pie — se tambalea, se
+	# DERRUMBA de espaldas y queda tendido BOCA ARRIBA con la katana caída al lado
+	# (canon de DAM). Mapeo fijo, pies plantados. 60fps ≈ 1.2s de desplome + tendido.
+	var dko := _dam_action_frames("ko")
+	if dko.size() > 8:
+		sf.clear("ko")
+		sf.set_animation_loop("ko", false)
+		sf.set_animation_speed("ko", 60.0)
+		for t in dko:
+			sf.add_frame("ko", t)
+	# KO_AIR v2 (clip ko-fly f19-121, canvas 1920): el KO del último golpe — sale
+	# volando en volteretas y cae TENDIDO (el aterrizaje congela el último cuadro,
+	# anclado al suelo; el vuelo va anclado por el cuerpo). 70fps.
+	var dka := _dam_action_frames("ko_air")
+	if dka.size() > 8:
+		if not sf.has_animation("ko_air"):
+			sf.add_animation("ko_air")
+		sf.clear("ko_air")
+		sf.set_animation_loop("ko_air", false)
+		sf.set_animation_speed("ko_air", 110.0)   # rápido: que el vuelo no se quede atrás de la caída real
+		for t in dka:
+			sf.add_frame("ko_air", t)
+	# BLOCK_LOW v2 (clip block_low, 145 frames SIN zoom): cuclillas profundas con el
+	# espadón HORIZONTAL sobre la cabeza como techo; ciclos de compresión al aguantar.
+	# 60fps: entrada ~0.22s y el resto es el aguante (cada golpe bloqueado la reinicia).
+	var dblo := _dam_action_frames("block_low")
+	if dblo.size() > 8:
+		sf.clear("block_low")
+		sf.set_animation_loop("block_low", false)
+		sf.set_animation_speed("block_low", 60.0)
+		for t in dblo:
+			sf.add_frame("block_low", t)
+	# CASTEO del BERSERK (clip cast-berseke, 145 frames): alza el poder, EXPLOTA en
+	# energía (~f52) y queda en la postura de rabia. 130fps ≈ 1.1s (pedido: más rápida).
+	var dbrk := _dam_action_frames("berserk_cast")
+	if not dbrk.is_empty():
+		if not sf.has_animation("berserk_cast"):
+			sf.add_animation("berserk_cast")
+		sf.clear("berserk_cast")
+		sf.set_animation_loop("berserk_cast", false)
+		sf.set_animation_speed("berserk_cast", 130.0)
+		for t in dbrk:
+			sf.add_frame("berserk_cast", t)
+	# TAKE_HIT v2 (clip take-hit, frames 1-33): latigazo de cabeza/torso hacia ATRÁS al
+	# recibir golpe de pie y recupera la guardia. 120fps ≈ 0.27s, seco como el de Fe.
+	var dth := _dam_action_frames("take_hit")
+	if dth.size() > 8:
+		sf.clear("take_hit")
+		sf.set_animation_loop("take_hit", false)
+		sf.set_animation_speed("take_hit", 120.0)
+		for t in dth:
+			sf.add_frame("take_hit", t)
+	# TAKE_HIT_LOW v2 (clip take_hit_lower, frames 1-71): golpe BAJO — se DOBLA con la
+	# cabeza a la cintura, aguanta encogido y se yergue. 130fps ≈ 0.55s.
+	var dthl := _dam_action_frames("take_hit_low")
+	if dthl.size() > 8:
+		sf.clear("take_hit_low")
+		sf.set_animation_loop("take_hit_low", false)
+		sf.set_animation_speed("take_hit_low", 130.0)
+		for t in dthl:
+			sf.add_frame("take_hit_low", t)
 	# ↓E v2 (clip sweep, 62 frames): BARRIDO derribador a ras del piso. 120fps ~0.52s.
 	var dswv := _dam_action_frames("sweep")
 	if dswv.size() > 12:
@@ -2808,13 +2922,18 @@ func _refresh_hud_chars() -> void:
 		if hud_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			hud_avatar[side].texture = load(String(c["avatar"]))
 			_cover_avatar(hud_avatar[side], 114, 114, 1.4 if ids[side] == "aye" else 1.0)   # Aye: acerca su cara
-		# ANILLO de recurso: magos (wizard = maná) y FE (assassin = INSTINTO de las
-		# marcas: se llena con tiempo, el crítico lo vacía)
+		# ANILLO de recurso: magos (wizard = maná), FE (assassin = INSTINTO de las
+		# marcas: se llena con tiempo, el crítico lo vacía) y DAM (RABIA: se llena al
+		# perder vida, E+R lleno = berserk)
 		var is_mage: bool = String(c.get("arch", "")) == "wizard" or String(c["id"]) == "favi"
 		mana_is_mage[side] = is_mage
+		rage_side[side] = String(c["id"]) == "dam"
+		rage[side] = 0.0
+		rage_on[side] = false
+		rage_prev_hp[side] = -1
 		if mana_hud[side] != null:
-			mana_hud[side].visible = is_mage
-		if is_mage and mana_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
+			mana_hud[side].visible = is_mage or rage_side[side]
+		if (is_mage or rage_side[side]) and mana_avatar[side] != null and ResourceLoader.exists(String(c["avatar"])):
 			mana_avatar[side].texture = load(String(c["avatar"]))
 			_cover_avatar(mana_avatar[side], MANA_AV_BOX, MANA_AV_BOX)
 			mana_avatar[side].flip_h = side == 1
@@ -2903,6 +3022,9 @@ func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 	var atk_f: Node2D = player if idx == 0 else dummy
 	if is_instance_valid(atk_f) and atk_f.fx_floral:
 		win = 1.25
+	# BERSERK de DAM: pega más duro mientras dura la rabia
+	if is_instance_valid(atk_f) and atk_f.rage_mode:
+		dmg = int(round(float(dmg) * RAGE_DMG))
 	var baja: bool = not aereo and combo_n[idx] > 0 and nivel < int(combo_lvl[idx])
 	if combo_t[idx] > win or atk_name == combo_last[idx] or baja:
 		combo_n[idx] = 1
@@ -3364,9 +3486,10 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	flash_rect.color = Color(1.3, 0.5, 0.12, 0.5)
 	if dome != null:
 		# SYNC (pedido): tras el cut-in la anim quedo congelada en la intro — saltar al
-		# frame previo al empuje: la PALMA se extiende JUSTO cuando la bola empieza a salir
+		# frame previo al empuje (clip v2: el brazo arranca en f58, 0-based 56): la PALMA
+		# se extiende JUSTO cuando la bola empieza a salir
 		if String(atacante.sprite.animation) == "inferno_cast":
-			atacante.sprite.frame = 40
+			atacante.sprite.frame = 56
 		dome.play("build")                 # el fuego se junta y el DOMO crece (0.85s)
 		await get_tree().create_timer(0.85).timeout
 		# BOOM: los 2 IMPACT FRAMES a PANTALLA COMPLETA con DAM por arriba, con el
@@ -3398,6 +3521,8 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 		if sup != null:
 			sup.queue_free()
 		atacante.sprite.visible = true
+		if String(atacante.sprite.animation) == "inferno_cast":
+			atacante.sprite.play("pose")             # suelta la palma (la anim quedó retenida)
 		_focus_end()
 		ultra_active = false
 		state = "fight"
@@ -3467,6 +3592,8 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	if sup != null:
 		sup.queue_free()                                 # quita el super pre-animado
 	atacante.sprite.visible = true                       # DAM vuelve a su sprite normal
+	if String(atacante.sprite.animation) == "inferno_cast":
+		atacante.sprite.play("pose")                     # suelta la palma (la anim quedó retenida al final)
 	# REMATE
 	victima.hard_fall = false
 	if modo_domo:
@@ -3643,6 +3770,156 @@ func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
 
 # TELEPORT de Aye (↓→Q, reemplaza el dash): glitch out + TIEMBLA + sonido -> reaparece AL FRENTE del
 # rival con un golpe. Sombras + borde MORADO que se desvanecen si no encadena un combo. Invulnerable.
+# ---- RABIA de DAM: activación del BERSERK (E+R simultáneas con el anillo LLENO) ----
+var rage_casting := [false, false]   # casteando la activación (sin drenaje aún)
+func try_rage(f: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	var idx := 0 if f == player else 1
+	if not rage_side[idx] or rage_on[idx] or rage[idx] < 0.999:
+		return false
+	if f.koed or f.airborne or f.hit_flying or f.frozen_t > 0.0 or f.special_t > 0.0 or f.is_downed():
+		return false
+	_run_rage_cast(f, idx)
+	return true
+
+func _run_rage_cast(f: Node2D, idx: int) -> void:
+	# CASTEO: DAM alza el poder (clip cast-berseke) gritando su HAAAA; a mitad del clip
+	# la energía REVIENTA -> onda expansiva; al terminar el clip arranca el MODO berserk.
+	rage_on[idx] = true
+	rage_casting[idx] = true
+	var dur := 1.1
+	if f.sprite.sprite_frames.has_animation("berserk_cast"):
+		dur = float(f.sprite.sprite_frames.get_frame_count("berserk_cast")) / 130.0
+		f.sprite.play("berserk_cast")
+	f.special_t = dur + 0.05      # bloquea input/movimiento mientras castea (vulnerable, como Aye)
+	f.vel_x = 0.0
+	f.crouching = false
+	var ruta := "res://imagen-action/sound-effect/voz-ko-dam.wav"   # su HAAAA de batalla
+	if ResourceLoader.exists(ruta):
+		f.voz_player.stream = load(ruta)
+		f.voz_player.pitch_scale = 1.0
+		f.voz_player.play()
+	# la ONDA EXPANSIVA sale AL EMPEZAR la anim (pedido): despeja al rival con un
+	# empujón rápido para que no pueda golpearlo durante el casteo
+	_rage_nova(f, idx)
+	_rage_cast_show(f, dur)   # PANTALLA ROJA parpadeante + temblor mientras castea (pedido)
+	await get_tree().create_timer(minf(0.40, dur)).timeout          # la explosión del clip (~f52 @130fps)
+	if not is_instance_valid(f) or f.koed:
+		_rage_end(idx)
+		return
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(1.2, 0.9, 0.55, 0.40)                  # fogonazo blanco-dorado
+	_shake(16.0, 0.30)
+	f._burst(1.5)
+	await get_tree().create_timer(maxf(dur - 0.40, 0.0)).timeout
+	rage_casting[idx] = false
+	if not is_instance_valid(f) or f.koed:
+		_rage_end(idx)
+		return
+	f.rage_mode = true            # BERSERK: oscuro + sombras rojas + más rápido + pega más
+
+func _rage_end(idx: int) -> void:
+	rage_on[idx] = false
+	rage_casting[idx] = false
+	var f: Node2D = player if idx == 0 else dummy
+	if is_instance_valid(f):
+		f.rage_mode = false
+
+# SHOW del casteo del berserk: el fondo LATE en rojo y la cámara tiembla suave
+# mientras dura la animación; al terminar deja el velo listo para el modo (oscuro).
+# Además la onda REPELE: si el rival intenta acercarse durante el casteo, lo vuelve
+# a empujar hacia atrás — DAM no puede ser golpeado mientras castea.
+func _rage_cast_show(f: Node2D, dur: float) -> void:
+	var v: Node2D = dummy if f == player else player
+	var t := 0.0
+	while t < dur and is_instance_valid(f) and not f.koed and state == "fight":
+		var dt := get_process_delta_time()
+		t += dt
+		if rage_dim != null:
+			var k := 0.5 + 0.5 * sin(t * 22.0)   # latido rápido
+			rage_dim.color = Color(0.55, 0.02, 0.02, 0.14 + 0.18 * k)
+		_shake(6.0, 0.08)                        # temblor continuo suave
+		if is_instance_valid(v) and not v.koed and not v.airborne and not v.hit_flying \
+				and absf(v.position.x - f.position.x) < 460.0:
+			var rdir: int = signi(v.position.x - f.position.x)
+			if rdir == 0:
+				rdir = f.facing
+			v.position.x = clampf(v.position.x + float(rdir) * 1500.0 * dt, 120.0, 1800.0)
+		await get_tree().process_frame
+	if rage_dim != null:
+		rage_dim.color = Color(0.02, 0.0, 0.01, rage_dim.color.a)   # vuelve al velo oscuro del modo
+
+# ONDA EXPANSIVA del casteo: círculo de energía BLANCO translúcido "de medio lado"
+# (elipse en perspectiva) que crece desde DAM; si el frente alcanza al rival, le quita
+# vida y lo EMPUJA hacia atrás. Respeta el bloqueo (receive_hit decide).
+func _rage_nova(f: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var cont := Node2D.new()
+	cont.position = Vector2(f.position.x, f.position.y - 60.0)
+	cont.z_index = 30
+	add_child(cont)
+	var ring := Line2D.new()
+	var pts := PackedVector2Array()
+	for i in 49:
+		var a := TAU * float(i) / 48.0
+		pts.append(Vector2(cos(a), sin(a) * 0.34))   # elipse tumbada (perspectiva)
+	ring.points = pts
+	ring.closed = true
+	ring.joint_mode = Line2D.LINE_JOINT_ROUND
+	ring.default_color = Color(1.0, 1.0, 1.0, 0.55)
+	cont.add_child(ring)
+	var t := 0.0
+	var golpeo := false
+	var NOVA_DUR := 0.5
+	var NOVA_R := 1500.0
+	while t < NOVA_DUR:
+		var dt := get_process_delta_time()
+		t += dt
+		var k := clampf(t / NOVA_DUR, 0.0, 1.0)
+		var r := maxf(NOVA_R * k, 1.0)               # radio actual del frente (px)
+		cont.scale = Vector2(r, r)
+		ring.width = 34.0 / r                        # grosor visual ~34px constante
+		ring.default_color.a = 0.55 * (1.0 - 0.85 * k)
+		if not golpeo and is_instance_valid(victima) and not victima.koed \
+				and absf(victima.position.x - cont.position.x) <= r \
+				and victima.floor_y - victima.position.y < 320.0:
+			golpeo = true
+			var dir: int = signi(victima.position.x - cont.position.x)
+			if dir == 0:
+				dir = f.facing
+			var res: String = victima.receive_hit(false, false, dir, "kick_impact")
+			if res == "hit" or res == "launched":
+				_dmg_number(victima, RAGE_NOVA_DMG)
+				_shake(13.0, 0.18)
+				if victima == dummy:
+					dummy_hp = maxi(0, dummy_hp - RAGE_NOVA_DMG)
+					if dummy_hp <= 0:
+						if dummy_ai_mode and not break_practice: _end_round(true)
+						else: dummy_hp = hp_max[1]
+				else:
+					player_hp = maxi(0, player_hp - RAGE_NOVA_DMG)
+					if player_hp <= 0:
+						if dummy_ai_mode and not break_practice: _end_round(false)
+						else: player_hp = hp_max[0]
+			# la onda EMPUJA SIEMPRE (aunque bloquee: es física, lo arrastra igual;
+			# el daño sí lo salva el bloqueo)
+			if res != "ignored":
+				_rage_push(victima, dir)             # el empujón de la onda
+		await get_tree().process_frame
+	if is_instance_valid(cont):
+		cont.queue_free()
+
+func _rage_push(v: Node2D, dir: int) -> void:
+	# empujón VELOZ de la onda: saca al rival del alcance (~550px en 0.25s) para que
+	# no pueda golpear a DAM mientras castea
+	var t := 0.0
+	while t < 0.25 and is_instance_valid(v) and not v.airborne and not v.hit_flying:
+		var dt := get_process_delta_time()
+		t += dt
+		v.position.x = clampf(v.position.x + float(dir) * 2200.0 * dt, 120.0, 1800.0)
+		await get_tree().process_frame
+
 # ¿Aye tiene barra para el teleport? (lo consulta fighter._start_teleport ANTES de comprometerse)
 # ---- MANA: API de hechizos (fighter consulta antes de castear) ----
 func _mana_side(caster: Node2D) -> int:
@@ -4811,6 +5088,15 @@ func _build_announce() -> void:
 	ko_red.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ko_red.z_index = -1
 	add_child(ko_red)
+	# velo OSCURO del BERSERK (detrás de los peleadores): la escena se apaga mientras
+	# alguien está en rabia; se funde suave en _update_hud
+	rage_dim = ColorRect.new()
+	rage_dim.color = Color(0.02, 0.0, 0.01, 0.0)
+	rage_dim.position = Vector2.ZERO
+	rage_dim.size = Vector2(1920, 1080)
+	rage_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rage_dim.z_index = -1
+	add_child(rage_dim)
 	# líneas del ultra para el KO (ciclan ultra-1..6, tintadas de rojo)
 	ko_lines = TextureRect.new()
 	ko_lines.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -5443,13 +5729,33 @@ func _physics_process(_delta: float) -> void:
 					fp.polygon = _para(bx + M_W * (1.0 - f), bx + M_W, M_Y, M_Y + M_H, msl)
 			if s < meter_spark[side].size():
 				meter_spark[side][s].emitting = lleno   # chispas solo en el segmento lleno
-	# MANA: arco morado de cada mago (parpadea rojo si falto mana)
+	# RABIA de DAM: se llena con la VIDA PERDIDA; en berserk se DRENA con el tiempo
+	if rage_dim != null and not (rage_casting[0] or rage_casting[1]):
+		# PANTALLA OSCURA mientras alguien esté en berserk (fundido suave, no de golpe);
+		# durante el CASTEO no se toca: el parpadeo rojo lo lleva _rage_cast_show
+		var _quiere: float = 0.38 if (player.rage_mode or dummy.rage_mode) else 0.0
+		rage_dim.color.a = lerpf(rage_dim.color.a, _quiere, clampf(_delta * 6.0, 0.0, 1.0))
+	for rs in 2:
+		if not rage_side[rs]:
+			continue
+		var cur_hp: int = player_hp if rs == 0 else dummy_hp
+		if rage_prev_hp[rs] >= 0 and cur_hp < rage_prev_hp[rs] and not rage_on[rs]:
+			rage[rs] = clampf(rage[rs] + float(rage_prev_hp[rs] - cur_hp) / (float(hp_max[rs]) * RAGE_FULL_LOST), 0.0, 1.0)
+		rage_prev_hp[rs] = cur_hp
+		if rage_on[rs] and not rage_casting[rs]:
+			rage[rs] = maxf(0.0, rage[rs] - RAGE_DRAIN * _delta)
+			if rage[rs] <= 0.0:
+				_rage_end(rs)
+		elif rs == 1 and dummy_ai_mode and rage[rs] >= 0.999 and state == "fight":
+			try_rage(dummy)   # la CPU DAM revienta su rabia apenas se llena
+	# MANA: arco morado de cada mago (parpadea rojo si falto mana) — y el anillo ROJO de
+	# RABIA de DAM (mismo slot, alimentado por rage[] en vez de mana[])
 	for mside in 2:
-		if not mana_is_mage[mside] or mana_ring_fill[mside] == null:
+		if not (mana_is_mage[mside] or rage_side[mside]) or mana_ring_fill[mside] == null:
 			continue
 		if mana_flash_t[mside] > 0.0:
 			mana_flash_t[mside] = maxf(0.0, mana_flash_t[mside] - _delta)
-		var mfr: float = clampf(mana[mside], 0.0, 1.0)
+		var mfr: float = clampf(rage[mside] if rage_side[mside] else mana[mside], 0.0, 1.0)
 		var mcx2: float = MANA_CX_L if mside == 0 else MANA_CX_R
 		var rfl: Line2D = mana_ring_fill[mside]
 		rfl.points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, mfr, mside)
@@ -5470,20 +5776,26 @@ func _physics_process(_delta: float) -> void:
 		if mana_full_flash_t[mside] > 0.0:
 			mana_full_flash_t[mside] = maxf(0.0, mana_full_flash_t[mside] - _delta)
 		var fk: float = mana_full_flash_t[mside] / 0.6
-		# color del anillo por personaje: MORADO (maná de maga) / AZUL (instinto de Fe)
+		# color del anillo por personaje: MORADO (maná de maga) / AZUL (instinto de Fe) /
+		# ROJO FUEGO (rabia de DAM)
 		var _mfb: Node2D = player if mside == 0 else dummy
 		var _azul: bool = is_instance_valid(_mfb) and _mfb.fx_blue
-		if mana_flash_t[mside] > 0.0:
+		if rage_side[mside] and rage_on[mside]:
+			# BERSERK drenando: rojo-naranja LATIENDO
+			var rp := 0.6 + 0.4 * absf(sin(float(Time.get_ticks_msec()) / 1000.0 * 9.0))
+			rfl.default_color = Color(1.4 + 0.8 * rp, 0.35 + 0.25 * rp, 0.10)
+			rfl.width = MANA_RING_W + 3.0 * rp
+		elif mana_flash_t[mside] > 0.0:
 			rfl.default_color = Color(1.9, 0.22, 0.32)          # falta recurso: rojo
 			rfl.width = MANA_RING_W
 		elif fk > 0.0:
-			rfl.default_color = (Color(0.50, 1.15, 2.10) if _azul else Color(0.95, 0.60, 2.05)).lerp(Color(2.4, 2.3, 3.0), fk)   # DESTELLO al llenarse
+			rfl.default_color = (Color(1.9, 0.50, 0.18) if rage_side[mside] else (Color(0.50, 1.15, 2.10) if _azul else Color(0.95, 0.60, 2.05))).lerp(Color(2.4, 2.3, 3.0), fk)   # DESTELLO al llenarse
 			rfl.width = MANA_RING_W + 7.0 * fk
 		elif full_now:
-			rfl.default_color = Color(0.50, 1.15, 2.10) if _azul else Color(0.95, 0.60, 2.05)   # lleno: brilla
+			rfl.default_color = Color(1.9, 0.50, 0.18) if rage_side[mside] else (Color(0.50, 1.15, 2.10) if _azul else Color(0.95, 0.60, 2.05))   # lleno: brilla
 			rfl.width = MANA_RING_W
 		else:
-			rfl.default_color = Color(0.30, 0.65, 1.50) if _azul else Color(0.58, 0.30, 1.45)   # cargando
+			rfl.default_color = Color(1.05, 0.24, 0.16) if rage_side[mside] else (Color(0.30, 0.65, 1.50) if _azul else Color(0.58, 0.30, 1.45))   # cargando
 			rfl.width = MANA_RING_W
 	# DOTS de rounds: encendidos = rondas ganadas
 	for side in 2:
@@ -6356,6 +6668,8 @@ func _end_round(player_won: bool) -> void:
 	player.input_enabled = false
 	dummy.ai_enabled = false
 	announce.visible = false
+	_rage_end(0)   # el BERSERK muere con la ronda (la rabia restante se conserva)
+	_rage_end(1)
 	var loser: Node = dummy if player_won else player
 	if player_won:
 		wins_p1 += 1
@@ -6446,6 +6760,7 @@ func _end_round(player_won: bool) -> void:
 			var wdh: float = wth * minf(CUTIN_PW / wtw, CUTIN_PH / wth)
 			wcy = 1110.0 - (CUTIN_PH + wdh) * 0.5
 	win_portrait.position = Vector2(woff_x, wcy)
+	win_portrait.move_to_front()   # por ENCIMA del cartel "X WINS" (mismo z: manda el orden)
 	win_portrait.visible = true
 	# PANELES ROJOS MANGA (como el inferno) DETRÁS del ganador: ciclan ultra-1..6 tintados
 	# de rojo durante la celebración (el retrato y el peleador van por encima, z mayor).
