@@ -1001,3 +1001,72 @@ golpe con un snap — esta anim lo arregla):_
 
 > _Del vuelo saco `hit_fly` (pose de muñeco por los aires) y del estrellón `hit_down`
 > (choca de espaldas, rebota y queda tendido). El levantarse ya lo cubre `get_up`._
+
+### VICTORIA v2 (clip de video) — `victory.mp4` (pose de triunfo ÉPICA)
+
+> Guardar como `imagen-action/dam/sheets/victory.mp4` y me avisas. **Pegar al final el
+> bloque "Reglas fijas del clip"** y adjuntar la referencia de DAM. El juego la
+> reproduce al ganar la ronda y RETIENE la pose final — el último tramo debe ser él
+> sosteniendo la pose. El motor pone el HAAAA y los efectos: el clip va LIMPIO.
+
+**`victory.mp4` (la victoria del lobo — remate de ronda):**
+
+> READ THIS FIRST — THE #1 RULE: this is a STATIC, LOCKED-OFF shot. The character is
+> the SAME SIZE in pixels in EVERY single frame — first frame, MIDDLE frames, and last
+> frame all identical in scale. There is absolutely NO zoom, the camera NEVER moves,
+> and the character NEVER grows or shrinks at any point — especially not in the MIDDLE
+> of the clip, where it keeps breaking. Treat it like a sprite-sheet pose: a fixed
+> character on a fixed background, only limbs and cloth animating. If his scale changes
+> even slightly between the start, the middle, and the end, the clip is WRONG and must
+> be redone.
+>
+> The battle is WON. From his fighting guard he whips the big sword in ONE heavy
+> circular FLOURISH over his head — a slow, arrogant, powerful arc, coat fanning out
+> with the spin — and SLAMS the blade POINT-DOWN into the ground in front of him, the
+> impact shuddering through his arms. He plants BOTH hands stacked on the pommel,
+> straightens up TALL and proud behind the standing sword, chest out — then throws his
+> head BACK and lets out a silent victory ROAR to the sky, mouth open wide, veins of
+> effort in his neck, his long coat and wild hair BILLOWING hard from his own power.
+> He holds that final pose — head high, hands on the pommel, the sword standing like a
+> monument — breathing heavy, coat settling, for the REST of the clip. ONE continuous
+> action: flourish → slam → straighten → roar → hold. He stays ON ONE SPOT.
+>
+> THE SWORD — ONE single greatsword, EXACTLY the design in the reference image: same
+> LENGTH, same SHAPE, same THICKNESS in every frame. It never transforms, never bends,
+> never splits into two, never shrinks or grows, never disappears. Once slammed into
+> the ground it stays PLANTED, rigid, never wobbling like rubber. His hands stay ON
+> the pommel from the slam to the last frame.
+>
+> NOTHING appears in the clip: NO fire, NO flames, NO glow, NO energy, NO light rays,
+> NO sparks, NO dust from the slam, NO smoke, NO opponent — only the man and his
+> sword. The ground stays perfectly clean (the game engine draws all effects later).
+> If any effect appears in ANY frame, the clip is WRONG.
+>
+> SCREEN DIRECTION LOCKED: SIDE VIEW facing the RIGHT edge of the screen the whole
+> clip — the roar tilts his head UP, not toward the camera. The scene must NEVER
+> mirror or flip horizontally.
+>
+> CAMERA HARD-LOCKED — STATIC WIDE footage, like a fixed security camera: the framing
+> of the FIRST frame is the framing of EVERY frame. NO zoom in, NO push-in, NO pan,
+> NO drift, NO dramatic creep during the roar — his whole body head-to-boots visible
+> always, with clear green margin above his head and below his feet; that empty space
+> is REQUIRED, do NOT move closer to fill it. His head must be the SAME SIZE in
+> pixels in the first, middle and last frame — if he gets bigger at ANY point, the
+> clip is WRONG.
+>
+> BODY LOCKED IN PLACE (CRITICAL — this is what keeps breaking): his BOOTS stay
+> PLANTED on the exact same two spots on the ground for the ENTIRE clip — he does NOT
+> step, shuffle, slide, drift sideways, or shift his stance. His HEAD stays at the
+> SAME height above the ground the whole clip — he does NOT crouch down low then rise
+> up tall; keep him STANDING at a constant, upright height from the very first frame.
+> He does NOT lean his whole body far back then far forward. The only things that move
+> are his ARMS (the flourish and the sword), his coat, and his hair — his torso and
+> head hold a steady, upright position over his planted feet. Picture a statue that
+> only moves its arms: the silhouette's top (head) and bottom (feet) never travel. If
+> his head bobs up/down, or his body slides left/right, or he shrinks and grows, the
+> clip is WRONG.
+
+> _Se procesa a `dam/victory/` (drop-in sobre la victoria vieja; el juego ya retiene
+> el último cuadro). El HAAAA y las llamas del triunfo los añade el motor. Si el clip
+> mantiene la CABEZA y los PIES quietos, se puede usar ENTERO (floreo incluido); si el
+> cuerpo se agacha/estira/mueve, solo se aprovecha la pose final sostenida._

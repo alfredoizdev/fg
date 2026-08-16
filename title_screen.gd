@@ -5,8 +5,8 @@ extends Control
 # tipografía pesada del juego y placa dorada en el seleccionado. VS CPU / TRAINING /
 # COMBOS / VS ONLINE. El panel de COMBOS y la navegación se conservan igual.
 
-const OPTS := ["VS CPU", "TRAINING", "VS ONLINE"]
-const MODES := ["vs_cpu", "practice", ""]   # "" = deshabilitado
+const OPTS := ["VS CPU", "VS 2P", "TRAINING", "VS ONLINE"]
+const MODES := ["vs_cpu", "vs_2p", "practice", ""]   # "" = deshabilitado
 const RED := Color(0.95, 0.24, 0.20)
 const GOLD := Color(0.74, 0.52, 1.0)     # acento morado (paleta del logo)
 const POSTER := "res://imagen-action/ui/menu-poster.png"
@@ -164,11 +164,14 @@ func _process(delta: float) -> void:
 		fx.queue_redraw()
 
 func _unhandled_input(_e: InputEvent) -> void:
-	if Input.is_action_just_pressed("ui_up"):
+	# el MANDO (acciones _p2) también navega el título: las ui_* globales ya no traen
+	# joypad (Sel._map_pad_p2 se lo quita para que el D-pad no mueva a P1 en la pelea)
+	if Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_up_p2"):
 		sel = posmod(sel - 1, OPTS.size()); _refresh()
-	elif Input.is_action_just_pressed("ui_down"):
+	elif Input.is_action_just_pressed("ui_down") or Input.is_action_just_pressed("ui_down_p2"):
 		sel = posmod(sel + 1, OPTS.size()); _refresh()
-	elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
+	elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack") \
+			or Input.is_action_just_pressed("kick_p2") or Input.is_action_just_pressed("attack_p2"):
 		if MODES[sel] == "":
 			return
 		Sel.mode = MODES[sel]

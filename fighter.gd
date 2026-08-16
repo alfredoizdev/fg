@@ -264,6 +264,10 @@ var sfx_key := ""
 
 @export var is_player := true
 @export var archetype := "assassin"   # define la vida (ver ARCH_HP en main.gd): assassin 1050 · wizard 1150 · warrior 1500
+# --- VS 2P LOCAL: el "dummy" puede ser un humano con su propio set de teclas ---
+@export var input_suffix := ""   # "" = P1 (flechas + QWER) · "_p2" = jugador 2 (IJKL + 7890)
+var human_2p := false            # true = este peleador lo controla un humano aunque is_player = false
+var debug_keys := true           # teclas de prueba (Z/X/T/Y/I/U): main.gd las apaga en VS 2P
 
 var input_enabled := true
 # EMBER DASH (↓→+Q): estado del especial
@@ -403,6 +407,15 @@ var fx_anims := {}
 var fx_blue := false   # true = chispas de impacto AZULES (Favi); false = naranja (DAM)
 var swing_y_off := 0.0  # corrimiento Y de las ESTELAS: el cuerpo de Fe va ~144px más ABAJO en el lienzo que el de DAM (para el que están tuneadas)
 var fx_floral := false  # true = estela MORADA+ROSA floral (Aye); tiene prioridad sobre fx_blue
+
+# nombre de acción de ESTE peleador: P1 usa las acciones tal cual ("attack"),
+# el jugador 2 local las versiones con sufijo ("attack_p2"). Ver [input] en project.godot.
+func act(n: String) -> String:
+	return n + input_suffix
+
+# ¿lo controla un humano? (P1 siempre; el dummy solo en VS 2P via human_2p)
+func _es_humano() -> bool:
+	return is_player or human_2p
 
 func _ready() -> void:
 	floor_y = position.y
@@ -1013,14 +1026,27 @@ func force_grounded_ko() -> void:
 		sprite.play("hit_down")
 		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("hit_down") - 1)
 	elif ko_facedown and sprite.sprite_frames.has_animation("ko_air"):
-		sprite.play("ko_air")   # TENDIDO boca abajo (v2: anima el choque desde #74)
 		var _kaf := sprite.sprite_frames.get_frame_count("ko_air")
-		sprite.frame = (73 if _kaf > 100 else maxi(0, _kaf - 1))
-		sprite.position.y = ko_lie_drop_down   # asienta el cuerpo en el piso (ver ko_lie_drop_*)
+		if _kaf > 100:
+			# v2: choque/tendido YA anclados a la línea del piso — SIN offset (el -95 del
+			# arte viejo lo dejaba FLOTANDO); si el estrellón corre o ya quedó tendido, no tocar
+			sprite.position.y = 0.0
+			if String(sprite.animation) != "ko_air" or sprite.frame < 73:
+				sprite.play("ko_air")
+				sprite.frame = 73
+		else:
+			sprite.play("ko_air")   # arte viejo: tendido directo + su offset calibrado
+			sprite.frame = maxi(0, _kaf - 1)
+			sprite.position.y = ko_lie_drop_down
 	else:
+		var _koc := sprite.sprite_frames.get_frame_count("ko")
+		if String(sprite.animation) == "ko" and _koc > 100 and sprite.is_playing():
+			return   # v2: el desplome ya corre y termina tendido SOLO (frames anclados al piso)
 		sprite.play("ko")
-		sprite.frame = maxi(0, sprite.sprite_frames.get_frame_count("ko") - 1)
-		sprite.position.y = ko_lie_drop_up
+		sprite.frame = maxi(0, _koc - 1)
+		# el offset de tendido era del arte VIEJO (5 frames, tendido alto en el canvas);
+		# el v2 ya trae el tendido clavado en la línea del piso — sin offset
+		sprite.position.y = (0.0 if _koc > 100 else ko_lie_drop_up)
 
 func do_breaker() -> bool:
 	if not breaker_ready or koed:
@@ -2051,8 +2077,8 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 		position.x += push_dir * 13
 		return "blocked"
 	# bloqueo: reteniendo la direccion contraria al rival en el momento del impacto
-	if is_player:
-		var away := Input.is_action_pressed("ui_left") if facing > 0 else Input.is_action_pressed("ui_right")
+	if _es_humano():
+		var away := Input.is_action_pressed(act("ui_left")) if facing > 0 else Input.is_action_pressed(act("ui_right"))
 		if away:
 			if low and crouching:
 				sprite.play("block_low")
@@ -2307,26 +2333,26 @@ func _physics_process(delta: float) -> void:
 		sprite.scale = base_scale
 
 	# memoria del ↓ para detectar el cuarto adelante (↓ luego →+Q)
-	if is_player and input_enabled and Input.is_action_pressed("ui_down"):
+	if _es_humano() and input_enabled and Input.is_action_pressed(act("ui_down")):
 		down_recent_t = 0.4
 	else:
 		down_recent_t = maxf(0.0, down_recent_t - delta)
 	# memoria de ADELANTE (hacia el rival) para el comando del ULTRA (→ R R)
-	var _fwd := Input.get_axis("ui_left", "ui_right")
-	if is_player and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == facing:
+	var _fwd := Input.get_axis(act("ui_left"), act("ui_right"))
+	if _es_humano() and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == facing:
 		fwd_recent_t = 0.5
 	else:
 		fwd_recent_t = maxf(0.0, fwd_recent_t - delta)
 	# memoria de ATRÁS (lejos del rival) para el motion ←→ del DASH DE AGUJAS de Fe
-	if is_player and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == -facing:
+	if _es_humano() and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == -facing:
 		back_recent_t = 0.45
 	else:
 		back_recent_t = maxf(0.0, back_recent_t - delta)
 	# HCB (→ ↓ ← = ADELANTE, ABAJO, ATRÁS) para el FROST ORB de Aye (+R). Máquina de estados con ventana.
-	if is_player and input_enabled:
+	if _es_humano() and input_enabled:
 		var _fh := _fwd != 0.0 and int(signf(_fwd)) == facing    # adelante
 		var _bh := _fwd != 0.0 and int(signf(_fwd)) == -facing   # atrás
-		var _dh := Input.is_action_pressed("ui_down")            # abajo
+		var _dh := Input.is_action_pressed(act("ui_down"))            # abajo
 		if _hcb_stage == 0 and _fh:
 			_hcb_stage = 1; _hcb_win = 0.55
 		elif _hcb_stage == 1 and _dh:
@@ -2622,8 +2648,8 @@ func _physics_process(delta: float) -> void:
 				if vel_y < 0.0:
 					vel_y = minf(vel_y, -maxf(into_wall * 0.85, 340.0 * CHAR_SCALE))
 			position.x = clampf(position.x, 115.0, 1805.0)
-		elif is_player:
-			var air_dir := Input.get_axis("ui_left", "ui_right")
+		elif _es_humano():
+			var air_dir := Input.get_axis(act("ui_left"), act("ui_right"))
 			if air_dir != 0.0:
 				position.x += air_dir * WALK_SPEED * (1.30 if rage_mode else 1.0) * spd * delta
 		if position.y >= floor_y and vel_y >= 0.0:   # solo aterriza si NO va subiendo
@@ -2685,7 +2711,7 @@ func _physics_process(delta: float) -> void:
 	if sprite.animation == "victory":
 		return
 
-	if not is_player:
+	if not _es_humano():
 		_ai_process(delta)
 		return
 	if not input_enabled:
@@ -2698,7 +2724,7 @@ func _physics_process(delta: float) -> void:
 			buffer_t = 0.0
 
 	# jump-cancel del lanzador: tras conectar el gancho puedes saltar de una
-	if Input.is_action_just_pressed("ui_up") and not airborne \
+	if Input.is_action_just_pressed(act("ui_up")) and not airborne \
 			and sprite.animation == "crouch_kick" and sprite.frame > 2:
 		airborne = true
 		crouching = false
@@ -2721,10 +2747,10 @@ func _physics_process(delta: float) -> void:
 	if down_tap_win > 0.0:
 		down_tap_win -= delta
 	if channeling:
-		var chmv := Input.get_axis("ui_left", "ui_right")
-		var ch_atk := Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("kick") \
-			or Input.is_action_just_pressed("spin_kick") or Input.is_action_just_pressed("weak_punch")
-		if airborne or chmv != 0.0 or Input.is_action_just_pressed("ui_up") or ch_atk:
+		var chmv := Input.get_axis(act("ui_left"), act("ui_right"))
+		var ch_atk := Input.is_action_just_pressed(act("attack")) or Input.is_action_just_pressed(act("kick")) \
+			or Input.is_action_just_pressed(act("spin_kick")) or Input.is_action_just_pressed(act("weak_punch"))
+		if airborne or chmv != 0.0 or Input.is_action_just_pressed(act("ui_up")) or ch_atk:
 			_stop_channel()   # mover/saltar/atacar CANCELA (cae al proceso normal este frame)
 		else:
 			var can := _channel_anim()
@@ -2733,20 +2759,20 @@ func _physics_process(delta: float) -> void:
 			_cast_border_on(0.25)   # mantiene el aura MORADA mientras canaliza
 			return
 	# ENTRAR al canaleo: doble toque ABAJO, solo magos, en el suelo y en neutro (sin izq/der)
-	if fx_floral and not airborne and Input.is_action_just_pressed("ui_down"):
-		if down_tap_win > 0.0 and Input.get_axis("ui_left", "ui_right") == 0.0:
+	if fx_floral and not airborne and Input.is_action_just_pressed(act("ui_down")):
+		if down_tap_win > 0.0 and Input.get_axis(act("ui_left"), act("ui_right")) == 0.0:
 			_start_channel()
 			return
 		down_tap_win = 0.28
 	# salto
-	if Input.is_action_just_pressed("ui_up") and not crouching:
+	if Input.is_action_just_pressed(act("ui_up")) and not crouching:
 		airborne = true
 		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(0.6)   # polvo de despegue
 		# MORTAL de Fe (clip v2): saltar HACIA ADELANTE hace el flip. Los golpes aéreos
 		# lo CANCELAN de una (neutral_spin no es golpe: no está en la lista de bloqueo,
 		# así que _try_attack pisa la anim al instante). Neutro/atrás y demás: jump limpio.
-		var _dirj := Input.get_axis("ui_left", "ui_right")
+		var _dirj := Input.get_axis(act("ui_left"), act("ui_right"))
 		if fx_blue and _dirj != 0.0 and signi(int(_dirj)) == facing \
 				and sprite.sprite_frames.has_animation("neutral_spin") \
 				and sprite.sprite_frames.get_frame_count("neutral_spin") > 8:
@@ -2761,7 +2787,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# agacharse: mantener abajo; al soltar se levanta en reversa
-	var down_held := Input.is_action_pressed("ui_down")
+	var down_held := Input.is_action_pressed(act("ui_down"))
 	if down_held and not crouching:
 		crouching = true
 		sprite.play("crouch")
@@ -2786,7 +2812,7 @@ func _physics_process(delta: float) -> void:
 				sprite.play("pose")
 		return
 	# caminar: hacia el rival = avance, alejandose = retroceso en reversa
-	var dir := Input.get_axis("ui_left", "ui_right")
+	var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 	if dir != 0.0:
 		var forward := signi(int(dir)) == facing
 		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * (1.30 if rage_mode else 1.0) * spd * delta
@@ -2896,10 +2922,10 @@ func _ai_process(delta: float) -> void:
 				sprite.play("pose")
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not is_player or not input_enabled:
+	if not _es_humano() or not input_enabled:
 		return
 	# tecla de prueba U: celebracion de victoria / volver a guardia
-	if event.is_action_pressed("victory_test") and not airborne and not koed:
+	if debug_keys and event.is_action_pressed("victory_test") and not airborne and not koed:
 		crouching = false
 		if sprite.animation == "victory":
 			sprite.play("pose")
@@ -2907,21 +2933,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			celebrate()   # incluye la frase de victoria
 		return
 	# tecla de prueba Y: cae noqueado / revivir
-	if event.is_action_pressed("ko_test") and not airborne:
+	if debug_keys and event.is_action_pressed("ko_test") and not airborne:
 		koed = not koed
 		crouching = false
 		sprite.play("ko" if koed else "pose")
 		return
 	# tecla de prueba I: KO VOLANDO — lanzado por los aires y muere en pleno vuelo
 	# (vuelo hit_fly subiendo -> ko_air bajando boca abajo -> se estrella y queda tendido)
-	if event.is_action_pressed("ko_fly_test") and not airborne and not koed:
+	if debug_keys and event.is_action_pressed("ko_fly_test") and not airborne and not koed:
 		receive_hit(false, true, -facing)   # lanzador
 		die_ko()                            # muere EN EL AIRE -> completa el arco
 		return
 	# doble toque ATRÁS/ADELANTE: Aye = BLINK (teleport, maná); Fe y DAM = PASO CORTO
 	# (←← backdash / →→ paso adelante, estilo Street Fighter)
-	if event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
-		var _bd := -1 if event.is_action_pressed("ui_left") else 1
+	if event.is_action_pressed(act("ui_left")) or event.is_action_pressed(act("ui_right")):
+		var _bd := -1 if event.is_action_pressed(act("ui_left")) else 1
 		if airborne or koed:
 			back_tap_win = 0.0
 			fwd_tap_win = 0.0
@@ -2946,12 +2972,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			fwd_tap_win = 0.28
 	# doble toque ↑: habilita el breaker con movimiento (↑↑+E)
-	if event.is_action_pressed("ui_up"):
+	if event.is_action_pressed(act("ui_up")):
 		if up_tap_t > 0.0:
 			double_up_t = 0.3
 		up_tap_t = 0.35
 	# doble toque ↓: habilita el INFIERNO (↓↓+E)
-	if event.is_action_pressed("ui_down"):
+	if event.is_action_pressed(act("ui_down")):
 		if down_tap_t > 0.0:
 			double_down_t = 0.35
 		down_tap_t = 0.4
@@ -2959,18 +2985,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	var _combeado := not koed and (hit_flying \
 		or (String(sprite.animation) in ["take_hit", "take_hit_low"] and sprite.is_playing()))
 	if _combeado:
-		var _e := event.is_action_pressed("spin_kick")
-		var _fwd := int(signf(Input.get_axis("ui_left", "ui_right")))
-		var _down := Input.is_action_pressed("ui_down") or down_recent_t > 0.0
+		var _e := event.is_action_pressed(act("spin_kick"))
+		var _fwd := int(signf(Input.get_axis(act("ui_left"), act("ui_right"))))
+		var _down := Input.is_action_pressed(act("ui_down")) or down_recent_t > 0.0
 		var _mbp := get_parent()
 		# COMBO BREAK (POR PERSONAJE): Fe = ↓→+E (spin) · DAM = ↑+E (o S de respaldo)
 		var quiere_break := false
 		if fx_blue:
 			quiere_break = _e and _down and _fwd == facing          # Fe: ↓→+E
 		elif fx_floral:
-			quiere_break = event.is_action_pressed("weak_punch") and double_up_t > 0.0   # Aye: ↑↑R
+			quiere_break = event.is_action_pressed(act("weak_punch")) and double_up_t > 0.0   # Aye: ↑↑R
 		else:
-			quiere_break = event.is_action_pressed("combo_break") \
+			quiere_break = event.is_action_pressed(act("combo_break")) \
 				or (_e and up_tap_t > 0.0)                          # DAM: ↑+E / S
 		if quiere_break:
 			# LÍMITE: solo se puede romper en los primeros 4 golpes del combo
@@ -2982,23 +3008,23 @@ func _unhandled_input(event: InputEvent) -> void:
 				if _mbp and _mbp.has_method("on_breaker"):
 					_mbp.on_breaker(self)
 			return
-	if event.is_action_pressed("combo_break"):
+	if event.is_action_pressed(act("combo_break")):
 		return
 	if koed or is_downed():
 		return
 	# marca el TAP reciente de Q y de W (para exigir que el parry sea con las dos SIMULTÁNEAS)
-	if event.is_action_pressed("attack"):
+	if event.is_action_pressed(act("attack")):
 		pq_tap_t = PARRY_SIMUL
-	if event.is_action_pressed("kick"):
+	if event.is_action_pressed(act("kick")):
 		pw_tap_t = PARRY_SIMUL
 	# PARRY (Q+W A LA VEZ, estándar todos): entra en POSE de counter con borde ~0.5s. Si te pegan en
 	# esa ventana → contraataque (3 golpes). Gasta 1 barra. Solo parado en el piso.
 	# CLAVE: exige que Q y W se pulsen CASI A LA VEZ (dentro de PARRY_SIMUL). Mantener una y DESPUÉS
 	# tocar la otra ya NO activa (la vieja expiró su ventana), aunque las dos queden apretadas.
 	if not airborne and parry_t <= 0.0 \
-			and Input.is_action_pressed("attack") and Input.is_action_pressed("kick") \
-			and ((event.is_action_pressed("attack") and pw_tap_t > 0.0) \
-				or (event.is_action_pressed("kick") and pq_tap_t > 0.0)):
+			and Input.is_action_pressed(act("attack")) and Input.is_action_pressed(act("kick")) \
+			and ((event.is_action_pressed(act("attack")) and pw_tap_t > 0.0) \
+				or (event.is_action_pressed(act("kick")) and pq_tap_t > 0.0)):
 		var _mbq := get_parent()
 		if _mbq and _mbq.has_method("meter_can_parry") and _mbq.meter_can_parry(self):
 			if do_parry():
@@ -3007,51 +3033,51 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 	# RABIA de DAM (E+R A LA VEZ, con el anillo LLENO): castea el berserk. Misma regla de
 	# simultaneidad que el parry — mantener una y luego tocar la otra NO activa.
-	if event.is_action_pressed("spin_kick"):
+	if event.is_action_pressed(act("spin_kick")):
 		pe_tap_t = PARRY_SIMUL
-	if event.is_action_pressed("weak_punch"):
+	if event.is_action_pressed(act("weak_punch")):
 		pr_tap_t = PARRY_SIMUL
 	if not airborne and not rage_mode \
-			and Input.is_action_pressed("spin_kick") and Input.is_action_pressed("weak_punch") \
-			and ((event.is_action_pressed("spin_kick") and pr_tap_t > 0.0) \
-				or (event.is_action_pressed("weak_punch") and pe_tap_t > 0.0)):
+			and Input.is_action_pressed(act("spin_kick")) and Input.is_action_pressed(act("weak_punch")) \
+			and ((event.is_action_pressed(act("spin_kick")) and pr_tap_t > 0.0) \
+				or (event.is_action_pressed(act("weak_punch")) and pe_tap_t > 0.0)):
 		var _mbr := get_parent()
 		if _mbr and _mbr.has_method("try_rage") and _mbr.try_rage(self):
 			return
 	# teclas de prueba de dano sobre uno mismo (E/R/T); el golpe llega de frente
-	if event.is_action_pressed("take_hit") and not airborne:
+	if debug_keys and event.is_action_pressed("take_hit") and not airborne:
 		receive_hit(false, false, -facing)
 		return
-	if event.is_action_pressed("take_hit_low") and not airborne:
+	if debug_keys and event.is_action_pressed("take_hit_low") and not airborne:
 		crouching = true
 		receive_hit(true, false, -facing)
 		return
-	if event.is_action_pressed("take_hit_strong") and not airborne:
+	if debug_keys and event.is_action_pressed("take_hit_strong") and not airborne:
 		receive_hit(false, true, -facing)
 		return
 	if fx_floral:
 		# --- AYE: su SÚPER propio. NO hereda los ultras de fuego de DAM ni los de agua de Fe. ---
 		# CRYSTAL FLURRY (↓←+Q): ráfaga del báculo tras 3 golpes (cuesta 1.5 barras).
-		if event.is_action_pressed("attack") and down_recent_t > 0.0 and back_recent_t > 0.0:
+		if event.is_action_pressed(act("attack")) and down_recent_t > 0.0 and back_recent_t > 0.0:
 			var maf := get_parent()
 			if maf and maf.has_method("try_crystal_flurry") and maf.try_crystal_flurry(self):
 				return
 	elif sprite.sprite_frames.has_animation("water_cast"):
 		# --- FE: sus propios especiales/ultra. NO hereda los ultras de fuego de DAM. ---
 		# WHIRLPOOL (↓←+E): finisher tras combo (cuesta 1 barra).
-		if event.is_action_pressed("spin_kick") and down_recent_t > 0.0 and back_recent_t > 0.0:
+		if event.is_action_pressed(act("spin_kick")) and down_recent_t > 0.0 and back_recent_t > 0.0:
 			var mw := get_parent()
 			if mw and mw.has_method("try_whirlpool") and mw.try_whirlpool(self):
 				return
 		# ULTRA CORTO (↑+E): combo aéreo tras combo de 3 (cuesta 2 barras). El breaker ↑+E
 		# se revisó antes y solo entra si te están pegando, así que el ofensivo queda libre.
-		if event.is_action_pressed("spin_kick") and up_tap_t > 0.0:
+		if event.is_action_pressed(act("spin_kick")) and up_tap_t > 0.0:
 			var mfu := get_parent()
 			if mfu and mfu.has_method("try_fe_ultra") and mfu.try_fe_ultra(self):
 				return
 		# ULTRA LARGO (↓→ + R = cuarto adelante + R): APOCALYPSE (3 barras + combo + rival rojo)
-		if event.is_action_pressed("weak_punch") and down_recent_t > 0.0:
-			var _fd := Input.get_axis("ui_left", "ui_right")
+		if event.is_action_pressed(act("weak_punch")) and down_recent_t > 0.0:
+			var _fd := Input.get_axis(act("ui_left"), act("ui_right"))
 			if _fd != 0.0 and int(signf(_fd)) == facing:
 				var mfl := get_parent()
 				if mfl and mfl.has_method("try_fe_ultra_long") and mfl.try_fe_ultra_long(self):
@@ -3059,23 +3085,23 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		# --- DAM: sus finishers de fuego ---
 		# comando ANIQUILACIÓN: → R (adelante reciente + R)
-		if event.is_action_pressed("weak_punch") and fwd_recent_t > 0.0:
+		if event.is_action_pressed(act("weak_punch")) and fwd_recent_t > 0.0:
 			var mu := get_parent()
 			if mu and mu.has_method("try_ultra") and mu.try_ultra(self):
 				return
 		# comando INFIERNO (crítico de fuego): ↓↓ + E
-		if event.is_action_pressed("spin_kick") and double_down_t > 0.0:
+		if event.is_action_pressed(act("spin_kick")) and double_down_t > 0.0:
 			var mc := get_parent()
 			if mc and mc.has_method("try_critical") and mc.try_critical(self):
 				return
 		# comando APOCALIPSIS: → E (version larga)
-		if event.is_action_pressed("spin_kick") and fwd_recent_t > 0.0:
+		if event.is_action_pressed(act("spin_kick")) and fwd_recent_t > 0.0:
 			var mu2 := get_parent()
 			if mu2 and mu2.has_method("try_ultra") and mu2.try_ultra(self, true):
 				return
 	var accion := ""
 	for a in ["attack", "kick", "spin_kick", "weak_punch"]:
-		if event.is_action_pressed(a):
+		if event.is_action_pressed(act(a)):
 			accion = a
 			break
 	if accion == "":
@@ -3085,7 +3111,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 1) Con ↓ SOSTENIDO (y sin dirección horizontal, para no comerse el ↓→Q aéreo) la
 	#    intención es el movimiento de SUELO (↓Q/↓E): vale durante TODO el salto.
 	# 2) Sin ↓: solo en la ventana pegada al piso (cayendo, últimos ~150px).
-	if fx_floral and airborne and ( 			(Input.is_action_pressed("ui_down") and Input.get_axis("ui_left", "ui_right") == 0.0) 			or (vel_y > 0.0 and position.y > floor_y - 150.0)):
+	if fx_floral and airborne and ( 			(Input.is_action_pressed(act("ui_down")) and Input.get_axis(act("ui_left"), act("ui_right")) == 0.0) 			or (vel_y > 0.0 and position.y > floor_y - 150.0)):
 		buffer_action = accion
 		buffer_t = 0.45
 		buffer_air = false   # intención TERRESTRE deliberada de Aye: SÍ abre agachados al aterrizar
@@ -3095,7 +3121,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if airborne and air_move_used:
 		# EXCEPCIÓN (Aye): puede CANCELAR su jump_kick_cast con el TELEPORT (↓→Q) para SEGUIR el combo
 		# aéreo. Cuesta 1 barra, así que no es spam. Cualquier otro golpe aéreo sigue bloqueado.
-		var _adx := Input.get_axis("ui_left", "ui_right")
+		var _adx := Input.get_axis(act("ui_left"), act("ui_right"))
 		var tele_cancel: bool = fx_floral and accion == "attack" and down_recent_t > 0.0 \
 			and String(sprite.animation) == "jump_kick_cast" \
 			and _adx != 0.0 and int(signf(_adx)) == facing
@@ -3172,7 +3198,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 		# freeze + proyectil se leen como COMBO. Salta las reglas de familia/escalera SOLO en ese caso
 		# (igual respeta el hit_frame de arriba: la barrida debe haber conectado antes de cancelar).
 		var aye_sweep_cast: bool = fx_floral and anim_actual == "sweep" and accion == "spin_kick" \
-			and not (crouching or Input.is_action_pressed("ui_down")) \
+			and not (crouching or Input.is_action_pressed(act("ui_down"))) \
 			and sprite.sprite_frames.has_animation("crystal_cast")
 		if not aye_sweep_cast:
 			if BTN_FAMILY.get(anim_actual, "") == accion:
@@ -3181,7 +3207,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				return false
 	# agachados SOLO en el suelo Y con press EN EL SUELO: un botón apretado en el aire
 	# (buffer de aterrizaje, desde_aire) NO abre agachados — evita "salto + ↓R = tigre"
-	if not airborne and not desde_aire and (crouching or Input.is_action_pressed("ui_down")):
+	if not airborne and not desde_aire and (crouching or Input.is_action_pressed(act("ui_down"))):
 		if accion == "attack":
 			sprite.play("crouch_punch")
 			return true
@@ -3226,14 +3252,14 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 			if airborne:
 				# AYE: ↓→ + Q en el AIRE también teleporta (glitch). Sin ↓→ = jump_punch (invoca 3 cristales).
 				if fx_floral:
-					var adir_air := Input.get_axis("ui_left", "ui_right")
+					var adir_air := Input.get_axis(act("ui_left"), act("ui_right"))
 					var aade_air := adir_air != 0.0 and int(signf(adir_air)) == facing
 					if aade_air and down_recent_t > 0.0:
 						_start_teleport()
 						return true
 				sprite.play("jump_punch")
 			else:
-				var dir := Input.get_axis("ui_left", "ui_right")
+				var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var adelante := dir != 0.0 and int(signf(dir)) == facing
 				# cuarto adelante (↓ reciente y ya suelto) + Q:
 				#   AYE = TELEPORT (glitch morado) · Fe = ESPECIAL DE AGUA · DAM = EMBER DASH
@@ -3255,7 +3281,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 			return true
 		"kick":
 			if not airborne:
-				var kdir := Input.get_axis("ui_left", "ui_right")
+				var kdir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var kade := kdir != 0.0 and int(signf(kdir)) == facing
 				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
 				# AYE ↓→+W = BACKSTAB: se teleporta DETRÁS del rival, golpea y lo EMPUJA ~3 cuerpos hacia
@@ -3271,7 +3297,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 					return true
 			if airborne and fx_floral and down_recent_t > 0.0:
 				# AYE en el AIRE: ↓→+W = BACKSTAB también (teleporta DETRÁS del rival y aterriza)
-				var kdir_a := Input.get_axis("ui_left", "ui_right")
+				var kdir_a := Input.get_axis(act("ui_left"), act("ui_right"))
 				if kdir_a != 0.0 and int(signf(kdir_a)) == facing:
 					if not _spell_afford(0.30):
 						return true
@@ -3292,7 +3318,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				_start_crystal_cast()
 				return true
 			if not airborne:
-				var edir := Input.get_axis("ui_left", "ui_right")
+				var edir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var eade := edir != 0.0 and int(signf(edir)) == facing
 				# ↓↘→+E (medialuna adelante) = ESPECIAL DE AGUA de Fe a 3 CUERPOS
 				if eade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
@@ -3459,7 +3485,7 @@ func _on_animation_finished() -> void:
 		sprite.frame = sprite.sprite_frames.get_frame_count("wall_splat") - 1
 		return  # cae del rebote con la pose suelta del f4
 	if sprite.animation in ["crouch_punch", "crouch_jab", "crouch_kick", "sweep", "take_hit_low", "block_low"]:
-		if is_player and (crouching or Input.is_action_pressed("ui_down")):
+		if _es_humano() and (crouching or Input.is_action_pressed(act("ui_down"))):
 			crouching = true
 			sprite.stop()
 			sprite.animation = &"crouch"

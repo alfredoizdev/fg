@@ -2,11 +2,15 @@ extends Node
 # Singleton (autoload "Sel"): guarda la selección de MODO y PERSONAJES para pasarla
 # entre las escenas separadas: title.tscn (menú) -> char_select.tscn -> main.tscn (pelea).
 
-var mode := "vs_cpu"        # "vs_cpu" | "practice" | "break"
+var mode := "vs_cpu"        # "vs_cpu" | "vs_2p" | "practice" | "break"
 var p1 := "dam"             # personaje del jugador (P1)
 var p2 := "dam"             # personaje del rival / CPU (P2)
 var stage := 4              # escenario elegido (código STAGE de main.gd): 1=ciudad, 2=noche, 3=templo, 4=santuario
 var configured := false     # true cuando el char-select terminó (la pelea arranca directo)
+# PRECARGA: el char-select calienta aquí los frames de los 2 peleadores DURANTE el spinner;
+# como este autoload persiste entre escenas, mantiene las texturas en caché para que main.gd
+# NO se congele al construir sus SpriteFrames al entrar al round. main.gd lo vacía tras usar.
+var warm_cache: Array = []
 
 # ESCENARIOS elegibles en el char-select. "code" = el número que main.gd usa para montar
 # el stage; "thumb" = miniatura para la tarjeta de selección.
@@ -28,6 +32,58 @@ const ROSTER := [
 	{"id": "favi", "name": "FE",   "arch": "ASSASSIN", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "portrait": "res://imagen-action/favi/sheets/select-character-post-Fe-2.png", "stand": "res://imagen-action/favi/select/favi-select.png", "stand_fallback": "res://imagen-action/favi/pose/favi-pose-1.png", "weapon": "TWIN NEEDLES", "power": "WHIRLPOOL"},
 	{"id": "aye",  "name": "AYE",  "arch": "WIZARD", "avatar": "res://imagen-action/aye/sheets/aye-face.png",   "portrait": "res://imagen-action/aye/sheets/slect-character-aye.png",        "stand": "res://imagen-action/aye/select/aye-select.png",   "stand_fallback": "res://imagen-action/aye/pose/aye-pose-1.png",   "weapon": "CRYSTAL STAFF",  "power": "PRISM"},
 ]
+
+func _ready() -> void:
+	_map_pad_p2()
+
+# MANDO (Xbox u otro) = SIEMPRE el JUGADOR 2. Se registra por código (no en project.godot)
+# al arrancar, una sola vez; el InputMap runtime persiste entre cambios de escena.
+# D-pad/stick izq = mover · X=débil(R) · Y=medio(Q) · A=fuerte(W) · B=especial(E) · RB=breaker
+func _map_pad_p2() -> void:
+	var btns := {
+		"weak_punch_p2": JOY_BUTTON_X, "attack_p2": JOY_BUTTON_Y,
+		"kick_p2": JOY_BUTTON_A, "spin_kick_p2": JOY_BUTTON_B,
+		"combo_break_p2": JOY_BUTTON_RIGHT_SHOULDER,
+		"ui_up_p2": JOY_BUTTON_DPAD_UP, "ui_down_p2": JOY_BUTTON_DPAD_DOWN,
+		"ui_left_p2": JOY_BUTTON_DPAD_LEFT, "ui_right_p2": JOY_BUTTON_DPAD_RIGHT,
+	}
+	for a in btns:
+		var ev := InputEventJoypadButton.new()
+		ev.button_index = btns[a]
+		ev.device = -1
+		InputMap.action_add_event(a, ev)
+	# botón MENU/START del mando -> ui_cancel (= ESC): abre/cierra la PAUSA en pelea
+	# y funciona de "atrás" en los menús. ui_cancel es solo teclado+este botón, así que
+	# no interfiere con el combate (los fighters no leen ui_cancel).
+	var ev_start := InputEventJoypadButton.new()
+	ev_start.button_index = JOY_BUTTON_START
+	ev_start.device = -1
+	InputMap.action_add_event("ui_cancel", ev_start)
+	# acción propia "pause_p2" con el MISMO botón START: distingue QUIÉN pausó
+	# (ESC = P1 · START = P2) — la pausa solo la maneja el que la abrió
+	if not InputMap.has_action("pause_p2"):
+		InputMap.add_action("pause_p2")
+	var ev_start2 := InputEventJoypadButton.new()
+	ev_start2.button_index = JOY_BUTTON_START
+	ev_start2.device = -1
+	InputMap.action_add_event("pause_p2", ev_start2)
+	var mots := {
+		"ui_left_p2": [JOY_AXIS_LEFT_X, -1.0], "ui_right_p2": [JOY_AXIS_LEFT_X, 1.0],
+		"ui_up_p2": [JOY_AXIS_LEFT_Y, -1.0], "ui_down_p2": [JOY_AXIS_LEFT_Y, 1.0],
+	}
+	for a in mots:
+		var ev := InputEventJoypadMotion.new()
+		ev.axis = mots[a][0]
+		ev.axis_value = mots[a][1]
+		ev.device = -1
+		InputMap.action_add_event(a, ev)
+	# Godot por DEFECTO también manda el D-pad/A del mando a ui_left/right/up/down/accept:
+	# eso movería a P1 (y confirmaría por P1) con el mando de P2. Se le quita el mando a
+	# TODAS las ui_*: los menús aceptan las acciones _p2 explícitamente donde toca.
+	for ua in ["ui_left", "ui_right", "ui_up", "ui_down", "ui_accept"]:
+		for ev in InputMap.action_get_events(ua):
+			if ev is InputEventJoypadButton or ev is InputEventJoypadMotion:
+				InputMap.action_erase_event(ua, ev)
 
 func portrait_of(id: String) -> String:
 	var c := data(id)

@@ -92,6 +92,11 @@ const RAGE_DMG := 1.35               # multiplicador de daño en berserk
 const RAGE_NOVA_DMG := 70            # daño de la onda expansiva del casteo
 var match_time := MATCH_TIME
 var timer_label: Label
+# marcadores "P1"/"P2" flotando sobre las cabezas al empezar el round (VS 2P)
+var tag_p1: Label
+var tag_p2: Label
+var tag_t := 0.0
+const TAG_TIME := 6.0
 var win_dots := [[], []]       # puntos de victoria por lado
 var timed_out := false         # ya se resolvió el fin por tiempo
 var state := "intro"        # intro / fight / round_end
@@ -145,6 +150,7 @@ var combo_was_vis := [false, false]   # para detectar cuando aparece (y disparar
 
 # menu de modo de rival
 var dummy_ai_mode := true
+var versus_2p := false          # VS 2P LOCAL: el dummy es un humano con teclas propias (_p2)
 var break_practice := false     # modo BREAK PRACTICE: la IA encadena combos y tú rompes
 var menu_panel: ColorRect
 var moves_panel: ColorRect
@@ -268,9 +274,11 @@ var pause_items: Array = []        # labels de las opciones
 var pause_plates: Array = []       # barras de resalte (Panel) de cada opción
 var pause_accent := Color(1.7, 0.35, 0.22)   # color del personaje (rojo DAM / azul Fe)
 var pause_sel := 0
+var pause_owner := 0               # quién ABRIÓ la pausa: 0 = P1 (ESC) · 1 = P2 (START del mando)
 var pause_in_combos := false       # true = viendo la sublista de COMBOS
 var pause_prev_state := "fight"    # estado al que se vuelve al reanudar
 var pause_combos: Control          # subpanel con la lista de movimientos
+var pause_combos_char := ""        # personaje MOSTRADO en el panel (← → alterna P1/P2)
 var pause_combos_title: Label
 var pause_combos_moves: Label
 var pause_combos_fin: Label
@@ -312,7 +320,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-15 AU"
+	get_window().title = "FG Fighter — build 2026-08-16 BR"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -782,6 +790,14 @@ func _ready() -> void:
 				dummy_ai_mode = false; break_practice = false
 			"break":
 				dummy_ai_mode = true; break_practice = true
+			"vs_2p":
+				# 2 JUGADORES LOCALES: sin IA; el dummy lee las acciones "_p2" (IJKL + 7890)
+				dummy_ai_mode = false; break_practice = false
+				versus_2p = true
+				dummy.human_2p = true
+				dummy.input_suffix = "_p2"
+				player.debug_keys = false   # teclas de prueba fuera: chocan con las de P2
+				dummy.debug_keys = false
 			_:
 				dummy_ai_mode = true; break_practice = false   # vs_cpu
 		_start_round()
@@ -789,12 +805,19 @@ func _ready() -> void:
 		# main.tscn ejecutado directo (sin pasar por el menú): fallback interno
 		_open_menu()
 
+# prende/apaga el control del jugador; en VS 2P el dummy (humano) va en espejo.
+# (los ultras siguen tocando caster.input_enabled directo: eso es por-peleador y no pasa por aquí)
+func _set_inputs(on: bool) -> void:
+	player.input_enabled = on
+	if versus_2p:
+		dummy.input_enabled = on
+
 func _open_menu() -> void:
 	# PANTALLA PRINCIPAL (title): banner + VS CPU / TRAINER / VS ONLINE
 	state = "title"
 	break_practice = false
 	dummy.ai_break_drill = false
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	player.revive()
 	dummy.revive()
@@ -881,7 +904,7 @@ func _enter_training() -> void:
 		get_node("CodeStage").visible = false
 	$UI.visible = false
 	player.set_facing(1)
-	player.input_enabled = true
+	_set_inputs(true)
 
 func meter_can_break(quien: Node2D) -> bool:
 	# se puede romper si el breaker tiene al menos ½ barra (salvo en BREAK PRACTICE)
@@ -951,7 +974,7 @@ func on_parry(quien: Node2D, atacante: Node2D) -> void:
 	if a_idx < combo_ui.size():
 		combo_ui[a_idx].visible = false
 	# bloquea el control durante el counter
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	# --- CINE del COUNTER (como el ULTRA): todo va DETRÁS de los peleadores (z=-1) para que
 	# los personajes Y el texto SOBRESALGAN por encima del OSCURO. Nada de velo amarillo encima. ---
@@ -1014,7 +1037,7 @@ func on_parry(quien: Node2D, atacante: Node2D) -> void:
 	ko_lines.visible = false
 	if state == "fight":
 		quien.sprite.play("pose")
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
 func _hide_announce_soon() -> void:
@@ -1356,22 +1379,30 @@ func _build_pause() -> void:
 	cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(cb)
 
-func _open_pause() -> void:
+func _open_pause(owner := 0) -> void:
 	if state != "fight":
 		return
+	pause_owner = owner
 	pause_prev_state = state
 	state = "pause"
 	pause_sel = 0
 	pause_in_combos = false
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
-	# color del personaje ELEGIDO (morado Aye / azul Fe / rojo DAM)
-	pause_accent = _char_accent(selected_char)
-	var cname := "AYE" if selected_char == "aye" else ("FE" if selected_char == "favi" else "DAM")
+	# color y nombre del personaje DEL QUE PAUSÓ (P1 o P2); el panel COMBOS abre con el suyo
+	var pchar := selected_char if owner == 0 else cpu_char
+	pause_combos_char = pchar
+	pause_accent = _char_accent(pchar)
+	var cname := "AYE" if pchar == "aye" else ("FE" if pchar == "favi" else "DAM")
 	pause_sub_lbl.text = cname + "   —   ROUND PAUSED"
 	pause_sub_lbl.add_theme_color_override("font_color", pause_accent)
 	pause_title_lbl.add_theme_color_override("font_outline_color", pause_accent)
 	pause_hint_lbl.add_theme_color_override("font_color", pause_accent.lerp(Color(1, 1, 1), 0.45))
+	# la ayuda de controles habla el idioma del DUEÑO de la pausa (mando o teclado)
+	if pause_owner == 1:
+		pause_hint_lbl.text = "✚  SELECT        A / Y  CONFIRM        START  RESUME"
+	else:
+		pause_hint_lbl.text = "↑ ↓  SELECT        Q / ENTER  CONFIRM        ESC  RESUME"
 	if pause_caret != null:
 		pause_caret.add_theme_color_override("font_color", pause_accent.lerp(Color(1, 1, 1), 0.35))
 	pause_lines.modulate = Color(pause_accent.r, pause_accent.g, pause_accent.b, 0.06)
@@ -1412,23 +1443,55 @@ func _char_avatar(cid: String) -> String:
 func _pause_show_combos(show: bool) -> void:
 	pause_in_combos = show
 	if show:
-		var t := _char_move_text(selected_char)
-		pause_combos_title.text = String(t["title"])
-		pause_combos_moves.text = String(t["moves"])
-		pause_combos_fin.text = String(t["fin"])
-		# COLOR temático + AVATAR del personaje que estás jugando (épico + por-personaje)
-		var acc := _char_accent(selected_char)
-		pause_combos_title.add_theme_color_override("font_color", acc)
-		for br in pause_combos_border:
-			var cr := br as ColorRect
-			cr.color = Color(acc.r, acc.g, acc.b, cr.color.a)
-		if pause_combos_avframe != null:
-			pause_combos_avframe.color = acc
-		if pause_combos_avatar != null:
-			var avp := _char_avatar(selected_char)
-			if ResourceLoader.exists(avp):
-				pause_combos_avatar.texture = load(avp)
+		# arranca con el personaje visto la última vez (o el de P1); ← → alterna P1/P2
+		_pause_fill_combos(pause_combos_char if pause_combos_char != "" else selected_char)
 	pause_combos.visible = show
+
+# ¿el jugador 2 usa mando? (si hay un pad conectado, se asume que es SUYO)
+func _p2_en_mando() -> bool:
+	return Input.get_connected_joypads().size() > 0
+
+# traduce las teclas Q/W/E/R de los textos al dispositivo del JUGADOR 2:
+# mando Xbox (Q→Y, W→A, E→B, R→X) o su lado del teclado (7/8/9/0).
+# Solo toca letras SUELTAS (\b[QWER]\b): no rompe palabras como AWESOME.
+func _keys_for_p2(t: String) -> String:
+	var m := {"Q": "Y", "W": "A", "E": "B", "R": "X"} if _p2_en_mando() \
+			else {"Q": "7", "W": "8", "E": "9", "R": "0"}
+	var rx := RegEx.new()
+	rx.compile("\\b[QWER]\\b")
+	var out := ""
+	var last := 0
+	for res in rx.search_all(t):
+		out += t.substr(last, res.get_start() - last) + String(m[res.get_string()])
+		last = res.get_end()
+	out += t.substr(last)
+	return out
+
+# llena el panel COMBOS de la pausa con la lista del personaje pedido (P1 o P2/rival);
+# si la pausa es del JUGADOR 2, las teclas se muestran en SU dispositivo (mando/7890)
+func _pause_fill_combos(cid: String) -> void:
+	pause_combos_char = cid
+	var t := _char_move_text(cid)
+	var mv := String(t["moves"])
+	var fn := String(t["fin"])
+	if versus_2p and pause_owner == 1:
+		mv = _keys_for_p2(mv)
+		fn = _keys_for_p2(fn)
+	pause_combos_title.text = String(t["title"])
+	pause_combos_moves.text = mv
+	pause_combos_fin.text = fn
+	# COLOR temático + AVATAR del personaje mostrado (épico + por-personaje)
+	var acc := _char_accent(cid)
+	pause_combos_title.add_theme_color_override("font_color", acc)
+	for br in pause_combos_border:
+		var cr := br as ColorRect
+		cr.color = Color(acc.r, acc.g, acc.b, cr.color.a)
+	if pause_combos_avframe != null:
+		pause_combos_avframe.color = acc
+	if pause_combos_avatar != null:
+		var avp := _char_avatar(cid)
+		if ResourceLoader.exists(avp):
+			pause_combos_avatar.texture = load(avp)
 
 # ============================================================================
 #  CAMBIAR PERSONAJE en medio del training (overlay estilo select morado)
@@ -1548,7 +1611,7 @@ func _charswap_confirm() -> void:
 	pause_combos.visible = false
 	state = "fight"
 	Engine.time_scale = 1.0
-	player.input_enabled = true
+	_set_inputs(true)
 	dummy.ai_enabled = dummy_ai_mode
 
 func _pause_confirm() -> void:
@@ -1571,13 +1634,13 @@ func _close_pause() -> void:
 	pause_root.visible = false
 	state = pause_prev_state
 	Engine.time_scale = 1.0
-	player.input_enabled = true
+	_set_inputs(true)
 	dummy.ai_enabled = dummy_ai_mode
 
 func _open_moves() -> void:
 	state = "moves"
 	_set_moves_text()          # muestra los movimientos del personaje ELEGIDO (Fe o DAM)
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	player.revive()
 	dummy.revive()
@@ -1617,7 +1680,7 @@ func _run_demo(id: String) -> void:
 	moves_panel.visible = false
 	if title_panel: title_panel.visible = false
 	if trainer_panel: trainer_panel.visible = false
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	var prev_mode := dummy_ai_mode
 	dummy_ai_mode = false
@@ -2525,9 +2588,20 @@ func _build_dam_frames() -> SpriteFrames:
 	if dko.size() > 8:
 		sf.clear("ko")
 		sf.set_animation_loop("ko", false)
-		sf.set_animation_speed("ko", 60.0)
+		sf.set_animation_speed("ko", 72.0)   # desplome ágil (~1.7s con el tendido)
 		for t in dko:
 			sf.add_frame("ko", t)
+	# VICTORIA v2 (clip victory, 145 frames): floreo -> clava la espada -> se yergue ->
+	# RUGIDO -> sostiene la pose. Anclada por los pies. 78fps ≈ 1.85s, retiene el último.
+	var dvic := _dam_action_frames("victory")
+	if dvic.size() > 8:
+		if not sf.has_animation("victory"):
+			sf.add_animation("victory")
+		sf.clear("victory")
+		sf.set_animation_loop("victory", false)
+		sf.set_animation_speed("victory", 24.0)   # velocidad ORIGINAL del clip: el audio
+		for t in dvic:                            # (slam ~1.3s, rugido ~3s) casa exacto
+			sf.add_frame("victory", t)
 	# KO_AIR v2 (clip ko-fly f19-121, canvas 1920): el KO del último golpe — sale
 	# volando en volteretas y cae TENDIDO (el aterrizaje congela el último cuadro,
 	# anclado al suelo; el vuelo va anclado por el cuerpo). 70fps.
@@ -2843,12 +2917,12 @@ func _fe_water_special(caster: Node2D, bodies: int) -> void:
 			if victima == dummy:
 				dummy_hp = maxi(0, dummy_hp - dmg)
 				if dummy_hp <= 0:
-					if dummy_ai_mode and not break_practice: _end_round(true)
+					if _round_real(): _end_round(true)
 					else: dummy_hp = hp_max[1]
 			else:
 				player_hp = maxi(0, player_hp - dmg)
 				if player_hp <= 0:
-					if dummy_ai_mode and not break_practice: _end_round(false)
+					if _round_real(): _end_round(false)
 					else: player_hp = hp_max[0]
 
 # DASH DE AGUJAS de Fe (←→+Q): embiste mostrando la CORRIDA con agua; si alcanza al rival EN EL
@@ -2900,12 +2974,12 @@ func _fe_dash_attack(caster: Node2D) -> void:
 			if victima == dummy:
 				dummy_hp = maxi(0, dummy_hp - dmg)
 				if dummy_hp <= 0:
-					if dummy_ai_mode and not break_practice: _end_round(true)
+					if _round_real(): _end_round(true)
 					else: dummy_hp = hp_max[1]
 			else:
 				player_hp = maxi(0, player_hp - dmg)
 				if player_hp <= 0:
-					if dummy_ai_mode and not break_practice: _end_round(false)
+					if _round_real(): _end_round(false)
 					else: player_hp = hp_max[0]
 		await get_tree().create_timer(0.09).timeout
 	if is_instance_valid(caster):
@@ -2944,10 +3018,14 @@ func _start_round() -> void:
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
 	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)
+	# los SpriteFrames ya referencian sus texturas: soltar la precarga del char-select
+	# (las usadas quedan vivas; las de más se liberan). Ver Sel.warm_cache.
+	if not Sel.warm_cache.is_empty():
+		Sel.warm_cache.clear()
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
 	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
 	_refresh_hud_chars()
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	player.revive()
 	dummy.revive()
@@ -2969,13 +3047,19 @@ func _start_round() -> void:
 	mana_was_full = [true, true]   # arranca full: no destella en el intro
 	rounds_label.text = "%d  -  %d" % [wins_p1, wins_p2]
 	announce.visible = false
+	# CONTADOR del round a 99 y marcadores P1/P2 sobre las cabezas (VS 2P)
+	match_time = MATCH_TIME
+	if timer_label != null:
+		timer_label.text = str(int(MATCH_TIME))
+		timer_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	_show_player_tags()
 	# GET READY (golpe) -> FIGHT (golpe) usando las imágenes con croma recortado
 	_show_round_banner("ready", 1.05)
 	await get_tree().create_timer(0.95).timeout
 	_show_round_banner("fight", 0.85)
 	await get_tree().create_timer(0.55).timeout
 	state = "fight"
-	player.input_enabled = true
+	_set_inputs(true)
 	dummy.ai_enabled = dummy_ai_mode
 	dummy.ai_break_drill = break_practice   # en BREAK PRACTICE la IA se lanza a encadenar combos
 
@@ -3236,7 +3320,7 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 		return   # bloqueado (o ignorado): no arranca
 	ultra_active = true
 	state = "ultra"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
@@ -3345,8 +3429,8 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 	announce.visible = false
 	_focus_end()                  # quita el borde rojo y restaura el brillo
 	ultra_active = false
-	# cierre: KO en pelea real, o revivir en modo practica
-	if dummy_ai_mode:
+	# cierre: KO en pelea real (VS CPU / VS 2P), o revivir en modo practica
+	if _round_real():
 		state = "fight"
 		if idx == 0:
 			dummy_hp = 0
@@ -3360,7 +3444,7 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 		else:
 			player_hp = hp_max[0]
 		state = "fight"
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
 # ---- INFIERNO: crítico de FUEGO (↓↘→+E tras un combo de 7+) ----
@@ -3432,7 +3516,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
 	ultra_active = true
 	state = "ultra"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
@@ -3526,7 +3610,7 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 		_focus_end()
 		ultra_active = false
 		state = "fight"
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 		return
 	# CONECTA: golpea al rival DONDE el fuego lo tocó (en el aire o en el suelo), SIN
@@ -3609,10 +3693,10 @@ func _run_critical(atacante: Node2D, idx: int) -> void:
 	# cierre: KO si murió, si no vuelve a la pelea
 	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
 	state = "fight"
-	if dummy_ai_mode and murio:
+	if _round_real() and murio:
 		_end_round(idx == 0)
 	else:
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
 # ---- AYE: SÚPER CRYSTAL FLURRY (↓←+Q tras 3 golpes, cuesta 1.5 barras) ----
@@ -3640,7 +3724,7 @@ func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
 	ultra_active = true
 	state = "ultra"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
@@ -3765,7 +3849,7 @@ func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
 	combo_n[idx] = 0
 	combo_t[idx] = COMBO_WINDOW + 1.0
 	atacante.sprite.play("pose")           # se para tras el uppercut
-	player.input_enabled = true
+	_set_inputs(true)
 	dummy.ai_enabled = dummy_ai_mode
 
 # TELEPORT de Aye (↓→Q, reemplaza el dash): glitch out + TIEMBLA + sonido -> reaparece AL FRENTE del
@@ -3895,12 +3979,12 @@ func _rage_nova(f: Node2D, idx: int) -> void:
 				if victima == dummy:
 					dummy_hp = maxi(0, dummy_hp - RAGE_NOVA_DMG)
 					if dummy_hp <= 0:
-						if dummy_ai_mode and not break_practice: _end_round(true)
+						if _round_real(): _end_round(true)
 						else: dummy_hp = hp_max[1]
 				else:
 					player_hp = maxi(0, player_hp - RAGE_NOVA_DMG)
 					if player_hp <= 0:
-						if dummy_ai_mode and not break_practice: _end_round(false)
+						if _round_real(): _end_round(false)
 						else: player_hp = hp_max[0]
 			# la onda EMPUJA SIEMPRE (aunque bloquee: es física, lo arrastra igual;
 			# el daño sí lo salva el bloqueo)
@@ -4120,7 +4204,7 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 			and ((not victima.airborne) or v_alt < 380.0)
 	ultra_active = true
 	state = "ultra"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
@@ -4242,10 +4326,10 @@ func _run_whirlpool(atacante: Node2D, idx: int) -> void:
 	ultra_active = false
 	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
 	state = "fight"
-	if dummy_ai_mode and murio:
+	if _round_real() and murio:
 		_end_round(idx == 0)
 	else:
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
 # ULTRA CORTO de Fe (↑+E): tras un combo VIVO de 3 y con 2 BARRAS (barra roja). Combo aéreo:
@@ -4281,7 +4365,7 @@ func _run_fe_ultra(atacante: Node2D, idx: int) -> void:
 		return
 	ultra_active = true
 	state = "ultra"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
@@ -4378,12 +4462,17 @@ func _run_fe_ultra(atacante: Node2D, idx: int) -> void:
 	atacante.sprite.play("pose")
 	atacante.breaker_fx_t = 0.0
 	ultra_active = false
-	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
 	state = "fight"
-	if dummy_ai_mode and murio:
+	# ULTRA = FINISHER: solo se lanza con el rival en ROJO y el que lo recibe MUERE
+	# (igual que ANNIHILATION/APOCALYPSE de DAM; en práctica se revive como siempre)
+	if _round_real():
+		if idx == 0:
+			dummy_hp = 0
+		else:
+			player_hp = 0
 		_end_round(idx == 0)
 	else:
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
 # helper: aplica UN golpe del ultra al rival (daño + chispas AZULES + sonido + pose de castigo)
@@ -4424,7 +4513,7 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 		return
 	ultra_active = true
 	state = "ultra"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	atacante.buffer_t = 0.0
 	atacante.special_t = 0.0
@@ -4439,16 +4528,17 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 	Engine.time_scale = 1.0
 	var hp0: float = float(dummy_hp if idx == 0 else player_hp)
 	var n: int = combo_n[idx]
-	var drain := maxi(1, int(round(hp0 * 0.94 / 25.0)))   # ~25 golpes reparten 94%; el remate el resto
+	var drain := maxi(1, int(round(hp0 * 0.94 / 17.0)))   # ~17 golpes reparten 94%; el 3er rayo remata
+	# el rival queda CLAVADO EN EL SUELO frente a ella TODO el ultra (pedido: los rayos
+	# NO lo levantan, nada de flotar ni teleports — física suprimida, main lo posiciona)
 	victima.ultra_hover = true
-	victima.airborne = true
-	victima.hit_flying = true
+	victima.airborne = false
+	victima.hit_flying = false
+	victima.position.y = victima.floor_y
 	atacante.set_facing(dir)
 	victima.set_facing(-dir)
-	# ---- FASE 1: GÉISER de agua ×2 que lo ELEVA (una vez, después dos veces más alto) ----
-	for g in 2:
-		if state != "ultra":
-			break
+	# ---- FASE 1: RAYO de apertura — cae SOBRE el rival y lo ELECTROCUTA en el sitio ----
+	if state == "ultra":
 		atacante.ultra_hover = false
 		atacante.airborne = false
 		atacante.position.y = atacante.floor_y
@@ -4461,19 +4551,15 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 		if atacante.has_method("spawn_water_geyser"):
 			atacante.spawn_water_geyser(victima.position.x)
 		_shake(13.0, 0.16)
-		var top1: float = victima.floor_y - (300.0 + 170.0 * float(g))
-		var t0 := 0.0
-		while t0 < 0.30:
-			victima.position.y = lerpf(victima.position.y, top1, 0.32)
-			victima.position.x = clampf(atacante.position.x + float(dir) * 250.0, LEFT_LIMIT, RIGHT_LIMIT)
-			await get_tree().process_frame
-			t0 += get_process_delta_time()
+		await get_tree().create_timer(0.30).timeout
+		victima.position = Vector2(clampf(victima.position.x, LEFT_LIMIT, RIGHT_LIMIT), victima.floor_y)
+		victima.electro_t = 0.55    # parpadeo eléctrico, quieto en el piso
 		n += 1
 		_ultra_count(idx, n)
 		_fe_ultra_hit(idx, victima, drain)
 	# rampa GLOBAL de los golpes (dash+peonza+air): arranca LENTO y ACELERA, como DAM.
 	var k := 0.0
-	var kmax := 20.0
+	var kmax := 13.0   # rampa sobre dash(3) + combo variado(10)
 	# posición FIJA del castigo: ambos anclados aquí para que NO se separen ni deriven
 	var cx: float = clampf(victima.position.x, LEFT_LIMIT + 260.0, RIGHT_LIMIT - 260.0)
 	# ---- FASE 2: DASH que embiste, luego estocadas EN EL LUGAR ----
@@ -4488,14 +4574,14 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 		var dt2 := 0.0
 		while dt2 < 0.20:
 			atacante.position.x = lerpf(atacante.position.x, destino, 0.4)
-			victima.position = Vector2(cx, victima.floor_y - 60.0)
+			victima.position = Vector2(cx, victima.floor_y)
 			await get_tree().process_frame
 			dt2 += get_process_delta_time()
 		for h in 3:
 			if state != "ultra":
 				break
 			var rp: float = pow(k / kmax, 1.7)
-			victima.position = Vector2(cx, victima.floor_y - 60.0)
+			victima.position = Vector2(cx, victima.floor_y)
 			atacante.position = Vector2(destino, atacante.floor_y)
 			atacante.set_facing(dir)
 			atacante.sprite.speed_scale = lerpf(1.4, 3.2, rp)
@@ -4506,74 +4592,75 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 			_shake(11.0, 0.09)
 			await get_tree().create_timer(lerpf(0.42, 0.045, rp)).timeout
 			k += 1.0
-	# ---- FASE 3: PEONZA (spin_kick) EN EL LUGAR (re-reproduce cada golpe) ----
+	# ---- FASE 3: COMBO VARIADO en el lugar (pedido: nada de repetir la peonza 14 veces)
+	# — jab, aguja, doble patada, tijera baja, peonza, barrida... su kit entero, acelerando
 	if state == "ultra":
-		for h in 14:
+		var COMBO_VAR := ["weak_punch", "punch", "kick", "crouch_punch", "spin_kick",
+				"weak_punch", "sweep", "kick", "punch", "spin_kick"]
+		for h in COMBO_VAR.size():
 			if state != "ultra":
 				break
 			var rp: float = pow(k / kmax, 1.7)
-			victima.position = Vector2(cx, victima.floor_y - 40.0)
+			victima.position = Vector2(cx, victima.floor_y)
 			victima.set_facing(-dir)
 			atacante.ultra_hover = false
 			atacante.airborne = false
 			atacante.position = Vector2(clampf(cx - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT), atacante.floor_y)
 			atacante.set_facing(dir)
 			atacante.sprite.speed_scale = lerpf(1.6, 3.4, rp)
-			atacante.sprite.play("spin_kick")
+			atacante.sprite.play(COMBO_VAR[h])
 			n += 1
 			_ultra_count(idx, n)
 			_fe_ultra_hit(idx, victima, drain)
 			_shake(10.0, 0.08)
 			await get_tree().create_timer(lerpf(0.42, 0.045, rp)).timeout
 			k += 1.0
-	# ---- FASE 4: air_spin_kick ×3 EN EL MISMO LUGAR (los 3 golpes ahí, no se mueve) ----
+	# ---- FASE 4 (FINAL, pedido): Fe SE APARTA y caen LOS TRES RAYOS, uno tras otro,
+	# sobre el rival CLAVADO en el piso — el tercero es el APOCALYPSE que lo funde ----
 	if state == "ultra":
-		var ay: float = victima.floor_y - 300.0
-		for h in 3:
+		atacante.ultra_hover = false
+		atacante.airborne = false
+		atacante.position = Vector2(clampf(cx - float(dir) * 520.0, LEFT_LIMIT, RIGHT_LIMIT), atacante.floor_y)
+		atacante.set_facing(dir)
+		for r in 3:
 			if state != "ultra":
 				break
-			var rp: float = pow(k / kmax, 1.7)
-			atacante.ultra_hover = true
-			atacante.airborne = true
-			atacante.position = Vector2(clampf(cx - float(dir) * 140.0, LEFT_LIMIT, RIGHT_LIMIT), ay)
-			atacante.set_facing(dir)
-			atacante.sprite.speed_scale = lerpf(1.8, 3.2, rp)
-			atacante.sprite.play("air_spin_kick")
-			victima.position = Vector2(cx, ay + 20.0)
+			atacante.sprite.speed_scale = 2.0
+			atacante.sprite.play("water_cast")
+			if atacante.has_method("spawn_water_geyser"):
+				atacante.spawn_water_geyser(cx)
+			victima.position = Vector2(cx, victima.floor_y)
 			victima.set_facing(-dir)
-			n += 1
-			_ultra_count(idx, n)
-			_fe_ultra_hit(idx, victima, drain)
-			_shake(13.0, 0.1)
-			await get_tree().create_timer(lerpf(0.24, 0.09, rp)).timeout
-			k += 1.0
-
-	# ---- FINISHER ÉPICO: remate + KO ----
-	if state == "ultra":
-		n += 1
-		_ultra_count(idx, n, "APOCALYPSE")
-		_play_voz("apocalypse")
-		flash_ms = Time.get_ticks_msec()
-		flash_rect.color = Color(0.35, 0.62, 1.35, 0.9)
-		Engine.time_scale = 0.3
-		if idx == 0:
-			combo_dmg[idx] += dummy_hp
-			dummy_hp = 0
-		else:
-			combo_dmg[idx] += player_hp
-			player_hp = 0
-		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
-		atacante.sprite.speed_scale = 1.0
-		atacante.sprite.play("air_spin_kick")
-		victima.ultra_hover = false
-		victima.receive_hit(false, true, dir, "kick_impact", false, 1.9)
-		victima.hard_fall = true
-		atacante.ultra_hover = false
-		atacante.airborne = true
-		atacante.vel_y = 220.0
-		await get_tree().create_timer(0.45, true, false, true).timeout
-		Engine.time_scale = 1.0
-		# NO se espera el aterrizaje: _end_round maneja el vuelo→caída→boca abajo→freeze
+			victima.electro_t = 0.5              # convulsiona electrocutado, SIN elevarse
+			flash_ms = Time.get_ticks_msec()
+			flash_rect.color = Color(0.8, 0.9, 1.4, 0.35)
+			_shake(14.0, 0.14)
+			if r < 2:
+				n += 1
+				_ultra_count(idx, n)
+				_fe_ultra_hit(idx, victima, drain)
+				await get_tree().create_timer(0.34).timeout
+			else:
+				# TERCER RAYO = APOCALYPSE: vacía la vida; muere ELECTROCUTADO de pie
+				# y se DESPLOMA con su caída (nada de salir volando)
+				n += 1
+				_ultra_count(idx, n, "APOCALYPSE")
+				_play_voz("apocalypse")
+				flash_ms = Time.get_ticks_msec()
+				flash_rect.color = Color(0.35, 0.62, 1.35, 0.9)
+				Engine.time_scale = 0.3
+				if idx == 0:
+					combo_dmg[idx] += dummy_hp
+					dummy_hp = 0
+				else:
+					combo_dmg[idx] += player_hp
+					player_hp = 0
+				combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+				victima.ultra_hover = false
+				victima.electro_t = 0.9
+				victima.receive_hit(false, false, dir, "kick_impact")
+				await get_tree().create_timer(0.45, true, false, true).timeout
+				Engine.time_scale = 1.0
 	# cierre
 	_fe_cast_fx(atacante, false)
 	atacante.ultra_hover = false
@@ -4583,12 +4670,16 @@ func _run_fe_ultra_long(atacante: Node2D, idx: int) -> void:
 	atacante.sprite.play("pose")
 	atacante.breaker_fx_t = 0.0
 	ultra_active = false
-	var murio2: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
 	state = "fight"
-	if dummy_ai_mode and murio2:
+	# ULTRA = FINISHER: el que recibe el APOCALYPSE de Fe MUERE (regla de los ultras)
+	if _round_real():
+		if idx == 0:
+			dummy_hp = 0
+		else:
+			player_hp = 0
 		_end_round(idx == 0)
 	else:
-		player.input_enabled = true
+		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
 # barra de vida: verde normal; ROJA parpadeante en zona de peligro (<=15%)
@@ -4887,13 +4978,17 @@ func _play_victory_line(who = null) -> void:
 		stream = _victory_stream_fe
 	else:
 		if _victory_stream == null:
-			var ruta := "res://imagen-action/sound-effect/my-work-is-done-dam.mp3"
+			# DAM: el audio del PROPIO clip de victoria (el rugido que puso la AI, pedido)
+			var ruta := "res://imagen-action/sound-effect/victory-dam.wav"
+			if not ResourceLoader.exists(ruta):
+				ruta = "res://imagen-action/sound-effect/my-work-is-done-dam.mp3"
 			_victory_stream = load(ruta) if ResourceLoader.exists(ruta) else null
 		stream = _victory_stream
 	if stream != null and voz_player != null:
 		# delay para que la voz caiga CUANDO la boca se mueve: Fe primero da su GIRO y
-		# habla al plantarse (frame ~40 @30fps ≈ 1.3s); los demás casi de inmediato
-		await get_tree().create_timer(1.55 if es_fe else 0.35).timeout
+		# habla al plantarse (frame ~40 @30fps ≈ 1.3s); DAM usa el audio del PROPIO clip
+		# (ya trae su timing interno: arranca a la vez que la anim); Aye casi de inmediato
+		await get_tree().create_timer(1.55 if es_fe else (0.0 if not es_aye else 0.35)).timeout
 		voz_player.stream = stream
 		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 		voz_player.play()
@@ -5417,7 +5512,7 @@ func _physics_process(_delta: float) -> void:
 	if ultra_hint:
 		# NO se muestra en training/práctica (free ni break): solo en VS CPU real
 		var listo: bool = state == "fight" and not ultra_active \
-				and dummy_ai_mode and not break_practice \
+				and _round_real() \
 				and combo_n[0] >= 3 and combo_t[0] <= COMBO_WINDOW \
 				and meter[0] >= 2.0
 		ultra_hint.visible = listo
@@ -5613,31 +5708,64 @@ func _physics_process(_delta: float) -> void:
 		if not pause_in_combos and pause_sel < pause_plates.size():
 			var pulse := 0.72 + 0.28 * absf(sin(pt * 4.0))
 			(pause_plates[pause_sel] as Panel).self_modulate = Color(1, 1, 1, pulse)
+		# la pausa es DEL QUE LA ABRIÓ (pause_owner): SOLO sus controles la manejan.
+		# ESC "puro" = ui_cancel sin pause_p2 (el START dispara los dos a la vez).
+		var own_kb: bool = pause_owner == 0
+		var esc_solo: bool = Input.is_action_just_pressed("ui_cancel") \
+				and not Input.is_action_just_pressed("pause_p2")
 		if pause_in_combos:
-			if Input.is_action_just_pressed("ui_cancel") or Input.is_action_just_pressed("kick"):
+			var back: bool = (own_kb and (esc_solo or Input.is_action_just_pressed("kick"))) \
+					or (not own_kb and (Input.is_action_just_pressed("pause_p2") or Input.is_action_just_pressed("kick_p2")))
+			if back:
 				_pause_show_combos(false)
+				return
+			# ← →: alterna entre la lista de P1 y la de P2 (solo el dueño)
+			var tog: bool = (own_kb and (Input.is_action_just_pressed("ui_left") or Input.is_action_just_pressed("ui_right"))) \
+					or (not own_kb and (Input.is_action_just_pressed("ui_left_p2") or Input.is_action_just_pressed("ui_right_p2")))
+			if tog:
+				_pause_fill_combos(cpu_char if pause_combos_char == selected_char else selected_char)
 			return
 		var pd := 0
-		if Input.is_action_just_pressed("ui_up"):
+		if (own_kb and Input.is_action_just_pressed("ui_up")) or (not own_kb and Input.is_action_just_pressed("ui_up_p2")):
 			pd = -1
-		if Input.is_action_just_pressed("ui_down"):
+		if (own_kb and Input.is_action_just_pressed("ui_down")) or (not own_kb and Input.is_action_just_pressed("ui_down_p2")):
 			pd = 1
 		if pd != 0:
 			pause_sel = posmod(pause_sel + pd, pause_items.size())
 			_pause_refresh()
-		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
+		if (own_kb and (Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"))) \
+				or (not own_kb and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
 			_pause_confirm()
-		elif Input.is_action_just_pressed("ui_cancel"):
-			_close_pause()          # ESC = seguir peleando
+		elif (own_kb and esc_solo) or (not own_kb and Input.is_action_just_pressed("pause_p2")):
+			_close_pause()          # solo el DUEÑO cierra: ESC (P1) o START (P2)
 		return
-	if state == "fight" and Input.is_action_just_pressed("ui_cancel"):
-		_open_pause()               # ESC en pelea: abre el menú de pausa (ya NO salta al título)
+	if state == "fight" and Input.is_action_just_pressed("pause_p2"):
+		_open_pause(1)              # START del mando: pausa DEL JUGADOR 2
+		return
+	if state == "fight" and Input.is_action_just_pressed("ui_cancel") \
+			and not Input.is_action_just_pressed("pause_p2"):
+		_open_pause(0)              # ESC en pelea: pausa de P1 (ya NO salta al título)
 		return
 
 	# en entrenamiento solo existe el jugador: sin empuje, sin golpes, sin barras
 	if TRAINING:
 		player.position.x = clampf(player.position.x, LEFT_LIMIT, RIGHT_LIMIT)
 		return
+
+	# CONTADOR del round (solo rondas reales: VS CPU / VS 2P; se congela durante ultras).
+	# En 0 -> TIME OVER: gana el de más vida.
+	if state == "fight" and _round_real() and not ultra_active:
+		match_time = maxf(0.0, match_time - get_physics_process_delta_time())
+		if timer_label != null:
+			var _ts := int(ceilf(match_time))
+			timer_label.text = str(_ts)
+			if _ts <= 10:
+				timer_label.add_theme_color_override("font_color", Color(1.0, 0.28, 0.22))
+		if match_time <= 0.0:
+			_time_over()
+			return
+	# marcadores P1/P2 sobre las cabezas (se desvanecen solos)
+	_update_player_tags(get_physics_process_delta_time())
 
 	# cajas de empuje: los cuerpos no se traspasan (salvo saltando por encima
 	# o cuando uno esta derribado). NO durante un ULTRA: esos coreografían las
@@ -6432,7 +6560,7 @@ func _fe_tiger_attack(caster: Node2D) -> void:
 		tg.queue_free()
 	_fe_tiger_active = false
 	var murio: bool = (dummy_hp <= 0) if idx == 0 else (player_hp <= 0)
-	if murio and dummy_ai_mode:
+	if murio and _round_real():
 		_end_round(idx == 0)
 
 # ---- NÚMEROS DE DAÑO: "-20" ROJO flotando sobre el golpeado en CADA impacto ----
@@ -6648,24 +6776,80 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		if att_is_player:
 			dummy_hp = maxi(0, dummy_hp - dmg_real)
 			if dummy_hp <= 0:
-				if dummy_ai_mode and not break_practice:
+				if _round_real():
 					_end_round(true)
 				else:
 					dummy_hp = hp_max[1]  # munieco de practica / drill: se reinicia, no muere
 		else:
 			player_hp = maxi(0, player_hp - dmg_real)
 			if player_hp <= 0:
-				if dummy_ai_mode and not break_practice:
+				if _round_real():
 					_end_round(false)
 				else:
 					player_hp = hp_max[0]
 	return done
 
+# ¿la ronda se juega DE VERDAD (alguien puede morir y hay contador)? VS CPU o VS 2P;
+# en práctica libre / break practice la vida se resetea y el timer no corre.
+func _round_real() -> bool:
+	return (dummy_ai_mode or versus_2p) and not break_practice
+
+# TIME OVER: se acabó el contador — gana el que tenga MÁS VIDA (proporcional a su barra;
+# empate exacto: ronda para P1, caso rarísimo)
+# marcadores P1 (rojo) / P2 (azul) sobre cada peleador al arrancar el round (solo VS 2P):
+# siguen al personaje unos segundos y se desvanecen para no estorbar la pelea
+func _show_player_tags() -> void:
+	if not versus_2p:
+		return
+	if tag_p1 == null:
+		tag_p1 = _mk_player_tag("P1", Color(0.95, 0.24, 0.20))
+		tag_p2 = _mk_player_tag("P2", Color(0.30, 0.58, 1.0))
+	tag_t = TAG_TIME
+	tag_p1.visible = true
+	tag_p2.visible = true
+
+func _mk_player_tag(txt: String, col: Color) -> Label:
+	var l := Label.new()
+	l.text = txt + "\n▼"
+	l.add_theme_font_size_override("font_size", 42)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_constant_override("outline_size", 12)
+	l.size = Vector2(120, 100)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.z_index = 60
+	l.visible = false
+	$UI.add_child(l)
+	return l
+
+func _update_player_tags(delta: float) -> void:
+	if tag_t <= 0.0 or tag_p1 == null:
+		return
+	tag_t = maxf(0.0, tag_t - delta)
+	var a := clampf(tag_t / 0.8, 0.0, 1.0)   # el último 0.8 s se desvanece
+	var pares := [[tag_p1, player], [tag_p2, dummy]]
+	for par in pares:
+		var l: Label = par[0]
+		var f: Node2D = par[1]
+		# justo sobre la cabeza (los pies están en position.y): debajo del HUD de arriba
+		l.position = Vector2(f.position.x - 60.0, clampf(f.position.y - 500.0, 130.0, 1000.0))
+		l.modulate.a = a
+	if tag_t <= 0.0:
+		tag_p1.visible = false
+		tag_p2.visible = false
+
+func _time_over() -> void:
+	if state != "fight":
+		return
+	var f1 := float(player_hp) / maxf(1.0, float(hp_max[0]))
+	var f2 := float(dummy_hp) / maxf(1.0, float(hp_max[1]))
+	_end_round(f1 >= f2)
+
 func _end_round(player_won: bool) -> void:
 	if state != "fight":
 		return
 	state = "round_end"
-	player.input_enabled = false
+	_set_inputs(false)
 	dummy.ai_enabled = false
 	announce.visible = false
 	_rage_end(0)   # el BERSERK muere con la ronda (la rabia restante se conserva)
@@ -6689,9 +6873,11 @@ func _end_round(player_won: bool) -> void:
 			ko_red.color.a = 0.35
 			await get_tree().process_frame
 	else:
-		# muerte parada: deja correr la caída de espaldas hasta quedar TENDIDO (sin K.O. aún)
+		# muerte parada: deja correr la caída de espaldas COMPLETA hasta quedar TENDIDO
+		# (el desplome v2 dura ~1.7s; antes se cortaba a los 750ms — espera dinámica)
 		var gs := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - gs < 750:
+		while String(loser.sprite.animation) == "ko" and loser.sprite.is_playing() \
+				and Time.get_ticks_msec() - gs < 2400:
 			ko_red.color.a = 0.35
 			await get_tree().process_frame
 		loser.force_grounded_ko()                            # asegura el frame TENDIDO

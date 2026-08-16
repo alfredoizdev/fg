@@ -1,11 +1,15 @@
 extends Control
-# PANTALLA DE SELECCIÓN DE PERSONAJE (escena separada, estilo UNI/BlazBlue) — versión ÉPICA:
-# fondo en capas con diagonales, paneles inclinados P1(rojo)/P2(azul), cartas con marco y
-# glow, tipografía PESADA (Arial Black 900) con outline. El jugador elige PRIMERO su
-# personaje (1P) y luego el de la CPU (2P). Al confirmar 2P guarda en Sel y entra a la pelea.
+# PANTALLA DE SELECCIÓN DE PERSONAJE — estilo GG STRIVE (pedido con referencia):
+# personajes ANIMADOS a cuerpo completo a los lados (frames de video sin fondo verde),
+# panel diagonal ROJO (P1) / MORADO (P2), logo del juego AL CENTRO, placas de nombre
+# estilo VERSUS y la fila del roster ABAJO al centro. La lógica no cambió:
+# VS 2P = selección simultánea; otros modos = P1 y luego el rival; después SELECT STAGE.
 
 var roster: Array = []
-var picking := 0            # 0 = eligiendo 1P, 1 = eligiendo 2P
+var picking := 0            # 0 = eligiendo 1P, 1 = eligiendo 2P (en VS 2P: 0 = AMBOS a la vez)
+# VS 2P: selección SIMULTÁNEA — cada jugador confirma el suyo; con los dos listos -> stage
+var locked1 := false
+var locked2 := false
 var sel1 := 0
 var sel2 := 1
 var t := 0.0
@@ -13,14 +17,9 @@ var t := 0.0
 var big_font: SystemFont    # fuente pesada del juego (la del combo)
 var fx: Control             # capa de cursores/glow (encima de las cartas)
 var cards := []             # [{x, y, w, h, av}]
-var stand_l: TextureRect    # imagen del cuadro-póster izquierdo (P1)
-var stand_r: TextureRect    # imagen del cuadro-póster derecho (P2)
-# marco del cuadro-póster (mismo para ambos lados)
-const FRAME_L := Rect2(48, 176, 432, 748)
-const FRAME_R := Rect2(1440, 176, 432, 748)
-var appear_l := 0.0         # animación de aparición del cuadro P1 (0→1 al hacer hover)
-var appear_r := 0.0         # animación de aparición del cuadro P2
-var shown1 := -1            # último personaje mostrado en el cuadro P1 (para detectar hover)
+var appear_l := 0.0         # animación de aparición del personaje P1 (0→1 al hacer hover)
+var appear_r := 0.0
+var shown1 := -1            # último personaje mostrado en el lado P1 (para detectar hover)
 var shown2 := -1
 var name_l: Label
 var name_r: Label
@@ -31,6 +30,11 @@ var prompt: Label
 var loading := false
 var load_t := 0.0
 const VS_MIN_SHOW := 1.2     # tiempo mínimo que se ve la pantalla de carga (aunque cargue antes)
+# PRECARGA de frames de los peleadores en un HILO DE FONDO (el hilo principal queda libre
+# para que el spinner gire fluido; cargar en el hilo principal lo bloqueaba)
+var _warm: Array = []        # rutas .png a precalentar
+var _warm_thread: Thread = null
+const WARM_SKIP := ["select", "sheets", "avatar"]   # dirs que NO son frames de pelea
 # --- paso SELECT STAGE (picking == 2) — CARRUSEL ---
 var sel_stage := 0
 var stage_scroll := 0.0     # posición animada del carrusel (ease hacia sel_stage)
@@ -54,6 +58,23 @@ const BLU := Color(0.62, 0.40, 1.0)      # "2P": morado (antes azul)
 const GOLD := Color(0.74, 0.52, 1.0)     # acento principal: morado (antes dorado)
 const WHITE := Color(0.95, 0.95, 1.0)
 
+# --- personajes ANIMADOS a los lados (frames del video select-*.mp4 sin fondo) ---
+# Los que aún no tienen video caen a su retrato "stand" recortado (estático).
+const SEL_ANIM := {
+	"dam":  {"dir": "res://imagen-action/dam/select/anim",  "prefix": "dam-select", "n": 145, "fps": 24.0},
+	"favi": {"dir": "res://imagen-action/favi/select/anim", "prefix": "fe-select",  "n": 145, "fps": 24.0},
+	"aye":  {"dir": "res://imagen-action/aye/select/anim",  "prefix": "aye-select", "n": 145, "fps": 24.0},
+}
+const CHAR_H := 830.0        # altura del MÁS ALTO (DAM adulto); los demás por body_k
+const FEET_Y := 895.0        # línea de piso visual (los pies quedan sobre la banda inferior)
+const CX_L := 340.0          # centro X del personaje P1
+const CX_R := 1580.0         # centro X del personaje P2
+# ESTATURA REAL de cada quien (= body_k del juego): DAM adulto 1.0, Fe ~10 años 0.71,
+# Aye ~5 años 0.65. Escala la altura en pantalla para respetar quién es más alto.
+const SIDE_BODY_K := {"dam": 1.0, "favi": 0.71, "aye": 0.65}
+var side_spr: Array = [null, null]    # AnimatedSprite2D por lado
+var sel_frames := {}                  # id -> SpriteFrames (cache, se cargan una vez)
+
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	Sel.play_menu_music()   # sigue la canción del menú (NO se reinicia: ya venía del título)
@@ -67,17 +88,22 @@ func _ready() -> void:
 	big_font = SystemFont.new()
 	big_font.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
 	big_font.font_weight = 900
-	# cuadros-póster enmarcados (imagen -2 con fondo artístico), debajo de las cartas
-	stand_l = _mk_portrait(FRAME_L)
-	stand_r = _mk_portrait(FRAME_R)
-	# ---- CARTAS (grid central) — un poco más chicas y más abajo ----
+	# ---- PERSONAJES GRANDES a los lados (animados, estilo GG Strive) ----
+	for s in 2:
+		var spr := AnimatedSprite2D.new()
+		spr.centered = true
+		spr.flip_h = (s == 1)   # P2 mira hacia P1
+		# la animación se reproduce UNA vez al posarse (hover) y se queda en la pose final
+		add_child(spr)
+		side_spr[s] = spr
+	# ---- CARTAS del roster (fila ABAJO al centro, estilo GG) ----
 	var n := roster.size()
-	var cw := 150.0
-	var ch := 190.0
-	var gap := 24.0
+	var cw := 118.0
+	var ch := 118.0
+	var gap := 18.0
 	var total := n * cw + (n - 1) * gap
 	var x0 := 960.0 - total / 2.0
-	var gy := 404.0
+	var gy := 924.0
 	for i in n:
 		var cx := x0 + i * (cw + gap)
 		var av := TextureRect.new()
@@ -86,7 +112,7 @@ func _ready() -> void:
 			av.texture = load(apath)
 		av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		av.position = Vector2(cx + 7, gy + 7); av.size = Vector2(cw - 14, ch - 14)
+		av.position = Vector2(cx + 6, gy + 6); av.size = Vector2(cw - 12, ch - 12)
 		av.clip_contents = true
 		av.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(av)
@@ -98,50 +124,104 @@ func _ready() -> void:
 	add_child(fx)
 	fx.draw.connect(_draw_fx)
 	# ---- TEXTOS (encima de todo) ----
-	# LOGO del juego en el espacio de arriba (reemplaza el texto "CHARACTER SELECT")
+	# LOGO del juego AL CENTRO (el "título en el medio" del pedido)
 	var logo := TextureRect.new()
 	if ResourceLoader.exists("res://imagen-action/ui/title-logo.png"):
 		logo.texture = load("res://imagen-action/ui/title-logo.png")
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
-	logo.size = Vector2(470, 262); logo.position = Vector2(960 - 235, 16)
+	logo.size = Vector2(470, 262); logo.position = Vector2(960 - 235, 14)
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(logo)
-	_hdr("1 PLAYER CHARACTER", Vector2(34, 30), RED, HORIZONTAL_ALIGNMENT_LEFT, 28)
-	_hdr("2 PLAYER CHARACTER", Vector2(-34, 30), BLU, HORIZONTAL_ALIGNMENT_RIGHT, 28)
-	# nombres grandes abajo (fuente pesada + outline)
+	_hdr("1P", Vector2(34, 18), RED, HORIZONTAL_ALIGNMENT_LEFT, 34)
+	_hdr("2P", Vector2(-34, 18), BLU, HORIZONTAL_ALIGNMENT_RIGHT, 34)
+	# nombres grandes sobre las PLACAS de color (estilo GG: texto blanco sobre placa)
 	name_l = _big_name(true)
 	name_r = _big_name(false)
-	# nombres de cada carta
-	for i in cards.size():
-		var nm := Label.new()
-		nm.add_theme_font_override("font", big_font)
-		nm.add_theme_font_size_override("font_size", 22)
-		nm.add_theme_constant_override("outline_size", 6)
-		nm.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-		nm.text = String(roster[i]["name"])
-		nm.position = Vector2(cards[i]["x"], cards[i]["y"] + cards[i]["h"] + 4)
-		nm.size = Vector2(cards[i]["w"], 30)
-		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(nm)
-	# character data — debajo de cada retrato grande, letra más pequeña
-	data_l = _data_label(Vector2(60, 886))
-	data_r = _data_label(Vector2(1456, 886))
-	# prompt
+	# character data — bajo la placa de cada lado
+	data_l = _data_label(Vector2(64, 884))
+	data_r = _data_label(Vector2(1456, 884))
+	data_r.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# prompt (ayuda de controles) — centrado bajo el logo
 	prompt = Label.new()
 	prompt.add_theme_font_override("font", big_font)
-	prompt.add_theme_font_size_override("font_size", 26)
+	prompt.add_theme_font_size_override("font_size", 24)
 	prompt.add_theme_constant_override("outline_size", 6)
 	prompt.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	prompt.add_theme_color_override("font_color", GOLD)
-	prompt.position = Vector2(0, 1024); prompt.size = Vector2(1920, 40)
+	prompt.position = Vector2(0, 286); prompt.size = Vector2(1920, 40)
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(prompt)
 	_build_loading_overlay()
 	_build_stage_overlay()
 	_refresh()
+
+# ---------- personajes animados ----------
+# SpriteFrames del personaje: TODOS los frames del video a su FPS (regla: no submuestrear);
+# si no tiene video aún, un solo frame con su retrato de pie recortado.
+func _frames_for(id: String) -> SpriteFrames:
+	if sel_frames.has(id):
+		return sel_frames[id]
+	var sf := SpriteFrames.new()
+	sf.add_animation("idle")
+	sf.set_animation_loop("idle", false)   # se reproduce UNA vez y queda en la pose final
+	if SEL_ANIM.has(id):
+		var cfg: Dictionary = SEL_ANIM[id]
+		sf.set_animation_speed("idle", float(cfg["fps"]))
+		for i in range(1, int(cfg["n"]) + 1):
+			var p := "%s/%s-%d.png" % [String(cfg["dir"]), String(cfg["prefix"]), i]
+			if ResourceLoader.exists(p):
+				sf.add_frame("idle", load(p))
+	else:
+		sf.set_animation_speed("idle", 1.0)
+		var c := Sel.data(id)
+		for k in ["stand", "stand_fallback"]:
+			var p2 := String(c.get(k, ""))
+			if ResourceLoader.exists(p2):
+				sf.add_frame("idle", load(p2))
+				break
+	sel_frames[id] = sf
+	return sf
+
+func _set_side(s: int, id: String) -> void:
+	var spr: AnimatedSprite2D = side_spr[s]
+	spr.sprite_frames = _frames_for(id)
+	# CONGELADO en el primer frame: reproduce a velocidad 0 (así SÍ se dibuja el personaje;
+	# un sprite detenido con stop() no renderiza en este Godot). Hover = quieto pero VISIBLE.
+	spr.speed_scale = 0.0
+	spr.play("idle")
+	spr.frame = 0   # pose neutral (frame 1) hasta que lo SELECCIONEN
+	# altura EN PANTALLA según la estatura real (body_k): DAM alto, Fe y Aye más bajitas.
+	# Pies anclados en FEET_Y, así las niñas quedan con la cabeza más abajo (centered).
+	var disp_h := CHAR_H * float(SIDE_BODY_K.get(id, 1.0))
+	var sc := 1.0
+	if spr.sprite_frames.get_frame_count("idle") > 0:
+		var tex: Texture2D = spr.sprite_frames.get_frame_texture("idle", 0)
+		if tex != null and tex.get_height() > 0:
+			sc = disp_h / float(tex.get_height())
+	spr.scale = Vector2(sc, sc)
+	spr.position = Vector2(CX_L if s == 0 else CX_R, FEET_Y - disp_h * 0.5)
+
+# al SELECCIONAR el personaje: reproduce su animación (gesto) UNA vez desde el principio.
+# La voz va con demora (SEL_DELAY) para caer con el movimiento de boca del gesto.
+func _play_anim(s: int) -> void:
+	var spr: AnimatedSprite2D = side_spr[s]
+	if spr == null or spr.sprite_frames == null:
+		return
+	spr.speed_scale = 1.0   # velocidad normal: ejecuta el gesto UNA vez y queda en la pose
+	spr.frame = 0
+	spr.play("idle")
+
+func _anim_side(s: int, ap: float, dir: float, active: bool) -> void:
+	var spr: AnimatedSprite2D = side_spr[s]
+	if spr == null or spr.sprite_frames == null:
+		return
+	var e := _ease_out(ap)
+	var off := (1.0 - e) * 60.0 * dir
+	spr.position.x = (CX_L if s == 0 else CX_R) + off
+	var dim := 1.0 if active else 0.62
+	spr.modulate = Color(dim, dim, dim, e)
 
 # ---------- PANTALLA DE CARGA (logo FG FIGHTER + spinner) ----------
 func _build_loading_overlay() -> void:
@@ -325,36 +405,48 @@ func _start_loading() -> void:
 	set_process_unhandled_input(false)
 	# carga la escena de pelea EN SEGUNDO PLANO (no congela la pantalla de carga)
 	ResourceLoader.load_threaded_request("res://main.tscn")
+	# lista de frames de los 2 peleadores a PRECALENTAR mientras gira el spinner (así main.gd
+	# construye sus SpriteFrames desde caché y NO se congela al entrar al round)
+	Sel.warm_cache.clear()
+	_warm.clear()
+	_scan_fight_pngs("res://imagen-action/%s" % Sel.p1, _warm)
+	if Sel.p2 != Sel.p1:
+		_scan_fight_pngs("res://imagen-action/%s" % Sel.p2, _warm)
+	# arranca el HILO que precalienta esas texturas (no bloquea el spinner)
+	_warm_thread = Thread.new()
+	_warm_thread.start(_warm_worker.bind(_warm))
 	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
 	if stage_overlay != null:
 		stage_overlay.visible = false
 	load_overlay.visible = true
 
+# HILO DE FONDO: carga (disco+import) todas las texturas y las devuelve. ResourceLoader.load
+# es thread-safe; el subir a GPU pasa luego en el hilo principal al usarlas (rápido por textura).
+func _warm_worker(paths: Array) -> Array:
+	var res := []
+	for p in paths:
+		var tex = ResourceLoader.load(p)
+		if tex != null:
+			res.append(tex)
+	return res
+
+# junta recursivamente los .png de PELEA de un personaje (omite select/sheets/avatar)
+func _scan_fight_pngs(path: String, out: Array) -> void:
+	var d := DirAccess.open(path)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var nm := d.get_next()
+	while nm != "":
+		if d.current_is_dir():
+			if nm != "." and nm != ".." and not (nm in WARM_SKIP):
+				_scan_fight_pngs(path + "/" + nm, out)
+		elif nm.ends_with(".png"):
+			out.append(path + "/" + nm)
+		nm = d.get_next()
+	d.list_dir_end()
+
 # ---------- construcción de nodos ----------
-func _mk_portrait(box: Rect2) -> TextureRect:
-	# cuadro-póster: la imagen (con su fondo) llena el marco (COVER) y se recorta al cuadro
-	var s := TextureRect.new()
-	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	s.clip_contents = true
-	s.position = box.position; s.size = box.size
-	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(s)
-	return s
-
-func _hdr_big(txt: String, y: float, col: Color, size: int) -> void:
-	var l := Label.new()
-	l.add_theme_font_override("font", big_font)
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_constant_override("outline_size", 10)
-	l.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
-	l.add_theme_color_override("font_color", col)
-	l.text = txt
-	l.position = Vector2(0, y); l.size = Vector2(1920, 70)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(l)
-
 func _hdr(txt: String, pos: Vector2, col: Color, align: int, size: int) -> void:
 	var l := Label.new()
 	l.add_theme_font_override("font", big_font)
@@ -364,25 +456,26 @@ func _hdr(txt: String, pos: Vector2, col: Color, align: int, size: int) -> void:
 	l.add_theme_color_override("font_color", col)
 	l.text = txt
 	if align == HORIZONTAL_ALIGNMENT_LEFT:
-		l.position = Vector2(pos.x, pos.y); l.size = Vector2(700, 40)
+		l.position = Vector2(pos.x, pos.y); l.size = Vector2(700, 44)
 	else:
-		l.position = Vector2(1920 - 700 - 34, pos.y); l.size = Vector2(700, 40)
+		l.position = Vector2(1920 - 700 - 34, pos.y); l.size = Vector2(700, 44)
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
 
+# nombres estilo GG: texto BLANCO grande sobre la placa de color (la placa la pinta _draw)
 func _big_name(left: bool) -> Label:
 	var l := Label.new()
 	l.add_theme_font_override("font", big_font)
-	l.add_theme_font_size_override("font_size", 70)
-	l.add_theme_constant_override("outline_size", 10)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	l.add_theme_color_override("font_color", RED if left else BLU)
+	l.add_theme_font_size_override("font_size", 58)
+	l.add_theme_constant_override("outline_size", 8)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	l.add_theme_color_override("font_color", WHITE)
 	if left:
-		l.position = Vector2(40, 792); l.size = Vector2(600, 96)
+		l.position = Vector2(70, 794); l.size = Vector2(560, 80)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	else:
-		l.position = Vector2(1280, 792); l.size = Vector2(600, 96)
+		l.position = Vector2(1290, 794); l.size = Vector2(560, 80)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
@@ -400,35 +493,54 @@ func _data_label(pos: Vector2) -> Label:
 	add_child(l)
 	return l
 
-# ---------- FONDO (capas con diagonales) ----------
+# ---------- FONDO estilo GG STRIVE: diagonales ROJO/MORADO + placas de nombre ----------
 func _draw() -> void:
 	var w := 1920.0
 	var h := 1080.0
 	# base (morado muy oscuro)
-	draw_rect(Rect2(0, 0, w, h), Color(0.06, 0.035, 0.10))
-	# glow radial central (morado)
-	for i in range(9, 0, -1):
-		var r := 115.0 * i
-		draw_circle(Vector2(960, 560), r, Color(0.24, 0.10, 0.34, 0.055))
-	# líneas de acción diagonales FINAS y sutiles (speedlines) en morado
-	for i in range(-2, 22):
-		var x := i * 96.0
-		draw_line(Vector2(x, 0), Vector2(x - 210, h), Color(0.62, 0.4, 0.95, 0.05), 2.0)
-	# PANEL DIAGONAL izquierdo (P1 rojo) y derecho (P2 morado)
+	draw_rect(Rect2(0, 0, w, h), Color(0.05, 0.03, 0.08))
+	# actividad de cada lado (el confirmado/inactivo baja de intensidad)
 	var pl_active: float = 1.0 if picking == 0 else 0.55
 	var pr_active: float = 1.0 if picking == 1 else 0.55
-	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(560, 0), Vector2(470, h), Vector2(0, h)]),
-			Color(0.34, 0.06, 0.12, 0.55 * pl_active + 0.2))
-	draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(1360, 0), Vector2(1450, h), Vector2(w, h)]),
-			Color(0.20, 0.08, 0.36, 0.55 * pr_active + 0.2))
-	# borde interno de cada panel (línea de color)
-	draw_line(Vector2(560, 0), Vector2(470, h), RED, 4.0)
-	draw_line(Vector2(1360, 0), Vector2(1450, h), BLU, 4.0)
-	# BARRA superior e inferior (negras con filo morado, en diagonal)
-	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 96), Vector2(0, 78)]), Color(0.04, 0.02, 0.06, 0.92))
-	draw_line(Vector2(0, 78), Vector2(w, 96), GOLD, 3.0)
-	draw_colored_polygon(PackedVector2Array([Vector2(0, 890), Vector2(w, 872), Vector2(w, h), Vector2(0, h)]), Color(0.04, 0.02, 0.06, 0.92))
-	draw_line(Vector2(0, 890), Vector2(w, 872), Color(0.5, 0.2, 0.7), 3.0)
+	if _vs2p() and picking < 2:   # simultáneo: los dos vivos; el que confirmó baja un poco
+		pl_active = 0.7 if locked1 else 1.0
+		pr_active = 0.7 if locked2 else 1.0
+	# GRAN PANEL DIAGONAL ROJO (P1, izquierda) — dos capas para profundidad
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(880, 0), Vector2(600, h), Vector2(0, h)]),
+			Color(0.28, 0.045, 0.09, 0.42 + 0.30 * pl_active))
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(690, 0), Vector2(470, h), Vector2(0, h)]),
+			Color(0.40, 0.06, 0.11, 0.30 + 0.25 * pl_active))
+	# GRAN PANEL DIAGONAL MORADO (P2, derecha)
+	draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(1040, 0), Vector2(1320, h), Vector2(w, h)]),
+			Color(0.14, 0.06, 0.28, 0.42 + 0.30 * pr_active))
+	draw_colored_polygon(PackedVector2Array([Vector2(w, 0), Vector2(1230, 0), Vector2(1450, h), Vector2(w, h)]),
+			Color(0.20, 0.08, 0.38, 0.30 + 0.25 * pr_active))
+	# costuras de color en la diagonal de cada panel
+	draw_line(Vector2(880, 0), Vector2(600, h), Color(RED.r, RED.g, RED.b, 0.5 + 0.5 * pl_active), 5.0)
+	draw_line(Vector2(1040, 0), Vector2(1320, h), Color(BLU.r, BLU.g, BLU.b, 0.5 + 0.5 * pr_active), 5.0)
+	# glow radial central (morado) para que el logo respire
+	for i in range(7, 0, -1):
+		var r := 95.0 * i
+		draw_circle(Vector2(960, 170), r, Color(0.24, 0.10, 0.34, 0.045))
+	# speedlines diagonales sutiles
+	for i in range(-2, 22):
+		var x := i * 96.0
+		draw_line(Vector2(x, 0), Vector2(x - 210, h), Color(0.62, 0.4, 0.95, 0.04), 2.0)
+	# banda superior fina
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 70), Vector2(0, 58)]), Color(0.04, 0.02, 0.06, 0.9))
+	draw_line(Vector2(0, 58), Vector2(w, 70), GOLD, 3.0)
+	# banda inferior (sostiene el roster, estilo GG)
+	draw_colored_polygon(PackedVector2Array([Vector2(0, 902), Vector2(w, 886), Vector2(w, h), Vector2(0, h)]), Color(0.035, 0.02, 0.055, 0.94))
+	draw_line(Vector2(0, 902), Vector2(w, 886), Color(0.5, 0.2, 0.7), 3.0)
+	# PLACAS DE NOMBRE estilo GG (inclinadas): roja P1 / morada P2, texto blanco encima
+	var apl := 0.75 + 0.25 * pl_active
+	var apr := 0.75 + 0.25 * pr_active
+	draw_colored_polygon(PackedVector2Array([Vector2(40, 790), Vector2(660, 782), Vector2(644, 876), Vector2(40, 884)]),
+			Color(RED.r * 0.82, RED.g * 0.5, RED.b * 0.5, apl))
+	draw_line(Vector2(40, 790), Vector2(660, 782), Color(1, 1, 1, 0.85 * apl), 3.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(1260, 782), Vector2(1880, 790), Vector2(1880, 884), Vector2(1276, 876)]),
+			Color(BLU.r * 0.62, BLU.g * 0.5, BLU.b * 0.82, apr))
+	draw_line(Vector2(1260, 782), Vector2(1880, 790), Color(1, 1, 1, 0.85 * apr), 3.0)
 	# marco de cada carta (bisel oscuro) — el glow/cursor va en la capa fx
 	for c in cards:
 		var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
@@ -437,42 +549,25 @@ func _draw() -> void:
 
 # ---------- CURSORES + GLOW (capa fx, encima de las cartas) ----------
 func _draw_fx() -> void:
-	# marcos de los cuadros-póster (siguen la animación de aparición)
-	_portrait_frame(FRAME_L, appear_l, -1.0, RED)
-	_portrait_frame(FRAME_R, appear_r, 1.0, BLU)
 	var pulse := 0.6 + 0.4 * sin(t * 7.0)
-	_cursor(sel1, RED, "1P", picking == 0, pulse, -1)
-	_cursor(sel2, BLU, "2P", picking == 1, pulse, 1)
+	var a1: bool = (not locked1) if (_vs2p() and picking < 2) else (picking == 0)
+	var a2: bool = (not locked2) if (_vs2p() and picking < 2) else (picking == 1)
+	_cursor(sel1, RED, "1P", a1, pulse, -1)
+	_cursor(sel2, BLU, "2P", a2, pulse, 1)
+	# "READY" sobre el personaje confirmado (estilo GG)
+	if _vs2p() and picking < 2:
+		if locked1:
+			_ready_plate(CX_L, RED)
+		if locked2:
+			_ready_plate(CX_R, BLU)
 
-func _portrait_frame(box: Rect2, ap: float, dir: float, col: Color) -> void:
-	var e := _ease_out(ap)
-	var off := (1.0 - e) * 46.0 * dir
-	var r := Rect2(box.position.x + off, box.position.y, box.size.x, box.size.y)
-	# sombra/base del marco
-	fx.draw_rect(Rect2(r.position.x - 5, r.position.y - 5, r.size.x + 10, r.size.y + 10), Color(0, 0, 0, 0.7 * e), false, 8.0)
-	# borde de color; con FLASH extra mientras aparece (e<1)
-	var flash := 1.0 + (1.0 - e) * 1.4
-	fx.draw_rect(r.grow(2.0), Color(col.r * flash, col.g * flash, col.b * flash, e), false, 6.0)
-	# esquinas doradas (brackets en L): cada una abraza SU esquina (apunta hacia adentro)
-	var gc := Color(GOLD.r, GOLD.g, GOLD.b, e)
-	var cs := 30.0
-	var th := 6.0
-	var x1 := r.position.x
-	var y1 := r.position.y
-	var x2 := r.end.x
-	var y2 := r.end.y
-	# superior-izquierda
-	fx.draw_rect(Rect2(x1 - th, y1 - th, cs, th), gc)
-	fx.draw_rect(Rect2(x1 - th, y1 - th, th, cs), gc)
-	# superior-derecha
-	fx.draw_rect(Rect2(x2 - cs + th, y1 - th, cs, th), gc)
-	fx.draw_rect(Rect2(x2, y1 - th, th, cs), gc)
-	# inferior-izquierda
-	fx.draw_rect(Rect2(x1 - th, y2, cs, th), gc)
-	fx.draw_rect(Rect2(x1 - th, y2 - cs + th, th, cs), gc)
-	# inferior-derecha
-	fx.draw_rect(Rect2(x2 - cs + th, y2, cs, th), gc)
-	fx.draw_rect(Rect2(x2, y2 - cs + th, th, cs), gc)
+func _ready_plate(cx: float, col: Color) -> void:
+	var r := Rect2(cx - 130, 118, 260, 64)
+	fx.draw_colored_polygon(PackedVector2Array([r.position, Vector2(r.end.x + 10, r.position.y),
+			Vector2(r.end.x, r.end.y), Vector2(r.position.x - 10, r.end.y)]),
+			Color(col.r * 0.75, col.g * 0.55, col.b * 0.55, 0.92))
+	fx.draw_string(big_font, Vector2(r.position.x + 52, r.position.y + 47), "READY",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(1, 1, 1, 0.95))
 
 func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side: int) -> void:
 	if idx < 0 or idx >= cards.size():
@@ -497,20 +592,25 @@ func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side
 func _refresh() -> void:
 	var c1: Dictionary = roster[sel1]
 	var c2: Dictionary = roster[sel2]
-	# al cambiar de personaje (hover), reinicia la animación de aparición del cuadro
+	# al cambiar de personaje (hover), reinicia la animación de aparición del lado
 	if sel1 != shown1:
 		shown1 = sel1
-		_set_stand(stand_l, c1)
+		_set_side(0, String(c1["id"]))
 		appear_l = 0.0
 	if sel2 != shown2:
 		shown2 = sel2
-		_set_stand(stand_r, c2)
+		_set_side(1, String(c2["id"]))
 		appear_r = 0.0
 	name_l.text = String(c1["name"])
 	name_r.text = String(c2["name"])
-	data_l.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c1["arch"], c1["weapon"], c1["power"]]
-	data_r.text = "CHARACTER DATA\nCLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c2["arch"], c2["weapon"], c2["power"]]
-	if picking == 0:
+	data_l.text = "CLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c1["arch"], c1["weapon"], c1["power"]]
+	data_r.text = "CLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c2["arch"], c2["weapon"], c2["power"]]
+	if _vs2p() and picking < 2:
+		var t1 := "1P  ✔ LISTO" if locked1 else "1P:  ← →  ENTER"
+		var con_mando := Input.get_connected_joypads().size() > 0
+		var t2 := "2P  ✔ LISTO" if locked2 else ("2P:  MANDO  ✚  y  A" if con_mando else "2P:  J L  y  7")
+		prompt.text = t1 + "        " + t2
+	elif picking == 0:
 		prompt.text = "1P:  ELIGE TU PERSONAJE   ( ← →   ENTER  ·  ESC )"
 	elif picking == 1:
 		prompt.text = "2P:  ELIGE EL RIVAL (CPU)   ( ← →   ENTER  ·  ESC )"
@@ -521,11 +621,6 @@ func _refresh() -> void:
 		stage_overlay.visible = (picking == 2)
 	queue_redraw()
 
-func _set_stand(node: TextureRect, c: Dictionary) -> void:
-	# usa el retrato-póster CON FONDO (portrait / -2); cae a stand / pose si no existe
-	var path := Sel.portrait_of(String(c["id"]))
-	node.texture = load(path) if ResourceLoader.exists(path) else null
-
 func _ease_out(x: float) -> float:
 	return 1.0 - pow(1.0 - clampf(x, 0.0, 1.0), 3.0)
 
@@ -534,11 +629,13 @@ func _process(delta: float) -> void:
 	if loading:
 		_update_loading(delta)
 		return
-	# avanza la animación de aparición de los cuadros (hover)
+	# avanza la animación de aparición de los personajes (hover)
 	appear_l = minf(1.0, appear_l + delta * 5.0)   # ~0.2s
 	appear_r = minf(1.0, appear_r + delta * 5.0)
-	_anim_portrait(stand_l, FRAME_L, appear_l, -1.0, picking == 0)
-	_anim_portrait(stand_r, FRAME_R, appear_r, 1.0, picking == 1)
+	var act_l: bool = (not locked1) if (_vs2p() and picking < 2) else (picking == 0)
+	var act_r: bool = (not locked2) if (_vs2p() and picking < 2) else (picking == 1)
+	_anim_side(0, appear_l, -1.0, act_l)
+	_anim_side(1, appear_r, 1.0, act_r)
 	if fx:
 		fx.queue_redraw()
 	if picking == 2 and stage_fx != null:
@@ -550,22 +647,18 @@ func _update_loading(delta: float) -> void:
 	load_t += delta
 	if load_spin != null:
 		load_spin.queue_redraw()
-	# cuando la escena de pelea terminó de cargar Y ya se vio el mínimo -> entrar
+	# el HILO precalienta en segundo plano: el spinner sigue girando sin bloquearse.
+	var warm_done: bool = _warm_thread == null or not _warm_thread.is_alive()
+	if warm_done and _warm_thread != null:
+		Sel.warm_cache = _warm_thread.wait_to_finish()   # recoge las texturas calientes
+		_warm_thread = null
+	# cuando la escena cargó, los frames están calientes Y ya se vio el mínimo -> entrar
 	var st := ResourceLoader.load_threaded_get_status("res://main.tscn")
-	if st == ResourceLoader.THREAD_LOAD_LOADED and load_t >= VS_MIN_SHOW:
+	if st == ResourceLoader.THREAD_LOAD_LOADED and warm_done and load_t >= VS_MIN_SHOW:
 		var packed = ResourceLoader.load_threaded_get("res://main.tscn")
 		get_tree().change_scene_to_packed(packed)
 	elif st == ResourceLoader.THREAD_LOAD_FAILED or st == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 		get_tree().change_scene_to_file("res://main.tscn")   # fallback
-
-func _anim_portrait(node: TextureRect, box: Rect2, ap: float, dir: float, active: bool) -> void:
-	if node == null:
-		return
-	var e := _ease_out(ap)
-	# entra deslizando desde afuera (dir) + fade-in; atenuado si NO es el lado activo
-	var off := (1.0 - e) * 46.0 * dir
-	node.position = Vector2(box.position.x + off, box.position.y)
-	node.modulate = Color(1, 1, 1, e * (1.0 if active else 0.6))
 
 # --- sonidos del char-select: al confirmar suena "on-select" + la VOZ (épica) del nombre ---
 const SEL_SFX := "res://imagen-action/sound-effect/on-select.mp3"
@@ -575,23 +668,124 @@ const NAME_VOZ := {
 	"favi": "res://imagen-action/sound-effect/fe-name.mp3",
 	"aye": "res://imagen-action/sound-effect/aye.mp3",
 }
+# FRASE de selección por personaje (catchphrase, casa con la boca del clip). Si existe,
+# suena EN LUGAR del nombre al confirmar. DAM: "excellent choice". Fe/Aye: pendientes.
+const SEL_LINE := {
+	"dam": "res://imagen-action/dam/sound-effect/excellent_choice_Vibes_Eleven_v3_01a0076e-f439-7e56-9545-5aaa4f1eb0d1.mp3",
+	"favi": "res://imagen-action/favi/Fe-sound-effect/let_have_fun_Tattle_Eleven_v3_01a00770-428c-7f68-b7e5-1d5b6763fdd9.mp3",
+	"aye": "res://imagen-action/aye/sound-effect/we_got_this_Cupcake_Eleven_v3_01a00772-a7ce-7ba0-8488-29fb6cd8bc37.mp3",
+}
+# DEMORA (seg) antes de que suene la voz, para que arranque con el movimiento de boca del
+# clip. Faviola algo más que DAM; Aye con la suya. (tuneable a gusto)
+const SEL_DELAY := {"dam": 0.70, "favi": 1.60, "aye": 0.90}
+const SELECT_HOLD := 2.2    # pausa tras la ÚLTIMA selección: se ve la animación antes de avanzar
+var _advancing := false     # true durante esa pausa: congela el input
 var _sfx_sel: AudioStreamPlayer
 var _voz_name: AudioStreamPlayer
+var _line_gen := 0    # generación de voz: un hover nuevo invalida la voz demorada anterior
+
+# VOZ del personaje: su FRASE (excellent choice / let's have fun / we got this) o, si no
+# tiene, la voz del nombre. Suena al POSARSE en él (hover) y también al confirmar, con una
+# pequeña DEMORA por personaje para sincronizar con la boca del clip.
+func _play_line(char_id: String) -> void:
+	var ruta: String = SEL_LINE.get(char_id, "")
+	if ruta == "" or not ResourceLoader.exists(ruta):
+		ruta = NAME_VOZ.get(char_id, "")
+	if _voz_name == null or ruta == "" or not ResourceLoader.exists(ruta):
+		return
+	_line_gen += 1
+	var gen := _line_gen
+	var delay: float = float(SEL_DELAY.get(char_id, 0.0))
+	if delay > 0.0:
+		await get_tree().create_timer(delay).timeout
+		# si el jugador se movió a otro personaje mientras esperaba, NO suena la voz vieja
+		if gen != _line_gen or not is_instance_valid(_voz_name):
+			return
+	_voz_name.stream = load(ruta)
+	_voz_name.play()
 
 func _play_select(char_id: String) -> void:
 	if _sfx_sel != null and ResourceLoader.exists(SEL_SFX):
 		_sfx_sel.stream = load(SEL_SFX)
 		_sfx_sel.play()
-	var ruta: String = NAME_VOZ.get(char_id, "")
-	if _voz_name != null and ruta != "" and ResourceLoader.exists(ruta):
-		_voz_name.stream = load(ruta)
-		_voz_name.play()
+	_play_line(char_id)
+
+func _vs2p() -> bool:
+	return Sel.mode == "vs_2p"
+
+# tras la ÚLTIMA selección de personaje: PAUSA breve (input congelado) para ver la
+# animación/gesto del último elegido, y luego pasa al SELECT STAGE.
+func _goto_stage_after_hold() -> void:
+	if _advancing:
+		return
+	_advancing = true
+	Sel.p1 = String(roster[sel1]["id"])
+	Sel.p2 = String(roster[sel2]["id"])
+	await get_tree().create_timer(SELECT_HOLD).timeout
+	picking = 2                                 # -> SELECT STAGE
+	_advancing = false
+	_refresh()
+
+# VS 2P: SELECCIÓN SIMULTÁNEA. P1 (← → + ENTER/Q) y P2 (J/L + 7, o mando ✚ + A/Y)
+# mueven su cursor A LA VEZ; cada uno confirma el suyo. ESC des-confirma (o sale al título).
+func _input_vs2p() -> void:
+	var moved := false
+	if not locked1:
+		var d1 := 0
+		if Input.is_action_just_pressed("ui_left"):
+			d1 = -1
+		elif Input.is_action_just_pressed("ui_right"):
+			d1 = 1
+		if d1 != 0:
+			sel1 = posmod(sel1 + d1, roster.size())
+			moved = true
+		elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
+			locked1 = true
+			_play_anim(0)                               # gesto del personaje P1
+			_play_select(String(roster[sel1]["id"]))    # ping + voz demorada
+			_refresh()
+	if not locked2:
+		var d2 := 0
+		if Input.is_action_just_pressed("ui_left_p2"):
+			d2 = -1
+		elif Input.is_action_just_pressed("ui_right_p2"):
+			d2 = 1
+		if d2 != 0:
+			sel2 = posmod(sel2 + d2, roster.size())
+			moved = true
+		elif Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"):
+			locked2 = true
+			_play_anim(1)                               # gesto del personaje P2
+			_play_select(String(roster[sel2]["id"]))    # ping + voz demorada
+			_refresh()
+	if moved:
+		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # solo campana al pasar (sin voz)
+			_sfx_sel.stream = load(HOVER_SFX)
+			_sfx_sel.play()
+		_refresh()
+	if Input.is_action_just_pressed("ui_cancel"):
+		if locked1 or locked2:
+			locked1 = false
+			locked2 = false
+			_refresh()
+		else:
+			get_tree().change_scene_to_file("res://title.tscn")
+		return
+	if locked1 and locked2:
+		_goto_stage_after_hold()                    # pausa breve viendo la animación -> stage
 
 func _unhandled_input(_e: InputEvent) -> void:
+	if _advancing:
+		return                                       # pausa post-selección: input congelado
+	if _vs2p() and picking < 2:
+		_input_vs2p()
+		return
+	# en VS 2P el stage (picking == 2) también responde a las teclas/mando de P2
+	var p2_also: bool = _vs2p() and picking == 2
 	var dc := 0
-	if Input.is_action_just_pressed("ui_left"):
+	if Input.is_action_just_pressed("ui_left") or (p2_also and Input.is_action_just_pressed("ui_left_p2")):
 		dc = -1
-	elif Input.is_action_just_pressed("ui_right"):
+	elif Input.is_action_just_pressed("ui_right") or (p2_also and Input.is_action_just_pressed("ui_right_p2")):
 		dc = 1
 	if dc != 0:
 		if picking == 0:
@@ -600,22 +794,22 @@ func _unhandled_input(_e: InputEvent) -> void:
 			sel2 = posmod(sel2 + dc, roster.size())
 		else:                                            # picking == 2: elegir stage (carrusel, sin wrap)
 			sel_stage = clampi(sel_stage + dc, 0, Sel.STAGES.size() - 1)
-		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # campana al pasar
+		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # solo campana al pasar (sin voz)
 			_sfx_sel.stream = load(HOVER_SFX)
 			_sfx_sel.play()
 		_refresh()
 		return
-	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
+	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack") \
+			or (p2_also and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
 		if picking == 0:
-			_play_select(String(roster[sel1]["id"]))   # on-select + voz del nombre (1P)
+			_play_anim(0)                               # gesto del personaje (1P)
+			_play_select(String(roster[sel1]["id"]))    # ping + voz demorada
 			picking = 1
 			_refresh()
 		elif picking == 1:
-			_play_select(String(roster[sel2]["id"]))   # on-select + voz del nombre (2P/CPU)
-			Sel.p1 = String(roster[sel1]["id"])
-			Sel.p2 = String(roster[sel2]["id"])
-			picking = 2                                 # -> SELECT STAGE
-			_refresh()
+			_play_anim(1)                               # gesto del rival (2P/CPU)
+			_play_select(String(roster[sel2]["id"]))    # ping + voz demorada
+			_goto_stage_after_hold()                    # pausa breve viendo la animación -> stage
 		else:                                           # confirmar STAGE -> a la pelea
 			Sel.stage = int(Sel.STAGES[sel_stage]["code"])
 			Sel.configured = true
@@ -625,7 +819,13 @@ func _unhandled_input(_e: InputEvent) -> void:
 			_start_loading()   # pantalla de carga (logo) mientras carga la pelea
 	elif Input.is_action_just_pressed("ui_cancel"):
 		if picking == 2:
-			picking = 1
+			if _vs2p():
+				# volver a la selección simultánea con los dos SIN confirmar
+				picking = 0
+				locked1 = false
+				locked2 = false
+			else:
+				picking = 1
 			_refresh()
 		elif picking == 1:
 			picking = 0
