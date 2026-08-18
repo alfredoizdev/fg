@@ -17,9 +17,10 @@ var warm_cache: Array = []
 # Por ahora SOLO un stage disponible (Santuario Dorado). Los demás quedan comentados
 # para reactivarlos cuando estén listos.
 const STAGES := [
-	{"code": 4, "name": "GOLDEN SHRINE", "thumb": "res://imagen-action/ui/stage-thumbs/santuario.png"},
+	{"code": 4, "name": "GOLDEN SHRINE", "thumb": "res://imagen-action/stage/santuario-2/far.png"},
+	{"code": 1, "name": "RUINED CITY", "thumb": "res://imagen-action/stage/city-2/far.png"},
+	{"code": 5, "name": "INFERNO", "thumb": "res://imagen-action/stage/Inferno/far.png"},
 	# {"code": 3, "name": "TEMPLE",       "thumb": "res://imagen-action/ui/stage-thumbs/templo.png"},
-	# {"code": 1, "name": "BURNING CITY", "thumb": "res://imagen-action/ui/stage-thumbs/city.png"},
 	# {"code": 2, "name": "MOONLIT NIGHT", "thumb": "res://imagen-action/ui/stage-thumbs/night.png"},
 ]
 
@@ -31,6 +32,7 @@ const ROSTER := [
 	{"id": "dam",  "name": "DAM",  "arch": "ASSASSIN", "avatar": "res://imagen-action/dam/avatar/dam-avatar.png",   "portrait": "res://imagen-action/dam/sheets/select-character-post-Dam-2.png",  "stand": "res://imagen-action/dam/select/dam-select.png",   "stand_fallback": "res://imagen-action/dam/pose/dam-pose-1.png",   "weapon": "KATANA",       "power": "INFERNO"},
 	{"id": "favi", "name": "FE",   "arch": "ASSASSIN", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "portrait": "res://imagen-action/favi/sheets/select-character-post-Fe-2.png", "stand": "res://imagen-action/favi/select/favi-select.png", "stand_fallback": "res://imagen-action/favi/pose/favi-pose-1.png", "weapon": "TWIN NEEDLES", "power": "WHIRLPOOL"},
 	{"id": "aye",  "name": "AYE",  "arch": "WIZARD", "avatar": "res://imagen-action/aye/sheets/aye-face.png",   "portrait": "res://imagen-action/aye/sheets/slect-character-aye.png",        "stand": "res://imagen-action/aye/select/aye-select.png",   "stand_fallback": "res://imagen-action/aye/pose/aye-pose-1.png",   "weapon": "CRYSTAL STAFF",  "power": "PRISM"},
+	{"id": "zetma", "name": "ZETMA", "arch": "ASSASSIN", "avatar": "res://imagen-action/zetma/sheets/zetma-face.png", "portrait": "res://imagen-action/zetma/sheets/zetma-face.png", "stand": "res://imagen-action/zetma/select/anim/zetma-select-1.png", "stand_fallback": "res://imagen-action/zetma/pose/zetma-pose-1.png", "weapon": "DAGGER", "power": "SHADOW CLONES"},
 ]
 
 func _ready() -> void:

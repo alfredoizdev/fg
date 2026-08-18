@@ -1,0 +1,3 @@
+SC_BASE=1.4488
+TARGET_BBOX=665.0
+canvas=1300 centro=650 anclaje=botas

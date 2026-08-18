@@ -19,6 +19,7 @@ var fx: Control             # capa de cursores/glow (encima de las cartas)
 var cards := []             # [{x, y, w, h, av}]
 var appear_l := 0.0         # animación de aparición del personaje P1 (0→1 al hacer hover)
 var appear_r := 0.0
+var _sel_flash := [0.0, 0.0]   # flash de SELECCIÓN por lado (1→0): una sola vez al elegir
 var shown1 := -1            # último personaje mostrado en el lado P1 (para detectar hover)
 var shown2 := -1
 var name_l: Label
@@ -29,24 +30,31 @@ var prompt: Label
 # --- pantalla de carga (transición) ---
 var loading := false
 var load_t := 0.0
-const VS_MIN_SHOW := 1.2     # tiempo mínimo que se ve la pantalla de carga (aunque cargue antes)
-# PRECARGA de frames de los peleadores en un HILO DE FONDO (el hilo principal queda libre
-# para que el spinner gire fluido; cargar en el hilo principal lo bloqueaba)
+const VS_MIN_SHOW := 0.6     # tiempo mínimo que se ve la pantalla de carga (aunque cargue antes)
+# PRECARGA de frames de los peleadores en VARIOS HILOS DE FONDO en paralelo (mucho más
+# rápida que un solo hilo; aprovecha SSD + núcleos, y el spinner sigue fluido)
 var _warm: Array = []        # rutas .png a precalentar
-var _warm_thread: Thread = null
+var _warm_threads: Array = []
+const WARM_THREADS := 4      # hilos de precarga en paralelo
 const WARM_SKIP := ["select", "sheets", "avatar"]   # dirs que NO son frames de pelea
 # --- paso SELECT STAGE (picking == 2) — CARRUSEL ---
 var sel_stage := 0
 var stage_scroll := 0.0     # posición animada del carrusel (ease hacia sel_stage)
 var stage_overlay: Control
 var stage_fx: Control
+var stage_fx_top: Control    # marcos/esquinas cortadas ENCIMA de los thumbs
+var stage_clip: Control      # contenedor con clip_contents = RECORTA el carrusel al modal
+var panel_fx: Control        # dibuja el rectángulo del modal (fondo + borde), SIN recorte
 var stage_cards := []       # TextureRects de cada stage (se reposicionan cada frame)
 # geometría del carrusel (la tarjeta CENTRAL es la elegida)
-const ST_CW := 520.0
-const ST_CH := 293.0
+const ST_CW := 236.0        # tarjeta VERTICAL (retrato): muestra una FRANJA vertical del stage
+const ST_CH := 408.0        # ~0.58:1 (alta y angosta)
 const ST_CX := 960.0
-const ST_CY := 430.0        # borde superior de la tarjeta central
-const ST_SPACING := 560.0   # separación entre centros de tarjetas
+const ST_CY := 344.0        # borde superior de la tarjeta central
+const ST_SPACING := 250.0   # separación entre centros de tarjetas (juntas, tipo carrusel)
+# MODAL: rectángulo perfecto que ENMARCA y RECORTA el carrusel. Lo que se salga por los
+# lados (la tarjeta de al lado) queda OCULTO tras el modal en vez de invadir a los peleadores.
+const ST_PANEL := Rect2(490.0, 194.0, 940.0, 708.0)
 # --- pantalla de CARGA (logo FG FIGHTER + spinner) tras elegir stage ---
 var load_overlay: Control
 var load_logo: TextureRect
@@ -57,6 +65,32 @@ const RED := Color(0.95, 0.24, 0.20)
 const BLU := Color(0.62, 0.40, 1.0)      # "2P": morado (antes azul)
 const GOLD := Color(0.74, 0.52, 1.0)     # acento principal: morado (antes dorado)
 const WHITE := Color(0.95, 0.95, 1.0)
+# COLOR de cada personaje (para el flash intermitente al SELECCIONARLO): rojo/morado/azul
+const CHAR_ACCENT := {
+	"dam":  Color(1.10, 0.22, 0.16),   # rojo
+	"favi": Color(0.32, 0.62, 1.15),   # azul (Fe)
+	"aye":  Color(0.85, 0.40, 1.15),   # morado/rosa
+	"zetma": Color(0.62, 0.20, 1.10),  # morado tóxico
+}
+const CARD_CUT := 16.0   # tamaño del corte diagonal en 2 esquinas de las cartas de retrato
+
+# SLOTS BLOQUEADOS: peleadores que YA se muestran en la fila del roster (su avatar) pero AÚN no
+# son jugables. Se dibujan en GRIS con cinta "SOON" y NO están en el roster seleccionable, así el
+# cursor 1P/2P nunca cae en ellos. El avatar (roum-face) es el mismo formato de la barra de vida.
+const LOCKED_SLOTS := [
+	{"name": "ROUM", "avatar": "res://imagen-action/Roum/roum-face.png"},
+]
+
+# polígono de una carta con las esquinas SUP-IZQ e INF-DER cortadas en diagonal (look angular
+# que combina con las cuñas de la pantalla). `grow` lo agranda hacia afuera (para borde/glow).
+func _card_poly(x: float, y: float, w: float, h: float, grow: float) -> PackedVector2Array:
+	var k := CARD_CUT
+	var xa := x - grow; var ya := y - grow
+	var xb := x + w + grow; var yb := y + h + grow
+	return PackedVector2Array([
+		Vector2(xa + k, ya), Vector2(xb, ya), Vector2(xb, yb - k),
+		Vector2(xb - k, yb), Vector2(xa, yb), Vector2(xa, ya + k),
+	])
 
 # --- personajes ANIMADOS a los lados (frames del video select-*.mp4 sin fondo) ---
 # Los que aún no tienen video caen a su retrato "stand" recortado (estático).
@@ -64,6 +98,7 @@ const SEL_ANIM := {
 	"dam":  {"dir": "res://imagen-action/dam/select/anim",  "prefix": "dam-select", "n": 145, "fps": 24.0},
 	"favi": {"dir": "res://imagen-action/favi/select/anim", "prefix": "fe-select",  "n": 145, "fps": 24.0},
 	"aye":  {"dir": "res://imagen-action/aye/select/anim",  "prefix": "aye-select", "n": 145, "fps": 24.0},
+	"zetma": {"dir": "res://imagen-action/zetma/select/anim", "prefix": "zetma-select", "n": 145, "fps": 24.0},
 }
 const CHAR_H := 830.0        # altura del MÁS ALTO (DAM adulto); los demás por body_k
 const FEET_Y := 895.0        # línea de piso visual (los pies quedan sobre la banda inferior)
@@ -71,9 +106,14 @@ const CX_L := 340.0          # centro X del personaje P1
 const CX_R := 1580.0         # centro X del personaje P2
 # ESTATURA REAL de cada quien (= body_k del juego): DAM adulto 1.0, Fe ~10 años 0.71,
 # Aye ~5 años 0.65. Escala la altura en pantalla para respetar quién es más alto.
-const SIDE_BODY_K := {"dam": 1.0, "favi": 0.71, "aye": 0.65}
+const SIDE_BODY_K := {"dam": 1.0, "favi": 0.71, "aye": 0.65, "zetma": 0.85}   # Zetma un poco más bajo/chico que DAM (su pose de select es agachada y se ve grande)
 var side_spr: Array = [null, null]    # AnimatedSprite2D por lado
-var sel_frames := {}                  # id -> SpriteFrames (cache, se cargan una vez)
+var sel_frames := {}                  # id -> SpriteFrames COMPLETO (todos los frames, para el gesto al SELECCIONAR)
+var sel_frames_lite := {}             # id -> SpriteFrames de 1 SOLO frame (pose), para el HOVER (instantáneo)
+# precarga en HILO de los frames de select de TODOS los personajes: sin esto, la 1ª vez que
+# el cursor cae en un personaje se cargaban sus 145 frames de golpe y el cursor se "trababa".
+var _sel_warm_thread: Thread = null
+var _sel_warm_cache: Array = []
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -96,27 +136,32 @@ func _ready() -> void:
 		# la animación se reproduce UNA vez al posarse (hover) y se queda en la pose final
 		add_child(spr)
 		side_spr[s] = spr
-	# ---- CARTAS del roster (fila ABAJO al centro, estilo GG) ----
-	var n := roster.size()
-	var cw := 118.0
-	var ch := 118.0
-	var gap := 18.0
+	# ---- CARTAS del roster (fila ABAJO al centro, estilo GG) — más chicas y con esquinas
+	# cortadas en diagonal (combinan con las cuñas diagonales de la pantalla) ----
+	# la fila incluye el roster jugable + los slots BLOQUEADOS (Roum) al final -> centrada con todos
+	var n := roster.size() + LOCKED_SLOTS.size()
+	var cw := 90.0
+	var ch := 112.0
+	var gap := 16.0
 	var total := n * cw + (n - 1) * gap
 	var x0 := 960.0 - total / 2.0
-	var gy := 924.0
+	var gy := 930.0
 	for i in n:
 		var cx := x0 + i * (cw + gap)
+		var lk := i - roster.size()          # >= 0 -> es un slot BLOQUEADO (no jugable)
 		var av := TextureRect.new()
-		var apath := String(roster[i]["avatar"])
+		var apath := String(LOCKED_SLOTS[lk]["avatar"]) if lk >= 0 else String(roster[i]["avatar"])
 		if ResourceLoader.exists(apath):
 			av.texture = load(apath)
 		av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		av.position = Vector2(cx + 6, gy + 6); av.size = Vector2(cw - 12, ch - 12)
+		av.position = Vector2(cx + 5, gy + 5); av.size = Vector2(cw - 10, ch - 10)
 		av.clip_contents = true
 		av.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if lk >= 0:
+			av.modulate = Color(0.42, 0.42, 0.48, 1.0)   # gris apagado: aún no jugable
 		add_child(av)
-		cards.append({"x": cx, "y": gy, "w": cw, "h": ch, "av": av})
+		cards.append({"x": cx, "y": gy, "w": cw, "h": ch, "av": av, "locked": lk >= 0})
 	# ---- CAPA FX (cursores + glow, encima de las cartas) ----
 	fx = Control.new()
 	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -156,6 +201,29 @@ func _ready() -> void:
 	_build_loading_overlay()
 	_build_stage_overlay()
 	_refresh()
+	# precalienta en segundo plano los frames de select de todos los personajes (cursor fluido)
+	_sel_warm_thread = Thread.new()
+	_sel_warm_thread.start(_sel_warm_worker)
+
+# HILO: carga (disco+import) todas las texturas de select de todos los personajes y las
+# devuelve; así _frames_for las encuentra en caché y no traba el cursor al pasar por uno nuevo.
+func _exit_tree() -> void:
+	# une el hilo de precalentado antes de destruir el nodo (evita "Thread destroyed" al salir)
+	if _sel_warm_thread != null:
+		_sel_warm_thread.wait_to_finish()
+		_sel_warm_thread = null
+
+func _sel_warm_worker() -> Array:
+	var res := []
+	for id in SEL_ANIM:
+		var cfg: Dictionary = SEL_ANIM[id]
+		for i in range(1, int(cfg["n"]) + 1):
+			var p := "%s/%s-%d.png" % [String(cfg["dir"]), String(cfg["prefix"]), i]
+			if ResourceLoader.exists(p):
+				var tex = ResourceLoader.load(p)
+				if tex != null:
+					res.append(tex)
+	return res
 
 # ---------- personajes animados ----------
 # SpriteFrames del personaje: TODOS los frames del video a su FPS (regla: no submuestrear);
@@ -184,9 +252,39 @@ func _frames_for(id: String) -> SpriteFrames:
 	sel_frames[id] = sf
 	return sf
 
+# HOVER: SpriteFrames de UN SOLO frame (la pose neutra). En hover el personaje se muestra
+# CONGELADO en el frame 0 (speed_scale=0), así que NO hay que cargar los ~145 frames del gesto
+# —eso trababa el cursor al pasar a un personaje aún no precalentado (p.ej. Zetma)—. El set
+# completo se construye recién al SELECCIONAR, en _play_anim. El frame 0 es el MISMO png que en
+# el set completo, así que la escala calculada aquí sirve igual cuando se cambie al completo.
+func _frames_for_lite(id: String) -> SpriteFrames:
+	if sel_frames.has(id):
+		return sel_frames[id]        # si ya está el completo, úsalo (frame 0 idéntico)
+	if sel_frames_lite.has(id):
+		return sel_frames_lite[id]
+	var sf := SpriteFrames.new()
+	sf.add_animation("idle")
+	sf.set_animation_loop("idle", false)
+	if SEL_ANIM.has(id):
+		var cfg: Dictionary = SEL_ANIM[id]
+		sf.set_animation_speed("idle", float(cfg["fps"]))
+		var p := "%s/%s-1.png" % [String(cfg["dir"]), String(cfg["prefix"])]
+		if ResourceLoader.exists(p):
+			sf.add_frame("idle", load(p))
+	else:
+		sf.set_animation_speed("idle", 1.0)
+		var c := Sel.data(id)
+		for k in ["stand", "stand_fallback"]:
+			var p2 := String(c.get(k, ""))
+			if ResourceLoader.exists(p2):
+				sf.add_frame("idle", load(p2))
+				break
+	sel_frames_lite[id] = sf
+	return sf
+
 func _set_side(s: int, id: String) -> void:
 	var spr: AnimatedSprite2D = side_spr[s]
-	spr.sprite_frames = _frames_for(id)
+	spr.sprite_frames = _frames_for_lite(id)
 	# CONGELADO en el primer frame: reproduce a velocidad 0 (así SÍ se dibuja el personaje;
 	# un sprite detenido con stop() no renderiza en este Godot). Hover = quieto pero VISIBLE.
 	spr.speed_scale = 0.0
@@ -207,11 +305,16 @@ func _set_side(s: int, id: String) -> void:
 # La voz va con demora (SEL_DELAY) para caer con el movimiento de boca del gesto.
 func _play_anim(s: int) -> void:
 	var spr: AnimatedSprite2D = side_spr[s]
-	if spr == null or spr.sprite_frames == null:
+	if spr == null:
 		return
+	# recién AQUÍ (al SELECCIONAR) se construye el set COMPLETO de frames del gesto; en hover
+	# solo estaba el frame 0 (lite). El frame 0 es el mismo png, así que la escala no cambia.
+	var id := String(roster[sel1 if s == 0 else sel2]["id"])
+	spr.sprite_frames = _frames_for(id)
 	spr.speed_scale = 1.0   # velocidad normal: ejecuta el gesto UNA vez y queda en la pose
 	spr.frame = 0
 	spr.play("idle")
+	_sel_flash[s] = 1.0     # dispara el FLASH de selección (una sola vez, se va)
 
 func _anim_side(s: int, ap: float, dir: float, active: bool) -> void:
 	var spr: AnimatedSprite2D = side_spr[s]
@@ -276,46 +379,47 @@ func _build_stage_overlay() -> void:
 	stage_overlay.visible = false
 	stage_overlay.z_index = 4
 	add_child(stage_overlay)
-	# fondo oscuro base (por si el póster no carga) + póster a pantalla completa
-	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.03, 0.08, 1.0)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage_overlay.add_child(bg)
-	# PÓSTER de fondo (arte generado). Cubre toda la pantalla manteniendo proporción.
-	const STAGE_BG := "res://imagen-action/ui/stage-select-bg.png"
-	if ResourceLoader.exists(STAGE_BG):
-		var poster := TextureRect.new()
-		poster.texture = load(STAGE_BG)
-		poster.set_anchors_preset(Control.PRESET_FULL_RECT)
-		poster.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		poster.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		poster.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		stage_overlay.add_child(poster)
-		# velo oscuro encima del póster: baja el brillo del centro/inferior para que el
-		# título, la tarjeta y el hint se lean sin competir con el arte.
-		var veil := ColorRect.new()
-		veil.color = Color(0.03, 0.02, 0.06, 0.45)
-		veil.set_anchors_preset(Control.PRESET_FULL_RECT)
-		veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		stage_overlay.add_child(veil)
-	# título
+	# EMBEBIDO: NO hay fondo a pantalla completa. Los peleadores elegidos siguen visibles a los
+	# lados; el carrusel de stages aparece en el CENTRO con un panel oscuro solo detrás de él
+	# El póster full-screen quedó retirado a propósito.
+	# PANEL del modal: rectángulo perfecto (fondo + borde). Va PRIMERO (al fondo) y SIN recorte
+	# para que el borde salga nítido; el carrusel se dibuja DENTRO del recorte (stage_clip).
+	panel_fx = Control.new()
+	panel_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.add_child(panel_fx)
+	panel_fx.draw.connect(_draw_stage_panel)
+	# título (debajo del logo FG, encima del carrusel)
 	var title := Label.new()
 	title.add_theme_font_override("font", big_font)
-	title.add_theme_font_size_override("font_size", 68)
-	title.add_theme_constant_override("outline_size", 10)
+	title.add_theme_font_size_override("font_size", 46)
+	title.add_theme_constant_override("outline_size", 8)
 	title.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
 	title.add_theme_color_override("font_color", GOLD)
 	title.text = "SELECT STAGE"
-	title.position = Vector2(0, 54); title.size = Vector2(1920, 80)
+	title.position = Vector2(0, 236); title.size = Vector2(1920, 60)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage_overlay.add_child(title)
+	# RECORTE: todo el carrusel (marcos + thumbs + esquinas) vive dentro de un contenedor con
+	# clip_contents anclado a ST_PANEL. Un "mundo" hijo desplazado -ST_PANEL.pos deja que el resto
+	# del código siga usando coordenadas ABSOLUTAS de pantalla; el clip oculta lo que se salga
+	# del modal (la tarjeta de al lado ya no invade a los peleadores).
+	stage_clip = Control.new()
+	stage_clip.position = ST_PANEL.position
+	stage_clip.size = ST_PANEL.size
+	stage_clip.clip_contents = true
+	stage_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_overlay.add_child(stage_clip)
+	var stage_world := Control.new()
+	stage_world.position = -ST_PANEL.position
+	stage_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_clip.add_child(stage_world)
 	# capa de marcos (debajo de los thumbs para que el borde asome; el arrow va encima)
 	stage_fx = Control.new()
 	stage_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
 	stage_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage_overlay.add_child(stage_fx)
+	stage_world.add_child(stage_fx)
 	stage_fx.draw.connect(_draw_stage_fx)
 	# tarjetas (thumbnails) — se reposicionan cada frame en _layout_stage_carousel().
 	# El nombre de cada stage se dibuja en _draw_stage_fx (así sigue al carrusel).
@@ -329,8 +433,14 @@ func _build_stage_overlay() -> void:
 		th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		th.clip_contents = true
 		th.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		stage_overlay.add_child(th)
+		stage_world.add_child(th)
 		stage_cards.append(th)
+	# capa de marcos ENCIMA de los thumbs (corta las esquinas + marco angular)
+	stage_fx_top = Control.new()
+	stage_fx_top.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stage_fx_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_world.add_child(stage_fx_top)
+	stage_fx_top.draw.connect(_draw_stage_fx_top)
 	# hint
 	var hint := Label.new()
 	hint.add_theme_font_override("font", big_font)
@@ -338,8 +448,8 @@ func _build_stage_overlay() -> void:
 	hint.add_theme_constant_override("outline_size", 6)
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	hint.add_theme_color_override("font_color", Color(0.85, 0.85, 0.92))
-	hint.text = "ENTER  CONFIRM        ESC  BACK"
-	hint.position = Vector2(0, 902); hint.size = Vector2(1920, 40)
+	hint.text = "← →  ELEGIR        ENTER  CONFIRM        ESC  BACK"
+	hint.position = Vector2(0, 862); hint.size = Vector2(1920, 40)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage_overlay.add_child(hint)
@@ -370,8 +480,15 @@ func _layout_stage_carousel() -> void:
 		card.modulate = Color(b, b, b, al)
 		card.visible = al > 0.02
 
+# fondo + borde del modal (rectángulo perfecto). SIN recorte: el carrusel se dibuja dentro
+# de stage_clip; este panel lo enmarca por detrás con un borde nítido.
+func _draw_stage_panel() -> void:
+	var p := ST_PANEL
+	panel_fx.draw_rect(p, Color(0.03, 0.02, 0.06, 0.90))                              # fondo casi opaco
+	panel_fx.draw_rect(p.grow(3.0), Color(GOLD.r, GOLD.g, GOLD.b, 0.85), false, 3.0)   # borde
+	panel_fx.draw_rect(p.grow(9.0), Color(GOLD.r, GOLD.g, GOLD.b, 0.22), false, 2.0)   # halo fino
+
 func _draw_stage_fx() -> void:
-	var pulse := 0.55 + 0.45 * sin(t * 6.0)
 	for i in stage_cards.size():
 		var g := _stage_geom(i)
 		var al: float = g["alpha"]
@@ -386,23 +503,54 @@ func _draw_stage_fx() -> void:
 		var ncol := Color(1, 1, 1, al) if seld else Color(0.6, 0.6, 0.68, al)
 		stage_fx.draw_string(big_font, Vector2(r.position.x + r.size.x * 0.5 - nmw * 0.5, r.end.y + 46.0),
 				nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ncol)
+
+# marcos + ESQUINAS CORTADAS de las tarjetas de stage (mismo estilo que las cartas del avatar),
+# dibujados ENCIMA de los thumbs para tapar las esquinas rectangulares.
+func _draw_stage_fx_top() -> void:
+	var pulse := 0.55 + 0.45 * sin(t * 6.0)
+	var cutcol := Color(0.03, 0.02, 0.06)   # color del panel, para "cortar" las esquinas del thumb
+	for i in stage_cards.size():
+		var g := _stage_geom(i)
+		var al: float = g["alpha"]
+		if al < 0.05:
+			continue
+		var r: Rect2 = g["rect"]
+		var seld := (i == sel_stage)
+		var k := 20.0   # tamaño del corte de esquina
+		# tapa las 2 esquinas (sup-izq e inf-der) con triángulos del color del panel
+		stage_fx_top.draw_colored_polygon(PackedVector2Array([
+				r.position, Vector2(r.position.x + k, r.position.y), Vector2(r.position.x, r.position.y + k)]), cutcol)
+		stage_fx_top.draw_colored_polygon(PackedVector2Array([
+				r.end, Vector2(r.end.x - k, r.end.y), Vector2(r.end.x, r.end.y - k)]), cutcol)
+		# marco angular (cut-corner): dorado grueso si elegido, gris fino si no
+		var poly := _stage_card_poly(r, k)
 		if seld:
-			# glow + marco dorado grueso + flecha
-			for k in range(4, 0, -1):
-				var e := k * 5.0
-				stage_fx.draw_rect(r.grow(e), Color(GOLD.r, GOLD.g, GOLD.b, 0.10 * pulse), false, 3.0)
-			stage_fx.draw_rect(r.grow(6.0), Color(GOLD.r, GOLD.g, GOLD.b, 0.95), false, 7.0)
-			var cxm := r.position.x + r.size.x * 0.5
-			stage_fx.draw_colored_polygon(PackedVector2Array([
+			for j in range(4, 0, -1):
+				stage_fx_top.draw_polyline(poly, Color(GOLD.r, GOLD.g, GOLD.b, 0.10 * pulse), j * 4.0)
+			stage_fx_top.draw_polyline(poly, Color(GOLD.r, GOLD.g, GOLD.b, 0.95), 6.0)
+			var cxm := r.position.x + r.size.x * 0.5     # flecha arriba
+			stage_fx_top.draw_colored_polygon(PackedVector2Array([
 					Vector2(cxm - 18, r.position.y - 34), Vector2(cxm + 18, r.position.y - 34), Vector2(cxm, r.position.y - 8)]),
 					Color(GOLD.r, GOLD.g, GOLD.b, pulse))
 		else:
-			stage_fx.draw_rect(r.grow(3.0), Color(0.5, 0.5, 0.58, 0.6 * al), false, 3.0)
+			stage_fx_top.draw_polyline(poly, Color(0.5, 0.5, 0.58, 0.7 * al), 3.0)
+
+# polígono CERRADO de una tarjeta de stage con esquinas SUP-IZQ e INF-DER cortadas
+func _stage_card_poly(r: Rect2, k: float) -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(r.position.x + k, r.position.y), Vector2(r.end.x, r.position.y),
+		Vector2(r.end.x, r.end.y - k), Vector2(r.end.x - k, r.end.y),
+		Vector2(r.position.x, r.end.y), Vector2(r.position.x, r.position.y + k),
+		Vector2(r.position.x + k, r.position.y)])
 
 func _start_loading() -> void:
 	loading = true
 	load_t = 0.0
 	set_process_unhandled_input(false)
+	# cierra el hilo de precalentado de select si aún corre (evita hilo colgando al cambiar escena)
+	if _sel_warm_thread != null:
+		_sel_warm_cache = _sel_warm_thread.wait_to_finish()
+		_sel_warm_thread = null
 	# carga la escena de pelea EN SEGUNDO PLANO (no congela la pantalla de carga)
 	ResourceLoader.load_threaded_request("res://main.tscn")
 	# lista de frames de los 2 peleadores a PRECALENTAR mientras gira el spinner (así main.gd
@@ -412,9 +560,18 @@ func _start_loading() -> void:
 	_scan_fight_pngs("res://imagen-action/%s" % Sel.p1, _warm)
 	if Sel.p2 != Sel.p1:
 		_scan_fight_pngs("res://imagen-action/%s" % Sel.p2, _warm)
-	# arranca el HILO que precalienta esas texturas (no bloquea el spinner)
-	_warm_thread = Thread.new()
-	_warm_thread.start(_warm_worker.bind(_warm))
+	# reparte las rutas en VARIOS hilos que precalientan en paralelo (no bloquean el spinner)
+	_warm_threads.clear()
+	var total := _warm.size()
+	var per := int(ceil(float(total) / float(WARM_THREADS)))
+	for i in WARM_THREADS:
+		var lo := i * per
+		var hi: int = min(lo + per, total)
+		if lo >= hi:
+			break
+		var th := Thread.new()
+		th.start(_warm_worker.bind(_warm.slice(lo, hi)))
+		_warm_threads.append(th)
 	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
 	if stage_overlay != null:
 		stage_overlay.visible = false
@@ -493,6 +650,22 @@ func _data_label(pos: Vector2) -> Label:
 	add_child(l)
 	return l
 
+# FLASH intermitente detrás del personaje elegido: columna de glow del COLOR del personaje que
+# parpadea (on/off), para que quede clarísimo que ESE personaje fue seleccionado.
+func _sel_flash_draw(cx: float, id: String, amt: float) -> void:
+	var col: Color = CHAR_ACCENT.get(id, GOLD)
+	var k := clampf(amt, 0.0, 1.0)                    # 1 (recién elegido) -> 0 (se fue)
+	for i in range(6, 0, -1):                        # capas anchas -> halo suave que se va
+		var hw := 120.0 + i * 44.0
+		draw_colored_polygon(PackedVector2Array([
+				Vector2(cx - hw, 100.0), Vector2(cx + hw, 100.0),
+				Vector2(cx + hw * 0.7, FEET_Y), Vector2(cx - hw * 0.7, FEET_Y)]),
+				Color(col.r, col.g, col.b, 0.07 * k))
+	draw_colored_polygon(PackedVector2Array([        # núcleo brillante
+			Vector2(cx - 160, 120.0), Vector2(cx + 160, 120.0),
+			Vector2(cx + 110, FEET_Y), Vector2(cx - 110, FEET_Y)]),
+			Color(col.r, col.g, col.b, 0.22 * k))
+
 # ---------- FONDO estilo GG STRIVE: diagonales ROJO/MORADO + placas de nombre ----------
 func _draw() -> void:
 	var w := 1920.0
@@ -526,6 +699,11 @@ func _draw() -> void:
 	for i in range(-2, 22):
 		var x := i * 96.0
 		draw_line(Vector2(x, 0), Vector2(x - 210, h), Color(0.62, 0.4, 0.95, 0.04), 2.0)
+	# FLASH de selección detrás del personaje (color del personaje) — UNA sola vez al elegir
+	if _sel_flash[0] > 0.0:
+		_sel_flash_draw(CX_L, String(roster[sel1]["id"]), _sel_flash[0])
+	if _sel_flash[1] > 0.0:
+		_sel_flash_draw(CX_R, String(roster[sel2]["id"]), _sel_flash[1])
 	# banda superior fina
 	draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, 70), Vector2(0, 58)]), Color(0.04, 0.02, 0.06, 0.9))
 	draw_line(Vector2(0, 58), Vector2(w, 70), GOLD, 3.0)
@@ -541,28 +719,62 @@ func _draw() -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(1260, 782), Vector2(1880, 790), Vector2(1880, 884), Vector2(1276, 876)]),
 			Color(BLU.r * 0.62, BLU.g * 0.5, BLU.b * 0.82, apr))
 	draw_line(Vector2(1260, 782), Vector2(1880, 790), Color(1, 1, 1, 0.85 * apr), 3.0)
-	# marco de cada carta (bisel oscuro) — el glow/cursor va en la capa fx
+	# marco de cada carta (bisel oscuro con esquinas cortadas) — el glow/cursor va en la capa fx
 	for c in cards:
 		var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
-		draw_rect(Rect2(x - 3, y - 3, cw + 6, chh + 6), Color(0, 0, 0, 0.85))
-		draw_rect(Rect2(x, y, cw, chh), Color(0.10, 0.10, 0.14))
+		draw_colored_polygon(_card_poly(x, y, cw, chh, 4.0), Color(0, 0, 0, 0.85))
+		draw_colored_polygon(_card_poly(x, y, cw, chh, 0.0), Color(0.10, 0.10, 0.14))
 
 # ---------- CURSORES + GLOW (capa fx, encima de las cartas) ----------
 func _draw_fx() -> void:
 	var pulse := 0.6 + 0.4 * sin(t * 7.0)
+	# FLASH ENCIMA del personaje al ELEGIRLO: un fogonazo del color del personaje sobre él que
+	# blinkea un instante y se va (va en la capa fx = por ENCIMA del sprite).
+	for s in 2:
+		if _sel_flash[s] > 0.0:
+			var fid := String(roster[sel1 if s == 0 else sel2]["id"])
+			var fcol: Color = CHAR_ACCENT.get(fid, GOLD)
+			var fcx := CX_L if s == 0 else CX_R
+			var fa := pow(_sel_flash[s], 2.2) * 0.42   # blink breve (brillante al inicio, se va)
+			fx.draw_colored_polygon(PackedVector2Array([
+					Vector2(fcx - 205, 95.0), Vector2(fcx + 205, 95.0),
+					Vector2(fcx + 150, FEET_Y + 18.0), Vector2(fcx - 150, FEET_Y + 18.0)]),
+					Color(fcol.r, fcol.g, fcol.b, fa))
+	# ESQUINAS CORTADAS: los avatares son rectangulares; aquí (encima de ellos) tapo las 2
+	# esquinas con triángulos oscuros para que la carta se vea con corte diagonal, y le doy a
+	# TODA carta un borde angular tenue.
+	var cutcol := Color(0.06, 0.04, 0.09)
+	for c in cards:
+		var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
+		var k := CARD_CUT
+		fx.draw_colored_polygon(PackedVector2Array([Vector2(x, y), Vector2(x + k, y), Vector2(x, y + k)]), cutcol)
+		fx.draw_colored_polygon(PackedVector2Array([Vector2(x + cw, y + chh), Vector2(x + cw - k, y + chh), Vector2(x + cw, y + chh - k)]), cutcol)
+		var op := _card_poly(x, y, cw, chh, 2.0); op.append(op[0])
+		fx.draw_polyline(op, Color(0.55, 0.55, 0.66, 0.5), 2.0)
+		# SLOT BLOQUEADO (aún no jugable): velo oscuro + cinta "SOON" abajo
+		if c.get("locked", false):
+			fx.draw_colored_polygon(_card_poly(x, y, cw, chh, 0.0), Color(0.02, 0.02, 0.04, 0.5))
+			fx.draw_rect(Rect2(x, y + chh - 30, cw, 22), Color(GOLD.r * 0.5, GOLD.g * 0.5, GOLD.b * 0.5, 0.92))
+			var sw := big_font.get_string_size("SOON", HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+			fx.draw_string(big_font, Vector2(x + cw * 0.5 - sw * 0.5, y + chh - 13), "SOON",
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.95))
 	var a1: bool = (not locked1) if (_vs2p() and picking < 2) else (picking == 0)
 	var a2: bool = (not locked2) if (_vs2p() and picking < 2) else (picking == 1)
 	_cursor(sel1, RED, "1P", a1, pulse, -1)
 	_cursor(sel2, BLU, "2P", a2, pulse, 1)
-	# "READY" sobre el personaje confirmado (estilo GG)
-	if _vs2p() and picking < 2:
-		if locked1:
-			_ready_plate(CX_L, RED)
-		if locked2:
-			_ready_plate(CX_R, BLU)
+	# "READY" sobre el personaje confirmado (estilo GG) — en TODOS los modos.
+	# VS 2P: por locked1/locked2. VS CPU / TRAINING (flujo secuencial): P1 listo al pasar a
+	# elegir el rival (picking>=1); el rival listo al confirmarlo (picking>=2 o durante la
+	# pausa post-selección _advancing).
+	var r1: bool = locked1 if (_vs2p() and picking < 2) else (picking >= 1)
+	var r2: bool = locked2 if (_vs2p() and picking < 2) else (picking >= 2 or _advancing)
+	if r1:
+		_ready_plate(CX_L, RED)
+	if r2:
+		_ready_plate(CX_R, BLU)
 
 func _ready_plate(cx: float, col: Color) -> void:
-	var r := Rect2(cx - 130, 118, 260, 64)
+	var r := Rect2(cx - 130, 470, 260, 64)   # sobre el CUERPO (antes 118 = sobre la cabeza)
 	fx.draw_colored_polygon(PackedVector2Array([r.position, Vector2(r.end.x + 10, r.position.y),
 			Vector2(r.end.x, r.end.y), Vector2(r.position.x - 10, r.end.y)]),
 			Color(col.r * 0.75, col.g * 0.55, col.b * 0.55, 0.92))
@@ -576,12 +788,14 @@ func _cursor(idx: int, col: Color, tag: String, active: bool, pulse: float, side
 	var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
 	var a := 1.0 if active else 0.7
 	var gl := (pulse if active else 0.5)
-	# glow exterior
+	# glow exterior (esquinas cortadas)
 	for k in range(4, 0, -1):
 		var e := k * 4.0
-		fx.draw_rect(Rect2(x - e, y - e, cw + e * 2, chh + e * 2), Color(col.r, col.g, col.b, 0.08 * gl * a), false, 3.0)
-	# borde grueso
-	fx.draw_rect(Rect2(x - 4, y - 4, cw + 8, chh + 8), Color(col.r, col.g, col.b, a), false, 5.0)
+		var gp := _card_poly(x, y, cw, chh, e); gp.append(gp[0])
+		fx.draw_polyline(gp, Color(col.r, col.g, col.b, 0.08 * gl * a), 3.0)
+	# borde grueso (esquinas cortadas)
+	var bp := _card_poly(x, y, cw, chh, 4.0); bp.append(bp[0])
+	fx.draw_polyline(bp, Color(col.r, col.g, col.b, a), 5.0)
 	# etiqueta 1P/2P sobre una plaquita
 	var tx := x - 6 if side < 0 else x + cw - 44
 	fx.draw_rect(Rect2(tx, y - 40, 50, 34), Color(col.r * 0.7, col.g * 0.7, col.b * 0.7, a))
@@ -626,6 +840,10 @@ func _ease_out(x: float) -> float:
 
 func _process(delta: float) -> void:
 	t += delta
+	# recoge el hilo de precalentado de frames de select cuando termina (mantiene refs en caché)
+	if _sel_warm_thread != null and not _sel_warm_thread.is_alive():
+		_sel_warm_cache = _sel_warm_thread.wait_to_finish()
+		_sel_warm_thread = null
 	if loading:
 		_update_loading(delta)
 		return
@@ -638,20 +856,32 @@ func _process(delta: float) -> void:
 	_anim_side(1, appear_r, 1.0, act_r)
 	if fx:
 		fx.queue_redraw()
+	# FLASH de selección (una sola vez): decae de 1→0; mientras dura, redibuja fondo y fx
+	if _sel_flash[0] > 0.0 or _sel_flash[1] > 0.0:
+		_sel_flash[0] = maxf(0.0, _sel_flash[0] - delta * 1.8)   # ~0.55s
+		_sel_flash[1] = maxf(0.0, _sel_flash[1] - delta * 1.8)
+		queue_redraw()
 	if picking == 2 and stage_fx != null:
 		stage_scroll = lerpf(stage_scroll, float(sel_stage), minf(delta * 12.0, 1.0))
 		_layout_stage_carousel()
 		stage_fx.queue_redraw()
+		if stage_fx_top != null:
+			stage_fx_top.queue_redraw()
 
 func _update_loading(delta: float) -> void:
 	load_t += delta
 	if load_spin != null:
 		load_spin.queue_redraw()
-	# el HILO precalienta en segundo plano: el spinner sigue girando sin bloquearse.
-	var warm_done: bool = _warm_thread == null or not _warm_thread.is_alive()
-	if warm_done and _warm_thread != null:
-		Sel.warm_cache = _warm_thread.wait_to_finish()   # recoge las texturas calientes
-		_warm_thread = null
+	# los HILOS precalientan en paralelo: el spinner sigue girando sin bloquearse.
+	var warm_done := true
+	for th in _warm_threads:
+		if th.is_alive():
+			warm_done = false
+			break
+	if warm_done and not _warm_threads.is_empty():
+		for th in _warm_threads:
+			Sel.warm_cache.append_array(th.wait_to_finish())   # recoge las texturas calientes
+		_warm_threads.clear()
 	# cuando la escena cargó, los frames están calientes Y ya se vio el mínimo -> entrar
 	var st := ResourceLoader.load_threaded_get_status("res://main.tscn")
 	if st == ResourceLoader.THREAD_LOAD_LOADED and warm_done and load_t >= VS_MIN_SHOW:
@@ -674,10 +904,11 @@ const SEL_LINE := {
 	"dam": "res://imagen-action/dam/sound-effect/excellent_choice_Vibes_Eleven_v3_01a0076e-f439-7e56-9545-5aaa4f1eb0d1.mp3",
 	"favi": "res://imagen-action/favi/Fe-sound-effect/let_have_fun_Tattle_Eleven_v3_01a00770-428c-7f68-b7e5-1d5b6763fdd9.mp3",
 	"aye": "res://imagen-action/aye/sound-effect/we_got_this_Cupcake_Eleven_v3_01a00772-a7ce-7ba0-8488-29fb6cd8bc37.mp3",
+	"zetma": "res://imagen-action/zetma/sound-effect/zetma-select.wav",   # "the shades are with me" (robótica/terror)
 }
 # DEMORA (seg) antes de que suene la voz, para que arranque con el movimiento de boca del
 # clip. Faviola algo más que DAM; Aye con la suya. (tuneable a gusto)
-const SEL_DELAY := {"dam": 0.70, "favi": 1.60, "aye": 0.90}
+const SEL_DELAY := {"dam": 0.70, "favi": 1.60, "aye": 1.55, "zetma": 0.80}
 const SELECT_HOLD := 2.2    # pausa tras la ÚLTIMA selección: se ve la animación antes de avanzar
 var _advancing := false     # true durante esa pausa: congela el input
 var _sfx_sel: AudioStreamPlayer

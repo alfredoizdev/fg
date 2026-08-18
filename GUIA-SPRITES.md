@@ -931,16 +931,27 @@ golpe con un snap — esta anim lo arregla):_
 
 **`parry.mp4` (postura de DESVÍO — ventana del counter Q+W):**
 
+> READ THIS FIRST — THE #1 RULE: this is a STATIC, LOCKED-OFF shot, like ONE frame of a
+> sprite sheet that barely moves. The character is DEAD-CENTER of the frame and stays
+> there. He is the SAME SIZE in pixels in EVERY frame — first, MIDDLE, and last all
+> identical in scale. There is ZERO zoom, the camera NEVER moves or pushes in — NOT at
+> the start, NOT in the middle, NOT at the end. He ALWAYS faces the SAME way: STRICT
+> SIDE PROFILE looking toward the RIGHT edge of the screen, forward over his guard, the
+> whole clip — he NEVER turns frontal, NEVER three-quarter, NEVER looks at the camera,
+> NEVER mirrors or flips. If his scale changes, if he drifts off-center, or if his
+> facing changes at any point, the clip is WRONG and must be redone.
+>
 > ONE quick defensive SNAP and then a tense HOLD: from his fighting guard he whips the
 > big sword up-and-across in one sharp motion into a DEFLECT position — the blade held
 > DIAGONAL in front of his chest and face, edge facing forward-and-up, both hands on the
 > handle, elbows tucked, body coiled sideways behind the blade, front foot braced, eyes
-> locked forward over the guard. He then HOLDS that coiled deflect stance for the REST
-> of the clip, perfectly ready: the only motion is tense breathing, tiny adjustments of
-> his grip, and his coat and hair settling from the snap. He does NOT swing, does NOT
-> attack, does NOT return to guard — the clip ENDS still holding the deflect stance.
+> locked forward-RIGHT over the guard. He then HOLDS that coiled deflect stance for the
+> REST of the clip, perfectly ready: the only motion is tense breathing, tiny
+> adjustments of his grip, and his coat and hair settling from the snap. He does NOT
+> swing, does NOT attack, does NOT return to guard, does NOT step or turn — the clip
+> ENDS still holding the exact same deflect stance, centered, facing right.
 > Nothing touches him and nothing appears: NO flashes, NO glow, NO sparks, NO opponent.
-> He stays ON ONE SPOT, SAME SIZE the whole clip.
+> He stays DEAD-CENTER, ON ONE SPOT, SAME SIZE, facing RIGHT the whole clip.
 
 > _Guardar como `sheets/block.mp4`, `sheets/block_low.mp4` y `sheets/parry.mp4` → los
 > proceso a `dam/block/`, `dam/block-low/` (drop-in sobre los frames estáticos de 1

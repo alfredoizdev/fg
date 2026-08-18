@@ -172,21 +172,62 @@ const AYE_SWING_FX := {
 			[-60.0, 30.0, 0.9], [30.0, -60.0, 0.85], [-50.0, 22.0, 0.7], [22.0, -50.0, 0.55]]},
 }
 
+# OVERRIDE por-personaje para ZETMA (fx_dark): sus clips NUEVOS (punch 91f / kick 79f /
+# weak_punch 61f) tienen otro timing que los de DAM, así que la estela iba desincronizada.
+# Aquí las bases van al apex REAL de cada golpe (medido): jab daga apex f23, brazo mecánico
+# estirado apex f84, patada ALTA pie arriba apex f35. Estelas CORTAS (no el arcazo de katana
+# de DAM) porque pelea con puño/pierna/daga; color VOID violeta oscuro (ver _draw).
+const ZETMA_SWING_FX := {
+	# R (weak_punch) = DOS golpes (estocada de daga al frente + patada alta). Clip recortado a
+	# 54f: estela 1 sigue la ESTOCADA (~f3-8), estela 2 sigue la PATADA que sube (~f34-44).
+	"weak_punch": {"c": Vector2(20, 10), "r": 500.0, "w": 170.0, "flat": 0.5,
+		"base": 3, "stages": [[100.0, 8.0, 0.5], [55.0, -8.0, 0.95], [15.0, -15.0, 0.7], [0.0, -18.0, 0.4], [0.0, -18.0, 0.2]],
+		"base2": 34, "stages2": [[40.0, -20.0, 0.5, 1.2], [5.0, -70.0, 0.95, 1.28], [-35.0, -105.0, 1.0, 1.3], [-58.0, -118.0, 0.55, 1.3], [-70.0, -125.0, 0.3, 1.25]]},
+	# Q (punch) = ESTOCADA con daga al frente (clip nuevo 38f, apex baked f24): streak que
+	# sigue la punta de la daga hacia adelante.
+	"punch": {"base": 20, "c": Vector2(20, 20), "r": 470.0, "w": 160.0, "flat": 0.28,
+		"stages": [[100.0, 8.0, 0.6], [50.0, -10.0, 1.0], [10.0, -16.0, 0.7], [0.0, -18.0, 0.4], [0.0, -18.0, 0.2]]},
+	# W (kick) = PATADA ALTA: la estela BARRE de abajo→ARRIBA siguiendo la pierna que sube.
+	"kick": {"base": 20, "c": Vector2(20, 40), "r": 640.0, "w": 330.0, "flat": 1.0,
+		"stages": [[35.0, -30.0, 0.5, 0.85], [0.0, -85.0, 0.95, 0.95], [-40.0, -118.0, 1.0, 1.0], [-62.0, -128.0, 0.6, 1.0], [-72.0, -132.0, 0.3, 1.0]]},
+	# E (spin_kick) = BRAZO MECÁNICO que se dispara LARGO al frente (apex baked f10): estela
+	# larga y baja que persigue el puño extendido (poke de largo alcance que empuja).
+	"spin_kick": {"base": 6, "c": Vector2(30, 0), "r": 660.0, "w": 200.0, "flat": 0.22,
+		"stages": [[95.0, 5.0, 0.55], [50.0, -12.0, 0.9], [15.0, -18.0, 1.0], [2.0, -20.0, 0.7], [0.0, -20.0, 0.4], [0.0, -20.0, 0.2]]},
+	# ↑Q (jump_punch) = ESTOCADA AÉREA: ARCO por DEBAJO de la daga, barre de atrás-abajo a la
+	# punta al frente (base al extenderse ~f28). [ARCOS tuneables: ángulos 90°=abajo, -90=arriba]
+	"jump_punch": {"c": Vector2(30, 20), "r": 540.0, "w": 190.0, "flat": 0.95,
+		"base": 26, "stages": [[150.0, 10.0, 0.5], [145.0, 0.0, 0.95], [140.0, -8.0, 1.0], [138.0, -12.0, 0.6], [136.0, -15.0, 0.3]]},
+	# ↑W (jump_kick) = PATADA VOLADORA: ARCO GRANDE por debajo de la pierna (pie de atrás -> pie
+	# de adelante), base al extender ~f13.
+	"jump_kick": {"c": Vector2(20, 30), "r": 660.0, "w": 300.0, "flat": 1.0,
+		"base": 12, "stages": [[165.0, 5.0, 0.5], [160.0, -5.0, 0.95], [155.0, -12.0, 1.0], [152.0, -16.0, 0.6], [150.0, -18.0, 0.3]]},
+	# jump E (air_spin_kick) = DOBLE PATADA: un ARCO grande por patada (kick1 ~f11, kick2 ~f57).
+	"air_spin_kick": {"c": Vector2(20, 20), "r": 640.0, "w": 290.0, "flat": 1.0,
+		"base": 8, "stages": [[160.0, 0.0, 0.5], [155.0, -10.0, 0.95], [150.0, -18.0, 1.0], [148.0, -22.0, 0.5]],
+		"base2": 52, "stages2": [[160.0, 0.0, 0.5], [155.0, -12.0, 0.95], [150.0, -20.0, 1.0], [148.0, -24.0, 0.5]]},
+	# jump R (air_jab) = DOBLE jab de cuchillo: ARCO grande en C (de arriba-atras por la derecha
+	# hacia abajo y a la izquierda), sigue el barrido del cuchillo. Dos golpes -> dos arcos.
+	"air_jab": {"c": Vector2(20, 10), "r": 600.0, "w": 250.0, "flat": 1.0,
+		"base": 12, "stages": [[-40.0, 150.0, 0.5], [-30.0, 155.0, 0.95], [-20.0, 160.0, 1.0], [-15.0, 162.0, 0.5]],
+		"base2": 55, "stages2": [[-40.0, 150.0, 0.5], [-30.0, 155.0, 0.95], [-20.0, 160.0, 1.0], [-15.0, 162.0, 0.5]]},
+}
+
 # frame que conecta, alcance y dano de cada ataque (alcances en px de pantalla)
 # daño por TIER:  flojo (R) = 50 · medio (Q) = 90 · fuerte (W/E) = 100
 const ATTACKS := {
 	"punch":        {"hit_frame": 2, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
 	"punch2":       {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
-	"kick":         {"hit_frame": 4, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 100},
-	"crouch_punch": {"hit_frame": 1, "reach": 620.0 * CHAR_SCALE, "low": true,  "damage": 90},
-	"crouch_jab":   {"hit_frame": 1, "reach": 640.0 * CHAR_SCALE, "low": true,  "damage": 50},
-	"sweep":        {"hit_frame": 2, "reach": 700.0 * CHAR_SCALE, "low": true,  "trip": true, "damage": 100},
-	"crouch_kick":  {"hit_frame": 2, "reach": 640.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100},
-	"jump_punch":   {"hit_frame": 2, "reach": 550.0 * CHAR_SCALE, "low": false, "damage": 90},
-	"jump_kick":    {"hit_frame": 2, "reach": 500.0 * CHAR_SCALE, "low": false, "damage": 100},
-	"spin_kick":    {"hit_frame": 2, "reach": 520.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
-	"air_spin_kick": {"hit_frame": 4, "reach": 580.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
-	"weak_punch":   {"hit_frame": 1, "reach": 480.0 * CHAR_SCALE, "low": false, "damage": 50},
+	"kick":         {"hit_frame": 4, "reach": 620.0 * CHAR_SCALE, "low": false, "damage": 100},
+	"crouch_punch": {"hit_frame": 1, "reach": 600.0 * CHAR_SCALE, "low": true,  "damage": 90},
+	"crouch_jab":   {"hit_frame": 1, "reach": 550.0 * CHAR_SCALE, "low": true,  "damage": 50},
+	"sweep":        {"hit_frame": 2, "reach": 660.0 * CHAR_SCALE, "low": true,  "trip": true, "damage": 100},
+	"crouch_kick":  {"hit_frame": 2, "reach": 620.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100},
+	"jump_punch":   {"hit_frame": 2, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 90},
+	"jump_kick":    {"hit_frame": 2, "reach": 600.0 * CHAR_SCALE, "low": false, "damage": 100},
+	"spin_kick":    {"hit_frame": 2, "reach": 600.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
+	"air_spin_kick": {"hit_frame": 4, "reach": 620.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
+	"weak_punch":   {"hit_frame": 1, "reach": 550.0 * CHAR_SCALE, "low": false, "damage": 50},
 }
 
 const FLY_TILT_DEG := 34.0   # inclinación del cuerpo al salir volando (se ladea hacia el empujón)
@@ -361,6 +402,13 @@ var vel_x := 0.0
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
 const FREEZE_DUR := 1.0   # Aye ↓E (ice-spikes): tiempo que el rival queda CONGELADO en su frame (tinte morado)
 var frozen_t := 0.0       # >0 = inmóvil, sprite pausado en su pose, teñido de morado (poder de hielo)
+var orb_trap_t := 0.0        # ESFERA de Zetma: >0 = rival en CÁMARA LENTA, no actúa, teñido morado (sí recibe golpes)
+var orb_trap_top_y := -640.0 # cima de la esfera en espacio LOCAL: la barra de tiempo se le pega justo encima
+var orb_trap_sprite_home := Vector2.ZERO  # pos normal del sprite: para HALARLO al centro del orb y luego restaurarlo
+var orb_trap_max := 2.0      # duración total de la esfera (para la barra que se vacía)
+var orb_trap_was_input := true
+var orb_trap_was_ai := false
+var orb_haste_t := 0.0       # Zetma: >0 = velocidad de movimiento aumentada (mientras el rival está en la esfera)
 var air_float_t := 0.0 # flote aéreo SOLO tras conectar un golpe en el aire (juggle)
 var juggle_hold_t := 0.0   # SOSTÉN de juggle (víctima): tras cada rebote, la caída es LENTA un rato para que el combo aéreo la alcance
 var air_move_used := false   # ya se hizo UN golpe aéreo este salto (hasta caer o conectar)
@@ -407,6 +455,9 @@ var fx_anims := {}
 var fx_blue := false   # true = chispas de impacto AZULES (Favi); false = naranja (DAM)
 var swing_y_off := 0.0  # corrimiento Y de las ESTELAS: el cuerpo de Fe va ~144px más ABAJO en el lienzo que el de DAM (para el que están tuneadas)
 var fx_floral := false  # true = estela MORADA+ROSA floral (Aye); tiene prioridad sobre fx_blue
+var fx_dark := false    # true = ZETMA (ninja oscuridad): estelas VERDE/void; usa audio propio por anim
+var dust_tint := Color(1, 1, 1)   # color del POLVO segun el stage (main lo setea: azul oscuro en stages oscuros)
+var _zetma_snd := {}    # cache de audios de Zetma por anim (imagen-action/zetma/sound-effect/<anim>.wav)
 
 # nombre de acción de ESTE peleador: P1 usa las acciones tal cual ("attack"),
 # el jugador 2 local las versiones con sufijo ("attack_p2"). Ver [input] en project.godot.
@@ -487,6 +538,14 @@ const SMOKE_MOVES := ["kick", "crouch_kick", "spin_kick", "air_spin_kick", "swee
 
 func _on_animation_changed() -> void:
 	var nombre := String(sprite.animation)
+	# ZETMA: cada clip suyo trae su propio sonido. Al cambiar de anim, si existe
+	# imagen-action/zetma/sound-effect/<anim>.wav, se reproduce (pedido: usar el audio de
+	# los clips). Se cachea por anim. La POSE tambien suena al asentarse en guardia (pedido).
+	if fx_dark:
+		# corta el sonido de CAMINAR al dejar de caminar (si no, quedaba pegado sonando)
+		if nombre != "walk" and sfx_key == "walk" and sfx_player.playing:
+			sfx_player.stop()
+		_play_zetma_snd(nombre)   # incluye "pose": usa el audio que trae el clip de idle
 	var es_impacto := nombre in ["take_hit", "take_hit_low", "hit_fly", "fly_straight"]
 	if es_impacto and impact_sfx_override != "" and sfx.has(impact_sfx_override):
 		nombre = impact_sfx_override
@@ -515,12 +574,13 @@ func _on_animation_changed() -> void:
 		# PEONZA de Fe: WHOOSH giratorio (sound-effect/whoosh.mp3) en vez del slash de
 		# espada — su voz ("Power Twister") va APARTE por voz_player, se mantienen ambas
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
-	elif not fx_blue and not fx_floral and nombre == "jump_kick":
+	elif not fx_blue and not fx_floral and not fx_dark and nombre == "jump_kick":
 		# MOLINETE de DAM (salto+W): el MISMO whoosh giratorio de la peonza — la espada
 		# girando en círculos suena a remolino, no al slash de un tajo
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
-	elif not fx_blue and not fx_floral and nombre == "spin_kick":
-		# E de DAM (torbellino): whoosh giratorio + SU VOZ "Dancing Sword" (fórmula inferno)
+	elif not fx_blue and not fx_floral and not fx_dark and nombre == "spin_kick":
+		# E de DAM (torbellino): whoosh giratorio + SU VOZ "Dancing Sword" (fórmula inferno).
+		# NO Zetma (fx_dark): su E usa su propio audio (_play_zetma_snd), sin la voz de DAM.
 		# aparte por voz_player — como la peonza de Fe, se oyen ambas
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
 		var dsw := "res://imagen-action/sound-effect/voz-dancing-sword.wav"
@@ -530,10 +590,12 @@ func _on_animation_changed() -> void:
 			voz_player.stream = dam_spin_voz_sfx
 			voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 			voz_player.play()
-	elif not fx_blue and not fx_floral and nombre == "air_spin_kick":
+	elif not fx_blue and not fx_floral and not fx_dark and nombre == "air_spin_kick":
 		# salto+E de DAM: FUERA el "dam-kick-shout.wav" (SU VOZ — se va a cambiar, pedido);
 		# mientras tanto el mismo whoosh del molinete, cortado al terminar la anim
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
+	elif fx_dark and nombre == "air_spin_kick":
+		_play_sfx_key("kick")   # ZETMA: swing de golpe (sword-slash), NO la voz dam-kick-shout de DAM
 	elif fx_floral and nombre == "jump_kick_cast":
 		# AYE gira el báculo (molinete): WHOOSH del giro (el sonido que va creando al rotar el báculo)
 		_play_aye_swoosh("res://imagen-action/aye/sound-effect/whoosh.mp3", -5.0)
@@ -709,6 +771,32 @@ func _update_rage_eyes() -> void:
 	rage_eyes.position = Vector2(42.0 * float(facing), -95.0)
 	rage_eyes.direction = Vector2(-float(facing), -0.35)
 
+# ZETMA: reproduce el sonido propio del clip de esta anim (si existe), en el canal SFX.
+func _play_zetma_snd(anim: String) -> void:
+	if anim == "walk":
+		return   # sin sonido de pasos de Zetma (pedido)
+	if not _zetma_snd.has(anim):
+		var p := "res://imagen-action/zetma/sound-effect/%s.wav" % anim
+		_zetma_snd[anim] = load(p) if ResourceLoader.exists(p) else null
+	var st = _zetma_snd[anim]
+	if st != null:
+		# RESPIRACIÓN de la pose: más BAJA y SIN pitch-shift (el pitch la hacía "robótica"), y no
+		# la reinicies si ya suena (evita el entrecortado al volver a idle tras cada acción).
+		if anim == "pose":
+			if sfx_key == "pose" and sfx_player.playing:
+				return
+			sfx_key = anim
+			sfx_player.stream = st
+			sfx_player.pitch_scale = 1.0
+			sfx_player.volume_db = -8.0
+			sfx_player.play()
+			return
+		sfx_key = anim
+		sfx_player.stream = st
+		sfx_player.pitch_scale = randf_range(0.96, 1.05)
+		sfx_player.volume_db = 0.0
+		sfx_player.play()
+
 # 2ª patada del air_jab DOBLE de Fe: suena en el canal de VOZ (aparte) para no cortar la 1ª
 func _play_kick2() -> void:
 	if sfx.has("kick_effect"):
@@ -760,6 +848,10 @@ func current_attack() -> Dictionary:
 	if not fx_blue and not fx_floral and sprite.animation == "crouch_jab" and sprite.is_playing() \
 			and sprite.sprite_frames.get_frame_count("crouch_jab") > 8:
 		var cjfr := int(sprite.frame)
+		if fx_dark:
+			# ZETMA: ↓R = UN poke bajo RÁPIDO (clip 28f recortado): conecta ~f10, el más ligero.
+			return {"name": "crouch_jab", "frame": cjfr, "hit_frame": 10,
+				"reach": 500.0 * CHAR_SCALE, "low": true, "damage": 40}
 		if cjfr < 32:
 			return {"name": "crouch_jab", "frame": cjfr, "hit_frame": 21,
 				"reach": 640.0 * CHAR_SCALE, "low": true, "damage": 50}
@@ -771,6 +863,15 @@ func current_attack() -> Dictionary:
 	if not fx_blue and not fx_floral and sprite.animation == "weak_punch" and sprite.is_playing() \
 			and sprite.sprite_frames.get_frame_count("weak_punch") > 8:
 		var wfr := int(sprite.frame)
+		if fx_dark:
+			# ZETMA: weak_punch = DOS golpes (estocada de daga + patada alta). Clip recortado a su
+			# ventana activa (54f): la estocada extiende ~f6, la patada alta ~f39. Rápido (assassin).
+			# Dos ventanas con NOMBRES distintos para que el árbitro cuente ambos impactos.
+			if wfr < 17:
+				return {"name": "weak_punch", "frame": wfr, "hit_frame": 6, "reach": 640.0 * CHAR_SCALE,
+					"low": false, "damage": 40, "impact_sfx": "kick_impact"}
+			return {"name": "weak_punch_2", "frame": wfr, "hit_frame": 39, "reach": 660.0 * CHAR_SCALE,
+				"low": false, "damage": 50, "impact_sfx": "kick_impact"}
 		if wfr < 10:
 			return {"name": "weak_punch", "frame": wfr, "hit_frame": 5, "reach": 520.0 * CHAR_SCALE,
 				"low": false, "strong": true, "vertical": true, "launch_mult": 0.75,
@@ -788,6 +889,12 @@ func current_attack() -> Dictionary:
 	if not fx_blue and not fx_floral and sprite.animation == "spin_kick" and sprite.is_playing() \
 			and sprite.sprite_frames.get_frame_count("spin_kick") > 12:
 		var tfr := int(sprite.frame)
+		if fx_dark:
+			# ZETMA: E = BRAZO MECÁNICO que telescopea LARGO al frente (NO el torbellino de DAM). UN
+			# golpe de LARGO ALCANCE: el puño llega a FULL extensión ~f11 y el hit cae AHÍ (antes
+			# pegaba en f20, ya retraído, desde cerca). reach mayor -> conecta desde más lejos.
+			return {"name": "spin_kick", "frame": tfr, "hit_frame": 11, "reach": 680.0 * CHAR_SCALE,
+				"low": false, "strong": false, "damage": 90, "impact_sfx": "kick_impact"}
 		if tfr < 38:
 			return {"name": "spin_kick", "frame": tfr, "hit_frame": 20,
 				"reach": 540.0 * CHAR_SCALE, "low": false, "strong": false,
@@ -795,11 +902,28 @@ func current_attack() -> Dictionary:
 		return {"name": "spin_kick_2", "frame": tfr, "hit_frame": 44,
 			"reach": 540.0 * CHAR_SCALE, "low": false, "strong": false,
 			"damage": 60, "impact_sfx": "kick_impact"}
+	# ZETMA salto+E = DOBLE PATADA al frente (no un giro pese al nombre). Clip fluido (77f):
+	# patada 1 extiende ~f11, patada 2 ~f57. Dos ventanas con NOMBRES distintos = cuentan dos.
+	if fx_dark and sprite.animation == "air_spin_kick" and sprite.is_playing():
+		var asfr := int(sprite.frame)
+		if asfr < 35:
+			return {"name": "air_spin_kick", "frame": asfr, "hit_frame": 11, "reach": 520.0 * CHAR_SCALE,
+				"low": false, "strong": false, "damage": 50, "impact_sfx": "kick_impact"}
+		return {"name": "air_spin_kick_2", "frame": asfr, "hit_frame": 57, "reach": 540.0 * CHAR_SCALE,
+			"low": false, "strong": true, "damage": 60, "impact_sfx": "kick_impact"}
 	# PATADA AÉREA DOBLE de Fe (salto+R): 2 golpes ligeros que NO levantan. Dos ventanas con
 	# NOMBRES distintos; hit_frame al ARRANQUE de cada ventana (0 y 2) para que ambos peguen
 	# aunque la animación sea rápida (no depende de acertar un frame intermedio exacto).
 	if sprite.animation == "air_jab" and sprite.is_playing():
 		var afr := int(sprite.frame)
+		if fx_dark:
+			# ZETMA salto+R = DOBLE jab de cuchillo: jab BAJO (~f18) + jab al FRENTE (~f78). Clip
+			# apurado (85f, sin la pausa del re-cock). Dos ventanas con nombres distintos = 2 hits.
+			if afr < 35:
+				return {"name": "air_jab", "frame": afr, "hit_frame": 18, "reach": 500.0 * CHAR_SCALE,
+					"low": false, "strong": false, "damage": 40, "impact_sfx": "kick_impact"}
+			return {"name": "air_jab_2", "frame": afr, "hit_frame": 60, "reach": 540.0 * CHAR_SCALE,
+				"low": false, "strong": false, "damage": 45, "impact_sfx": "kick_impact"}
 		if fx_blue:
 			# Favi: PATADA AÉREA DOBLE v2 (42 frames armados del clip: patada→recoge→patada).
 			# hit_frame en cada EXTENSIÓN real (índices 8 y 28); ventana 2 arranca en el 24
@@ -862,6 +986,11 @@ func current_attack() -> Dictionary:
 	# del círculo por golpe (ventanas con nombres distintos, como la peonza de Fe)
 	if not fx_blue and not fx_floral and sprite.animation == "jump_kick" and sprite.is_playing():
 		var jkfr := int(sprite.frame)
+		if fx_dark:
+			# ZETMA: salto+W = UNA patada AÉREA voladora (no el molinete de 3 golpes de DAM). Clip
+			# recortado (90f): la pierna se extiende ~f15.
+			return {"name": "jump_kick", "frame": jkfr, "hit_frame": 15, "reach": 500.0 * CHAR_SCALE,
+				"low": false, "strong": true, "damage": 90, "impact_sfx": "kick_impact"}
 		if jkfr < 24:
 			return {"name": "jump_kick", "frame": jkfr, "hit_frame": 8,
 				"reach": 500.0 * CHAR_SCALE, "low": false, "strong": true,
@@ -888,6 +1017,27 @@ func current_attack() -> Dictionary:
 		# (crouch_jab tiene bloque propio de DOS ventanas arriba: estocada + giro de hoja)
 		# (weak_punch y spin_kick tienen bloques propios multi-ventana arriba)
 	}
+	# ZETMA (fx_dark): cae en la rama de DAM (no-blue, no-floral) pero sus clips de video van
+	# recortados a OTRA ventana -> hit_frame propio. Hereda los overrides de DAM y corrige
+	# crouch_punch/sweep (clips 39f/38f: el golpe conecta ~f15, no en el 22/32 de DAM).
+	if fx_dark and sprite.animation in ATTACKS and sprite.is_playing():
+		var za: Dictionary = ATTACKS[sprite.animation].duplicate()
+		za["name"] = sprite.animation
+		za["frame"] = sprite.frame
+		if DAM_ATK_OVERRIDE.has(sprite.animation):
+			for k in DAM_ATK_OVERRIDE[sprite.animation]:
+				za[k] = DAM_ATK_OVERRIDE[sprite.animation][k]
+		if sprite.animation == "crouch_punch":
+			za["hit_frame"] = 15   # daga baja arrodillado: conecta ~f15
+		elif sprite.animation == "sweep":
+			za["hit_frame"] = 15   # barrida baja de daga: cruza ~f15
+		elif sprite.animation == "kick":
+			za["hit_frame"] = 23   # patada ALTA (clip 59f recortado): golpea ~f23
+		elif sprite.animation == "crouch_kick":
+			za["hit_frame"] = 13   # patada/daga ascendente arrodillado (clip 28f): golpea ~f13
+		elif sprite.animation == "jump_punch":
+			za["hit_frame"] = 30   # estocada AÉREA de daga (clip 130f): extiende ~f30
+		return za
 	if not fx_floral and not fx_blue and sprite.animation in ATTACKS and sprite.is_playing():
 		var da: Dictionary = ATTACKS[sprite.animation].duplicate()
 		da["name"] = sprite.animation
@@ -917,13 +1067,17 @@ func current_attack() -> Dictionary:
 	# FE: overrides de sus anims NUEVAS de video (las del sheet eran de 3-10 frames; el
 	# hit_frame global caía en la CARGA y el hitstop congelaba el golpe sin extender).
 	const FAVI_ATK_OVERRIDE := {
-		# salto+E voladora: EXTIENDE en el frame ~14; el alcance 580 del sheet pegaba desde LEJOS
-		"air_spin_kick": {"hit_frame": 14, "reach": 470.0 * CHAR_SCALE},
+		# salto+E voladora: EXTIENDE en el frame ~14; recortado más (pegaba desde lejos, pedido)
+		"air_spin_kick": {"hit_frame": 14, "reach": 430.0 * CHAR_SCALE},
 		# Q patada alta girada: el BARRIDO adelante de la pierna cae en los frames 11-15
 		# (v2 arranca 2 frames antes: entrada plantándose f56-57 del clip)
 		"punch": {"hit_frame": 12},
-		# salto+W clavado v2 (22 frames completos): la aguja APUÑALA en los frames 6-12
-		"jump_kick": {"hit_frame": 7},
+		# W doble patada alta: usaba el reach base 600 de DAM (pierna larga) -> con su cuerpo chico
+		# pegaba de LEJOS. Recortado a la punta REAL de su patada (pedido).
+		"kick": {"reach": 490.0 * CHAR_SCALE},
+		# salto+W clavado v2 (22 frames): la aguja APUÑALA en los frames 6-12. Reach base 600 era
+		# muy largo para su cuerpo -> recortado.
+		"jump_kick": {"hit_frame": 7, "reach": 470.0 * CHAR_SCALE},
 		# R jab de aguja v2 (35 frames): la estocada EXTIENDE en el frame ~22 (la punta de
 		# la aguja llega lejos: reach un pelín mayor que el jab de DAM)
 		"weak_punch": {"hit_frame": 22, "reach": 560.0 * CHAR_SCALE},
@@ -1020,7 +1174,7 @@ func force_grounded_ko() -> void:
 	if frozen_t > 0.0:
 		return   # KO CONGELADO: se queda en la ESTATUA (sin offset de tendido — evitaba
 				 # el "modelo hundido"); al descongelarse cae con "ko" (ver release del freeze)
-	if fx_floral and String(sprite.animation) != "ko" and sprite.sprite_frames.has_animation("hit_down"):
+	if (fx_floral or fx_dark) and String(sprite.animation) != "ko" and sprite.sprite_frames.has_animation("hit_down"):
 		# AYE: SOLO para el KO VOLADOR (venía en hit_fly/hit_down). Si está en su anim "ko"
 		# (KO de golpe normal en el suelo) NO tocarla: cae al else y conserva su ko de siempre.
 		sprite.play("hit_down")
@@ -1049,7 +1203,7 @@ func force_grounded_ko() -> void:
 		sprite.position.y = (0.0 if _koc > 100 else ko_lie_drop_up)
 
 func do_breaker() -> bool:
-	if not breaker_ready or koed:
+	if not breaker_ready or koed or orb_trap_t > 0.0:   # atrapado en la esfera: NO puede romper
 		return false
 	breaker_ready = false
 	hit_flying = false
@@ -1092,7 +1246,7 @@ func do_breaker() -> bool:
 # invulnerable; la secuencia (desvío + 3 golpes + "COUNTER" + pantalla oscura + borde)
 # la maneja main.on_parry.
 func do_parry() -> bool:
-	if koed:
+	if koed or orb_trap_t > 0.0:   # atrapado en la esfera: NO puede hacer parry
 		return false
 	hit_flying = false
 	airborne = false
@@ -1107,7 +1261,9 @@ func do_parry() -> bool:
 	if fx_floral:
 		_cast_border_on(PARRY_WINDOW + 0.15)   # BORDE outline MORADO de Aye durante el parry
 	sprite.speed_scale = 1.0
-	if sprite.sprite_frames.has_animation("counter"):
+	if sprite.sprite_frames.has_animation("parry") and sprite.sprite_frames.get_frame_count("parry") > 8:
+		sprite.play("parry")        # v2: SNAP a la pose de desvío + HOLD (clip dedicado)
+	elif sprite.sprite_frames.has_animation("counter"):
 		sprite.play("counter")
 		sprite.frame = 0            # POSE de desvío = PRIMER frame del counter, congelado
 		sprite.stop()
@@ -1329,7 +1485,7 @@ func _start_fe_dash() -> void:
 # humo de dash DIBUJADO (dash-dust, 6 frames): brota en el punto de arranque y se
 # queda fijo; la cola se espeja segun la direccion del dash
 var dashsmoke_frames: SpriteFrames = null
-func _spawn_dash_smoke(escala := 0.75, atras := 0.0) -> void:
+func _spawn_dash_smoke(escala := 0.75, atras := 0.0, flip_extra := false, lift := 0.5) -> void:
 	if dashsmoke_frames == null:
 		if not ResourceLoader.exists("res://imagen-action/dust-effect/dash-dust/dash-dust-1.png"):
 			return
@@ -1346,17 +1502,18 @@ func _spawn_dash_smoke(escala := 0.75, atras := 0.0) -> void:
 	ds.sprite_frames = dashsmoke_frames
 	ds.animation = "puff"
 	ds.z_index = 1
-	ds.flip_h = facing > 0   # v3 INVERTIDO (salía al revés): la masa cae al pie y la cola barre atrás
+	ds.flip_h = (facing > 0) != flip_extra   # v3 INVERTIDO; flip_extra lo espeja (RETROCESO del orb sale al otro lado)
 	var tex: Texture2D = dashsmoke_frames.get_frame_texture("puff", 0)
 	# el arte v3 (1561px de ancho) es ~2x el viejo (808px): normaliza al mismo tamaño en
 	# pantalla, y ×base_scale.y: el polvo PROPORCIONAL al cuerpo (Aye chica, DAM grande)
 	var s := escala * absf(scale.x) * 0.52 * base_scale.y
 	# desplaza el humo hacia ATRÁS (extremo trasero del personaje) a los pies
 	# ((500+offset)×base_scale = línea de pies REAL: Aye ancla con sprite.offset 194)
-	var pies := to_global(Vector2(-float(facing) * atras * base_scale.y, (SHADOW_FEET_OFFSET + sprite.offset.y) * base_scale.y))
+	var pies := to_global(Vector2(-float(facing) * atras * base_scale.y, (SHADOW_FEET_OFFSET + sprite.offset.y + swing_y_off) * base_scale.y))
 	get_parent().add_child(ds)
-	ds.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5)
+	ds.global_position = pies - Vector2(0.0, tex.get_height() * s * lift)   # lift bajo = pegado a los pies
 	ds.scale = Vector2(s, s)
+	ds.modulate = dust_tint   # color del polvo segun el stage
 	ds.animation_finished.connect(ds.queue_free)
 	ds.play("puff")
 
@@ -1384,10 +1541,11 @@ func _spawn_slam_dust(dir: int, escala := 0.9) -> void:
 	# arte 1189px -> ~250px de pantalla: acompaña el cuerpo tendido, no lo tapa;
 	# ×base_scale.y = proporcional al cuerpo del que cae
 	var s := escala * absf(scale.x) * 0.36 * base_scale.y
-	var pies := to_global(Vector2(0.0, (SHADOW_FEET_OFFSET + sprite.offset.y) * base_scale.y))
+	var pies := to_global(Vector2(0.0, (SHADOW_FEET_OFFSET + sprite.offset.y + swing_y_off) * base_scale.y))
 	get_parent().add_child(ds)
 	ds.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5)
 	ds.scale = Vector2(s, s)
+	ds.modulate = dust_tint   # color del polvo segun el stage
 	ds.animation_finished.connect(ds.queue_free)
 	ds.play("puff")
 
@@ -1423,7 +1581,7 @@ func _spawn_wall_debris(lado: int) -> void:
 # sombra fantasma del dash: copia del frame actual que se desvanece en rojo
 # polvo de salto/aterrizaje: anillo de humo anime DIBUJADO (jump-dust, 6 frames)
 var jumpdust_frames: SpriteFrames = null
-func _spawn_jump_dust(escala := 0.7, at_x := NAN) -> void:
+func _spawn_jump_dust(escala := 0.7, at_x := NAN, tint := Color(1, 1, 1, 1)) -> void:
 	# at_x: x GLOBAL opcional (p.ej. el punto de impacto del THUNDER); por defecto los pies
 	if jumpdust_frames == null:
 		if not ResourceLoader.exists("res://imagen-action/dust-effect/jump-dust/jump-dust-1.png"):
@@ -1448,7 +1606,7 @@ func _spawn_jump_dust(escala := 0.7, at_x := NAN) -> void:
 	# ×base_scale.y para que el burst sea PROPORCIONAL al cuerpo de cada personaje
 	var s := escala * absf(scale.x) * 0.59 * base_scale.y
 	# (500+offset)×base_scale = línea de pies REAL por personaje (Aye ancla con offset)
-	var pies := to_global(Vector2(0.0, (SHADOW_FEET_OFFSET + sprite.offset.y) * base_scale.y))
+	var pies := to_global(Vector2(0.0, (SHADOW_FEET_OFFSET + sprite.offset.y + swing_y_off) * base_scale.y))
 	if not is_nan(at_x):
 		pies.x = at_x
 	get_parent().add_child(jd)
@@ -1456,6 +1614,8 @@ func _spawn_jump_dust(escala := 0.7, at_x := NAN) -> void:
 	# recorte (los mechones tardíos estiran la caja): se baja para clavarla a los pies
 	jd.global_position = pies - Vector2(0.0, tex.get_height() * s * 0.5 - 169.0 * s)
 	jd.scale = Vector2(s, s)
+	# si el llamador NO pasó un color explícito (blanco), usa el tinte del STAGE
+	jd.modulate = dust_tint if tint == Color(1, 1, 1, 1) else tint
 	jd.animation_finished.connect(jd.queue_free)
 	jd.play("puff")
 
@@ -1995,12 +2155,14 @@ func _spawn_ghost(blue := false, blanco := false) -> void:
 		g.modulate = Color(1.25, 0.45, 1.75, 0.62)   # MORADO (Aye)
 	elif blue:
 		g.modulate = Color(0.42, 0.78, 1.9, 0.62)
+	elif fx_dark:
+		g.modulate = Color(0.62, 0.20, 1.25, 0.62)   # MORADO OSCURO (Zetma)
 	else:
 		g.modulate = Color(1.7, 0.42, 0.38, 0.62)
 	get_parent().add_child(g)
 	g.global_transform = sprite.global_transform
 	var tw := g.create_tween()
-	var fin := Color(0.03, 0.09, 0.34, 0.0) if blue else Color(0.34, 0.03, 0.05, 0.0)
+	var fin := Color(0.03, 0.09, 0.34, 0.0) if blue else (Color(0.14, 0.02, 0.26, 0.0) if fx_dark else Color(0.34, 0.03, 0.05, 0.0))
 	if fx_floral:
 		fin = Color(0.22, 0.03, 0.34, 0.0)
 	tw.tween_property(g, "modulate", fin, 0.55)   # perdura más (fade lento)
@@ -2217,6 +2379,29 @@ func _physics_process(delta: float) -> void:
 			sprite.speed_scale = 1.0   # reanuda la animación
 		else:
 			return
+	# ESFERA de Zetma (orb_trap_t): CÁMARA LENTA — el rival no puede actuar ~2s, teñido morado, la
+	# anim corre LENTA; PERO SÍ recibe golpes (Zetma lo combea). input_enabled=false bloquea su input.
+	if orb_trap_t > 0.0:
+		orb_trap_t -= delta
+		vel_x = 0.0
+		vel_y = 0.0
+		sprite.speed_scale = 0.16   # cámara MUY lenta (bien lento, pedido) mientras dura la esfera
+		var _tk := 0.5 + 0.5 * absf(sin(orb_trap_t * 10.0))
+		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(1.25, 0.5, 2.0, 1.0), _tk)
+		# el atrapado JUEGA su anim de "halado" (get_pull, lanzada en _zetma_orb_hit); NO se escala
+		if orb_trap_t <= 0.0:
+			sprite.speed_scale = 1.0
+			sprite.modulate = Color(1, 1, 1, 1)
+			sprite.scale = base_scale
+			sprite.position = orb_trap_sprite_home
+			input_enabled = orb_trap_was_input
+			ai_enabled = orb_trap_was_ai
+			if not koed and sprite.sprite_frames.has_animation("pose"):
+				sprite.play("pose")
+		queue_redraw()
+		return
+	if orb_haste_t > 0.0:
+		orb_haste_t -= delta   # Zetma: haste de movimiento (el boost se aplica en el walk)
 	# CONGELADO por las púas de hielo de Aye (↓E): INMÓVIL ~0.5s, pausado en el FRAME/pose en que
 	# quedó, teñido de MORADO pulsante (como atrapado en hielo). No corre física ni input mientras dura.
 	if frozen_t > 0.0:
@@ -2249,7 +2434,9 @@ func _physics_process(delta: float) -> void:
 					sprite.play("pose")   # sale del congelado a idle
 	# inclinación al salir volando: el cuerpo se ladea hacia la dirección del empujón (no vertical)
 	if hit_flying and String(sprite.animation) == "hit_fly":
-		sprite.rotation = deg_to_rad(FLY_TILT_DEG) * fly_lean
+		# ZETMA (fx_dark): su clip de vuelo YA trae su propia rotación de tumbo (tumbling), así
+		# que NO se le suma el tilt de 34° (se sobre-rotaba). Los demás sí se ladean.
+		sprite.rotation = 0.0 if fx_dark else deg_to_rad(FLY_TILT_DEG) * fly_lean
 	elif sprite.rotation != 0.0:
 		sprite.rotation = 0.0
 	burst_t = maxf(0.0, burst_t - delta)
@@ -2529,7 +2716,7 @@ func _physics_process(delta: float) -> void:
 		breaker_fx_t = maxf(breaker_fx_t, 0.15)   # sombras del color del personaje
 		# GLOW PULSANTE (MORADO Aye / azul Fe / rojo DAM) para INDICAR que está en la postura de parry
 		var pg := 0.55 + 0.45 * absf(sin((PARRY_WINDOW - parry_t) * 26.0))
-		var pcol: Color = Color(1.5, 0.5, 2.0) if fx_floral else (Color(0.5, 0.85, 1.9) if fx_blue else Color(1.9, 0.45, 0.35))
+		var pcol: Color = Color(1.5, 0.5, 2.0) if fx_floral else (Color(0.5, 0.85, 1.9) if fx_blue else (Color(0.95, 0.30, 1.85) if fx_dark else Color(1.9, 0.45, 0.35)))
 		sprite.modulate = Color(1, 1, 1, 1).lerp(pcol, pg)
 		if String(sprite.animation) == "counter":
 			sprite.frame = 0                      # sostiene la pose de desvío (1er frame)
@@ -2583,6 +2770,11 @@ func _physics_process(delta: float) -> void:
 
 	# en el aire: gravedad; con control solo si es jugador y no va despedido
 	if airborne:
+		# ZETMA: su clip de salto TERMINA en la pose de guardia (frames ~113+). Si el anim la
+		# alcanza aún en el aire (airtime largo o re-salto), se ve "saltando en su pose". Cap al
+		# frame de DESCENSO: nunca muestra la guardia hasta ATERRIZAR de verdad.
+		if fx_dark and String(sprite.animation) == "jump" and int(sprite.frame) > 100:
+			sprite.frame = 100
 		# MUERTE AÉREA: sube con la pose de vuelo (el "vuelo por los aires"); en cuanto
 		# EMPIEZA A BAJAR, pasa a BOCA ABAJO (ko_air) para caer y estrellarse de bruces.
 		# KO AÉREO (pedido final): el VUELO entero usa hit_fly (el que se ve bien); el
@@ -2601,7 +2793,11 @@ func _physics_process(delta: float) -> void:
 		# DAM ↑W: FLOTA mientras DESCARGA el tajo — la animación completa no cabía en la caída
 		# normal (el aterrizaje la cortaba y "solo se veía subir la espada"). Pedido del usuario:
 		# que no caiga tanto para que la animación original se vea entera. Al terminar, cae normal.
-		var dam_jk: bool = not fx_blue and not fx_floral and String(sprite.animation) == "jump_kick" and sprite.is_playing()
+		var dam_jk: bool = not fx_blue and not fx_floral and not fx_dark and String(sprite.animation) == "jump_kick" and sprite.is_playing()
+		var grab_hover: bool = fx_dark and String(sprite.animation) == "air_grab"
+		if grab_hover:
+			vel_y = 0.0   # ZETMA air_grab: FLOTA EN EL SITIO hasta terminar (no cae NI se desplaza)
+			vel_x = 0.0
 		position.y += vel_y * delta
 		# FLOTA solo si el golpe aéreo CONECTÓ (juggle) Y aún NO gastaste tu siguiente golpe. En cuanto
 		# tiras el próximo golpe (air_move_used) y NO conecta, deja de flotar y CAE NORMAL (no "cae lento").
@@ -2619,7 +2815,8 @@ func _physics_process(delta: float) -> void:
 		# y rápidos; la altura se conserva porque JUMP_SPEED subió en proporción (v²/2g)
 		elif not hit_flying and not floating:
 			g_mult = 1.5
-		vel_y += GRAVITY * g_mult * delta
+		if not grab_hover:
+			vel_y += GRAVITY * g_mult * delta
 		# TECHO: no dejar que suba tanto que se salga por arriba (el remate del ultra lanza
 		# altísimo). Topa a ~520px sobre el piso y de ahí empieza a caer.
 		if position.y < floor_y - 520.0:
@@ -2648,7 +2845,7 @@ func _physics_process(delta: float) -> void:
 				if vel_y < 0.0:
 					vel_y = minf(vel_y, -maxf(into_wall * 0.85, 340.0 * CHAR_SCALE))
 			position.x = clampf(position.x, 115.0, 1805.0)
-		elif _es_humano():
+		elif _es_humano() and not grab_hover:
 			var air_dir := Input.get_axis(act("ui_left"), act("ui_right"))
 			if air_dir != 0.0:
 				position.x += air_dir * WALK_SPEED * (1.30 if rage_mode else 1.0) * spd * delta
@@ -2665,7 +2862,7 @@ func _physics_process(delta: float) -> void:
 				hit_flying = false
 				hard_fall = false
 				_spawn_slam_dust(sdk if sdk != 0 else -facing, 1.0)   # AZOTE: cuña barrida
-				if fx_floral and sprite.sprite_frames.has_animation("hit_down"):
+				if (fx_floral or fx_dark) and sprite.sprite_frames.has_animation("hit_down"):
 					# AYE: completa su caída normal (hit_down) y queda TENDIDA BOCA ARRIBA
 					# tal como termina esa anim (koed bloquea el get_up)
 					sprite.play("hit_down")
@@ -2724,13 +2921,22 @@ func _physics_process(delta: float) -> void:
 			buffer_t = 0.0
 
 	# jump-cancel del lanzador: tras conectar el gancho puedes saltar de una
-	if Input.is_action_just_pressed(act("ui_up")) and not airborne \
-			and sprite.animation == "crouch_kick" and sprite.frame > 2:
+	# ZETMA además JUMP-CANCEL cualquiera de sus normales (R/Q/W/E) tras el frame de impacto ->
+	# encadena combo aéreo (normal -> salto -> golpe aéreo -> air grab). Antes E (tope de la
+	# escalera R→Q→W→E) cortaba el combo y era casi imposible encadenar con él.
+	var _jc_dam: bool = sprite.animation == "crouch_kick" and sprite.frame > 2
+	var _jc_zetma: bool = fx_dark and String(sprite.animation) in ["weak_punch", "punch", "kick", "spin_kick"] \
+			and sprite.frame > _hit_frame_de(String(sprite.animation))
+	if Input.is_action_just_pressed(act("ui_up")) and not airborne and (_jc_dam or _jc_zetma):
 		airborne = true
 		crouching = false
 		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(0.6)   # polvo de despegue
 		sprite.play("jump")
+		# ZETMA: igual que el salto normal — saltar al DESPEGUE/tuck (frame 50), no mostrar los
+		# ~50 frames de agacharse del clip mientras ya está en el aire (bug del jump-cancel).
+		if fx_dark and sprite.sprite_frames.get_frame_count("jump") > 100:
+			sprite.frame = 50
 		return
 
 	# DASH DE AGUJAS de Fe en curso: bloquea locomoción/salto/agacharse para que "walk"
@@ -2779,6 +2985,11 @@ func _physics_process(delta: float) -> void:
 			sprite.play("neutral_spin")
 		else:
 			sprite.play("jump")
+			# ZETMA: su clip de salto trae ~50 frames de AGACHARSE antes del despegue; la
+			# física ya despegó, así que arranca en el DESPEGUE/tuck (recoge los pies al
+			# instante, como pediste) en vez de mostrar la preparación agachada en el aire.
+			if fx_dark and sprite.sprite_frames.get_frame_count("jump") > 100:
+				sprite.frame = 50
 		return
 
 	# AYE: deja que el ATERRIZAJE (land, flexión) se VEA — no lo cortes con caminar/idle mientras juega
@@ -2793,11 +3004,15 @@ func _physics_process(delta: float) -> void:
 		sprite.play("crouch")
 	elif not down_held and crouching:
 		crouching = false
-		sprite.play_backwards("crouch")
+		# ZETMA tiene un LEVANTARSE real (crouch_up); los demás lo hacen con la reversa
+		if sprite.sprite_frames.has_animation("crouch_up") and sprite.sprite_frames.get_frame_count("crouch_up") > 1:
+			sprite.play("crouch_up")
+		else:
+			sprite.play_backwards("crouch")
 	if crouching:
 		return
-	if sprite.animation == "crouch" and sprite.is_playing():
-		return  # levantandose
+	if sprite.animation in ["crouch", "crouch_up"] and sprite.is_playing():
+		return  # agachándose o levantándose
 
 	# PASO CORTO (doble-tap ←←/→→ de Fe y DAM): desliza con decaimiento y vuelve a guardia
 	if step_t > 0.0:
@@ -2815,7 +3030,7 @@ func _physics_process(delta: float) -> void:
 	var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 	if dir != 0.0:
 		var forward := signi(int(dir)) == facing
-		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * (1.30 if rage_mode else 1.0) * spd * delta
+		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * (1.30 if rage_mode else 1.0) * (1.7 if orb_haste_t > 0.0 else 1.0) * spd * delta
 		var want := 1 if forward else -1
 		if walk_dir != want or not _is_locomotion_anim():
 			_play_locomotion(forward)
@@ -2995,6 +3210,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			quiere_break = _e and _down and _fwd == facing          # Fe: ↓→+E
 		elif fx_floral:
 			quiere_break = event.is_action_pressed(act("weak_punch")) and double_up_t > 0.0   # Aye: ↑↑R
+		elif fx_dark:
+			quiere_break = _e and back_recent_t > 0.0 and _fwd == facing   # ZETMA: ←→+E (atrás→adelante) · rompe con su patada
 		else:
 			quiere_break = event.is_action_pressed(act("combo_break")) \
 				or (_e and up_tap_t > 0.0)                          # DAM: ↑+E / S
@@ -3055,6 +3272,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if debug_keys and event.is_action_pressed("take_hit_strong") and not airborne:
 		receive_hit(false, true, -facing)
 		return
+	# ZETMA ESPECIAL (↓←+E, cuarto ATRÁS + E): dispara la ORB de cámara lenta si está CARGADA (1/round)
+	if fx_dark and not airborne and event.is_action_pressed(act("spin_kick")) and down_recent_t > 0.0:
+		var _obd := Input.get_axis(act("ui_left"), act("ui_right"))
+		if _obd != 0.0 and int(signf(_obd)) == -facing:
+			var mob := get_parent()
+			if mob and mob.has_method("_zetma_orb_special") and mob._zetma_orb_special(self):
+				return
 	if fx_floral:
 		# --- AYE: su SÚPER propio. NO hereda los ultras de fuego de DAM ni los de agua de Fe. ---
 		# CRYSTAL FLURRY (↓←+Q): ráfaga del báculo tras 3 golpes (cuesta 1.5 barras).
@@ -3082,6 +3306,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				var mfl := get_parent()
 				if mfl and mfl.has_method("try_fe_ultra_long") and mfl.try_fe_ultra_long(self):
 					return
+	elif fx_dark:
+		# --- ZETMA: ultras con inputs PROPIOS (distintos de DAM →R/→E). Esquema ↓↓ + botón. ---
+		if event.is_action_pressed(act("weak_punch")) and double_down_t > 0.0:   # ↓↓ R = ANIQUILACIÓN
+			var mzu := get_parent()
+			if mzu and mzu.has_method("try_ultra") and mzu.try_ultra(self):
+				return
+		if event.is_action_pressed(act("kick")) and double_down_t > 0.0:          # ↓↓ W = APOCALIPSIS
+			var mzu2 := get_parent()
+			if mzu2 and mzu2.has_method("try_ultra") and mzu2.try_ultra(self, true):
+				return
+		if event.is_action_pressed(act("spin_kick")) and double_down_t > 0.0:     # ↓↓ E = INFIERNO (crítico)
+			var mzc := get_parent()
+			if mzc and mzc.has_method("try_critical") and mzc.try_critical(self):
+				return
 	else:
 		# --- DAM: sus finishers de fuego ---
 		# comando ANIQUILACIÓN: → R (adelante reciente + R)
@@ -3155,31 +3393,31 @@ func _hit_frame_de(anim: String) -> int:
 	# DAM kick v3 (MACHETAZO, 51 frames): descarga en ~32
 	if not fx_blue and not fx_floral and anim == "kick" \
 			and sprite.sprite_frames.get_frame_count("kick") > 12:
-		hf = 32
+		hf = 23 if fx_dark else 32
 	# DAM spin_kick (TORBELLINO, 71 frames): 1er golpe en ~20 (cancel tras conectarlo)
 	if not fx_blue and not fx_floral and anim == "spin_kick" \
 			and sprite.sprite_frames.get_frame_count("spin_kick") > 12:
-		hf = 20
+		hf = 11 if fx_dark else 20
 	# DAM sweep v2 (barrido a ras, 62 frames): cruza en ~32
 	if not fx_blue and not fx_floral and anim == "sweep" \
 			and sprite.sprite_frames.get_frame_count("sweep") > 12:
-		hf = 32
+		hf = 15 if fx_dark else 32
 	# DAM crouch_jab v2 (estocada baja, 33 frames): extiende en ~21
 	if not fx_blue and not fx_floral and anim == "crouch_jab" \
 			and sprite.sprite_frames.get_frame_count("crouch_jab") > 8:
-		hf = 21
+		hf = 10 if fx_dark else 21
 	# DAM crouch_kick v2 (gancho ascendente, 74 frames): el corte sube en ~30
 	if not fx_blue and not fx_floral and anim == "crouch_kick" \
 			and sprite.sprite_frames.get_frame_count("crouch_kick") > 12:
-		hf = 30
+		hf = 13 if fx_dark else 30
 	# DAM crouch_punch v3 (estocada agachada, 62 frames): extiende en ~22
 	if not fx_blue and not fx_floral and anim == "crouch_punch" \
 			and sprite.sprite_frames.get_frame_count("crouch_punch") > 8:
-		hf = 22
+		hf = 15 if fx_dark else 22
 	# DAM weak_punch POGO (43 frames): la 1a patada extiende en 5
 	if not fx_blue and not fx_floral and anim == "weak_punch" \
 			and sprite.sprite_frames.get_frame_count("weak_punch") > 8:
-		hf = 5
+		hf = 39 if fx_dark else 5
 	return hf
 
 # intenta ejecutar un boton de ataque respetando ventana, familia y escalera
@@ -3257,6 +3495,13 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 					if aade_air and down_recent_t > 0.0:
 						_start_teleport()
 						return true
+				# ZETMA: ↓→Q en el AIRE = AIR GRAB (gancho aéreo que hala hacia él)
+				if fx_dark and down_recent_t > 0.0:
+					var zdir_air := Input.get_axis(act("ui_left"), act("ui_right"))
+					if zdir_air != 0.0 and int(signf(zdir_air)) == facing:
+						var mag := get_parent()
+						if mag and mag.has_method("_zetma_air_grab") and mag._zetma_air_grab(self):
+							return true
 				sprite.play("jump_punch")
 			else:
 				var dir := Input.get_axis(act("ui_left"), act("ui_right"))
@@ -3266,11 +3511,24 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				if adelante and down_recent_t > 0.0:
 					if fx_floral:
 						_start_teleport()          # Aye: teleport (NO el dash de fuego)
+						return true
+					elif fx_dark:
+						# ZETMA: ↓→Q = GROUND GRAB (estira la mano y HALA). NO el dash de DAM.
+						var mgg := get_parent()
+						if mgg and mgg.has_method("_zetma_ground_grab"):
+							mgg._zetma_ground_grab(self)
+						return true
 					elif sprite.sprite_frames.has_animation("water_cast"):
 						_start_water_special(1)
+						return true
 					else:
+						# DAM: EMBER DASH — ahora CUESTA ½ barra de súper (pedido). Sin barra:
+						# deny (barra parpadea + personaje gris) y NO embiste.
+						var _md := get_parent()
+						if _md and _md.has_method("try_meter_cost") and not _md.try_meter_cost(self, 0.5):
+							return true
 						_start_special()
-					return true
+						return true
 				# ←→+Q (atrás luego adelante) = DASH DE AGUJAS de Fe: embiste, si conecta 3 golpes
 				if adelante and back_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
 					_start_fe_dash()
@@ -3419,6 +3677,9 @@ func _on_animation_finished() -> void:
 	if sprite.animation == "land":
 		sprite.play("pose")   # terminó de amortiguar el aterrizaje -> vuelve a idle
 		return
+	if sprite.animation == "crouch_up":
+		sprite.play("pose")   # ZETMA terminó de levantarse del agachado -> idle
+		return
 	if sprite.animation == "get_up":
 		# DAM: su get_up ya empalma EXACTO con la pose (652 vs 650) — solo unas sombras
 		# breves para vestir el levantón, sin aura ni sonido de maná (eso es de Aye)
@@ -3499,14 +3760,29 @@ func _on_animation_finished() -> void:
 	sprite.play("pose")
 
 func _draw() -> void:
-	# sombra en el piso: sigue al peleador y se encoge al saltar
+	# sombra en el piso: sigue al peleador y se encoge al saltar. ANCLA a la línea de pies real
+	# ((500+offset)×base_scale, igual que el polvo) subida un poco para quedar PEGADA bajo los pies
+	# (no separada). El ANCHO usa el body_halfw del personaje (Zetma 130 / DAM 150 / Fe 90 / Aye 75)
+	# para que COINCIDA con su tamaño en vez de un radio fijo.
 	var height := floor_y - position.y
 	var t: float = clampf(1.0 - height / 1280.0, 0.35, 1.0)
-	var ground_local := Vector2(0.0, (floor_y - position.y) + SHADOW_FEET_OFFSET)
+	var feet_local: float = (SHADOW_FEET_OFFSET + sprite.offset.y + swing_y_off) * base_scale.y - 34.0
+	var ground_local := Vector2(0.0, (floor_y - position.y) + feet_local)
 	draw_set_transform(ground_local, 0.0, Vector2(1.0, SHADOW_SQUASH))
-	draw_circle(Vector2.ZERO, SHADOW_RADIUS * t, Color(0, 0, 0, SHADOW_ALPHA * t))
+	draw_circle(Vector2.ZERO, body_halfw * 1.8 * t, Color(0, 0, 0, SHADOW_ALPHA * t))
 	draw_set_transform(Vector2.ZERO)
 	_draw_hit_burst()   # la estela del arma la dibuja swing_layer (por delante del cuerpo)
+	# ESFERA: barra de TIEMPO de cámara lenta sobre la cabeza del atrapado (se vacía)
+	if orb_trap_t > 0.0:
+		var _frac := clampf(orb_trap_t / maxf(0.01, orb_trap_max), 0.0, 1.0)
+		var _bw := 220.0
+		var _bh := 26.0
+		var _by := orb_trap_top_y - _bh - 14.0   # PEGADA justo encima de la esfera (sigue su cima al crecer)
+		draw_rect(Rect2(-_bw / 2.0 - 4.0, _by - 4.0, _bw + 8.0, _bh + 8.0), Color(0.04, 0.02, 0.08, 0.9))
+		draw_rect(Rect2(-_bw / 2.0, _by, _bw, _bh), Color(0.12, 0.06, 0.18, 0.95))
+		draw_rect(Rect2(-_bw / 2.0, _by, _bw * _frac, _bh), Color(0.85, 0.40, 1.75, 0.98))
+		var _gp := 0.5 + 0.5 * absf(sin(float(Time.get_ticks_msec()) * 0.008))
+		draw_rect(Rect2(-_bw / 2.0, _by, _bw * _frac, 3.0), Color(1.3, 0.8, 2.0, 0.6 * _gp))
 
 # flash de bloqueo: arco de escudo azul-blanco frente al cuerpo + chispas
 # cortas resbalando por el borde — frio y contenido, lo opuesto al dano
@@ -3655,6 +3931,8 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 		fx_table = AYE_SWING_FX
 	elif fx_blue and FAVI_SWING_FX.has(anim):
 		fx_table = FAVI_SWING_FX
+	elif fx_dark:
+		fx_table = ZETMA_SWING_FX   # Zetma SOLO su tabla (nunca la de DAM/SWING_FX -> sin estelas heredadas como el molinete de jump_kick)
 	if not fx_table.has(anim):
 		return
 	var fx: Dictionary = fx_table[anim]
@@ -3706,12 +3984,18 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 		c_out = Color(0.12, 0.42, 1.0, 0.32 * al)
 		c_core = Color(0.5, 0.85, 1.7, 0.55 * al)
 		c_edge = Color(0.7, 1.2, 1.9, 0.75 * al)
+	elif fx_dark:
+		# ZETMA (ninja de la OSCURIDAD): estela VOID violeta OSCURO — nada del fuego naranja de DAM
+		c_out = Color(0.34, 0.06, 0.60, 0.40 * al)   # sombra violeta profunda (cuerpo/halo)
+		c_core = Color(0.66, 0.20, 1.15, 0.62 * al)  # violeta medio caliente (nucleo)
+		c_edge = Color(1.05, 0.55, 1.75, 0.80 * al)  # borde violeta brillante (filo del corte)
 	else:
 		c_out = Color(1.0, 0.42, 0.12, 0.32 * al)
 		c_core = Color(1.0, 0.85, 0.4, 0.55 * al)
 		c_edge = Color(1.6, 1.2, 0.55, 0.75 * al)
-	# "dark": efecto de PATADA — humo carmesí OSCURO (no el fuego brillante de la espada)
-	if bool(fx.get("dark", false)):
+	# "dark": efecto de PATADA — humo carmesí OSCURO (no el fuego brillante de la espada).
+	# NO aplica a Zetma (fx_dark): él mantiene su violeta void en TODOS sus golpes.
+	if bool(fx.get("dark", false)) and not fx_dark:
 		c_out = Color(0.22, 0.03, 0.05, 0.38 * al)
 		c_core = Color(0.5, 0.09, 0.10, 0.55 * al)
 		c_edge = Color(0.85, 0.18, 0.14, 0.6 * al)
