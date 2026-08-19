@@ -213,6 +213,78 @@ const ZETMA_SWING_FX := {
 		"base2": 55, "stages2": [[-40.0, 150.0, 0.5], [-30.0, 155.0, 0.95], [-20.0, 160.0, 1.0], [-15.0, 162.0, 0.5]]},
 }
 
+# OVERRIDE por-personaje para ROUM (fx_warrior): tanque PESADO de vendas oscuras. Su punch es un
+# clip de 145 frames y el puño se ESTIRA a full recién en ~f82 (hit_frame 82), pero heredaba
+# SWING_FX["punch"] con base 12 -> la estela salía en plena CARGA. Aquí la estela va retimada al
+# frame de la extensión (base 74) y con SU color (carmesí-negro, ver _draw). Solo su tabla: las
+# anims que no estén aquí NO dibujan estela (no hereda arcos de katana de DAM). Geometría del punch
+# = la horizontal de DAM (posicionaba bien a la cintura), solo se corrige el timing y el color.
+const ROUM_SWING_FX := {
+	# Q (punch) = RECTO pesado. base 74 (arranca al estirar el brazo), pico ~f79-80, cola hasta f85.
+	# c.y=-60 MEDIDO: el puño extendido está en la textura a Y≈580 (c.y = 580-640). Estela horizontal
+	# al frente a la ALTURA DEL PUÑO (antes en 150 = cintura, salía muy abajo).
+	"punch": {"base": 74, "c": Vector2(10, -60), "r": 640.0, "w": 360.0, "flat": 0.20,
+		"stages": [[110.0, 25.0, 0.35], [116.0, 8.0, 0.55], [121.0, -8.0, 0.72], [124.0, -20.0, 0.86],
+			[126.0, -28.0, 0.95], [127.0, -33.0, 1.0], [126.0, -36.0, 1.0], [120.0, -37.0, 0.85],
+			[110.0, -37.0, 0.62], [99.0, -37.0, 0.40], [90.0, -37.0, 0.22], [84.0, -37.0, 0.10]]},
+	# W (kick) = PATADA ALTA (clip 145f): la pierna BARRE de abajo-frente → ARRIBA-frente, el pie llega
+	# a lo alto ~f80-84. MEDIDO: pivote en la cadera (Y≈850 -> c.y≈200), pie apex a Y≈338 (arriba-frente,
+	# ~-48° desde la cadera). Antes estaba horizontal a ras del suelo (mal). Aquí: ARCO ASCENDENTE en el
+	# plano vertical (flat 1.0) que persigue la pierna hacia arriba, pico ~f76-77, cola hasta f82.
+	# Ángulos: 0=frente, negativo=ARRIBA, positivo=abajo. r grande = alcanza el pie en lo alto.
+	"kick": {"base": 64, "c": Vector2(10, 200), "r": 700.0, "w": 340.0, "flat": 1.0,
+		"stages": [[30.0, 6.0, 0.30], [24.0, -1.0, 0.40], [17.0, -8.0, 0.50], [10.0, -15.0, 0.58],
+			[3.0, -21.0, 0.66], [-3.0, -27.0, 0.72], [-9.0, -32.0, 0.78], [-15.0, -37.0, 0.83],
+			[-20.0, -42.0, 0.88], [-25.0, -46.0, 0.92], [-30.0, -49.0, 0.95], [-34.0, -52.0, 0.98],
+			[-38.0, -54.0, 1.0], [-42.0, -56.0, 1.0], [-45.0, -57.0, 0.90], [-48.0, -58.0, 0.72],
+			[-50.0, -59.0, 0.52], [-52.0, -60.0, 0.34], [-53.0, -61.0, 0.18]]},
+	# E (spin_kick) = CABEZAZO: la cabeza sube (f77) y RAMEA abajo-adelante hasta conectar (~f93). La
+	# estela sigue la cabeza ARRIBA→ADELANTE-abajo (arco sobre la cabeza, ref #536). c en el pecho-alto
+	# (pivote del cuello), r alcanza la cabeza. Ángulos: -=arriba, 0=frente, +=abajo. base 80, pico ~f88.
+	"spin_kick": {"base": 80, "c": Vector2(20, -120), "r": 500.0, "w": 300.0, "flat": 0.42,
+		"stages": [[-150.0, -115.0, 0.30], [-138.0, -100.0, 0.42], [-126.0, -86.0, 0.54], [-113.0, -72.0, 0.65],
+			[-100.0, -58.0, 0.75], [-87.0, -44.0, 0.84], [-73.0, -30.0, 0.91], [-60.0, -17.0, 0.96],
+			[-47.0, -5.0, 1.0], [-35.0, 6.0, 1.0], [-24.0, 15.0, 0.90], [-15.0, 22.0, 0.75],
+			[-7.0, 28.0, 0.58], [-1.0, 33.0, 0.40], [4.0, 36.0, 0.24], [8.0, 39.0, 0.12]]},
+	# R (weak_punch) = EMPUJÓN a dos manos: los brazos se DISPARAN al frente (~f57-69). Estela HORIZONTAL
+	# al frente a la altura del pecho/brazo (ref #537), como el punch pero al timing del empujón. base 58.
+	"weak_punch": {"base": 58, "c": Vector2(10, -40), "r": 620.0, "w": 330.0, "flat": 0.20,
+		"stages": [[112.0, 25.0, 0.35], [118.0, 6.0, 0.55], [123.0, -12.0, 0.72], [126.0, -24.0, 0.86],
+			[127.0, -31.0, 0.95], [126.0, -35.0, 1.0], [120.0, -37.0, 1.0], [110.0, -38.0, 0.82],
+			[99.0, -38.0, 0.60], [90.0, -38.0, 0.40], [84.0, -38.0, 0.22], [80.0, -38.0, 0.10]]},
+	# ↓Q (crouch_punch) = puño agachado (hand f26-36, hit 32, altura pecho-agachado): estela horizontal
+	# al frente (ref #538). base 26, pico ~f29.
+	"crouch_punch": {"base": 26, "c": Vector2(10, 20), "r": 640.0, "w": 320.0, "flat": 0.20,
+		"stages": [[112.0, 22.0, 0.4], [120.0, -2.0, 0.7], [125.0, -20.0, 0.95], [126.0, -31.0, 1.0],
+			[121.0, -36.0, 0.88], [110.0, -38.0, 0.6], [98.0, -38.0, 0.38], [88.0, -38.0, 0.2]]},
+	# ↓R (crouch_jab) = DOBLE poke bajo (hits ~f22 y ~f40): dos streaks cortos al frente.
+	"crouch_jab": {"base": 18, "c": Vector2(10, 90), "r": 500.0, "w": 190.0, "flat": 0.22,
+		"stages": [[116.0, 40.0, 0.5], [122.0, 6.0, 0.9], [102.0, -12.0, 0.6], [88.0, -16.0, 0.3]],
+		"base2": 36, "stages2": [[116.0, 40.0, 0.5], [122.0, 6.0, 0.95], [102.0, -12.0, 0.65], [88.0, -16.0, 0.35]]},
+	# ↓W (crouch_kick) = DOBLE patada baja (hits ~f68 y ~f110): arco abajo-adelante (pie que baja).
+	"crouch_kick": {"base": 60, "c": Vector2(10, 120), "r": 560.0, "w": 230.0, "flat": 0.55,
+		"stages": [[-25.0, 8.0, 0.4], [0.0, 35.0, 0.8], [30.0, 58.0, 0.95], [50.0, 68.0, 0.55], [58.0, 70.0, 0.25]],
+		"base2": 102, "stages2": [[-25.0, 8.0, 0.4], [0.0, 35.0, 0.8], [30.0, 58.0, 0.95], [50.0, 68.0, 0.55], [58.0, 70.0, 0.25]]},
+	# ↓E (sweep) = BARRIDA a ras (f76-96, pie al suelo): estela BAJA horizontal cerca del piso.
+	"sweep": {"base": 72, "c": Vector2(10, 400), "r": 660.0, "w": 260.0, "flat": 0.28,
+		"stages": [[150.0, 95.0, 0.4], [120.0, 40.0, 0.7], [80.0, 5.0, 1.0], [45.0, -15.0, 0.7], [20.0, -30.0, 0.4], [8.0, -40.0, 0.2]]},
+	# aire+Q (jump_punch) = puño aéreo adelante-abajo (brazo f36-56, mano baja ~c.y 300): streak al frente-abajo.
+	"jump_punch": {"base": 32, "c": Vector2(10, 300), "r": 520.0, "w": 220.0, "flat": 0.35,
+		"stages": [[110.0, 40.0, 0.4], [120.0, 10.0, 0.8], [105.0, -8.0, 0.9], [88.0, -18.0, 0.6], [78.0, -22.0, 0.3]]},
+	# aire+W (jump_kick) = DOBLE patada aérea (kicks ~f34 y ~f68): dos streaks al frente (2º más largo).
+	"jump_kick": {"base": 26, "c": Vector2(10, 250), "r": 560.0, "w": 230.0, "flat": 0.40,
+		"stages": [[100.0, 30.0, 0.4], [120.0, 0.0, 0.85], [100.0, -15.0, 0.6], [85.0, -22.0, 0.3]],
+		"base2": 58, "stages2": [[110.0, 40.0, 0.4], [125.0, 5.0, 0.9], [105.0, -12.0, 0.65], [88.0, -20.0, 0.35]]},
+	# aire+R (air_jab) = DOBLE jab aéreo alto (jabs ~f34 y ~f70): dos streaks cortos al frente (altura pecho/cabeza).
+	"air_jab": {"base": 24, "c": Vector2(10, -100), "r": 560.0, "w": 200.0, "flat": 0.25,
+		"stages": [[110.0, 30.0, 0.4], [122.0, 0.0, 0.85], [100.0, -15.0, 0.6], [85.0, -20.0, 0.3]],
+		"base2": 60, "stages2": [[110.0, 35.0, 0.4], [125.0, 5.0, 0.9], [105.0, -12.0, 0.65], [88.0, -18.0, 0.35]]},
+	# aire+E (air_spin_kick) = DOBLE patada aérea (kicks ~f48 y ~f88): dos streaks al frente (1º más largo).
+	"air_spin_kick": {"base": 40, "c": Vector2(10, 120), "r": 620.0, "w": 240.0, "flat": 0.45,
+		"stages": [[100.0, 25.0, 0.4], [120.0, -5.0, 0.85], [100.0, -20.0, 0.6], [85.0, -26.0, 0.3]],
+		"base2": 80, "stages2": [[105.0, 30.0, 0.4], [122.0, 0.0, 0.9], [102.0, -15.0, 0.65], [86.0, -22.0, 0.35]]},
+}
+
 # frame que conecta, alcance y dano de cada ataque (alcances en px de pantalla)
 # daño por TIER:  flojo (R) = 50 · medio (Q) = 90 · fuerte (W/E) = 100
 const ATTACKS := {
@@ -228,6 +300,7 @@ const ATTACKS := {
 	"spin_kick":    {"hit_frame": 2, "reach": 600.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
 	"air_spin_kick": {"hit_frame": 4, "reach": 620.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
 	"weak_punch":   {"hit_frame": 1, "reach": 550.0 * CHAR_SCALE, "low": false, "damage": 50},
+	"uppercut":     {"hit_frame": 5, "reach": 500.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},   # ROUM ↓→W (los valores reales los da current_attack del warrior)
 }
 
 const FLY_TILT_DEG := 34.0   # inclinación del cuerpo al salir volando (se ladea hacia el empujón)
@@ -331,6 +404,7 @@ const STEP_DUR := 0.16   # SECO y veloz (0.22 se leía lento)
 var dash_voz_sfx: AudioStream = null   # voz "water way" al arrancar el dash (carga perezosa)
 var spin_voz_sfx: AudioStream = null   # voz "Power Twister" al girar (peonza, carga perezosa)
 var dam_spin_voz_sfx: AudioStream = null   # voz "Dancing Sword" del torbellino E de DAM (carga perezosa)
+var _roum_hya_sfx: AudioStream = null      # grito "YHAAAAA" GRAVE del cabezazo (E) de ROUM (carga perezosa)
 var fire_trail: CPUParticles2D
 var wall_squash_t := 0.0  # aplaston contra la pared/piso: compresion breve del sprite
 var squash_horizontal := true  # true = contra pared (comprime ancho); false = piso
@@ -340,6 +414,8 @@ var up_tap_t := 0.0
 var double_up_t := 0.0
 var down_tap_t := 0.0
 var double_down_t := 0.0
+var back_tap_t := 0.0      # tap reciente de ATRÁS (para el ←←→ del VOID LASH de ROUM)
+var double_back_t := 0.0   # doble-atrás reciente (← ←) para exigir ←←→ + W
 var pq_tap_t := 0.0   # instante reciente del tap de Q (para exigir Q+W SIMULTÁNEOS en el parry)
 var pw_tap_t := 0.0   # instante reciente del tap de W
 var pe_tap_t := 0.0   # tap reciente de E (para la RABIA de DAM: E+R simultáneas)
@@ -399,6 +475,10 @@ var swing_layer: Node2D   # capa POR DELANTE del sprite para la estela del arma 
 var fly_lean := 0.0   # dirección del empujón al salir volando (para inclinar el cuerpo en el aire)
 var vel_y := 0.0
 var vel_x := 0.0
+var shove_vx := 0.0   # EMPUJÓN en SUELO (ROUM weak_punch): desliza al rival hacia atrás sin lanzarlo; decae con fricción
+var shove_t := 0.0    # timer del empujón: desliza mientras dure (indep. del take_hit/hitstop y de la DIRECCIÓN)
+const SHOVE_FRICTION := 1000.0   # px/s^2 de frenado del empujón (más bajo = desliza MÁS lejos)
+var floor_bounce_pending := false   # REBOTE contra el suelo (ROUM E/cabezazo): al tocar el piso rebota ARRIBA una vez
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
 const FREEZE_DUR := 1.0   # Aye ↓E (ice-spikes): tiempo que el rival queda CONGELADO en su frame (tinte morado)
 var frozen_t := 0.0       # >0 = inmóvil, sprite pausado en su pose, teñido de morado (poder de hielo)
@@ -456,6 +536,8 @@ var fx_blue := false   # true = chispas de impacto AZULES (Favi); false = naranj
 var swing_y_off := 0.0  # corrimiento Y de las ESTELAS: el cuerpo de Fe va ~144px más ABAJO en el lienzo que el de DAM (para el que están tuneadas)
 var fx_floral := false  # true = estela MORADA+ROSA floral (Aye); tiene prioridad sobre fx_blue
 var fx_dark := false    # true = ZETMA (ninja oscuridad): estelas VERDE/void; usa audio propio por anim
+var fx_warrior := false # true = ROUM (tanque de vendas oscuras): estela SMOKY carmesí-negra, tabla propia (ROUM_SWING_FX)
+var roum_super_t := 0.0 # >0 = ROUM está en su SÚPER ↓W (cabezazo+onda): la ONDA hace el daño, el cuerpo NO golpea
 var dust_tint := Color(1, 1, 1)   # color del POLVO segun el stage (main lo setea: azul oscuro en stages oscuros)
 var _zetma_snd := {}    # cache de audios de Zetma por anim (imagen-action/zetma/sound-effect/<anim>.wav)
 
@@ -578,9 +660,10 @@ func _on_animation_changed() -> void:
 		# MOLINETE de DAM (salto+W): el MISMO whoosh giratorio de la peonza — la espada
 		# girando en círculos suena a remolino, no al slash de un tajo
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
-	elif not fx_blue and not fx_floral and not fx_dark and nombre == "spin_kick":
+	elif not fx_blue and not fx_floral and not fx_dark and not fx_warrior and nombre == "spin_kick":
 		# E de DAM (torbellino): whoosh giratorio + SU VOZ "Dancing Sword" (fórmula inferno).
 		# NO Zetma (fx_dark): su E usa su propio audio (_play_zetma_snd), sin la voz de DAM.
+		# NO ROUM (fx_warrior): su E es un CABEZAZO -> cae a su rama de whoosh pesado, sin la voz de DAM.
 		# aparte por voz_player — como la peonza de Fe, se oyen ambas
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
 		var dsw := "res://imagen-action/sound-effect/voz-dancing-sword.wav"
@@ -590,9 +673,10 @@ func _on_animation_changed() -> void:
 			voz_player.stream = dam_spin_voz_sfx
 			voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
 			voz_player.play()
-	elif not fx_blue and not fx_floral and not fx_dark and nombre == "air_spin_kick":
+	elif not fx_blue and not fx_floral and not fx_dark and not fx_warrior and nombre == "air_spin_kick":
 		# salto+E de DAM: FUERA el "dam-kick-shout.wav" (SU VOZ — se va a cambiar, pedido);
-		# mientras tanto el mismo whoosh del molinete, cortado al terminar la anim
+		# mientras tanto el mismo whoosh del molinete, cortado al terminar la anim.
+		# NO ROUM (fx_warrior): cae a su rama de whoosh pesado propio.
 		_play_aye_swoosh("res://imagen-action/sound-effect/whoosh.mp3", -4.0)
 	elif fx_dark and nombre == "air_spin_kick":
 		_play_sfx_key("kick")   # ZETMA: swing de golpe (sword-slash), NO la voz dam-kick-shout de DAM
@@ -602,6 +686,28 @@ func _on_animation_changed() -> void:
 	elif fx_floral and nombre in SWING_SFX:
 		# AYE blande un BÁCULO, no una espada: swoosh simple en vez del "sword-slash-and-swing"
 		_play_aye_swoosh("res://imagen-action/aye/sound-effect/simple-whoosh.mp3", -7.0)
+	elif fx_warrior and nombre == "spin_kick":
+		# ROUM CABEZAZO (E): SIN swoosh (el whoosh.mp3 sonaba al molinete de espada de DAM, pedido quitar).
+		# Solo su GRITO grave "YHAAAAA" (canal de voz aparte). El impacto suena al conectar (~f93).
+		var hyap := "res://imagen-action/roum/sound-effect/voz-hya-roum.wav"
+		if _roum_hya_sfx == null and ResourceLoader.exists(hyap):
+			_roum_hya_sfx = load(hyap)
+		if _roum_hya_sfx != null:
+			voz_player.stream = _roum_hya_sfx
+			voz_player.pitch_scale = 1.0   # ya viene procesada grave (-3 st): no re-pitchear
+			voz_player.play()
+		# E (cabezazo) = SEMI-súper: BORDE + SHADE carmesí en ROUM (su color de poder). Solo el E NORMAL
+		# (roum_super_t<=0); el ↓W (súper) ya pone su propio borde/shade en _roum_super, no duplicar.
+		if roum_super_t <= 0.0:
+			var mbe := get_parent()
+			if mbe and mbe.has_method("_roum_border"):
+				mbe._roum_border(self, true)
+				mbe._roum_shade(0.4)
+				get_tree().create_timer(1.05).timeout.connect(_roum_border_off_self, CONNECT_ONE_SHOT)
+	elif fx_warrior and nombre in SWING_SFX:
+		# ROUM: SIN sonido de swing (pedido: el whoosh.mp3 sonaba al molinete de espada de DAM).
+		# Sus puños/patadas suenan al IMPACTO (kick_impact) cuando conectan; el windup va mudo.
+		pass
 	else:
 		_play_sfx_key(nombre)
 	# grito de ATAQUE en golpes físicos (canal de voz, aparte del swoosh; con cooldown):
@@ -613,9 +719,20 @@ func _on_animation_changed() -> void:
 	# ...pero NO durante el ULTRA de Fe (aéreo o en el suelo): sin humo en su combo cinemático
 	var _mb := get_parent()
 	var _en_ultra_fe: bool = fx_blue and _mb != null and bool(_mb.get("ultra_active"))
-	if nombre in SMOKE_MOVES and not airborne and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
-		_spawn_dash_smoke(0.5, 60.0)   # JUSTO al pie (no en el aire: el polvo es de suelo)
+	# ROUM (fx_warrior): sus golpes FUERTES (R empujón, Q recto, ↓Q agachado) también sueltan POLVO (pedido)
+	var _humo_move: bool = nombre in SMOKE_MOVES or (fx_warrior and nombre in ["weak_punch", "punch", "crouch_punch"])
+	if _humo_move and not airborne and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
+		if fx_warrior:
+			_spawn_dash_smoke(0.6, 150.0, false, 0.08)   # ROUM: MÁS ATRÁS (atras 150) y PEGADO a los pies (lift 0.08, pedido)
+		else:
+			_spawn_dash_smoke(0.5, 60.0)   # JUSTO al pie (no en el aire: el polvo es de suelo)
 		dash_smoke_cd = 0.28
+
+# quita el BORDE carmesí del E (semi-súper) al terminar su ventana (conectado por timer one-shot)
+func _roum_border_off_self() -> void:
+	var mb := get_parent()
+	if mb and mb.has_method("_roum_border"):
+		mb._roum_border(self, false)
 
 func _play_sfx_key(k: String) -> void:
 	if sfx.has(k):
@@ -628,7 +745,7 @@ func _play_sfx_key(k: String) -> void:
 # swoosh propio de Aye (báculo): reutiliza el canal de swing (sfx_key sigue en SWING_SFX para que
 # el impacto lo corte con duck_swing). Cachea el stream por ruta.
 var _aye_swoosh_cache := {}
-func _play_aye_swoosh(path: String, vol := -6.0) -> void:
+func _play_aye_swoosh(path: String, vol := -6.0, pitch := 1.0) -> void:
 	if not _aye_swoosh_cache.has(path):
 		_aye_swoosh_cache[path] = load(path) if ResourceLoader.exists(path) else null
 	var st = _aye_swoosh_cache[path]
@@ -636,7 +753,7 @@ func _play_aye_swoosh(path: String, vol := -6.0) -> void:
 		return
 	sfx_key = String(sprite.animation)   # queda en SWING_SFX -> duck_swing lo corta al conectar
 	sfx_player.stream = st
-	sfx_player.pitch_scale = randf_range(0.94, 1.06)
+	sfx_player.pitch_scale = randf_range(0.94, 1.06) * pitch   # pitch<1 = whoosh más grave/pesado (ROUM)
 	sfx_player.volume_db = vol
 	sfx_player.play(0.05)
 
@@ -821,6 +938,114 @@ func current_attack() -> Dictionary:
 	# el DASH DE AGUJAS no pega por la animación: el árbitro (main._fe_dash_attack) mete los 3 golpes
 	if fe_dash_active:
 		return {}
+	# ROUM (TANQUE, archetype warrior, sin fx flag): sus golpes son clips PROPIOS de 145 frames.
+	# hit_frame MEDIDO (el puño/pie llega a full extensión ~f82/f76) — antes usaba el de DAM (~f2)
+	# y pegaba en la CARGA. reach de tanque (brazo largo). El impacto/streak lo pone el árbitro.
+	if archetype == "warrior" and sprite.is_playing():
+		if roum_super_t > 0.0:
+			return {}   # SÚPER ↓W en curso: la ONDA expansiva hace el daño (main._roum_nova), no el cuerpo
+		if sprite.animation == "punch":
+			return {"name": "punch", "frame": int(sprite.frame), "hit_frame": 82,
+				"reach": 600.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 90, "impact_sfx": "kick_impact"}
+		if sprite.animation == "kick":
+			return {"name": "kick", "frame": int(sprite.frame), "hit_frame": 76,
+				"reach": 560.0 * CHAR_SCALE, "low": false, "strong": true,
+				"damage": 100, "impact_sfx": "kick_impact"}
+		# R (weak_punch) = EMPUJÓN a dos manos (clip 145f): las manos se disparan al pecho ~f57-69 y
+		# SOSTIENEN f69-93 (MEDIDO). Poco daño pero EMPUJA al rival deslizándolo hacia atrás (shove) —
+		# no lo lanza. hit_frame 66 (extensión), shove = px/s de deslizamiento en suelo.
+		if sprite.animation == "weak_punch":
+			return {"name": "weak_punch", "frame": int(sprite.frame), "hit_frame": 66,
+				"reach": 540.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 40, "shove": 1950.0, "impact_sfx": "kick_impact"}
+		# E (spin_kick) = CABEZAZO (clip 145f): se recoge (f13-73) y hace LUNGE con la cabeza al frente,
+		# clavándola a full ~f93-97 (MEDIDO). Golpe FUERTE que LANZA (top de la escalera R→Q→W→E, cierra
+		# combos). Sin vendas -> sin estela. hit_frame 93.
+		if sprite.animation == "spin_kick":
+			return {"name": "spin_kick", "frame": int(sprite.frame), "hit_frame": 93,
+				"reach": 540.0 * CHAR_SCALE, "low": false, "strong": true,
+				"damage": 110, "impact_sfx": "kick_impact"}
+		# ↓↑W (uppercut) = puño ASCENDENTE (13f ida-y-vuelta): golpea en la subida (~f5) y LANZA al aire.
+		if sprite.animation == "uppercut":
+			return {"name": "uppercut", "frame": int(sprite.frame), "hit_frame": 5,
+				"reach": 500.0 * CHAR_SCALE, "low": false, "strong": true,
+				"damage": 100, "impact_sfx": "kick_impact"}
+		# ↓R (crouch_jab) = DOBLE poke bajo (clip 145f): 1er golpe ~f22 (xmax 1077), 2º ~f40 (extensión
+		# full xmax 1148). Nombres DISTINTOS = el árbitro cuenta 2 impactos. Bajo (block agachado).
+		if sprite.animation == "crouch_jab":
+			var wcj := int(sprite.frame)
+			if wcj < 32:
+				return {"name": "crouch_jab", "frame": wcj, "hit_frame": 22,
+					"reach": 500.0 * CHAR_SCALE, "low": true, "strong": false,
+					"damage": 40, "impact_sfx": "kick_impact"}
+			return {"name": "crouch_jab_2", "frame": wcj, "hit_frame": 40,
+				"reach": 530.0 * CHAR_SCALE, "low": true, "strong": false,
+				"damage": 40, "impact_sfx": "kick_impact"}
+		# ↓Q (crouch_punch) = puñetazo agachado FUERTE (clip 145f): sale f26-36 y SOSTIENE largo
+		# (xmax 1279, el brazo más largo). Golpe MEDIO (block de pie o agachado). hit_frame 32.
+		if sprite.animation == "crouch_punch":
+			return {"name": "crouch_punch", "frame": int(sprite.frame), "hit_frame": 32,
+				"reach": 590.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 85, "impact_sfx": "kick_impact"}
+		# ↓W (crouch_kick) = patada baja de UN solo golpe (pedido). Ventana ACOTADA f60-96 (1ª patada del
+		# clip) para garantizar un impacto único. Baja (block agachado). (↓W normal = super; esto es respaldo.)
+		if sprite.animation == "crouch_kick" and int(sprite.frame) >= 60 and int(sprite.frame) <= 96:
+			return {"name": "crouch_kick", "frame": int(sprite.frame), "hit_frame": 68,
+				"reach": 530.0 * CHAR_SCALE, "low": true, "strong": false,
+				"damage": 90, "impact_sfx": "kick_impact"}
+		# ↓E (sweep) = BARRIDA baja (clip 145f): el pie barre a ras ~f76-96 (xmax 1175, footY ~1050 =
+		# suelo). DERRIBA al rival (trip). Baja (block agachado). hit_frame 78. VENTANA ACOTADA a f<=90:
+		# el clip es LARGO (145f) y quedaba "activo" toda la anim -> si el árbitro reseteaba 'done'
+		# pegaba 2 veces. Fuera de la ventana devuelve {} (catch-all) = UN solo golpe garantizado.
+		if sprite.animation == "sweep" and int(sprite.frame) >= 72 and int(sprite.frame) <= 86:
+			return {"name": "sweep", "frame": int(sprite.frame), "hit_frame": 78,
+				"reach": 580.0 * CHAR_SCALE, "low": true, "strong": false, "trip": true,
+				"damage": 80, "impact_sfx": "kick_impact"}
+		# aire+Q (jump_punch) = puño AÉREO adelante-abajo (clip 145f): el brazo sale ~f36-56 (xmax 990,
+		# mano baja). Golpe de salto (jump-in). hit_frame 42.
+		if sprite.animation == "jump_punch":
+			return {"name": "jump_punch", "frame": int(sprite.frame), "hit_frame": 42,
+				"reach": 490.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 85, "impact_sfx": "kick_impact"}
+		# aire+W (jump_kick) = DOBLE patada aérea (clip 145f): 1ª ~f34 (xmax 1118, pie abajo-adelante),
+		# 2ª ~f68 (xmax 1299, largo). Nombres distintos = 2 impactos. hit_frames 34 y 68.
+		if sprite.animation == "jump_kick":
+			var jkfr := int(sprite.frame)
+			if jkfr < 50:
+				return {"name": "jump_kick", "frame": jkfr, "hit_frame": 34,
+					"reach": 520.0 * CHAR_SCALE, "low": false, "strong": false,
+					"damage": 55, "impact_sfx": "kick_impact"}
+			return {"name": "jump_kick_2", "frame": jkfr, "hit_frame": 68,
+				"reach": 600.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 60, "impact_sfx": "kick_impact"}
+		# aire+R (air_jab) = DOBLE jab aéreo (clip 145f): 1º ~f34 (xmax 1186, alto) y 2º ~f70 (xmax 1229).
+		# Nombres distintos = 2 impactos. Ligero (jab). hit_frames 34 y 70.
+		if sprite.animation == "air_jab":
+			var ajfr := int(sprite.frame)
+			if ajfr < 52:
+				return {"name": "air_jab", "frame": ajfr, "hit_frame": 34,
+					"reach": 500.0 * CHAR_SCALE, "low": false, "strong": false,
+					"damage": 40, "impact_sfx": "kick_impact"}
+			return {"name": "air_jab_2", "frame": ajfr, "hit_frame": 70,
+				"reach": 540.0 * CHAR_SCALE, "low": false, "strong": false,
+				"damage": 45, "impact_sfx": "kick_impact"}
+		# aire+E (air_spin_kick) = DOBLE patada aérea giratoria (clip 145f): 1ª ~f48 (xmax 1299, larga) y
+		# 2ª ~f88 (xmax 1147). Ventanas ACOTADas = 2 impactos limpios (sin re-hit del árbitro viajero).
+		if sprite.animation == "air_spin_kick":
+			var asfr := int(sprite.frame)
+			if asfr >= 42 and asfr <= 60:
+				return {"name": "air_spin_kick", "frame": asfr, "hit_frame": 48,
+					"reach": 620.0 * CHAR_SCALE, "low": false, "strong": false,
+					"damage": 60, "impact_sfx": "kick_impact"}
+			if asfr >= 80 and asfr <= 120:
+				return {"name": "air_spin_kick_2", "frame": asfr, "hit_frame": 88,
+					"reach": 560.0 * CHAR_SCALE, "low": false, "strong": false,
+					"damage": 60, "impact_sfx": "kick_impact"}
+		# cualquier OTRO golpe que ROUM aún no tiene clip (crouch_kick, aéreos...) NO pega:
+		# muestra su pose de placeholder pero NO hereda el golpe FANTASMA de DAM.
+		if sprite.animation in ATTACKS:
+			return {}
 	# durante el EMBER DASH el golpe es el especial (reusa el corte como pose)
 	# OJO: el casteo del BERSERK también usa special_t como candado — NO es un golpe
 	if special_t > 0.0 and sprite.is_playing() and String(sprite.animation) != "berserk_cast":
@@ -2200,7 +2425,7 @@ func _launch(push_dir: int, mult := 1.0) -> void:
 		_play_sfx_key(k)
 
 # push_dir: hacia donde empuja el golpe (+1 derecha / -1 izquierda)
-func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip := false, launch_mult := 1.0, wall := false, atk_blue := false, freeze := false) -> String:
+func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip := false, launch_mult := 1.0, wall := false, atk_blue := false, freeze := false, shove := 0.0, bounce := false) -> String:
 	impact_sfx_override = impact_key
 	_stop_channel()   # recibir golpe CANCELA el canaleo (+ corta el sonido de carga)
 	if breaker_inv_t > 0.0:
@@ -2292,6 +2517,8 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	if strong:
 		_burst(1.2, false, 1, atk_blue)
 		_launch(push_dir, launch_mult)
+		if bounce:
+			floor_bounce_pending = true   # E de ROUM: al caer REBOTA contra el suelo (sube y vuelve a caer)
 		return "launched"
 	if low:
 		crouching = true
@@ -2310,7 +2537,17 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	_burst(1.0, false, 1, atk_blue, chispa_y)
 	buffer_t = 0.0
 	punch_followup = false  # un golpe recibido corta el combo pendiente
-	position.x += push_dir * 20
+	# EMPUJÓN (ROUM weak_punch): nudge inmediato GRANDE + slide con timer propio (0.6s). Ambos usan
+	# push_dir (+derecha / -izquierda) -> empuja IGUAL a los dos lados. El nudge grande garantiza que
+	# se VEA de una aunque el hitstop se coma el arranque del slide.
+	if shove > 0.0:
+		position.x = clampf(position.x + float(push_dir) * 70.0, 115.0, 1805.0)
+		shove_vx = float(push_dir) * shove
+		shove_t = 0.45
+		vel_x = 0.0        # mata el impulso de caminar del rival: si no, su vel_x hacia ROUM
+		buffer_t = 0.0     # cancelaba el empuje en el facing en que se acercaba (bug asimétrico)
+	else:
+		position.x += push_dir * 20
 	return "hit"
 
 const BURN_DUR := 5.0
@@ -2432,6 +2669,20 @@ func _physics_process(delta: float) -> void:
 					sprite.play("ko")
 				else:
 					sprite.play("pose")   # sale del congelado a idle
+	# EMPUJÓN de ROUM (weak_punch): desliza al rival por el SUELO mientras encaja el golpe (take_hit),
+	# decayendo con fricción y frenando en las paredes. Se corta al salir de take_hit o si despega.
+	if shove_t > 0.0:
+		shove_t -= delta
+		if airborne or koed:
+			shove_t = 0.0
+			shove_vx = 0.0
+		else:
+			vel_x = 0.0   # mientras dura el empujón, NADA de velocidad de caminar propia (que lo pisaba)
+			# desliza en la dirección del empujón (shove_vx ya trae el signo: + derecha / - izquierda)
+			position.x = clampf(position.x + shove_vx * delta, 115.0, 1805.0)
+			shove_vx = move_toward(shove_vx, 0.0, SHOVE_FRICTION * delta)
+			if shove_t <= 0.0:
+				shove_vx = 0.0
 	# inclinación al salir volando: el cuerpo se ladea hacia la dirección del empujón (no vertical)
 	if hit_flying and String(sprite.animation) == "hit_fly":
 		# ZETMA (fx_dark): su clip de vuelo YA trae su propia rotación de tumbo (tumbling), así
@@ -2689,6 +2940,9 @@ func _physics_process(delta: float) -> void:
 	fwd_tap_win = maxf(0.0, fwd_tap_win - delta)
 	down_tap_t = maxf(0.0, down_tap_t - delta)
 	double_down_t = maxf(0.0, double_down_t - delta)
+	back_tap_t = maxf(0.0, back_tap_t - delta)
+	double_back_t = maxf(0.0, double_back_t - delta)
+	roum_super_t = maxf(0.0, roum_super_t - delta)   # timer del SÚPER ↓W de ROUM
 	pq_tap_t = maxf(0.0, pq_tap_t - delta)
 	pw_tap_t = maxf(0.0, pw_tap_t - delta)
 	pe_tap_t = maxf(0.0, pe_tap_t - delta)
@@ -2740,7 +2994,9 @@ func _physics_process(delta: float) -> void:
 	# (48 frames) se veia "extraño y sin golpe" (pedido): mientras tanto →Q = UN corte
 	# limpio. Al llegar punch2.mp4 (corte de REVES, prompt en GOLPES v2) esto revive solo:
 	# encadena tras la EXTENSION del tajo (frame 20), no en el windup.
-	if punch_followup and not fx_floral and not fx_blue and sprite.animation == "punch" \
+	# ROUM (warrior) NO encadena punch2: no tiene ese clip (es la POSE placeholder), así que →Q
+	# saltaba a la pose en el frame 20 = GLITCH sin golpe. Su →Q = UN puñetazo limpio y completo.
+	if punch_followup and not fx_floral and not fx_blue and archetype != "warrior" and sprite.animation == "punch" \
 			and sprite.sprite_frames.get_frame_count("punch2") > 8 and sprite.frame >= 20:
 		punch_followup = false
 		sprite.play("punch2")
@@ -2775,6 +3031,10 @@ func _physics_process(delta: float) -> void:
 		# frame de DESCENSO: nunca muestra la guardia hasta ATERRIZAR de verdad.
 		if fx_dark and String(sprite.animation) == "jump" and int(sprite.frame) > 100:
 			sprite.frame = 100
+		# ROUM: su clip de jump hace el TUCK/crouch de aterrizaje en f89-113 -> se veía AGACHADO en el
+		# aire antes de caer (#540). Cap al APEX extendido (f81): mantiene la pose aérea hasta ATERRIZAR.
+		if fx_warrior and String(sprite.animation) == "jump" and int(sprite.frame) > 81:
+			sprite.frame = 81
 		# MUERTE AÉREA: sube con la pose de vuelo (el "vuelo por los aires"); en cuanto
 		# EMPIEZA A BAJAR, pasa a BOCA ABAJO (ko_air) para caer y estrellarse de bruces.
 		# KO AÉREO (pedido final): el VUELO entero usa hit_fly (el que se ve bien); el
@@ -2793,7 +3053,7 @@ func _physics_process(delta: float) -> void:
 		# DAM ↑W: FLOTA mientras DESCARGA el tajo — la animación completa no cabía en la caída
 		# normal (el aterrizaje la cortaba y "solo se veía subir la espada"). Pedido del usuario:
 		# que no caiga tanto para que la animación original se vea entera. Al terminar, cae normal.
-		var dam_jk: bool = not fx_blue and not fx_floral and not fx_dark and String(sprite.animation) == "jump_kick" and sprite.is_playing()
+		var dam_jk: bool = not fx_blue and not fx_floral and not fx_dark and not fx_warrior and String(sprite.animation) == "jump_kick" and sprite.is_playing()   # ROUM NO flota (heredaba el hover del ↑W de DAM = se quedaba en el aire)
 		var grab_hover: bool = fx_dark and String(sprite.animation) == "air_grab"
 		if grab_hover:
 			vel_y = 0.0   # ZETMA air_grab: FLOTA EN EL SITIO hasta terminar (no cae NI se desplaza)
@@ -2850,6 +3110,18 @@ func _physics_process(delta: float) -> void:
 			if air_dir != 0.0:
 				position.x += air_dir * WALK_SPEED * (1.30 if rage_mode else 1.0) * spd * delta
 		if position.y >= floor_y and vel_y >= 0.0:   # solo aterriza si NO va subiendo
+			# REBOTE contra el suelo (E de ROUM): al TOCAR el piso rebota ARRIBA una vez y sigue volando
+			# (sube y vuelve a caer), en vez de aterrizar. Se consume el flag -> la 2ª caída SÍ aterriza.
+			if floor_bounce_pending and not koed:
+				floor_bounce_pending = false
+				position.y = floor_y
+				vel_y = -maxf(900.0 * CHAR_SCALE, absf(vel_y) * 0.55)   # rebota HACIA ARRIBA (más chico que el impacto)
+				vel_x *= 0.6                                           # pierde algo de empuje horizontal
+				juggle_hold_t = 0.4
+				_spawn_slam_dust(signi(int(vel_x)) if int(vel_x) != 0 else -facing, 0.9)   # polvo del rebote
+				if sprite.sprite_frames.has_animation("hit_fly"):
+					sprite.play("hit_fly")
+				return   # rebota y sigue en el aire (no aterriza)
 			position.y = floor_y
 			airborne = false
 			vel_y = 0.0
@@ -2906,6 +3178,12 @@ func _physics_process(delta: float) -> void:
 
 	# celebrando: quieto hasta que se le ordene volver
 	if sprite.animation == "victory":
+		return
+
+	# EMPUJÓN de ROUM (shove_t): mientras lo están empujando NO camina ni actúa (ni IA ni humano).
+	# Antes la IA caminaba de vuelta hacia ROUM y TAPABA el deslizamiento (por eso "en un facing no
+	# empujaba"): el slide se aplicaba arriba pero el walk de la IA lo pisaba. Con esto el empujón se VE.
+	if shove_t > 0.0:
 		return
 
 	if not _es_humano():
@@ -2974,7 +3252,7 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed(act("ui_up")) and not crouching:
 		airborne = true
 		vel_y = -JUMP_SPEED * jump_mult
-		_spawn_jump_dust(0.6)   # polvo de despegue
+		_spawn_jump_dust(1.05 if fx_warrior else 0.6)   # polvo de despegue (ROUM tanque: ráfaga MÁS grande y visible)
 		# MORTAL de Fe (clip v2): saltar HACIA ADELANTE hace el flip. Los golpes aéreos
 		# lo CANCELAN de una (neutral_spin no es golpe: no está en la lista de bloqueo,
 		# así que _try_attack pisa la anim al instante). Neutro/atrás y demás: jump limpio.
@@ -3160,8 +3438,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		die_ko()                            # muere EN EL AIRE -> completa el arco
 		return
 	# doble toque ATRÁS/ADELANTE: Aye = BLINK (teleport, maná); Fe y DAM = PASO CORTO
-	# (←← backdash / →→ paso adelante, estilo Street Fighter)
-	if event.is_action_pressed(act("ui_left")) or event.is_action_pressed(act("ui_right")):
+	# (←← backdash / →→ paso adelante, estilo Street Fighter).
+	# ROUM (warrior/TANQUE) NO tiene dash: solo asesinos (DAM/Fe/Zetma) y magos (Aye=blink) lo tienen.
+	if archetype != "warrior" and (event.is_action_pressed(act("ui_left")) or event.is_action_pressed(act("ui_right"))):
 		var _bd := -1 if event.is_action_pressed(act("ui_left")) else 1
 		if airborne or koed:
 			back_tap_win = 0.0
@@ -3196,6 +3475,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		if down_tap_t > 0.0:
 			double_down_t = 0.35
 		down_tap_t = 0.4
+	# doble toque ATRÁS (← ←): habilita el VOID LASH de ROUM (←←→ + W)
+	var _btap := 0
+	if event.is_action_pressed(act("ui_left")): _btap = -1
+	elif event.is_action_pressed(act("ui_right")): _btap = 1
+	if _btap != 0 and _btap == -facing:   # el press fue hacia ATRÁS (lejos del rival)
+		if back_tap_t > 0.0:
+			double_back_t = 0.4
+		back_tap_t = 0.4
 	# DEFENSA mientras te COMBEAN (te están pegando): PARRY (estándar) o COMBO BREAK (por personaje)
 	var _combeado := not koed and (hit_flying \
 		or (String(sprite.animation) in ["take_hit", "take_hit_low"] and sprite.is_playing()))
@@ -3278,6 +3565,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _obd != 0.0 and int(signf(_obd)) == -facing:
 			var mob := get_parent()
 			if mob and mob.has_method("_zetma_orb_special") and mob._zetma_orb_special(self):
+				return
+	# ROUM (warrior): ←←→ + W (dos atrás, adelante, W) = VOID LASH (súper de vendas a pantalla, ½ barra)
+	if archetype == "warrior" and not airborne and event.is_action_pressed(act("kick")) and double_back_t > 0.0:
+		var _vfd := Input.get_axis(act("ui_left"), act("ui_right"))
+		if _vfd != 0.0 and int(signf(_vfd)) == facing:   # ADELANTE al apretar W
+			var mvl := get_parent()
+			if mvl and mvl.has_method("_roum_void_cast") and mvl._roum_void_cast(self):
 				return
 	if fx_floral:
 		# --- AYE: su SÚPER propio. NO hereda los ultras de fuego de DAM ni los de agua de Fe. ---
@@ -3386,6 +3680,24 @@ func _unhandled_input(event: InputEvent) -> void:
 # que las viejas del sheet — sin esto el cancel abria ANTES de que el golpe se viera)
 func _hit_frame_de(anim: String) -> int:
 	var hf: int = int(ATTACKS[anim]["hit_frame"]) if ATTACKS.has(anim) else 0
+	# ROUM (warrior): sus clips son de 145f con hit_frame REAL medido (deben coincidir con current_attack).
+	# La ventana de cancel se abre CUANDO el golpe DE VERDAD conecta -> el Q pega y RECIÉN ahí encadena
+	# a W (Q→W combo). Antes caía en el override de DAM (15/32) y cancelaba ANTES de pegar (whiff).
+	if fx_warrior:
+		match anim:
+			"punch": return 82
+			"kick": return 76
+			"weak_punch": return 66
+			"spin_kick": return 93
+			"crouch_jab": return 40
+			"crouch_punch": return 32
+			"crouch_kick": return 110
+			"sweep": return 78
+			"jump_punch": return 42
+			"jump_kick": return 68
+			"air_jab": return 70
+			"air_spin_kick": return 88
+			_: return hf
 	# DAM punch v2 (48 frames): el TAJO smear barre en los frames 12-16
 	if not fx_blue and not fx_floral and anim == "punch" \
 			and sprite.sprite_frames.get_frame_count("punch") > 8:
@@ -3443,6 +3755,15 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				return false
 			if BTN_LEVEL.get(accion, 0) < ANIM_LEVEL.get(anim_actual, 0):
 				return false
+	# ROUM (warrior): ↓ → + W = UPPERCUT (lanzador). Cuarto ADELANTE con BUFFER (no exige → en el
+	# frame exacto: ↓ reciente + → reciente + ya NO tienes ↓ apretado -> se distingue del ↓W súper).
+	if archetype == "warrior" and accion == "kick" and not desde_aire and not airborne \
+			and down_recent_t > 0.0 and fwd_recent_t > 0.0 \
+			and not Input.is_action_pressed(act("ui_down")) \
+			and sprite.sprite_frames.has_animation("uppercut"):
+		crouching = false
+		sprite.play("uppercut")
+		return true
 	# agachados SOLO en el suelo Y con press EN EL SUELO: un botón apretado en el aire
 	# (buffer de aterrizaje, desde_aire) NO abre agachados — evita "salto + ↓R = tigre"
 	if not airborne and not desde_aire and (crouching or Input.is_action_pressed(act("ui_down"))):
@@ -3450,6 +3771,13 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 			sprite.play("crouch_punch")
 			return true
 		if accion == "kick":
+			# ROUM (warrior): ↓W = SÚPER (cabezazo + ONDA EXPANSIVA, ½ barra). Reemplaza el crouch_kick.
+			# main._roum_super cobra la barra (deny si no hay). Los demás personajes: crouch_kick normal.
+			if archetype == "warrior":
+				var mbs := get_parent()
+				if mbs and mbs.has_method("_roum_super"):
+					mbs._roum_super(self)
+					return true
 			sprite.play("crouch_kick")
 			return true
 		if accion == "weak_punch" and sprite.sprite_frames.has_animation("crouch_jab"):
@@ -3521,7 +3849,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 					elif sprite.sprite_frames.has_animation("water_cast"):
 						_start_water_special(1)
 						return true
-					else:
+					elif archetype != "warrior":
 						# DAM: EMBER DASH — ahora CUESTA ½ barra de súper (pedido). Sin barra:
 						# deny (barra parpadea + personaje gris) y NO embiste.
 						var _md := get_parent()
@@ -3529,10 +3857,18 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 							return true
 						_start_special()
 						return true
-				# ←→+Q (atrás luego adelante) = DASH DE AGUJAS de Fe: embiste, si conecta 3 golpes
-				if adelante and back_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
-					_start_fe_dash()
-					return true
+				# ←→+Q (atrás luego adelante): ROUM = GROUND GRAB (carga/grappler) · Fe = DASH DE AGUJAS
+				if adelante and back_recent_t > 0.0:
+					if archetype == "warrior":
+						# ROUM: ←→Q = GROUND GRAB (estira las VENDAS y HALA). Solo sale si el rival está a
+						# ≤1.5 CUERPOS (main._roum_ground_grab valida rango) para que las vendas no se vean
+						# CORTADAS. Si está lejos: NO sale el agarre -> cae al puño normal de abajo.
+						var _mg := get_parent()
+						if _mg and _mg.has_method("_roum_ground_grab") and _mg._roum_ground_grab(self):
+							return true
+					elif sprite.sprite_frames.has_animation("water_cast"):
+						_start_fe_dash()
+						return true
 				# →+Q (hacia el rival): doble corte encadenado
 				punch_followup = adelante
 				sprite.play("punch")
@@ -3618,6 +3954,13 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				sprite.play("air_jab")
 				return true
 			if not airborne:
+				# ROUM: ←→R (atrás luego adelante + R) = WARP GRAB (agarre por PORTAL de vendas)
+				if archetype == "warrior" and back_recent_t > 0.0:
+					var _wd := Input.get_axis(act("ui_left"), act("ui_right"))
+					if _wd != 0.0 and int(signf(_wd)) == facing:
+						var mw := get_parent()
+						if mw and mw.has_method("_roum_warp_grab") and mw._roum_warp_grab(self):
+							return true
 				# AYE: → ↓ ← + R (media luna atrás) = FROST ORB (PRISM ORB), la orbe congelante
 				if fx_floral and hcb_t > 0.0 and sprite.sprite_frames.has_animation("crystal_cast"):
 					hcb_t = 0.0
@@ -3933,6 +4276,8 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 		fx_table = FAVI_SWING_FX
 	elif fx_dark:
 		fx_table = ZETMA_SWING_FX   # Zetma SOLO su tabla (nunca la de DAM/SWING_FX -> sin estelas heredadas como el molinete de jump_kick)
+	elif fx_warrior:
+		fx_table = ROUM_SWING_FX   # ROUM SOLO su tabla: anims sin entrada aquí NO dibujan estela (no hereda el arco de katana de DAM)
 	if not fx_table.has(anim):
 		return
 	var fx: Dictionary = fx_table[anim]
@@ -3989,6 +4334,12 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 		c_out = Color(0.34, 0.06, 0.60, 0.40 * al)   # sombra violeta profunda (cuerpo/halo)
 		c_core = Color(0.66, 0.20, 1.15, 0.62 * al)  # violeta medio caliente (nucleo)
 		c_edge = Color(1.05, 0.55, 1.75, 0.80 * al)  # borde violeta brillante (filo del corte)
+	elif fx_warrior:
+		# ROUM (tanque de vendas oscuras / agujeros negros): estela SMOKY carmesí-NEGRA, pesada y
+		# oscura — nada del fuego naranja de DAM. Baja luminancia = se siente densa/tanque.
+		c_out = Color(0.10, 0.02, 0.06, 0.44 * al)   # humo negro-vino (halo)
+		c_core = Color(0.40, 0.05, 0.12, 0.62 * al)  # carmesí muy oscuro (nucleo)
+		c_edge = Color(0.78, 0.14, 0.22, 0.74 * al)  # filo rojo-vino apagado (no brillante)
 	else:
 		c_out = Color(1.0, 0.42, 0.12, 0.32 * al)
 		c_core = Color(1.0, 0.85, 0.4, 0.55 * al)

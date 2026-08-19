@@ -78,7 +78,7 @@ const CARD_CUT := 16.0   # tamaño del corte diagonal en 2 esquinas de las carta
 # son jugables. Se dibujan en GRIS con cinta "SOON" y NO están en el roster seleccionable, así el
 # cursor 1P/2P nunca cae en ellos. El avatar (roum-face) es el mismo formato de la barra de vida.
 const LOCKED_SLOTS := [
-	{"name": "ROUM", "avatar": "res://imagen-action/Roum/roum-face.png"},
+	# ROUM ya es JUGABLE (tiene pose+walk y datos de tanque) -> pasó al roster (Sel.ROSTER).
 ]
 
 # polígono de una carta con las esquinas SUP-IZQ e INF-DER cortadas en diagonal (look angular
@@ -99,6 +99,7 @@ const SEL_ANIM := {
 	"favi": {"dir": "res://imagen-action/favi/select/anim", "prefix": "fe-select",  "n": 145, "fps": 24.0},
 	"aye":  {"dir": "res://imagen-action/aye/select/anim",  "prefix": "aye-select", "n": 145, "fps": 24.0},
 	"zetma": {"dir": "res://imagen-action/zetma/select/anim", "prefix": "zetma-select", "n": 145, "fps": 24.0},
+	"roum": {"dir": "res://imagen-action/roum/select/anim", "prefix": "roum-select", "n": 78, "fps": 24.0},   # n=78 -> CONGELA en el pulgar arriba (los frames 79-145 bajan a neutral, no se usan)
 }
 const CHAR_H := 830.0        # altura del MÁS ALTO (DAM adulto); los demás por body_k
 const FEET_Y := 895.0        # línea de piso visual (los pies quedan sobre la banda inferior)
@@ -106,7 +107,7 @@ const CX_L := 340.0          # centro X del personaje P1
 const CX_R := 1580.0         # centro X del personaje P2
 # ESTATURA REAL de cada quien (= body_k del juego): DAM adulto 1.0, Fe ~10 años 0.71,
 # Aye ~5 años 0.65. Escala la altura en pantalla para respetar quién es más alto.
-const SIDE_BODY_K := {"dam": 1.0, "favi": 0.71, "aye": 0.65, "zetma": 0.85}   # Zetma un poco más bajo/chico que DAM (su pose de select es agachada y se ve grande)
+const SIDE_BODY_K := {"dam": 1.0, "favi": 0.71, "aye": 0.65, "zetma": 0.85, "roum": 1.05}   # Zetma un poco más bajo que DAM; ROUM el MÁS GRANDE (tanque)
 var side_spr: Array = [null, null]    # AnimatedSprite2D por lado
 var sel_frames := {}                  # id -> SpriteFrames COMPLETO (todos los frames, para el gesto al SELECCIONAR)
 var sel_frames_lite := {}             # id -> SpriteFrames de 1 SOLO frame (pose), para el HOVER (instantáneo)
@@ -905,10 +906,11 @@ const SEL_LINE := {
 	"favi": "res://imagen-action/favi/Fe-sound-effect/let_have_fun_Tattle_Eleven_v3_01a00770-428c-7f68-b7e5-1d5b6763fdd9.mp3",
 	"aye": "res://imagen-action/aye/sound-effect/we_got_this_Cupcake_Eleven_v3_01a00772-a7ce-7ba0-8488-29fb6cd8bc37.mp3",
 	"zetma": "res://imagen-action/zetma/sound-effect/zetma-select.wav",   # "the shades are with me" (robótica/terror)
+	"roum": "res://imagen-action/roum/sound-effect/voz-roum.wav",   # "Got you" procesada GRAVE/robusta (−3 st + cuerpo + saturación); crudo en _raw_got_you.mp3
 }
 # DEMORA (seg) antes de que suene la voz, para que arranque con el movimiento de boca del
 # clip. Faviola algo más que DAM; Aye con la suya. (tuneable a gusto)
-const SEL_DELAY := {"dam": 0.70, "favi": 1.60, "aye": 1.55, "zetma": 0.80}
+const SEL_DELAY := {"dam": 0.70, "favi": 1.90, "aye": 1.55, "zetma": 0.80, "roum": 1.75}   # Fe: boca habla f30-54 (~1.2-2.2s) -> 1.90 cae adentro; Roum: barba tapa labios, ráfaga de habla f44-58 (~1.8-2.4s) -> 1.75 ("Got you" 1.07s)
 const SELECT_HOLD := 2.2    # pausa tras la ÚLTIMA selección: se ve la animación antes de avanzar
 var _advancing := false     # true durante esa pausa: congela el input
 var _sfx_sel: AudioStreamPlayer

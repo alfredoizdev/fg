@@ -33,6 +33,7 @@ const ROSTER := [
 	{"id": "favi", "name": "FE",   "arch": "ASSASSIN", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "portrait": "res://imagen-action/favi/sheets/select-character-post-Fe-2.png", "stand": "res://imagen-action/favi/select/favi-select.png", "stand_fallback": "res://imagen-action/favi/pose/favi-pose-1.png", "weapon": "TWIN NEEDLES", "power": "WHIRLPOOL"},
 	{"id": "aye",  "name": "AYE",  "arch": "WIZARD", "avatar": "res://imagen-action/aye/sheets/aye-face.png",   "portrait": "res://imagen-action/aye/sheets/slect-character-aye.png",        "stand": "res://imagen-action/aye/select/aye-select.png",   "stand_fallback": "res://imagen-action/aye/pose/aye-pose-1.png",   "weapon": "CRYSTAL STAFF",  "power": "PRISM"},
 	{"id": "zetma", "name": "ZETMA", "arch": "ASSASSIN", "avatar": "res://imagen-action/zetma/sheets/zetma-face.png", "portrait": "res://imagen-action/zetma/sheets/zetma-face.png", "stand": "res://imagen-action/zetma/select/anim/zetma-select-1.png", "stand_fallback": "res://imagen-action/zetma/pose/zetma-pose-1.png", "weapon": "DAGGER", "power": "SHADOW CLONES"},
+	{"id": "roum", "name": "ROUM", "arch": "WARRIOR", "avatar": "res://imagen-action/roum/sheets/roum-face.png", "portrait": "res://imagen-action/roum/sheets/roum-face.png", "stand": "res://imagen-action/roum/pose/roum-pose-1.png", "stand_fallback": "res://imagen-action/roum/pose/roum-pose-1.png", "weapon": "DARK BANDAGES", "power": "BLACK HOLES"},
 ]
 
 func _ready() -> void:

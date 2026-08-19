@@ -77,6 +77,7 @@ var zetma_orb_frames: SpriteFrames = null   # ESPECIAL de Zetma: frames de la or
 var void_orb_shader: Shader = null   # SHADER procedural del orbe VOID (reemplaza los PNG)
 var void_orb_tex: Texture2D = null   # textura blanca base sobre la que corre el shader
 var void_dome_shader: Shader = null  # SHADER de la CÚPULA void que enjaula al rival
+var void_portal_shader: Shader = null  # SHADER del AGUJERO NEGRO elíptico de ROUM (warp_grab)
 var orb_mote_tex: Texture2D = null   # textura REDONDA suave para los motes de energía (no cuadrados)
 var orb_charge := [0.0, 0.0]   # carga del especial por lado (solo Zetma); 1.0 = listo
 var orb_used := [false, false] # ya usado este round (1 vez por round)
@@ -209,6 +210,7 @@ const CHARS := [
 	{"id": "favi", "name": "FE",   "arch": "assassin", "avatar": "res://imagen-action/favi/avatar/favi-avatar.png", "frames": "res://favi_frames.tres",   "scale": 0.82},
 	{"id": "aye",  "name": "AYE",  "arch": "wizard", "avatar": "res://imagen-action/aye/sheets/aye-face.png",   "frames": "res://fighter_frames.tres", "scale": 0.78},
 	{"id": "zetma", "name": "ZETMA", "arch": "assassin", "avatar": "res://imagen-action/zetma/sheets/zetma-face.png", "frames": "res://fighter_frames.tres", "scale": 1.0},
+	{"id": "roum", "name": "ROUM", "arch": "warrior", "avatar": "res://imagen-action/roum/sheets/roum-face.png", "frames": "res://fighter_frames.tres", "scale": 1.3},
 ]
 var char_panel: ColorRect
 var char_cards := []            # [{border, av, name_lbl, wip_lbl, ready}] por personaje
@@ -362,7 +364,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-18 FN"
+	get_window().title = "FG Fighter — build 2026-08-18 GX"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1125,6 +1127,12 @@ func _char_move_text(cid: String) -> Dictionary:
 			"title": "ZETMA — MOVE LIST",
 			"moves": "MOVES:\n\nR  —  Twin dagger · thrust + kick (2)\n↓ + R  —  Low mechanical jab (2)\nQ  —  Straight punch\nW  —  Kick\n↓ + Q  —  Crouch punch\n↓ + W  —  Crouch kick\nE  —  EXTENDING ARM · long reach\n↓ + E  —  Ground sweep ▼\nJump + Q  —  Air punch\nJump + W  —  Air kick\nJump + E  —  Air double kick\nJump + R  —  Air dagger jab (2)\n\n▼ = knocks down",
 			"fin": "★  SPECIALS  &  FINISHERS\n↓ → + Q  —  SCORPION HOOK · grab + pull\nJump ↓ → + Q  —  air hook (pull down)\n↓ ← + E  —  VOID ORB · slow-mo trap (1/round · charge ring)\n← → + E  —  COMBO BREAK · kicks out (while hit · ½ bar)\n↓ ↓ + R  —  ANNIHILATION · short ultra\n↓ ↓ + W  —  APOCALYPSE · long ultra\n↓ ↓ + E  —  INFERNO · crit\n        (ultras: 3-hit combo + rival ≤ 25% HP)\n\nPARRY (Q + W together):  counter · 1 bar",
+		}
+	if cid == "roum":
+		return {
+			"title": "ROUM — MOVE LIST",
+			"moves": "MOVES  (TANK · dark bandages):\n\nR  —  Two-hand SHOVE · slides them back (40)\n↓ + R  —  Low double poke (40+40)\nQ  —  Heavy punch (90)\nW  —  Big kick (100)\n↓ + Q  —  Crouch punch (85)\nE  —  HEADBUTT · lunge, launches (110) ▲\n↓ → + W  —  UPPERCUT · rising fist, launches (100) ▲\n↓ + E  —  Ground sweep · trips (80) ▼\nJump + Q  —  Air punch (85)\nJump + W  —  Air double kick (55+60)\nJump + E  —  Air spin kick · 2 hits (60+65)\nJump + R  —  Air double jab (40+45)\n\n▲ = launches into the air     ▼ = knocks down",
+			"fin": "★  SPECIALS  &  SUPERS  (grappler · ½ bar each)\n← → + Q  —  BLACK-BIND GRAB · bandages hook & pull in (70)\n        (only ≤ 1.5 bodies · else falls to a punch)\n↓ + W  —  HEADBUTT NOVA · shockwave that launches ▲ (½ bar · 80)\n← ← → + W  —  VOID LASH · full-screen bandages, 6 hits,\n        shoves the rival to the screen edge (½ bar · 120)\n\nPARRY (Q + W together):  counter · 1 bar · breaks their combo",
 		}
 	return {
 		"title": "DAM — MOVE LIST",
@@ -2120,6 +2128,8 @@ const DAM_SCALE := 1.10
 const DAM_FEET_FROM_CENTER := 500.0
 const ZETMA_SCALE := 0.90            # un poco más bajo que DAM (idle ~635px vs 714 de DAM ≈89% en pantalla)
 const ZETMA_FEET_FROM_CENTER := 500.0
+const ROUM_SCALE := 1.14             # TANQUE: el MÁS GRANDE del roster, pero NO un gigante (era 1.30 = gigante)
+const ROUM_FEET_FROM_CENTER := 500.0
 
 # registra una ANIM ESTÁNDAR compartida (GUIA-COMUN: frozen, electrocuted, step, ...),
 # solo si ya existen sus frames — el patrón común para TODOS los personajes
@@ -2768,6 +2778,66 @@ func _zetma_action_frames(accion: String) -> Array:
 			break
 	return out
 
+# --- FRAMES DE ROUM (TANQUE): usa sus clips (roum/<accion>/roum-<accion>-N.png) donde existan;
+# lo que aún NO tiene se rellena con su POSE (placeholder — siempre se ve a ROUM, nunca DAM).
+func _roum_action_frames(accion: String) -> Array:
+	var out := []
+	var i := 1
+	while true:
+		var p := "res://imagen-action/roum/%s/roum-%s-%d.png" % [accion, accion, i]
+		if ResourceLoader.exists(p):
+			out.append(load(p))
+			i += 1
+		else:
+			break
+	return out
+
+func _build_roum_frames() -> SpriteFrames:
+	var sf := load("res://fighter_frames.tres").duplicate(true) as SpriteFrames
+	var pose := _roum_action_frames("pose")
+	if not pose.is_empty():
+		# la POSE de ROUM reemplaza el idle Y sirve de placeholder para TODA anim aún sin arte
+		for anim in sf.get_animation_names():
+			sf.clear(anim)
+			for t in pose:
+				sf.add_frame(anim, t)
+			sf.set_animation_speed(anim, 12.0)
+			sf.set_animation_loop(anim, anim in ["pose", "walk", "crouch"])
+	# clips REALES de ROUM que ya existan (pose + walk + crouch; los demás cuando lleguen).
+	# crouch loop=FALSE: se agacha UNA vez y retiene (el motor lo levanta con play_backwards al soltar).
+	var reg := {"pose": [28.0, true], "walk": [52.0, true], "crouch": [90.0, false],
+		"punch": [170.0, false], "kick": [160.0, false], "jump": [120.0, false],
+		"weak_punch": [175.0, false], "spin_kick": [165.0, false],
+		"crouch_jab": [165.0, false], "crouch_punch": [158.0, false], "crouch_kick": [160.0, false],
+		"sweep": [155.0, false], "jump_punch": [170.0, false], "jump_kick": [165.0, false],
+		"air_jab": [170.0, false], "air_spin_kick": [165.0, false],
+		"ground_grab": [100.0, false], "get_pull": [12.0, true], "victory": [24.0, false],
+		"void_cast": [75.0, false], "warp_grab": [90.0, false],
+		"uppercut": [30.0, false]}   # weak_punch=EMPUJÓN; spin_kick=CABEZAZO; crouch_jab/kick=DOBLE golpe bajo; crouch_punch=puño agachado; sweep=BARRIDA (↓E); get_pull=HALADO (víctima, loop); victory @24fps; void_cast=SÚPER vendas; warp_grab=AGARRE por portal; uppercut=↓→W LANZADOR (13 frames ida-y-vuelta @30fps)
+	for accion in reg:
+		var fr := _roum_action_frames(accion)
+		if fr.size() > 1:
+			if not sf.has_animation(accion):
+				sf.add_animation(accion)
+			sf.clear(accion)
+			for t in fr:
+				sf.add_frame(accion, t)
+			sf.set_animation_speed(accion, reg[accion][0])
+			sf.set_animation_loop(accion, reg[accion][1])
+	# ATAQUES que ROUM aún NO tiene clip: dejarlos CORTOS (~6 frames de pose) para que NO CONGELEN
+	# el modelo ~12s (145 frames de pose @12fps) al dispararse. Se dispara la anim, hace un flash
+	# breve y vuelve a neutral (sin golpe) hasta que llegue su clip. NO toca take_hit/block/ko.
+	if not pose.is_empty():
+		var stub: Array = pose.slice(0, mini(6, pose.size()))
+		for a in []:
+			if sf.has_animation(a) and _roum_action_frames(a).is_empty():
+				sf.clear(a)
+				for t in stub:
+					sf.add_frame(a, t)
+				sf.set_animation_speed(a, 26.0)
+				sf.set_animation_loop(a, false)
+	return sf
+
 # Zetma usa el .tres base (estructura de anims). Sobreescribe con SUS clips a medida que
 # llegan; las que aún NO tiene se rellenan con su POSE (placeholder — siempre se ve a Zetma,
 # nunca a DAM). Registra cada anim de zetma/<accion>/ que exista.
@@ -3171,10 +3241,11 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.swing_y_off = 144.0   # sus frames llevan el cuerpo MÁS ABAJO en el lienzo (coronilla 644 vs 500 de DAM): baja las estelas a su cuerpo
 	f.fx_floral = id == "aye"  # estela MORADA+ROSA para Aye (se resetea para los demas)
 	f.fx_dark = id == "zetma"  # ZETMA (ninja oscuridad): usa el audio propio de cada clip
+	f.fx_warrior = id == "roum"  # ROUM (tanque): estela SMOKY carmesí-negra + tabla propia (retimada al golpe)
 	f.dust_tint = _stage_dust_tint()   # el POLVO toma el color del escenario (azul oscuro en stages oscuros)
 	# ALTURA corporal real vs DAM (arte 638×1.10=702): Fe 496×1.0=496 -> 0.71;
 	# Aye 632×0.72=455 -> 0.65. Escala alcances verticales y chispas de impacto.
-	f.body_k = 0.78 if id == "zetma" else (0.71 if id == "favi" else (0.65 if id == "aye" else 1.0))   # Zetma: un poco más bajo que DAM (scale 0.97) -> reach vertical proporcional
+	f.body_k = 1.15 if id == "roum" else (0.78 if id == "zetma" else (0.71 if id == "favi" else (0.65 if id == "aye" else 1.0)))   # ROUM: el más GRANDE (reach vertical proporcional); Zetma más bajo que DAM
 	# medio ANCHO para el empuje al caminar: DAM abre una postura ANCHA, Aye es diminuta.
 	# Separacion minima de una pareja = suma (DAM+Aye 210, Fe+Aye 165, DAM+Fe 225 como antes)
 	f.body_halfw = 130.0 if id == "zetma" else (90.0 if id == "favi" else (75.0 if id == "aye" else 150.0))   # Zetma: stance ninja medio
@@ -3204,6 +3275,15 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.sprite.offset = Vector2(0, ZETMA_FEET_FROM_CENTER / ZETMA_SCALE - ZETMA_FEET_FROM_CENTER)
 		f.spd = 1.7   # desplazamiento (ninja ágil): sincroniza con el walk a 35fps y su zancada nueva (larga) para que NO patine
 		f.jump_mult = 1.28   # ninja ÁGIL: salta ALTO (antes 1.0 = el más bajo de todos)
+	elif id == "roum":
+		f.sprite.sprite_frames = _build_roum_frames()
+		_fix_placeholders(f.sprite.sprite_frames, _roum_action_frames)   # nada de arte de DAM
+		f.base_scale = Vector2(ROUM_SCALE, ROUM_SCALE)
+		f.sprite.scale = f.base_scale
+		f.sprite.offset = Vector2(0, ROUM_FEET_FROM_CENTER / ROUM_SCALE - ROUM_FEET_FROM_CENTER)
+		f.spd = 1.03          # camina más rápido (pedido); walk 30->44 fps + spd 0.60->0.88 escalan JUNTOS para no patinar
+		f.jump_mult = 1.35    # salta MÁS ALTO (pedido: que se levante más en el aire)
+		f.body_halfw = 185.0  # CUERPO ANCHO: el más grande de todos (empuje al caminar)
 	else:
 		f.sprite.sprite_frames = _build_dam_frames()
 		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
@@ -4379,6 +4459,261 @@ func _rage_push(v: Node2D, dir: int) -> void:
 		v.position.x = clampf(v.position.x + float(dir) * 2200.0 * dt, 120.0, 1800.0)
 		await get_tree().process_frame
 
+# ====================== SÚPER de ROUM (↓W): CABEZAZO + ONDA EXPANSIVA ======================
+# ↓W (½ barra): ROUM ruge y suelta una ONDA que se EXPANDE a toda la pantalla LANZANDO al rival
+# hacia ARRIBA (aunque el cuerpo no lo toque) + temblor + borde carmesí + shade + grito YHAAAA.
+const ROUM_NOVA_DMG := 80
+
+func _roum_super(f: Node2D) -> void:
+	if not try_meter_cost(f, 0.5):
+		return   # sin ½ barra: try_meter_cost ya hace el deny_flash del atacante y del meter
+	var idx := 0 if f == player else 1
+	f.roum_super_t = 1.3
+	f.crouching = false
+	f.vel_x = 0.0
+	f.sprite.play("crouch_kick")   # la anim PROPIA del ↓W (crouch_kick, con su pequeño salto) — NO el cabezazo del E
+	# grito YHAAAA del súper (la anim de crouch_kick NO dispara la rama de sonido del spin_kick)
+	var _hyap := "res://imagen-action/roum/sound-effect/voz-hya-roum.wav"
+	if ResourceLoader.exists(_hyap):
+		f.voz_player.stream = load(_hyap)
+		f.voz_player.pitch_scale = 1.0
+		f.voz_player.play()
+	_roum_border(f, true)        # borde CARMESÍ en el personaje (color de su estela de swing)
+	_shake(20.0, 0.35)           # temblor FUERTE de pantalla
+	_roum_nova(f, idx)           # ONDA expansiva (corre en paralelo; lanza al rival hacia arriba)
+	_roum_shade(0.5)             # velo oscuro breve detrás (shade del súper)
+	await get_tree().create_timer(1.15).timeout
+	_roum_border(f, false)
+
+func _roum_nova(f: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var cont := Node2D.new()
+	cont.position = Vector2(f.position.x, f.position.y - 40.0)
+	cont.z_index = 30
+	add_child(cont)
+	var ring := Line2D.new()
+	var pts := PackedVector2Array()
+	for i in 49:
+		var a := TAU * float(i) / 48.0
+		pts.append(Vector2(cos(a), sin(a) * 0.34))   # elipse tumbada (perspectiva de suelo)
+	ring.points = pts
+	ring.closed = true
+	ring.joint_mode = Line2D.LINE_JOINT_ROUND
+	ring.default_color = Color(1.5, 0.16, 0.24, 0.62)   # CARMESÍ (color de ROUM)
+	cont.add_child(ring)
+	var t := 0.0
+	var golpeo := false
+	var NOVA_DUR := 0.55
+	var NOVA_R := 1650.0
+	while t < NOVA_DUR:
+		var dt := get_process_delta_time()
+		t += dt
+		var k := clampf(t / NOVA_DUR, 0.0, 1.0)
+		var r := maxf(NOVA_R * k, 1.0)               # radio del frente (px)
+		cont.scale = Vector2(r, r)
+		ring.width = 42.0 / r                        # grosor visual ~42px constante
+		ring.default_color.a = 0.62 * (1.0 - 0.8 * k)
+		if not golpeo and is_instance_valid(victima) and not victima.koed \
+				and absf(victima.position.x - cont.position.x) <= r:
+			golpeo = true
+			var dir: int = signi(victima.position.x - cont.position.x)
+			if dir == 0:
+				dir = f.facing
+			# LANZA hacia ARRIBA (strong -> _launch alto). "si el cuerpo no te da, te da la onda"
+			var res: String = victima.receive_hit(false, true, dir, "kick_impact", false, 1.75)
+			if res == "launched" or res == "hit":
+				_dmg_number(victima, ROUM_NOVA_DMG)
+				_shake(16.0, 0.22)
+				if victima == dummy:
+					dummy_hp = maxi(0, dummy_hp - ROUM_NOVA_DMG)
+					if dummy_hp <= 0:
+						if _round_real(): _end_round(true)
+						else: dummy_hp = hp_max[1]
+				else:
+					player_hp = maxi(0, player_hp - ROUM_NOVA_DMG)
+					if player_hp <= 0:
+						if _round_real(): _end_round(false)
+						else: player_hp = hp_max[0]
+		await get_tree().process_frame
+	if is_instance_valid(cont):
+		cont.queue_free()
+
+var _roum_border_mat: ShaderMaterial = null
+func _roum_border(f: Node2D, on: bool) -> void:
+	if on:
+		if _roum_border_mat == null:
+			var sh := Shader.new()
+			sh.code = _OUTLINE_CODE
+			_roum_border_mat = ShaderMaterial.new()
+			_roum_border_mat.shader = sh
+			_roum_border_mat.set_shader_parameter("line_color", Color(1.7, 0.2, 0.26, 1.0))  # CARMESÍ (color de swing de ROUM)
+			_roum_border_mat.set_shader_parameter("width", 4.2)
+			_roum_border_mat.set_shader_parameter("intensity", 1.0)
+		f.sprite.material = _roum_border_mat
+	elif f.sprite.material == _roum_border_mat:
+		f.sprite.material = f.base_material   # restaura el material base (color alterno del P2, etc.)
+
+# velo oscuro breve DETRÁS de los peleadores (reusa ko_red). Guarda state=="fight" para no pisar el velo del KO.
+func _roum_shade(dur: float) -> void:
+	if ko_red == null or state != "fight":
+		return
+	ko_red.color = Color(0.06, 0.02, 0.03, 0.5)   # carmesí muy oscuro
+	ko_red.visible = true
+	var t := 0.0
+	while t < dur and state == "fight":
+		var dt := get_process_delta_time()
+		t += dt
+		ko_red.color.a = 0.5 * (1.0 - t / dur)
+		await get_tree().process_frame
+	if state == "fight":
+		ko_red.color.a = 0.0
+
+# ---- ROUM: VOID LASH (←←→ + W) — SÚPER de vendas (½ barra) ----
+# void_cast es una animación NORMAL de ROUM (roum/void_cast, lienzo 2000 ancho con ROUM CENTRADO,
+# mismo anclaje/escala que todos sus frames) -> se reproduce en su sprite y queda del tamaño de
+# siempre y con los pies al suelo. El rival queda ATRAPADO entre las vendas recibiendo una pila de
+# golpes tipo ultra y SALE VOLANDO al terminar.
+func _roum_void_cast(caster: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	if caster.airborne or caster.koed:
+		return false
+	if not caster.sprite.sprite_frames.has_animation("void_cast"):
+		return false   # sin frames (Godot no los importó aún): NO consumas el input
+	if not try_meter_cost(caster, 0.5):
+		return true    # sin ½ barra: try_meter_cost ya hizo el deny_flash; input consumido
+	_run_void_lash(caster)
+	return true
+
+func _run_void_lash(caster: Node2D) -> void:
+	var opp: Node2D = dummy if caster == player else player
+	var was_in: bool = caster.input_enabled
+	var was_ai: bool = caster.ai_enabled
+	caster.input_enabled = false
+	caster.ai_enabled = false
+	caster.crouching = false
+	caster.vel_x = 0.0
+	if is_instance_valid(opp):
+		caster.set_facing(1 if opp.position.x >= caster.position.x else -1)
+	var facing: int = caster.facing
+	var arena: Node = caster.get_parent()
+	# voz VOID_LASH GRAVE (hombre maduro ~40): versión con pitch -20% (misma duración); si falta, el mp3 crudo
+	var sp := "res://imagen-action/roum/sound-effect/voz-void-lash-roum.wav"
+	if not ResourceLoader.exists(sp):
+		sp = "res://imagen-action/roum/sound-effect/VOID_LASH_League_Eleven_v3_01a017f5-8d12-791f-9654-40a3f2029776.mp3"
+	if ResourceLoader.exists(sp):
+		var strm = load(sp)
+		if strm is AudioStreamMP3:
+			strm.loop = false
+		var vp := AudioStreamPlayer.new()
+		vp.stream = strm
+		vp.volume_db = 6.0   # el wav ya viene GRAVE (-20% pitch, duración intacta)
+		arena.add_child(vp)
+		vp.finished.connect(vp.queue_free)
+		vp.play()
+	# HUD cinemático de SÚPER (mismo focus/oscurecido + paneles manga que usan DAM y Aye)
+	_focus_start(caster)
+	_focus_set(0.45)
+	_play_cutin(-1 if caster.position.x >= 960.0 else 1, caster)   # cut-in de HUD: retrato de ROUM
+	if ultra_panels.size() > 0:
+		ultra_panel.texture = ultra_panels[0]
+		ultra_panel.visible = true
+	_shake(18.0, 0.30)
+	# ROUM hace el súper en su SPRITE NORMAL: MISMO anclaje/escala que TODOS sus frames -> NO se mueve
+	# del suelo y queda del tamaño de siempre. Las vendas ya vienen en el frame (lienzo 2000 ancho).
+	caster.vel_x = 0.0
+	caster.airborne = false
+	caster.sprite.play("void_cast")
+	# el rival: ATRAPADO entre las vendas (al frente, sin control) recibiendo una PILA de golpes tipo ultra
+	var opp_in := false
+	var opp_ai := false
+	var opp_grounded := false   # ¿le pegó EN EL SUELO? entonces se queda en el suelo (no flota) hasta el final
+	if is_instance_valid(opp):
+		opp_in = opp.input_enabled
+		opp_ai = opp.ai_enabled
+		opp_grounded = not opp.airborne
+	var trap_x: float = clampf(caster.position.x + float(facing) * 560.0, LEFT_LIMIT, RIGHT_LIMIT)   # ~1.6 cuerpos al frente, en la zona de las vendas
+	var hits := 10
+	var per := 12
+	var done := 0
+	var t := 0.0
+	var DUR := 1.60    # 120 frames @75fps (~1.6s, calza con la voz; sin submuestrear)
+	var A0 := 0.30    # arranque del apaleo (tras el windup del latigazo)
+	var A1 := 1.40    # fin del apaleo (luego SALE VOLANDO)
+	while t < DUR and state == "fight" and is_instance_valid(caster) and not caster.koed:
+		t += get_process_delta_time()
+		if t >= A0 and t <= A1 and is_instance_valid(opp) and not opp.koed:
+			# a merced: sin control, aguantando la pila de golpes
+			opp.input_enabled = false
+			opp.ai_enabled = false
+			opp.hit_flying = false
+			opp.crouching = false
+			opp.vel_x = 0.0
+			opp.vel_y = 0.0
+			opp.set_facing(-facing)
+			if opp_grounded:
+				# le pegó EN EL SUELO -> se QUEDA en el suelo aguantando (NO se levanta hasta el final)
+				opp.airborne = false
+				opp.ultra_hover = false
+				opp.position.x = lerpf(opp.position.x, trap_x, 0.16)
+				opp.position.y = opp.floor_y
+				if opp.sprite.sprite_frames.has_animation("take_hit") and String(opp.sprite.animation) != "take_hit":
+					opp.sprite.play("take_hit")   # stagger de PIE (no el pummeled aéreo)
+			else:
+				# le pegó EN EL AIRE -> juggle suspendido en las vendas (temblando)
+				opp.airborne = true
+				opp.ultra_hover = true       # sin gravedad
+				var jitter: float = sin(t * 55.0) * 9.0
+				opp.position.x = lerpf(opp.position.x, trap_x, 0.25)
+				opp.position.y = opp.floor_y - 210.0 + jitter
+				if opp.sprite.sprite_frames.has_animation("pummeled"):
+					if String(opp.sprite.animation) != "pummeled":
+						opp.sprite.play("pummeled")
+				elif opp.sprite.sprite_frames.has_animation("take_hit") and String(opp.sprite.animation) != "take_hit":
+					opp.sprite.play("take_hit")
+			# PILA de golpes (8 × 15 = 120) + manga panels ciclando + foco que sube
+			if done < hits and t >= A0 + float(done) * ((A1 - A0) / float(hits)):
+				done += 1
+				_dmg_number(opp, per)
+				opp._burst(0.9, false, 1, false, 500.0 * (1.0 - opp.base_scale.y))
+				opp._play_sfx_key("take_hit")
+				_shake(7.0, 0.05)
+				_focus_set(0.45 + 0.45 * float(done) / float(hits))
+				if ultra_panels.size() > 0:
+					ultra_panel.texture = ultra_panels[done % ultra_panels.size()]
+					ultra_panel.visible = true
+				if opp == dummy:
+					dummy_hp = maxi(0, dummy_hp - per)
+					if dummy_hp <= 0:
+						if _round_real(): _end_round(true)
+						else: dummy_hp = hp_max[1]
+				else:
+					player_hp = maxi(0, player_hp - per)
+					if player_hp <= 0:
+						if _round_real(): _end_round(false)
+						else: player_hp = hp_max[0]
+		await get_tree().process_frame
+	# FIN del súper: limpia HUD, restaura ROUM y el rival SALE VOLANDO (lanzado, tipo ultra)
+	_focus_end()
+	if is_instance_valid(caster):
+		if not caster.koed and state == "fight":
+			caster.sprite.play("pose")
+		caster.input_enabled = was_in
+		caster.ai_enabled = was_ai
+	if is_instance_valid(opp):
+		if not opp.koed and state == "fight":
+			opp.ultra_hover = false      # libera el hover
+			opp.airborne = true
+			opp.hit_flying = true
+			opp.vel_x = float(facing) * 900.0   # SALE VOLANDO hacia adelante (empujado por el latigazo)
+			opp.vel_y = -700.0                  # bien arriba y lejos
+			if opp.sprite.sprite_frames.has_animation("hit_fly"):
+				opp.sprite.play("hit_fly")
+		else:
+			opp.ultra_hover = false
+		opp.input_enabled = opp_in
+		opp.ai_enabled = opp_ai
+
 # ¿Aye tiene barra para el teleport? (lo consulta fighter._start_teleport ANTES de comprometerse)
 # ---- MANA: API de hechizos (fighter consulta antes de castear) ----
 func _mana_side(caster: Node2D) -> int:
@@ -5340,16 +5675,24 @@ func _update_hp_bar(side: int, hp: int) -> void:
 var _victory_stream = null       # voz de victoria de DAM
 var _victory_stream_fe = null    # voz de victoria de Fe (energética, "no was easy")
 var _victory_stream_aye = null   # voz de victoria de Aye (victory-aye.mp3)
+var _victory_stream_roum = null  # voz de victoria de ROUM (audio del PROPIO clip victorymp4)
 func _play_victory_line(who = null) -> void:
-	# Aye se detecta por fx_floral; Fe por su animación exclusiva water_cast; si no, es DAM
+	# Aye se detecta por fx_floral; Fe por su animación exclusiva water_cast; ROUM por fx_warrior; si no, DAM
 	var es_aye: bool = who != null and bool(who.get("fx_floral"))
 	var es_fe: bool = who != null and not es_aye and who.sprite.sprite_frames.has_animation("water_cast")
+	var es_roum: bool = who != null and bool(who.get("fx_warrior"))
 	var stream = null
 	if es_aye:
 		if _victory_stream_aye == null:
 			var raye := "res://imagen-action/aye/sound-effect/victory-aye.mp3"
 			_victory_stream_aye = load(raye) if ResourceLoader.exists(raye) else null
 		stream = _victory_stream_aye
+	elif es_roum:
+		# ROUM: el audio del PROPIO clip de victoria (extraído de victorymp4.mp4, trae su timing interno)
+		if _victory_stream_roum == null:
+			var rr := "res://imagen-action/roum/sound-effect/victory-roum.wav"
+			_victory_stream_roum = load(rr) if ResourceLoader.exists(rr) else null
+		stream = _victory_stream_roum
 	elif es_fe:
 		if _victory_stream_fe == null:
 			# "No... that was easy" — la línea presumida que ACTÚA el clip de victory
@@ -5382,7 +5725,6 @@ func _play_voz(nombre: String) -> void:
 		var ruta := "res://imagen-action/sound-effect/voz-%s.wav" % nombre
 		_voz_cache[nombre] = load(ruta) if ResourceLoader.exists(ruta) else null
 	var st = _voz_cache[nombre]
-	print("[VOZ] _play_voz('", nombre, "')  stream=", st, "  voz_player=", voz_player)
 	if st != null and voz_player != null:
 		voz_player.stream = st
 		voz_player.pitch_scale = 1.0   # resetea el pitch heredado del canal (bug: voz grave/lenta)
@@ -5889,6 +6231,8 @@ func _play_cutin(side: int, caster: Node2D = null) -> void:
 			ctex = "res://imagen-action/favi/sheets/victory-hud-fe-key.png"
 		elif caster.fx_dark:       # ZETMA: su cut-in (frame-avatar-screen keyeado)
 			ctex = "res://imagen-action/zetma/cutin/zetma-cutin.png"
+		elif caster.fx_warrior:    # ROUM: su avatar (frame-avatar-screen keyeado)
+			ctex = "res://imagen-action/roum/cutin/roum-cutin.png"
 		if ResourceLoader.exists(ctex):
 			cutin_portrait.texture = load(ctex)
 	# side = -1 (retrato a la IZQUIERDA) o +1 (DERECHA). Se pasa el OPUESTO al combo.
@@ -7159,6 +7503,104 @@ func _run_ground_grab(caster: Node2D) -> void:
 		opp.input_enabled = opp_was_input
 		opp.ai_enabled = opp_was_ai
 
+# ---- ROUM: GROUND GRAB (↓→Q) — estira las VENDAS y HALA al rival. Validador SÍNCRONO: SOLO sale si el
+# rival está a ≤1.5 CUERPOS y al frente (si está lejos, NO sale -> las vendas no se ven CORTADAS). ----
+func _roum_ground_grab(caster: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	if not caster.sprite.sprite_frames.has_animation("ground_grab"):
+		return false
+	if caster.airborne or caster.koed:
+		return false
+	var opp: Node2D = dummy if caster == player else player
+	if not is_instance_valid(opp) or opp.koed:
+		return false
+	var dx: float = opp.position.x - caster.position.x
+	if int(signf(dx)) != caster.facing and absf(dx) >= 175.0:
+		return false   # a la espalda: no sale
+	if absf(dx) > GEYSER_BODY * 1.5:
+		return false   # más lejos de 1.5 cuerpos (525px): NO sale el agarre (vendas no cortadas)
+	_run_roum_grab(caster, opp)
+	return true
+
+func _run_roum_grab(caster: Node2D, opp: Node2D) -> void:
+	var was_input: bool = caster.input_enabled
+	var was_ai: bool = caster.ai_enabled
+	caster.input_enabled = false
+	caster.ai_enabled = false
+	caster.crouching = false
+	caster.vel_x = 0.0
+	caster.set_facing(1 if opp.position.x >= caster.position.x else -1)
+	caster.sprite.play("ground_grab")
+	_shake(8.0, 0.1)
+	# 1) las VENDAS se estiran (~f31 = 0.33s a 100fps). El rango ya se validó -> engancha sí o sí.
+	await get_tree().create_timer(0.33).timeout
+	if state != "fight" or caster.koed or String(caster.sprite.animation) != "ground_grab" or not is_instance_valid(opp) or opp.koed:
+		if is_instance_valid(caster):
+			caster.input_enabled = was_input
+			caster.ai_enabled = was_ai
+			if String(caster.sprite.animation) == "ground_grab":
+				caster.sprite.play("pose")
+		return
+	# 2) ENGANCHÓ: agarra + HALA hacia ROUM mientras las vendas se RETRAEN (frame f115->f145)
+	_shake(12.0, 0.12)
+	var opp_was_input: bool = opp.input_enabled
+	var opp_was_ai: bool = opp.ai_enabled
+	opp.input_enabled = false
+	opp.ai_enabled = false
+	opp.crouching = false
+	opp.airborne = false
+	opp.hit_flying = false
+	opp.vel_y = 0.0
+	opp.vel_x = 0.0
+	opp.set_facing(-caster.facing)
+	opp._burst(1.1, false, 1, false, 500.0 * (1.0 - opp.base_scale.y))
+	opp._play_sfx_key("take_hit")
+	if opp.sprite.sprite_frames.has_animation("get_pull"):
+		opp.sprite.play("get_pull")
+	elif opp.sprite.sprite_frames.has_animation("take_hit"):
+		opp.sprite.play("take_hit")
+	caster.sprite.stop()   # controlo el frame: las vendas se METEN adentro (retract f115->f145) al halar
+	var frames_gg: int = caster.sprite.sprite_frames.get_frame_count("ground_grab")
+	var fr0: int = int(0.79 * float(frames_gg))   # ~f115: inicio del retract
+	var frN: int = frames_gg - 1
+	var sx0: float = opp.position.x
+	var target_x: float = clampf(caster.position.x + float(caster.facing) * 260.0, LEFT_LIMIT, RIGHT_LIMIT)
+	var st := 0.0
+	var pdur := 0.34
+	while st < pdur and state == "fight" and is_instance_valid(opp) and not opp.koed \
+			and is_instance_valid(caster) and String(caster.sprite.animation) == "ground_grab":
+		var k := st / pdur
+		opp.position.x = lerpf(sx0, target_x, _ease_out_cubic(k))
+		opp.position.y = opp.floor_y
+		caster.sprite.frame = int(lerpf(float(fr0), float(frN), k))
+		_shake(4.0, 0.04)
+		await get_tree().process_frame
+		st += get_process_delta_time()
+	if is_instance_valid(caster):
+		caster.sprite.frame = frN
+	# 3) DAÑO + queda a su lado (ventana de combo)
+	if is_instance_valid(opp) and not opp.koed:
+		var d := 70
+		_dmg_number(opp, d)
+		opp._burst(1.0, false, 1, false, 500.0 * (1.0 - opp.base_scale.y))
+		if opp.sprite.sprite_frames.has_animation("take_hit"):
+			opp.sprite.play("take_hit")
+		if caster == player:
+			dummy_hp = maxi(0, dummy_hp - d)
+			if dummy_hp <= 0 and _round_real(): _end_round(true)
+		else:
+			player_hp = maxi(0, player_hp - d)
+			if player_hp <= 0 and _round_real(): _end_round(false)
+	if is_instance_valid(caster) and not caster.koed and String(caster.sprite.animation) == "ground_grab":
+		caster.sprite.play("pose")   # vuelve a guardia limpia (vendas adentro)
+	if is_instance_valid(caster):
+		caster.input_enabled = was_input
+		caster.ai_enabled = was_ai
+	if is_instance_valid(opp):
+		opp.input_enabled = opp_was_input
+		opp.ai_enabled = opp_was_ai
+
 # ---- ZETMA: AIR GRAB (↓→Q en el aire) — gancho AÉREO ("get over here" aéreo) ----
 # Solo EN EL AIRE: lanza la garra abajo-adelante; si engancha, HALA al rival hacia Zetma
 # (sube hasta su altura) y lo suelta lanzado. VALIDADOR síncrono + coroutine aparte.
@@ -7370,6 +7812,327 @@ func _make_void_orb(arena: Node) -> Sprite2D:
 	motes.emitting = true
 	arena.add_child(sp)
 	return sp
+
+# ---- ROUM warp_grab: PORTAL/agujero negro elíptico (void_portal.gdshader) ----
+func _make_void_portal(arena: Node) -> Sprite2D:
+	if void_portal_shader == null:
+		void_portal_shader = load("res://void_portal.gdshader")
+	if void_orb_tex == null:
+		var img := Image.create(768, 768, false, Image.FORMAT_RGBA8)
+		img.fill(Color(1, 1, 1, 1))
+		void_orb_tex = ImageTexture.create_from_image(img)
+	var sp := Sprite2D.new()
+	sp.texture = void_orb_tex
+	sp.centered = true
+	sp.z_index = 22
+	var mat := ShaderMaterial.new()
+	mat.shader = void_portal_shader
+	mat.set_shader_parameter("grow", 0.0)      # arranca CERRADO
+	mat.set_shader_parameter("spin_speed", 1.5)
+	mat.set_shader_parameter("seed", 0.61)
+	sp.material = mat
+	arena.add_child(sp)
+	return sp
+
+# partículas CARMESÍ/NEGRAS succionadas HACIA el portal (efecto de que traga al rival)
+func _portal_suck_fx(pos: Vector2) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.texture = _orb_mote_tex()
+	p.z_index = 23
+	p.position = pos
+	p.amount = 120                      # MUCHAS más
+	p.lifetime = 0.5
+	p.local_coords = false
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE_SURFACE
+	p.emission_sphere_radius = 280.0
+	p.gravity = Vector2.ZERO
+	p.initial_velocity_min = 0.0
+	p.initial_velocity_max = 0.0
+	p.radial_accel_min = -1900.0        # HACIA el centro = succión (más fuerte)
+	p.radial_accel_max = -1100.0
+	p.tangential_accel_min = 350.0      # con giro (espiral al tragarse)
+	p.tangential_accel_max = 750.0
+	p.scale_amount_min = 0.08           # BIEN chicas
+	p.scale_amount_max = 0.22
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(3.0, 0.15, 0.15, 1.0))    # ROJO brillante (HDR -> brilla/bloom)
+	ramp.add_point(0.5, Color(0.5, 0.02, 0.02, 0.95)) # rojo oscuro
+	ramp.set_color(1, Color(0.0, 0.0, 0.0, 0.0))      # NEGRO (se apaga)
+	p.color_ramp = ramp
+	p.emitting = true
+	add_child(p)
+	return p
+
+# POLVO de arrastre: RÁFAGA one-shot (se ve TODO de golpe, no depende de cuánto dure el grab).
+# dir = sentido de la barrida del polvo (rival: contrario al hala; Roum: hacia donde hala).
+func _pull_dust(dir: int) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.texture = _orb_mote_tex()
+	p.z_index = 6
+	p.amount = 46
+	p.lifetime = 0.55
+	p.one_shot = true              # RÁFAGA: suelta las 46 de una y no repite
+	p.explosiveness = 0.9          # casi todas en el instante 0 -> puff bien visible
+	p.local_coords = false
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(28.0, 82.0)
+	p.direction = Vector2(float(dir), -0.35)          # barrida lateral (líneas blancas del boceto)
+	p.spread = 26.0
+	p.gravity = Vector2(0, 240)
+	p.initial_velocity_min = 300.0
+	p.initial_velocity_max = 640.0
+	p.scale_amount_min = 0.40
+	p.scale_amount_max = 1.05                          # más grandes = se ven
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(0.82, 0.74, 0.64, 0.95))  # polvo claro, opaco al salir
+	ramp.add_point(0.5, Color(0.6, 0.52, 0.44, 0.6))
+	ramp.set_color(1, Color(0.4, 0.34, 0.3, 0.0))
+	p.color_ramp = ramp
+	p.emitting = true
+	add_child(p)
+	return p
+
+# libera un nodo (ej. partículas one-shot) tras `delay` seg, para que la ráfaga se vea completa
+func _free_node_later(node: Node, delay: float) -> void:
+	await get_tree().create_timer(delay).timeout
+	if is_instance_valid(node):
+		node.queue_free()
+
+# VENDAS oscuras que SALEN del 2º portal y enganchan al rival (Line2D onduladas, punta carmesí)
+func _make_portal_ribbons(n_ribbons: int) -> Node2D:
+	var cont := Node2D.new()
+	cont.z_index = 24   # POR ENCIMA del portal (z=22) -> se ven sobre el borde rojo
+	for i in n_ribbons:
+		var ln := Line2D.new()
+		ln.width = 30.0                           # GRUESAS como las vendas del personaje
+		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
+		ln.joint_mode = Line2D.LINE_JOINT_ROUND
+		var g := Gradient.new()
+		g.set_color(0, Color(0.01, 0.0, 0.01))    # NEGRO (mismo color que el interior del agujero)
+		g.set_color(1, Color(0.03, 0.0, 0.03))    # negro (NADA de rojo)
+		ln.gradient = g
+		var wc := Curve.new()
+		wc.add_point(Vector2(0.0, 1.0))           # gruesa en el portal
+		wc.add_point(Vector2(1.0, 0.7))           # sigue gorda hacia la punta
+		ln.width_curve = wc
+		cont.add_child(ln)
+	add_child(cont)
+	return cont
+
+# actualiza las cintas: van de from_pos (portal) a to_pos (rival), onduladas; reach 0..1 = extensión
+func _update_portal_ribbons(cont: Node2D, from_pos: Vector2, to_pos: Vector2, reach: float, phase: float) -> void:
+	if not is_instance_valid(cont):
+		return
+	var n := cont.get_child_count()
+	var dirv := to_pos - from_pos
+	var perp := dirv.orthogonal().normalized() if dirv.length() > 1.0 else Vector2.UP
+	# ONDULADAS (como cintas de tela): cada venda serpentea del portal al rival, con la onda
+	# ATENUÁNDOSE hacia la punta para que LLEGUE limpio al cuerpo (converge en to_pos).
+	for i in n:
+		var ln: Line2D = cont.get_child(i)
+		var pts := PackedVector2Array()
+		var segs := 22
+		var ampb := 17.0                           # amplitud del TRENZADO (se cruzan entre sí)
+		var ph_i := phase + float(i) * 2.1         # FASE distinta por cinta -> se ENTRELAZAN/cruzan
+		var off := float(i - (n - 1) / 2) * 5.0    # arrancan cerca del CENTRO del hueco (abanico chico)
+		for s in segs + 1:
+			var u := float(s) / float(segs)
+			var uu := u * clampf(reach, 0.0, 1.0)  # reach 0..1 = qué tanto se extendió
+			var base := from_pos.lerp(to_pos, uu)
+			var env := sin(uu * PI)                # 0 en el portal y en el cuerpo, MÁX al medio -> convergen
+			var wob := sin(uu * 7.5 + ph_i) * ampb * env
+			var start_off := off * (1.0 - uu)      # el abanico del inicio se cierra hacia el cuerpo
+			pts.append(base + perp * (wob + start_off))
+		ln.points = pts
+
+# ROUM ←→R: AGARRE por PORTAL. v1 = casteo (warp_grab) + abre el agujero negro elíptico frente
+# a él, sincronizado con el lanzamiento de las vendas (~f80). El 2º portal + el agarre/teleport
+# del rival vienen en la v2.
+func _roum_warp_grab(f: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	if not f.sprite.sprite_frames.has_animation("warp_grab"):
+		return false
+	if f.airborne or f.koed or f.is_downed():
+		return false
+	# cuesta ½ barra (largo alcance + teleport). Sin barra: deny flash + NO sale.
+	if has_method("try_meter_cost") and not try_meter_cost(f, 0.5):
+		return true
+	var opp: Node2D = dummy if f == player else player
+	_run_roum_warp(f, opp)
+	return true
+
+# anima el 'grow' del portal de a->b en dur segundos (apertura/cierre)
+func _portal_grow(portal: Sprite2D, a: float, b: float, dur: float) -> void:
+	if not is_instance_valid(portal):
+		return
+	var mat: ShaderMaterial = portal.material
+	var t := 0.0
+	while t < dur and is_instance_valid(portal):
+		t += get_process_delta_time()
+		mat.set_shader_parameter("grow", lerpf(a, b, clampf(t / dur, 0.0, 1.0)))
+		await get_tree().process_frame
+	if is_instance_valid(portal):
+		mat.set_shader_parameter("grow", b)
+
+func _warp_restore(f: Node2D, was_input: bool, was_ai: bool) -> void:
+	if is_instance_valid(f):
+		f.sprite.speed_scale = 1.0                # restaura la velocidad normal de anim
+		f.input_enabled = was_input
+		f.ai_enabled = was_ai
+		if String(f.sprite.animation) == "warp_grab":
+			f.sprite.play("pose")
+
+func _run_roum_warp(f: Node2D, opp: Node2D) -> void:
+	# LOCK del casteo: sin esto el idle/locomoción del fighter PISA la anim (no se ejecutaba)
+	var was_input: bool = f.input_enabled
+	var was_ai: bool = f.ai_enabled
+	f.input_enabled = false
+	f.ai_enabled = false
+	f.crouching = false
+	f.vel_x = 0.0
+	f.sprite.speed_scale = 1.5                 # TODA la anim más rápida (se restaura en _warp_restore)
+	f.sprite.play("warp_grab")
+	# 1er PORTAL frente a Roum: aparece cuando ROTA la mano (más rápido) y CRECE ahí
+	await get_tree().create_timer(0.15).timeout
+	if state != "fight" or not is_instance_valid(f) or f.koed or String(f.sprite.animation) != "warp_grab":
+		_warp_restore(f, was_input, was_ai)
+		return
+	var fc: int = f.facing
+	var portal := _make_void_portal(self)
+	portal.position = Vector2(f.position.x + float(fc) * 480.0, f.position.y - 60.0)
+	portal.scale = Vector2(float(fc) * 0.34, 1.10)   # ELIPSE VERTICAL ALTA (por acá SALE el rival)
+	# SONIDO del agujero negro (lo puso el usuario): suena al abrirse el portal.
+	# Se GUARDA la referencia para CORTARLO cuando se cierran los huecos (el clip es más largo
+	# que la acción; si no, seguiría sonando después de que desaparecen los portales).
+	var bhp: AudioStreamPlayer = null
+	if ResourceLoader.exists("res://imagen-action/roum/sound-effect/black-hole.mp3"):
+		bhp = AudioStreamPlayer.new()
+		bhp.stream = load("res://imagen-action/roum/sound-effect/black-hole.mp3")
+		bhp.volume_db = 2.0
+		add_child(bhp)
+		bhp.finished.connect(bhp.queue_free)
+		bhp.play()
+	await _portal_grow(portal, 0.0, 1.0, 0.18)       # abre mientras rota la mano (más rápido)
+	await get_tree().create_timer(0.18).timeout      # las vendas se lanzan y ENTRAN al portal
+	# 2º PORTAL cerca del RIVAL: de ahí salen las vendas, lo AGARRAN y lo TRAGAN
+	var portal2: Sprite2D = null
+	if state == "fight" and is_instance_valid(opp) and not opp.koed and not opp.is_downed():
+		portal2 = _make_void_portal(self)
+		# DETRÁS del rival (lo atrapa por la ESPALDA y lo hala hacia atrás, al portal)
+		portal2.position = Vector2(opp.position.x + float(fc) * 250.0, opp.position.y - 60.0)
+		portal2.scale = Vector2(float(-fc) * 0.34, 1.10)
+		await _portal_grow(portal2, 0.0, 1.0, 0.11)
+		var suck := _portal_suck_fx(portal2.position)   # partículas carmesí/negras succionadas al 2º portal
+		_shake(12.0, 0.12)
+		# VENDAS: SALEN del 2º portal y ENGANCHAN al rival por la espalda (extienden reach 0->1)
+		var ribbons := _make_portal_ribbons(5)
+		var rib_phase := 0.0
+		var rt := 0.0
+		while rt < 0.10 and is_instance_valid(opp) and not opp.koed:
+			rt += get_process_delta_time()
+			rib_phase += get_process_delta_time() * 11.0
+			# objetivo = PECHO REAL del rival (escala por base_scale): sirve para ALTOS y BAJITOS.
+			# El portal está alto; la cinta baja en diagonal hasta el cuerpo -> SIEMPRE le da.
+			_update_portal_ribbons(ribbons, portal2.position, Vector2(opp.position.x, opp.position.y + 210.0 * opp.base_scale.y), clampf(rt / 0.10, 0.0, 1.0), rib_phase)
+			await get_tree().process_frame
+		var opp_was_input: bool = opp.input_enabled
+		var opp_was_ai: bool = opp.ai_enabled
+		opp.input_enabled = false
+		opp.ai_enabled = false
+		opp.crouching = false
+		opp.airborne = false
+		opp.hit_flying = false
+		opp.vel_x = 0.0
+		opp.vel_y = 0.0
+		opp.set_facing(-fc)
+		if opp.sprite.sprite_frames.has_animation("get_pull"):
+			opp.sprite.play("get_pull")
+		opp._play_sfx_key("take_hit")
+		# TRAGADO: el rival es absorbido HACIA el 2º portal (detrás), desvaneciéndose.
+		# POLVO de arrastre con el DUST DEL JUEGO (arte real, bien visible) en AMBOS peleadores.
+		var opos0: Vector2 = opp.position
+		var pcenter: Vector2 = portal2.position
+		if opp.has_method("_spawn_jump_dust"):
+			opp._spawn_jump_dust(1.25)                   # RIVAL halado: puff fuerte a sus pies
+		if f.has_method("_spawn_jump_dust"):
+			f._spawn_jump_dust(1.0)                      # ROUM (el que hala): puff a sus pies
+		var st := 0.0
+		var dtrail := 0.0
+		while st < 0.11 and state == "fight" and is_instance_valid(opp) and not opp.koed:   # AÚN MÁS RÁPIDO
+			var k := st / 0.11
+			opp.position = opos0.lerp(pcenter, _ease_out_cubic(k))
+			# al METERSE al agujero: se oscurece a SILUETA NEGRA + se desvanece
+			var dk := lerpf(1.0, 0.05, k)
+			opp.modulate = Color(dk, dk, dk, lerpf(1.0, 0.30, k))
+			dtrail += get_process_delta_time()
+			if dtrail >= 0.045 and opp.has_method("_spawn_jump_dust"):   # ESTELA de polvo mientras lo arrastra
+				dtrail = 0.0
+				opp._spawn_jump_dust(0.85)
+			rib_phase += get_process_delta_time() * 9.0
+			_update_portal_ribbons(ribbons, pcenter, Vector2(opp.position.x, opp.position.y + 210.0 * opp.base_scale.y), 1.0, rib_phase)
+			await get_tree().process_frame
+			st += get_process_delta_time()
+		if is_instance_valid(suck):
+			suck.emitting = false
+			suck.queue_free()
+		if is_instance_valid(ribbons):
+			ribbons.queue_free()
+		# EMERGE por el 1er PORTAL (frente a Roum) y se desliza a su sitio, mirando a Roum + daño
+		if is_instance_valid(opp) and not opp.koed:
+			var emerge_x: float = clampf(f.position.x + float(fc) * 480.0, LEFT_LIMIT, RIGHT_LIMIT)  # sale POR el 1er portal
+			var target_x: float = clampf(f.position.x + float(fc) * 260.0, LEFT_LIMIT, RIGHT_LIMIT)  # queda adelante de Roum
+			opp.position = Vector2(emerge_x, opp.floor_y)
+			opp.set_facing(-fc)
+			if opp.sprite.sprite_frames.has_animation("get_pull"):
+				opp.sprite.play("get_pull")
+			elif opp.sprite.sprite_frames.has_animation("take_hit"):
+				opp.sprite.play("take_hit")
+			_shake(14.0, 0.14)
+			var es := 0.0
+			while es < 0.15 and is_instance_valid(opp) and not opp.koed:
+				var k := es / 0.15
+				opp.position.x = lerpf(emerge_x, target_x, _ease_out_cubic(k))
+				opp.position.y = opp.floor_y
+				# al SALIR del portal: recupera color (de silueta negra a color) + aparece
+				var lit := lerpf(0.05, 1.0, k)
+				opp.modulate = Color(lit, lit, lit, clampf(k * 2.0, 0.0, 1.0))
+				await get_tree().process_frame
+				es += get_process_delta_time()
+			if is_instance_valid(opp):
+				opp.position = Vector2(target_x, opp.floor_y)
+				opp.modulate = Color(1, 1, 1, 1)   # color pleno recuperado
+				opp._burst(1.1, false, 1, false, 500.0 * (1.0 - opp.base_scale.y))
+				var d := 80
+				_dmg_number(opp, d)
+				if f == player:
+					dummy_hp = maxi(0, dummy_hp - d)
+					if dummy_hp <= 0 and _round_real(): _end_round(true)
+				else:
+					player_hp = maxi(0, player_hp - d)
+					if player_hp <= 0 and _round_real(): _end_round(false)
+		await get_tree().create_timer(0.15).timeout   # breve ventana de combo (más corta)
+		if is_instance_valid(opp):
+			opp.modulate = Color(1, 1, 1, 1)   # asegura color pleno al soltarlo
+			opp.input_enabled = opp_was_input
+			opp.ai_enabled = opp_was_ai
+			if String(opp.sprite.animation) == "get_pull":
+				opp.sprite.play("pose")
+	# CORTA el sonido del agujero negro AL IRSE los huecos (fade corto, en paralelo al cierre):
+	# el clip dura más que la acción, así no sigue sonando después de que desaparecen los portales.
+	if is_instance_valid(bhp):
+		var tw := create_tween()
+		tw.tween_property(bhp, "volume_db", -40.0, 0.18)
+		tw.tween_callback(bhp.queue_free)
+	# CIERRA los dos portales
+	if portal2 != null and is_instance_valid(portal2):
+		await _portal_grow(portal2, 1.0, 0.0, 0.10)
+		portal2.queue_free()
+	if is_instance_valid(portal):
+		await _portal_grow(portal, 1.0, 0.0, 0.12)
+		portal.queue_free()
+	_warp_restore(f, was_input, was_ai)
 
 func _orb_mote_tex() -> Texture2D:
 	# mote REDONDO con núcleo brillante y borde suave (para que las partículas no salgan cuadradas)
@@ -7904,7 +8667,7 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		on_parry(def, att)
 		return done
 	var push := 1 if dx >= 0.0 else -1
-	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)), false, bool(atk.get("freeze", false)))
+	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)), false, bool(atk.get("freeze", false)), float(atk.get("shove", 0.0)), bool(atk.get("bounce", false)))
 	# lanzador VERTICAL (patadas POGO de DAM): sube RECTO, sin empuje lateral — la
 	# siguiente patada lo recoge exactamente donde cayo
 	if result == "launched" and bool(atk.get("vertical", false)):
@@ -8165,9 +8928,11 @@ func _end_round(player_won: bool) -> void:
 		win_tex = "res://imagen-action/favi/sheets/victory-hud-fe-key.png"
 	elif winner.fx_dark:       # ZETMA
 		win_tex = "res://imagen-action/zetma/cutin/zetma-cutin.png"
+	elif winner.fx_warrior:    # ROUM: aún sin cut-in propio -> usa su pose de select (pulgar arriba, cuerpo entero)
+		win_tex = "res://imagen-action/roum/select/anim/roum-select-78.png"
 	if ResourceLoader.exists(win_tex):
 		win_portrait.texture = load(win_tex)
-	var win_name := "AYE" if winner.fx_floral else ("FE" if winner.fx_blue else ("ZETMA" if winner.fx_dark else "DAM"))
+	var win_name := "AYE" if winner.fx_floral else ("FE" if winner.fx_blue else ("ZETMA" if winner.fx_dark else ("ROUM" if winner.fx_warrior else "DAM")))
 	# el retrato sale DEL LADO DONDE ESTÁ el ganador (queda detrás de él y el personaje
 	# sobresale encima); antes dependía de quién ganó y podía salir desconectado al otro lado
 	var wside := -1 if winner.position.x < 960.0 else 1
