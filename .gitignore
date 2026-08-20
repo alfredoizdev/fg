@@ -12,3 +12,8 @@
 /cap.gd.uid
 /cap2.gd
 /cap2.gd.uid
+
+# fuentes de video de sprites (no las carga el juego; quedan en disco)
+imagen-action/**/sheets/**/*.mp4
+# respaldos de clips
+imagen-action/**/sheets/backup/

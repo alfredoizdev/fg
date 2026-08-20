@@ -5,6 +5,8 @@ extends Node
 var mode := "vs_cpu"        # "vs_cpu" | "vs_2p" | "practice" | "break"
 var p1 := "dam"             # personaje del jugador (P1)
 var p2 := "dam"             # personaje del rival / CPU (P2)
+var p1_skin := "skin-1"     # SKIN de AYE-2 (idol) por lado: "skin-1" (tutú) | "skin-2" (overol)
+var p2_skin := "skin-1"
 var stage := 4              # escenario elegido (código STAGE de main.gd): 1=ciudad, 2=noche, 3=templo, 4=santuario
 var configured := false     # true cuando el char-select terminó (la pelea arranca directo)
 # PRECARGA: el char-select calienta aquí los frames de los 2 peleadores DURANTE el spinner;

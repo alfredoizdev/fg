@@ -11,11 +11,19 @@
 > PEQUEÑO y de **cuerpo completo** (cabeza a pies) con **MUCHO margen verde en los 4 lados**,
 > nunca recortado, **mismo tamaño y encuadre en todas las poses del mismo movimiento**. Fondo
 > **verde plano #00FF00**, sin oponente, sin texto, sin sombra en el suelo.
+> **⛔ CERO VFX / EFECTOS DE IMPACTO:** SÓLO el personaje y su movimiento — **NADA de** destellos,
+> chispas, flashes de golpe, estrellas, ondas de choque, líneas de velocidad/impacto, humo, polvo,
+> auras, glow, resplandores ni partículas. El golpe/impacto es INVISIBLE (el juego agrega todos los
+> efectos por separado). En inglés (pegar en cada prompt): _"NO VFX and NO impact/hit effects at
+> all — no flashes, sparks, hit-sparks, stars, shockwaves, impact/speed lines, smoke, dust, aura,
+> glow or particles. The hit is INVISIBLE; ONLY the character and his motion (the game adds all FX)."_
 >
 > **CUERPO Y ATUENDO (idénticos a la referencia, NO inventar nada):** ROUM es un hombre ENORME y
 > PESADO (210 cm, 165+ kg) — corpulento, de **gran panza/torso musculoso**, hombros anchos, piel
 > bronceada, **pelo negro despeinado y BARBA NEGRA POBLADA**. Lleva: un **chaleco/gabán de cuero
-> negro SIN MANGAS**, corto y ABIERTO al frente (deja el pecho y la panza al descubierto); los
+> negro SIN MANGAS**, corto y ABIERTO al frente (deja el **PECHO** descubierto, pero el **ABDOMEN/
+> panza va SIEMPRE ENVUELTO en una FAJA/banda de TELA OSCURA morada** — mismo material que las
+> vendas — como en la referencia; **NUNCA la panza desnuda/al descubierto**); los
 > **ANTEBRAZOS ENVUELTOS en VENDAS OSCURAS gruesas** (negro/morado profundo, tipo cuero enrollado)
 > — son su **arma y su defensa**; una **CADENA metálica** cruzando el pecho/cuello; una **soga
 > gruesa** a la cintura con **dos pesas/calabazas redondas colgando** (estilo cuerda de monje/
@@ -81,7 +89,7 @@
 
 **`walk` (avanzar):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He walks FORWARD toward the right with a HEAVY, slow, powerful
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He walks FORWARD toward the right with a HEAVY, slow, powerful
 > stride — big steps, weight rolling side to side, belly and rope weights swaying, unhurried and
 > unstoppable like a heavyweight. CRITICAL — his SILHOUETTE stays FAT and MASSIVE in every walk
 > frame, IDENTICAL bulk to his idle pose: the big ROUND BELLY/GUT and thick heavy torso must NOT
@@ -96,7 +104,7 @@
 
 **`jump` (salto):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He bends his heavy legs and heaves himself straight UP into a
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He bends his heavy legs and heaves himself straight UP into a
 > weighty jump — a big man leaving the ground, knees pulling up a little, reaches the peak and
 > starts to fall, landing solidly back in his stance. Heavy and powerful, VERTICAL only (no flip,
 > no spin). LOCKED SHOT: strict SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip —
@@ -107,7 +115,7 @@
 
 **`crouch` (agacharse):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He drops his big body into a low, wide CROUCH — sinking onto his
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He drops his big body into a low, wide CROUCH — sinking onto his
 > haunches, thighs spread, weight settled low, fists up, head slightly down, solid and grounded. He
 > HOLDS the low crouch (a short idle at the bottom) and never stands back up during the clip. LOCKED
 > SHOT: strict SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip — never turns,
@@ -122,7 +130,7 @@
 
 **`punch` (Q — puñetazo pesado):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He throws ONE heavy straight PUNCH forward to the right with a
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He throws ONE heavy straight PUNCH forward to the right with a
 > DARK-bandage-wrapped fist — winding his shoulder back a touch, then driving the wrapped fist out
 > with his whole bodyweight behind it, then pulling it back to guard. Slow-ish wind-up but a HEAVY,
 > powerful blow; his torso rotates into it. A pure fist strike — the bandages stay wrapped on the
@@ -138,7 +146,7 @@
 
 **`kick` (W — rodillazo / patada pesada que lanza):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He drives ONE heavy KNEE/low front KICK forward: he loads his
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He drives ONE heavy KNEE/low front KICK forward: he loads his
 > weight, then rams his bandaged shin/knee up and forward with force, hips driving through, then
 > plants the foot back and recovers to guard. A big, weighty launching strike (not a fast snap).
 > A pure LEG strike — hands stay in guard, bandages stay wrapped. LOCKED SHOT: strict SIDE PROFILE
@@ -149,7 +157,7 @@
 
 **`weak_punch` (R — CABEZAZO rápido / HEADBUTT):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He delivers ONE quick HEADBUTT: he rocks
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He delivers ONE quick HEADBUTT: he rocks
 > his head and upper torso slightly BACK to load, then snaps his FOREHEAD sharply FORWARD to the RIGHT
 > in a fast headbutt, then pulls his head back to his normal stance. The weapon is his HEAD/forehead —
 > a short, sharp, brutal close-range headbutt.
@@ -171,7 +179,7 @@
 
 **`spin_kick` (E — VENDA EXTENSIBLE, su SELLO de poke largo):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference, strict SIDE PROFILE facing RIGHT.] In this clip the dark BANDAGES
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference, strict SIDE PROFILE facing RIGHT.] In this clip the dark BANDAGES
 > on ONE of his forearms UNWRAP and SHOOT forward to the RIGHT: the dark cloth ribbons stretch far
 > out in front of him like flowing black-purple tendrils, reaching to full length, then whip back
 > and re-wrap onto his forearm. The ribbons ripple like cloth (they DO stretch/flow — not rigid,
@@ -190,7 +198,7 @@
 
 **`crouch_jab` (↓R — golpe bajo rápido):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference, strict SIDE PROFILE facing RIGHT.] He is CROUCHED LOW and stays
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference, strict SIDE PROFILE facing RIGHT.] He is CROUCHED LOW and stays
 > crouched the ENTIRE clip. He throws ONE quick low bandaged PUNCH forward at knee/shin height,
 > fist snapping out and back, then recovers to the crouched guard. Small, fast, compact — he never
 > stands up. Bandages stay wrapped (no unravel). LOCKED SHOT: strict SIDE PROFILE facing RIGHT —
@@ -200,7 +208,7 @@
 
 **`crouch_punch` (↓Q — gancho bajo pesado):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He is CROUCHED LOW and stays crouched the ENTIRE clip. He drives
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is CROUCHED LOW and stays crouched the ENTIRE clip. He drives
 > ONE heavy low HOOK/uppercut-ish bandaged punch forward at gut height, torso twisting into it,
 > then recovers to the crouched guard. Weighty and committed but he never stands up. Bandages stay
 > wrapped. LOCKED SHOT: strict SIDE PROFILE facing RIGHT the WHOLE clip — never turns, mirrors or
@@ -210,7 +218,7 @@
 
 **`crouch_kick` (↓W — ANTI-AÉREO: CABEZAZO ascendente):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference, strict SIDE PROFILE facing RIGHT.] He starts CROUCHED LOW
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference, strict SIDE PROFILE facing RIGHT.] He starts CROUCHED LOW
 > (hips down, knees bent), then EXPLODES straight UPWARD in a RISING HEADBUTT — he drives the TOP/CROWN
 > of his HEAD UP toward the sky (a touch forward) as an anti-air, springing up from the crouch, head
 > leading upward, then drops right back down into the low crouch. The weapon is his HEAD going UP.
@@ -226,7 +234,7 @@
 
 **`sweep` (↓E — barrida de pierna pesada, derriba):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He is CROUCHED LOW and stays crouched the ENTIRE clip — he never
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is CROUCHED LOW and stays crouched the ENTIRE clip — he never
 > stands up. ONE wide low LEG SWEEP: he plants one bandaged hand on the ground for support and
 > swings his big leg across the floor at ankle height in a strong low arc to the right (a tripping
 > sweep), then pulls it back to the crouched guard. Heavy and grounded. LOCKED SHOT: strict SIDE
@@ -241,7 +249,7 @@
 
 **`jump_punch` (salto+Q — puñetazo aéreo descendente):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He is AIRBORNE the whole clip (feet off the ground, jump, NO
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is AIRBORNE the whole clip (feet off the ground, jump, NO
 > floor). He swings ONE heavy bandaged PUNCH downward-forward (a falling overhead blow toward the
 > lower right), his weight behind it, then tucks back. Big and weighty. Bandages stay wrapped.
 > LOCKED SHOT — flat 2D sprite: strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED
@@ -251,7 +259,7 @@
 
 **`jump_kick` (salto+W — rodillazo/patada aérea):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He is AIRBORNE the whole clip (jumping, feet off the ground, NO
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is AIRBORNE the whole clip (jumping, feet off the ground, NO
 > floor). He drives ONE heavy KNEE/kick forward-and-down to the right in mid-air, then tucks the
 > leg back. A weighty air strike (no spin). Bandages stay wrapped. LOCKED SHOT — flat 2D sprite:
 > strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom. Character
@@ -260,7 +268,7 @@
 
 **`air_jab` (salto+R — jab aéreo rápido):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He is AIRBORNE the whole clip (feet off the ground, jump, NO
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is AIRBORNE the whole clip (feet off the ground, jump, NO
 > floor). Clear WIND-UP first: he cocks a bandaged fist back, then snaps it forward into a quick
 > short JAB and pulls it back. Fast and light (no bandage unravel). LOCKED SHOT — flat 2D sprite:
 > strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom. Character
@@ -269,7 +277,7 @@
 
 **`air_spin_kick` (salto+E — RODILLAZO aéreo simple):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference, strict SIDE PROFILE facing RIGHT.] He is AIRBORNE the whole clip. ONE
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference, strict SIDE PROFILE facing RIGHT.] He is AIRBORNE the whole clip. ONE
 > SIMPLE attack: he drives ONE KNEE up-and-forward hard to the right — a KNEE STRIKE (thigh raised,
 > knee leading forward) — then tucks the leg back in. That is the whole move: just a quick, weighty
 > airborne KNEE, fast and compact.
@@ -284,7 +292,7 @@
 
 **`jump_knee` (PALMETAZO / APLAUSO al frente — las dos manos chocan):** _(slot en el juego a definir)_
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference — he faces RIGHT.] A HULK-style THUNDERCLAP (the motion only, no effect): he starts with BOTH arms swung WIDE OUT to the sides (open hands/palms apart, arms spread), then he SWINGS both open palms together HARD and SLAPS them together in ONE big forward clap in front of his chest — exactly the Hulk thunderclap motion (both flat hands slamming together to make a shockwave), pointed FORWARD to the right — then his hands part back to guard. KEY: it is the SWING-AND-SLAM — the two arms travel from WIDE APART and SLAP together forcefully in front; NOT a static prayer/pressed-hands pose, and NOT hands just held together. ONE single clap only, QUICK and IMMEDIATE (almost no wind-up beyond the arms being spread, then the fast slam). DIRECTION: the clap is FORWARD at CHEST height, arms roughly horizontal — do NOT clap UP, do NOT raise the hands above his shoulders, NOT overhead. Fast, heavy and powerful, whole bodyweight behind it. NO effects at all — NO shockwave, NO burst, NO wind, NO lines — ONLY the plain slam/clap MOTION. His feet stay planted. NO bandages unwrapping, NO ribbons, NO whips — the wraps stay wrapped. LOCKED SHOT — flat 2D sprite: strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom, SAME body size every frame. Character SMALL and CENTERED, FULL BODY head-to-feet with green margin all around, never cropped. Pure flat green #00FF00 background, no opponent, no text, no effects (no swoosh/streak/trail), no ground shadow.
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference — he faces RIGHT.] A HULK-style THUNDERCLAP (the motion only, no effect): he starts with BOTH arms swung WIDE OUT to the sides (open hands/palms apart, arms spread), then he SWINGS both open palms together HARD and SLAPS them together in ONE big forward clap in front of his chest — exactly the Hulk thunderclap motion (both flat hands slamming together to make a shockwave), pointed FORWARD to the right — then his hands part back to guard. KEY: it is the SWING-AND-SLAM — the two arms travel from WIDE APART and SLAP together forcefully in front; NOT a static prayer/pressed-hands pose, and NOT hands just held together. ONE single clap only, QUICK and IMMEDIATE (almost no wind-up beyond the arms being spread, then the fast slam). DIRECTION: the clap is FORWARD at CHEST height, arms roughly horizontal — do NOT clap UP, do NOT raise the hands above his shoulders, NOT overhead. Fast, heavy and powerful, whole bodyweight behind it. NO effects at all — NO shockwave, NO burst, NO wind, NO lines — ONLY the plain slam/clap MOTION. His feet stay planted. NO bandages unwrapping, NO ribbons, NO whips — the wraps stay wrapped. LOCKED SHOT — flat 2D sprite: strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom, SAME body size every frame. Character SMALL and CENTERED, FULL BODY head-to-feet with green margin all around, never cropped. Pure flat green #00FF00 background, no opponent, no text, no effects (no swoosh/streak/trail), no ground shadow.
 
 ---
 
@@ -298,7 +306,7 @@
 
 **`ground_grab` (↓→+E — AGARRE DESDE EL SUELO con vendas):** _(agarre de pie)_
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference — he faces RIGHT.] Standing planted, he winds a bandaged forearm
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference — he faces RIGHT.] Standing planted, he winds a bandaged forearm
 > back a little, then the dark BANDAGES UNWRAP and SHOOT FORWARD to the RIGHT — long black-purple
 > cloth ribbons stretch far out in front of him (flowing like cloth, rippling, NOT rigid, NOT a
 > chain, NOT metal, NOT fire), reaching a long distance as if to seize an enemy. At full reach the
@@ -314,11 +322,25 @@
 > green #00FF00 background, full body with green margin all around, no opponent, no text, no
 > effects, no ground shadow.
 
+**`pit_grab` (ANTI-AÉREO — azota las vendas al SUELO; el juego abre portal en el piso + portal ARRIBA para atrapar al rival en el AIRE):** _(clip del personaje)_
+
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference — he faces RIGHT.] He raises BOTH bandaged forearms up (a quick wind-up, hands near his shoulders/head), then WHIPS both arms FORWARD and DOWN at a DIAGONAL to the LOWER-RIGHT (in FRONT of him, angled roughly 45° DOWNWARD — NOT straight down, NOT at his own feet), and at the same instant the dark BANDAGES UNWRAP and SHOOT OUT FORWARD-AND-DOWN — long black-purple cloth ribbons stretch out DIAGONALLY toward the lower-right, reaching forward and downward in front of him (flowing like cloth, rippling, NOT rigid, NOT a chain, NOT metal, NOT fire), like hurling two heavy ropes forward at the ground AHEAD of him. His big body braces and leans into the diagonal throw, torso hunching forward-down with the effort, knees bending, whole bodyweight behind it. At full reach the ribbon-ends CLOSE/coil shut as if GRABBING something in the air ahead, and then he PULLS with HUGE FORCE, like a strongman HAULING something VERY HEAVY out of the ground: he grips the ribbons in both fists and DRAGS them back with his entire bodyweight — a slow, STRAINING, effortful HEAVE (not a light flick), muscles bulging and taut, teeth gritted, his big torso rearing WAY BACK and leaning back hard, both legs braced and pushing against the ground for leverage (back foot digging in, knees bent, hips low), like a tug-of-war against a massive dead weight. The ribbons go BOWSTRING-TIGHT and TAUT under the strain (stretched straight and rigid from the load, NOT loose), dragging the heavy caught weight up out of the point and DOWN/IN toward him. Sell the WEIGHT and EFFORT: it is a powerful, laborious, heavy pull — his whole body works to haul it. Then it gives and the cloth coils back fast onto his forearms — ending re-wrapped near his body in guard. Reads clearly: wind up → WHIP both arms FORWARD-AND-DOWN → ribbons stretch out diagonally toward the front-lower-right → COIL/GRAB → HEAVE BACK with maximum force (straining tug-of-war against a heavy load, torso rearing back, legs braced) → recover to guard.
+>
+> ⛔ CRITICAL — the hole is INVISIBLE (do the pose, but DON'T draw the hole): the bandage-ribbons shoot forward-and-down and their ends DIVE INTO / DISAPPEAR INTO an INVISIBLE hole/portal floating at a point in front of him (down to the lower-right) — so pose it exactly like he is throwing his ribbons INTO a hole, ribbons pulled toward that single point and CUT OFF / vanishing there. BUT that hole is INVISIBLE and TRANSPARENT — do NOT render it: draw NO visible hole, NO black hole, NO pit, NO portal, NO ground, NO floor, NO dark circle, NO dark opening, NO crack, NO dark spot, NO shadow at that point. Leave ONLY plain flat green where the ribbon-ends disappear — the ribbons simply END/fade at that empty point as if entering something unseen. (The game draws the real portal there afterward; the AI must leave that spot pure green.)
+>
+> ⛔ DIRECTION: the ribbons go FORWARD and DOWN in a DIAGONAL out in FRONT of him — do NOT send them straight DOWN, do NOT drop them vertically below his feet, do NOT send them up.
+>
+> ⛔ ONLY his ARM bandages: the ONLY ribbons in the whole image are the TWO wraps unwinding from his own TWO forearms (one per arm) — they stay ATTACHED to his forearms/hands the entire clip and NEVER fully detach. Do NOT add ANY extra ribbons, extra bandages, extra straps or extra tails; NO free-floating, loose, cut, separated or detached bandage anywhere; NO ribbons coming from his body, waist, back, legs or from off-screen — nothing but the two forearm wraps, connected to him at all times.
+>
+> Only the bandages extend; his feet stay planted, he does NOT walk, jump or slide. LOCKED SHOT: strict SIDE PROFILE facing RIGHT the WHOLE clip — never turns, mirrors or goes frontal. Fixed camera, NO zoom, SAME SIZE every frame — leave LOTS of extra green room to the LOWER-RIGHT (front-low) so the diagonal forward-down ribbons fit inside the frame (never cropped). Pure flat green #00FF00 background, full body with green margin all around, no opponent, no text, no effects, no ground shadow, NO hole.
+>
+> _Mecánica en juego (lo agrega el código, como warp_grab): ↓↓+R o ↓→+R (a definir) · ½ anillo VOID · SOLO si el rival está en el AIRE. Portal al frente-abajo (donde apuntan las vendas) + portal ARRIBA sobre el rival → las vendas salen de arriba, lo enganchan y lo azotan al piso / lo escupen frente a Roum. Anti-aéreo puro._
+
 ### SÚPER — VOID GRAB (AGUJERO NEGRO)
 
 **`void_cast` (súper — BATTLE-ROPES: bate brazos ↑↓, ondas de MUCHAS vendas al frente):** _(clip del personaje)_
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference — he faces RIGHT.] A powered-up SUPER, like the BATTLE-ROPES
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference — he faces RIGHT.] A powered-up SUPER, like the BATTLE-ROPES
 > exercise: he plants his feet wide and holds MANY long ribbons that stream FORWARD to the right from
 > BOTH forearms, and he BEATS/WHIPS both arms UP and DOWN rapidly and powerfully — exactly like a
 > person gripping the ends of two heavy ropes and slamming both arms up and down to send WAVES
@@ -340,12 +362,14 @@
 
 **`get_pull` (VÍCTIMA — halado hacia el agujero):** _(este lo juega el RIVAL, pero cada personaje necesita el suyo; para ROUM como víctima)_
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference — he faces RIGHT.] An invisible force GRABS him and DRAGS him: his
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference — he faces RIGHT.] He REACTS as if an UNSEEN force drags him (do NOT
+> draw the force, ribbons, hand, hole or anything grabbing him): his
 > body is YANKED forward/off-balance (pulled toward the left as if something seized him and hauls
 > him in), arms flailing a little, feet skidding/dragging, unable to resist — a clear "being pulled
 > in" reaction, held for the clip. LOCKED SHOT: strict SIDE PROFILE facing RIGHT the WHOLE clip —
-> never turns, mirrors or goes frontal. Fixed camera, NO zoom, SAME SIZE every frame. Pure flat
-> green #00FF00 background, no opponent, no text, no effects, no ground shadow.
+> never turns, mirrors or goes frontal. Fixed camera, NO zoom, SAME SIZE every frame. ⛔ NOTHING is
+> drawn touching or grabbing him: no ribbons, no hand, no hole, no projectile, no VFX — ONLY Roum
+> alone. Pure flat green #00FF00 background, no opponent, no text, no effects, no ground shadow.
 
 ---
 
@@ -353,37 +377,47 @@
 
 **`take_hit` (golpeado de pie):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] An invisible blow snaps him: his head and torso whip BACKWARD (to
-> the left) as if struck in the chest, the big body rocking back, then he recovers his guard. A
-> heavy flinch — rocks back and returns (he is big, so it is a solid stagger, not a light snap).
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He REACTS to an UNSEEN hit (do NOT draw the hit, the attacker or
+> anything hitting him): his head and torso whip BACKWARD (to the left) as if struck in the chest,
+> the big body rocking back, then he recovers his guard. A heavy flinch — rocks back and returns (he
+> is big, so it is a solid stagger, not a light snap).
 > LOCKED SHOT: strict SIDE PROFILE facing RIGHT the WHOLE clip — never turns, mirrors or goes
-> frontal. Fixed camera, NO zoom, SAME SIZE every frame, feet planted in place. Pure flat green
-> #00FF00 background, full body with green margin all around, nobody touches him, no opponent, no
-> text, no effects, no ground shadow.
+> frontal. Fixed camera, NO zoom, SAME SIZE every frame, feet planted in place. ⛔ NOTHING hits him
+> on screen: NO PROJECTILE, no fist, no weapon, no hand, no object flying at him, no incoming attack,
+> no impact mark on his body. The hit is INVISIBLE: NO VFX, NO hit-sparks, NO impact flashes, NO
+> shockwave, NO speed/impact lines, NO stars, smoke or particles — ONLY Roum ALONE and his flinch
+> (the game adds all effects). Pure flat green #00FF00 background, full body with green margin all
+> around, nobody touches him, no opponent, no text, no effects, no ground shadow.
 
 **`take_hit_low` (golpeado abajo):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] An invisible low blow folds him: he doubles over, big torso
-> crunching down as if hit in the gut, staggering, then straightens back to guard. LOCKED SHOT:
-> strict SIDE PROFILE facing RIGHT — never turns, mirrors or goes frontal. Fixed camera, NO zoom,
-> SAME SIZE every frame, feet planted in place. Pure flat green #00FF00 background, full body with
-> green margin all around, no opponent, no text, no effects, no ground shadow.
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He REACTS to an UNSEEN low hit (do NOT draw the hit or any attacker):
+> he doubles over, big torso crunching down as if hit in the gut, staggering, then straightens back
+> to guard. LOCKED SHOT: strict SIDE PROFILE facing RIGHT — never turns, mirrors or goes frontal.
+> Fixed camera, NO zoom, SAME SIZE every frame, feet planted in place. ⛔ NOTHING hits him on screen:
+> NO PROJECTILE, no fist, no weapon, no hand, no object flying at him, no incoming attack, no impact
+> mark on his body. The hit is INVISIBLE: NO VFX, NO hit-sparks, NO impact flashes, NO shockwave, NO
+> speed/impact lines, NO stars, smoke or particles — ONLY Roum ALONE and his flinch (the game adds
+> all effects). Pure flat green #00FF00 background, full body with green margin all around, no
+> opponent, no text, no effects, no ground shadow.
 
 **`hit-fly.mp4` (lanzado por los aires → se estrella) — de este saco `hit_fly` + `hit_down`:**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] An invisible force BLASTS his heavy body off his feet: he is
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is KNOCKED off his feet by an UNSEEN force (do NOT draw the hit,
+> the attacker, any blast or any projectile): his heavy body is
 > LAUNCHED up-and-back to the LEFT in a knockout ragdoll — limbs loose, head thrown back, no
 > control — flies in an arc and CRASHES flat onto his back on the ground, bounces once, slides, and
 > ends sprawled on his back with his head toward the LEFT and feet toward the RIGHT. He does NOT
 > somersault, does NOT flip head-over-heels, keeps the SAME side-facing orientation the whole time
 > (never flips to the other side). CAMERA HARD-LOCKED, STATIC WIDE — same framing and SAME SIZE
 > every frame, NO zoom, NO following him: his whole body stays inside the fixed frame the entire
-> flight and crash. Strict side view, no mirror/turn. Pure flat green #00FF00 background, no smoke,
-> no dust, no opponent, no effects, no ground shadow.
+> flight and crash. Strict side view, no mirror/turn. ⛔ NOTHING hits him on screen: no projectile,
+> no fist, no weapon, no blast, no impact flash/effect — ONLY Roum alone. Pure flat green #00FF00
+> background, no smoke, no dust, no opponent, no effects, no ground shadow.
 
 **`ko-face-up.mp4` (derrotado, cae de espaldas):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference — he faces RIGHT.] He gets knocked out and TIPS OVER BACKWARD,
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference — he faces RIGHT.] He gets knocked out and TIPS OVER BACKWARD,
 > toppling toward the LEFT edge of the screen (behind him), like a heavyweight falling flat when
 > KO'd: his head and shoulders drop back to the ground FIRST while his feet slide out, and his BACK
 > hits the floor, leaving him lying FACE-UP with his big chest and belly pointing UP toward the
@@ -396,7 +430,7 @@
 
 **`get-up.mp4` (se levanta hasta la guardia):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] Lying on his back, he rolls to one side, pushes up heavily with
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] Lying on his back, he rolls to one side, pushes up heavily with
 > his big arms to one knee, and heaves himself back up to his wide heavy stance in one solid
 > motion, ending standing in guard. CAMERA HARD-LOCKED, STATIC WIDE, NO zoom, SAME SIZE every
 > frame, strict side view facing right (no mirror), he rises IN PLACE (feet stay on the same spot),
@@ -405,20 +439,31 @@
 
 **`block.mp4` (bloqueo de pie):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] A DEFENSIVE BLOCK in STRICT SIDE PROFILE facing RIGHT. He raises
-> both bandaged forearms up and IN, crossing them in front of his chest/face like a solid wall,
-> elbows tucked, and his big body RECOILS BACKWARD a little (weight onto the back foot) as if an
-> invisible blow lands on his guard and shoves him, then he settles and holds the guard. CLEARLY
-> defensive: every motion goes TOWARD his body or BACKWARD — he NEVER punches, NEVER reaches or
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] A FIGHTING-GAME DEFENSIVE GUARD (crossed-arm X block) in STRICT SIDE PROFILE facing RIGHT. He SNAPS both
+> bandaged forearms UP and CROSSES them in an X in FRONT of his CHEST — the two forearms overlap forming an X-shaped
+> shield wall held OUT in front at CHEST height, fists/hands out to the sides, elbows lifted and pushed slightly
+> FORWARD, shoulders hunched, bracing hard against an incoming hit. It is a TENSE, ACTIVE combat guard raised as a wall
+> in front of him — his whole upper body FLINCHES and RECOILS BACKWARD a little (weight onto the back foot) as if an
+> invisible blow slams into his crossed arms, then he holds that tight X guard. ⛔ CRITICAL — this is NOT a relaxed
+> pose: do NOT fold his arms flat/casually, do NOT rest his crossed arms low on his belly or stomach, do NOT stand
+> bored/at ease. The crossed forearms are RAISED to CHEST height and held OUT as an active shield (not pressed flat
+> against the torso) — tense and defensive, like an anime X-block guard. NOT up at the face/head, NOT overhead —
+> at CHEST height. CLEARLY defensive: every motion goes TOWARD his body or BACKWARD — he NEVER punches, NEVER reaches or
 > steps forward, the bandages do NOT extend. LOCKED SHOT: strict SIDE PROFILE facing RIGHT the
-> WHOLE clip — never turns frontal, never mirrors, never shows his back. Fixed camera, NO zoom,
-> SAME SIZE every frame, feet planted (only the small backward flinch). Pure flat green #00FF00
+> WHOLE clip — never turns frontal, never mirrors, never shows his back. WIDE STATIC ORTHOGRAPHIC
+> SHOT — the camera is a fixed flatbed scanner, not a movie camera: the framing of frame 1 is the
+> framing of EVERY frame. He is the EXACT SAME SIZE (same head-to-feet pixel height) in every frame —
+> he never grows, shrinks, gets closer or farther (a size change looks like a glitch and is FORBIDDEN).
+> Keep him SMALL with LOTS of green margin on all 4 sides that NEVER tightens. His feet stay planted
+> (only the small backward flinch of his upper body — his standing height and scale do NOT change). ⛔ NOTHING hits him on
+> screen: no projectile, no fist, no weapon, no blast, no impact flash/effect, no VFX — ONLY Roum
+> alone. Pure flat green #00FF00
 > background, full body with green margin all around, nothing touches him, no opponent, no effects,
 > no ground shadow.
 
 **`block_low.mp4` (bloqueo agachado):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] He is CROUCHED LOW the entire clip, compact, head down. He CROSSES
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] He is CROUCHED LOW the entire clip, compact, head down. He CROSSES
 > his two bandaged forearms in front of his body in a clear X-SHAPE guard low in front of his
 > chest/knees, and absorbs hits from the front-low with small downward jolts, never rising, arms
 > staying crossed. Bandages stay wrapped (no extend). LOCKED SHOT: strict SIDE PROFILE facing RIGHT
@@ -428,14 +473,16 @@
 
 **`parry.mp4` (postura de desvío — Q+W):**
 
-> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly - NO extra cloth, tabard, loincloth, apron, skirt or long ragged flap hanging over his groin or front; below the rope belt is ONLY his loose beige pants), exactly like the reference.] Pure DEFENSIVE deflect — he NEVER attacks, NEVER punches, the
+> [Same ROUM from the reference — KEEP his HEAVY FAT BODY (huge round belly/gut + massive heavyset bulk, EXACTLY as heavy and thick as the reference - NEVER slimmed, leaned or made athletic), his DARK bandages (never white/gauze) and the loose hanging bandage TAILS on BOTH forearms, and his OUTFIT UNCHANGED (short OPEN vest ending around the upper belly, and his LOWER BELLY / midsection WRAPPED in the dark cloth SASH exactly like the reference (his gut is always COVERED by that wrap — NEVER a BARE, naked or exposed belly/gut) - ABSOLUTELY NO extra cloth of ANY kind hanging between/over his legs, groin or front: NO tabard, loincloth, apron, skirt, kilt, ragged cloth panel, hanging rag or vest-tail. The vest ENDS at the belly and does NOT extend or hang below the rope belt. Below the rope belt there is ONLY his loose beige pants (and empty space between the legs — nothing hanging down)), exactly like the reference.] Pure DEFENSIVE deflect — he NEVER attacks, NEVER punches, the
 > bandages NEVER extend. ONE quick tense SNAP then a HOLD: he brings both bandaged forearms up-and-
 > across into a tight DEFLECT guard angled in front of his face, calm and confident, eyes locked
 > forward-right, then HOLDS that ready deflect stance for the rest of the clip (only breathing, the
 > rope weights settling). A SHORT tight snap to guard — the arms do NOT reach out or strike, and he
 > ends still holding the deflect (does NOT return to neutral). LOCKED SHOT: strict SIDE PROFILE
-> facing RIGHT the WHOLE clip — never turns, mirrors or goes frontal. Fixed camera, NO zoom, SAME
-> SIZE every frame, feet planted in place. Pure flat green #00FF00 background, full body with green
+> facing RIGHT the WHOLE clip — never turns, mirrors or goes frontal. WIDE STATIC ORTHOGRAPHIC shot,
+> fixed flatbed scanner (not a movie camera): SAME body SIZE every frame (never grows/shrinks/gets
+> closer — a size change is a glitch, FORBIDDEN), feet planted, green margin on all sides that never
+> tightens. Pure flat green #00FF00 background, full body with green
 > margin all around, no opponent, no effects, no ground shadow.
 
 ---

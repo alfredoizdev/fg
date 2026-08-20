@@ -262,65 +262,69 @@
 **`jump_punch` (salto+Q — daga aérea):**
 
 > [Same Zetma from the reference — KEEP HIM IDENTICAL: same mask, same ONE black-metal robot
+>
 > > arm, same hood, same exact outfit; do NOT add belts/straps/pouches or restyle mask/arms.] He
-> is AIRBORNE the whole clip (feet off the ground, in a jump, over pure green, NO floor — never
-> lands or stands). He does ONE forward DAGGER STAB: his FLESH human hand (bare skin, cloth
-> sleeve, glove) thrusts the dagger forward to the right to a natural human reach, then pulls
-> back. The BLACK-METAL ROBOT arm (glossy metal, orange lights — stays metal, never human) is
-> cocked BACK, empty. He grips the dagger FIRMLY the whole clip (never drops/loosens/releases
-> it). LOCKED SHOT — flat 2D fighting-game sprite: strict SIDE PROFILE facing RIGHT, orthographic,
-> no 3/4 angle, no turning. FIXED camera, NO zoom in/out, no camera move. Character SMALL and
-> FULL-BODY with lots of green margin, NEVER cropped, SAME size every frame, centered. Pure flat
-> green #00FF00 background, no opponent, no text, no effects, no ground shadow (nothing under him).
+> > is AIRBORNE the whole clip (feet off the ground, in a jump, over pure green, NO floor — never
+> > lands or stands). He does ONE forward DAGGER STAB: his FLESH human hand (bare skin, cloth
+> > sleeve, glove) thrusts the dagger forward to the right to a natural human reach, then pulls
+> > back. The BLACK-METAL ROBOT arm (glossy metal, orange lights — stays metal, never human) is
+> > cocked BACK, empty. He grips the dagger FIRMLY the whole clip (never drops/loosens/releases
+> > it). LOCKED SHOT — flat 2D fighting-game sprite: strict SIDE PROFILE facing RIGHT, orthographic,
+> > no 3/4 angle, no turning. FIXED camera, NO zoom in/out, no camera move. Character SMALL and
+> > FULL-BODY with lots of green margin, NEVER cropped, SAME size every frame, centered. Pure flat
+> > green #00FF00 background, no opponent, no text, no effects, no ground shadow (nothing under him).
 
 **`jump_kick` (salto+W — patada aérea):**
 
 > [Same Zetma from the reference — KEEP HIM IDENTICAL: same mask (same shape, same glowing
+>
 > > eyes), same ONE black-metal robot arm, same hood, same exact outfit. Do NOT add or invent any
 > > belt, sash, strap, pouch, buckle or clothing element that is not in the reference, and do NOT
 > > restyle the mask or arms.] IMPORTANT — LIMBS: he has only ONE mechanical arm (black metal).
-> Everything else is NORMAL human: BOTH LEGS are normal human legs in black cloth cargo pants
-> and sneakers, and the other arm is flesh/cloth. Do NOT make any leg mechanical/metal, do NOT
-> add robotic parts to the legs or feet — legs stay normal cloth pants the whole clip. He is
-> AIRBORNE the whole clip (feet off the ground, in a jump, over pure green, NO floor — never
-> lands or stands). He throws a HIGH flying KICK: one leg snaps out UP-and-FORWARD to the right
-> at a HIGH angle (the boot rising to around WAIST/CHEST height, kicking upward-forward, NOT a
-> low downward kick), then tucks back — an agile high ninja flying kick. The dagger stays
-> SHEATHED; both arms tucked in. The BLACK-METAL ROBOT arm stays metal (never human). LOCKED SHOT — flat 2D fighting-game sprite: strict SIDE PROFILE
-> facing RIGHT, ORTHOGRAPHIC, no 3/4 angle, no turning. FIXED camera, NO zoom in/out, NO camera
-> move. Character SMALL and FULL-BODY with lots of green margin on all sides, NEVER cropped,
-> SAME size every frame, centered. Pure flat green #00FF00 background, no opponent, no text, no
-> effects, no ground shadow (nothing under him — he is in the air).
+> > Everything else is NORMAL human: BOTH LEGS are normal human legs in black cloth cargo pants
+> > and sneakers, and the other arm is flesh/cloth. Do NOT make any leg mechanical/metal, do NOT
+> > add robotic parts to the legs or feet — legs stay normal cloth pants the whole clip. He is
+> > AIRBORNE the whole clip (feet off the ground, in a jump, over pure green, NO floor — never
+> > lands or stands). He throws a HIGH flying KICK: one leg snaps out UP-and-FORWARD to the right
+> > at a HIGH angle (the boot rising to around WAIST/CHEST height, kicking upward-forward, NOT a
+> > low downward kick), then tucks back — an agile high ninja flying kick. The dagger stays
+> > SHEATHED; both arms tucked in. The BLACK-METAL ROBOT arm stays metal (never human). LOCKED SHOT — flat 2D fighting-game sprite: strict SIDE PROFILE
+> > facing RIGHT, ORTHOGRAPHIC, no 3/4 angle, no turning. FIXED camera, NO zoom in/out, NO camera
+> > move. Character SMALL and FULL-BODY with lots of green margin on all sides, NEVER cropped,
+> > SAME size every frame, centered. Pure flat green #00FF00 background, no opponent, no text, no
+> > effects, no ground shadow (nothing under him — he is in the air).
 
 **`air_spin_kick` (salto+E — patada giratoria aérea):**
 
 > [Same Zetma from the reference — KEEP HIM IDENTICAL: same mask, same ONE black-metal robot
+>
 > > arm, same hood, same exact outfit; do NOT add clothing elements or restyle mask/arms.] He is
-> AIRBORNE the whole clip (feet off the ground, jump, NO floor — never lands/stands). He does a
-> spinning/roundhouse AIR KICK: one leg snaps out to the right and whips around, then tucks
-> back — a pure LEG kick (NO arm-extend/telescoping; that is a special move only). Dagger stays
-> SHEATHED, both arms tucked; the metal robot arm stays metal. LOCKED SHOT — flat 2D sprite:
-> strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom, no camera
-> move. Character SMALL, FULL-BODY, lots of green margin, never cropped, same size every frame,
-> centered. Pure flat green #00FF00 background, no opponent, no text, no effects, no ground shadow.
+> > AIRBORNE the whole clip (feet off the ground, jump, NO floor — never lands/stands). He does a
+> > spinning/roundhouse AIR KICK: one leg snaps out to the right and whips around, then tucks
+> > back — a pure LEG kick (NO arm-extend/telescoping; that is a special move only). Dagger stays
+> > SHEATHED, both arms tucked; the metal robot arm stays metal. LOCKED SHOT — flat 2D sprite:
+> > strict SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom, no camera
+> > move. Character SMALL, FULL-BODY, lots of green margin, never cropped, same size every frame,
+> > centered. Pure flat green #00FF00 background, no opponent, no text, no effects, no ground shadow.
 
 **`air_jab` (salto+R — jab mecánico aéreo):**
 
 > [Same Zetma from the reference — KEEP HIM IDENTICAL: same mask, same ONE black-metal robot
+>
 > > arm, same hood, same exact outfit; do NOT add clothing elements or restyle mask/arms.] He is
-> AIRBORNE the whole clip (feet off the ground, jump, NO floor). Clear WIND-UP first: he
-> COCKS his BLACK-METAL ROBOT fist BACK to his shoulder/chest, elbow bent, shoulder twisting
-> slightly — you SEE him load the punch — THEN he snaps that fist forward into a quick short
-> JAB and pulls it back to guard. Three beats: pull back → punch out → recover. The fist stays
-> BLACK-METAL ROBOT (glossy metal, orange lights — stays metal, never human), punches out a
-> SHORT distance to the right. Fast and light, small motion (NO long arm-extend, the arm does
-> NOT telescope). NO DAGGER AND NO BLADE ANYWHERE in the whole clip — the dagger is NOT drawn,
-> NOT held, NOT visible; nothing comes out of either hand. His OTHER hand (the flesh hand) hangs
-> relaxed and EMPTY at his side and does nothing. This is a pure bare-fist robot punch — zero
-> weapons on screen. LOCKED SHOT — flat 2D sprite: strict
-> SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom, no camera move.
-> Character SMALL, FULL-BODY, lots of green margin, never cropped, same size every frame,
-> centered. Pure flat green #00FF00 background, no opponent, no text, no effects, no ground shadow.
+> > AIRBORNE the whole clip (feet off the ground, jump, NO floor). Clear WIND-UP first: he
+> > COCKS his BLACK-METAL ROBOT fist BACK to his shoulder/chest, elbow bent, shoulder twisting
+> > slightly — you SEE him load the punch — THEN he snaps that fist forward into a quick short
+> > JAB and pulls it back to guard. Three beats: pull back → punch out → recover. The fist stays
+> > BLACK-METAL ROBOT (glossy metal, orange lights — stays metal, never human), punches out a
+> > SHORT distance to the right. Fast and light, small motion (NO long arm-extend, the arm does
+> > NOT telescope). NO DAGGER AND NO BLADE ANYWHERE in the whole clip — the dagger is NOT drawn,
+> > NOT held, NOT visible; nothing comes out of either hand. His OTHER hand (the flesh hand) hangs
+> > relaxed and EMPTY at his side and does nothing. This is a pure bare-fist robot punch — zero
+> > weapons on screen. LOCKED SHOT — flat 2D sprite: strict
+> > SIDE PROFILE facing RIGHT, orthographic, no turning. FIXED camera, NO zoom, no camera move.
+> > Character SMALL, FULL-BODY, lots of green margin, never cropped, same size every frame,
+> > centered. Pure flat green #00FF00 background, no opponent, no text, no effects, no ground shadow.
 
 ---
 
@@ -336,7 +340,7 @@
 > brazo normal en toda su extensión, no se vuelve más grueso, ancho ni voluminoso. **NO deformar
 > el cuerpo:** el brazo sale de su hombro NORMAL de siempre; NO aparece un segundo hombro, ni una
 > articulación/hombro extra en medio del brazo, ni un brazo/extremidad de más en un lugar
-> equivocado. Solo su brazo de siempre, más largo. La mano es su **mano de metal negro NORMAL**
+> equivocado. Solo su brazo de siempre, más largo. La mano es su **mano de metal negro NORMAL\*\*
 > (tamaño normal, no una garra gigante) que se ABRE al salir y se CIERRA al final como agarrando.
 > La daga sigue en la mano de CARNE (el otro brazo), nunca en el brazo que se estira.
 > En inglés: _"The robot arm only gets LONGER (extends in length); it NEVER gets thicker or
@@ -531,9 +535,18 @@
 > ends still holding the deflect. The dagger is DRAWN and held (blade steady, constant shape,
 > never splits or changes hands); the robot arm stays BLACK-METAL, ONE continuous limb. LOCKED
 > SHOT: strict SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip — never turns,
-> mirrors or goes frontal. Fixed camera, NO zoom (not even in the middle), SAME SIZE every
-> frame. He stays DEAD-CENTER with boots planted in place. Pure flat green #00FF00 background,
+> mirrors or goes frontal. WIDE STATIC ORTHOGRAPHIC shot, fixed flatbed scanner (not a movie
+> camera): SAME body SIZE every frame (never grows/shrinks/gets closer — a size change is a glitch,
+> FORBIDDEN), green margin on all sides that never tightens. He stays DEAD-CENTER with boots planted in place. Pure flat green #00FF00 background,
 > full body with green margin all around, no opponent, no effects, no ground shadow (no cast shadow or dark blob under him).
+
+**`victory.mp4` (pose de VICTORIA — REVEAL: se vira de espalda, se quita la máscara y le cae el pelo largo morado):**
+
+> ⚠️ ESTA POSE ES LA EXCEPCIÓN: **SÍ gira** (de perfil a mostrar la ESPALDA / 3-4 traseros) — es un reveal cinematográfico, NO respeta el "strict side profile" de las demás.
+>
+> [Same Zetma from the reference — SAME outfit exactly: SHORT hooded jacket ending at the waist with dark-purple accents (NO long coat-tail/skirt/robe hanging below the waist), ONE full BLACK MECHANICAL right arm (metal, orange lights) and the other arm flesh + cloth glove, black cargo pants with purple straps, black sneakers with purple soles. His legs and feet are NORMAL (human) — never mechanical.] A slow, calm VICTORY pose — he has WON and lowers his guard. He starts in side profile facing right, then TURNS AWAY from the camera to show his BACK (rotating to a back / three-quarter-back view, we see the back of his short hooded jacket). He pushes his HOOD DOWN off his head, and his BLACK-METAL MECHANICAL hand reaches up and SLOWLY PULLS OFF his black mechanical mask (a plain matte-black mask with four narrow eye-slits — the slits are DARK, NOT lit, NOT glowing, and are NOT green — comes away in his metal hand), and as the mask lifts free his LONG PURPLE HAIR SPILLS/CASCADES DOWN loose over his back and shoulders (long, flowing dark-purple hair that was hidden under the hood and mask). He holds the removed matte-black mask down at his side in the mechanical hand (its four eye-slits stay DARK and unlit — no green, no glow), head tilted slightly, calm and menacing, victorious. ⛔ THE MASK EYES ARE NEVER GREEN and NEVER GLOW in this clip — do NOT paint any green, toxic-green, neon or lit eyes on the mask (green reads as background and gets keyed out, leaving holes). His FLESH hand still grips the black purple-handled DAGGER (never disappears). A quiet, confident, dangerous, calm air. Reads clearly: standing → turns to show his back → hood down → metal hand removes the mask → long purple hair falls loose → holds the final unmasked, back-turned pose. This is the ONLY pose where he turns his back and where his face/hair is revealed.
+>
+> ⛔⛔ WIDE STATIC ORTHOGRAPHIC SHOT — the camera is a fixed flatbed scanner, not a movie camera. Treat this like a GAME SPRITE-SHEET animation exported from a fixed rig: every frame is the SAME sprite drawn at the SAME scale, like frames on a sheet. The framing is FROZEN and IDENTICAL in every frame — the first frame's framing IS the last frame's framing. He stays the EXACT SAME SIZE and SAME height in EVERY single frame from first to last — his head-to-boots pixel height is IDENTICAL in frame 1 and the final frame and must not change even 1% at any moment (no growing, no shrinking — a size change looks like a glitch and is FORBIDDEN). Keep him SMALL in the frame with LOTS of empty green margin on ALL FOUR sides the whole time — the wide margin never tightens. Boots planted DEAD-CENTER on the SAME ground line the whole clip — he ONLY turns his body in place (no sliding, no drifting, no rising up, no crouching lower — his standing height stays constant, only his facing rotates). ⛔ KEEP HIM IDENTICAL: his design, body proportions, height, build, face, hair, hands, arms, outfit and colors stay EXACTLY like the reference the whole clip — do NOT restyle, redesign, age, beautify or change him. His anatomy stays CORRECT and CONSISTENT: hands, fingers, arms, legs and face do NOT morph, melt, warp, break, distort, duplicate, swap or grow/lose parts; the mechanical arm stays ONE clean metal limb and the flesh hand stays a normal 5-finger hand. ⛔ ZERO effects: NO smoke, NO dust, NO mist, NO fog, NO haze, NO glow, NO aura, NO green energy, NO sparks, NO particles, NO wind, NO speed lines — ONLY the character himself (the game adds any effects). NO opponent, NO text. Pure flat green #00FF00 background, full body head-to-boots with green margin all around, no ground shadow (no cast shadow or dark blob under him).
 
 ---
 

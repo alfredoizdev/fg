@@ -416,6 +416,9 @@ var down_tap_t := 0.0
 var double_down_t := 0.0
 var back_tap_t := 0.0      # tap reciente de ATRÁS (para el ←←→ del VOID LASH de ROUM)
 var double_back_t := 0.0   # doble-atrás reciente (← ←) para exigir ←←→ + W
+var _r_press_ms := 0       # ROUM: ms en que se apretó R (para el ULTRA = mantener R ~½s y soltar)
+var fwd_tap_t := 0.0       # tap reciente de ADELANTE (para el →→ del UPPERCUT de ROUM)
+var double_fwd_t := 0.0    # doble-adelante reciente (→ →) para exigir →→ + Q
 var pq_tap_t := 0.0   # instante reciente del tap de Q (para exigir Q+W SIMULTÁNEOS en el parry)
 var pw_tap_t := 0.0   # instante reciente del tap de W
 var pe_tap_t := 0.0   # tap reciente de E (para la RABIA de DAM: E+R simultáneas)
@@ -620,6 +623,12 @@ const SMOKE_MOVES := ["kick", "crouch_kick", "spin_kick", "air_spin_kick", "swee
 
 func _on_animation_changed() -> void:
 	var nombre := String(sprite.animation)
+	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
+	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
+	# activo (hitstop/frozen/orb_trap manejan speed_scale por su cuenta).
+	if fx_floral and nombre != "crouch" and sprite.speed_scale != 1.0 \
+			and hitstop_t <= 0.0 and frozen_t <= 0.0 and orb_trap_t <= 0.0:
+		sprite.speed_scale = 1.0
 	# ZETMA: cada clip suyo trae su propio sonido. Al cambiar de anim, si existe
 	# imagen-action/zetma/sound-effect/<anim>.wav, se reproduce (pedido: usar el audio de
 	# los clips). Se cachea por anim. La POSE tambien suena al asentarse en guardia (pedido).
@@ -686,8 +695,9 @@ func _on_animation_changed() -> void:
 	elif fx_floral and nombre in SWING_SFX:
 		# AYE blande un BÁCULO, no una espada: swoosh simple en vez del "sword-slash-and-swing"
 		_play_aye_swoosh("res://imagen-action/aye/sound-effect/simple-whoosh.mp3", -7.0)
-	elif fx_warrior and nombre == "spin_kick":
+	elif fx_warrior and nombre == "spin_kick" and not ultra_hover:
 		# ROUM CABEZAZO (E): SIN swoosh (el whoosh.mp3 sonaba al molinete de espada de DAM, pedido quitar).
+		# (durante su ULTRA, ultra_hover=true: NO re-dispara la voz/borde por cada cabezazo de la ráfaga)
 		# Solo su GRITO grave "YHAAAAA" (canal de voz aparte). El impacto suena al conectar (~f93).
 		var hyap := "res://imagen-action/roum/sound-effect/voz-hya-roum.wav"
 		if _roum_hya_sfx == null and ResourceLoader.exists(hyap):
@@ -837,7 +847,7 @@ func _play_ugh() -> void:
 			st = _dam_ugh_sfx[randi() % _dam_ugh_sfx.size()]   # Agh o Ugh al azar
 	if st != null:
 		voz_player.stream = st
-		voz_player.pitch_scale = randf_range(0.95, 1.06)
+		voz_player.pitch_scale = randf_range(0.68, 0.78) if fx_warrior else randf_range(0.95, 1.06)   # ROUM tanque: quejido GRAVE
 		voz_player.play()
 
 # AYE: grito "NOOOOOO!" cuando PIERDE (recibe el último golpe -> KO). Suena UNA sola vez.
@@ -958,7 +968,7 @@ func current_attack() -> Dictionary:
 		if sprite.animation == "weak_punch":
 			return {"name": "weak_punch", "frame": int(sprite.frame), "hit_frame": 66,
 				"reach": 540.0 * CHAR_SCALE, "low": false, "strong": false,
-				"damage": 40, "shove": 1950.0, "impact_sfx": "kick_impact"}
+				"damage": 40, "shove": 500.0, "impact_sfx": "kick_impact"}
 		# E (spin_kick) = CABEZAZO (clip 145f): se recoge (f13-73) y hace LUNGE con la cabeza al frente,
 		# clavándola a full ~f93-97 (MEDIDO). Golpe FUERTE que LANZA (top de la escalera R→Q→W→E, cierra
 		# combos). Sin vendas -> sin estela. hit_frame 93.
@@ -2685,9 +2695,9 @@ func _physics_process(delta: float) -> void:
 				shove_vx = 0.0
 	# inclinación al salir volando: el cuerpo se ladea hacia la dirección del empujón (no vertical)
 	if hit_flying and String(sprite.animation) == "hit_fly":
-		# ZETMA (fx_dark): su clip de vuelo YA trae su propia rotación de tumbo (tumbling), así
-		# que NO se le suma el tilt de 34° (se sobre-rotaba). Los demás sí se ladean.
-		sprite.rotation = 0.0 if fx_dark else deg_to_rad(FLY_TILT_DEG) * fly_lean
+		# ZETMA (fx_dark) y ROUM (fx_warrior): su clip de vuelo YA trae la orientación del tumbo
+		# (ROUM termina TENDIDO horizontal), así que NO se les suma el tilt de 34° (se sobre-rotaba).
+		sprite.rotation = 0.0 if (fx_dark or fx_warrior or sprite.sprite_frames.get_frame_count("hit_fly") > 100) else deg_to_rad(FLY_TILT_DEG) * fly_lean   # clips de TUMBO (>100f: ROUM/DAM) ya traen orientación → sin tilt
 	elif sprite.rotation != 0.0:
 		sprite.rotation = 0.0
 	burst_t = maxf(0.0, burst_t - delta)
@@ -2942,6 +2952,8 @@ func _physics_process(delta: float) -> void:
 	double_down_t = maxf(0.0, double_down_t - delta)
 	back_tap_t = maxf(0.0, back_tap_t - delta)
 	double_back_t = maxf(0.0, double_back_t - delta)
+	fwd_tap_t = maxf(0.0, fwd_tap_t - delta)
+	double_fwd_t = maxf(0.0, double_fwd_t - delta)
 	roum_super_t = maxf(0.0, roum_super_t - delta)   # timer del SÚPER ↓W de ROUM
 	pq_tap_t = maxf(0.0, pq_tap_t - delta)
 	pw_tap_t = maxf(0.0, pw_tap_t - delta)
@@ -3010,6 +3022,8 @@ func _physics_process(delta: float) -> void:
 				and sprite.sprite_frames.get_frame_count("spin_kick") > 12
 		if dam_torbellino:
 			pass   # TORBELLINO v2 (pedido): gira EN EL SITIO — sin avance ni hover
+		elif fx_floral:
+			pass   # AYE-2: el E (orb_e) es un LANZAMIENTO parado — NO viaja ni flota
 		elif sp_nueva:
 			if sprite.frame >= 16 and sprite.frame <= 64:
 				position.x += facing * SPIN_TRAVEL * delta
@@ -3043,6 +3057,13 @@ func _physics_process(delta: float) -> void:
 				and String(sprite.animation) != "ko_air" \
 				and sprite.sprite_frames.has_animation("hit_fly"):
 			sprite.play("hit_fly")
+		# ROUM: mientras VUELA (juggle/KO aéreo) NO congelar el tendido plano; la pose sigue el ARCO
+		# -> ARQUEADO al SUBIR (vel_y<0), horizontal al CAER (vel_y>0), nunca el tendido (f100+). Pedido.
+		if String(sprite.animation) == "hit_fly" and hit_flying and sprite.sprite_frames.get_frame_count("hit_fly") > 100:
+			var _hfc: int = sprite.sprite_frames.get_frame_count("hit_fly")
+			var _arc: float = clampf(inverse_lerp(-1000.0, 800.0, vel_y), 0.0, 1.0)
+			sprite.frame = clampi(int(lerpf(32.0, 86.0, _arc)), 0, _hfc - 1)
+			sprite.speed_scale = 0.0
 		var air_spin: bool = sprite.animation in ["spin_kick", "air_spin_kick"] and sprite.is_playing()
 		# TODOS los ataques aéreos flotan: mientras golpeas en el aire, bajas
 		# poco a poco (feel de combo aéreo de fighting game), no caes en picada.
@@ -3125,6 +3146,7 @@ func _physics_process(delta: float) -> void:
 			position.y = floor_y
 			airborne = false
 			vel_y = 0.0
+			sprite.speed_scale = 1.0   # ROUM hit_fly congelaba speed_scale=0: restaurar al caer
 			air_move_used = false   # tocó el piso: puede volver a atacar en el aire
 			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
 			if koed:
@@ -3279,6 +3301,8 @@ func _physics_process(delta: float) -> void:
 	var down_held := Input.is_action_pressed(act("ui_down"))
 	if down_held and not crouching:
 		crouching = true
+		if fx_floral:
+			sprite.speed_scale = 1.0   # AYE-2: agacharse a velocidad normal
 		sprite.play("crouch")
 	elif not down_held and crouching:
 		crouching = false
@@ -3286,6 +3310,10 @@ func _physics_process(delta: float) -> void:
 		if sprite.sprite_frames.has_animation("crouch_up") and sprite.sprite_frames.get_frame_count("crouch_up") > 1:
 			sprite.play("crouch_up")
 		else:
+			# AYE-2: el levantarse-de-agachado va un poco MÁS rápido que agacharse (pedido).
+			# speed_scale se restaura a 1.0 en _on_animation_changed al salir del crouch.
+			if fx_floral:
+				sprite.speed_scale = 1.5
 			sprite.play_backwards("crouch")
 	if crouching:
 		return
@@ -3483,6 +3511,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if back_tap_t > 0.0:
 			double_back_t = 0.4
 		back_tap_t = 0.4
+	if _btap != 0 and _btap == facing:    # el press fue hacia ADELANTE (hacia el rival): →→ del UPPERCUT
+		if fwd_tap_t > 0.0:
+			double_fwd_t = 0.4
+		fwd_tap_t = 0.4
 	# DEFENSA mientras te COMBEAN (te están pegando): PARRY (estándar) o COMBO BREAK (por personaje)
 	var _combeado := not koed and (hit_flying \
 		or (String(sprite.animation) in ["take_hit", "take_hit_low"] and sprite.is_playing()))
@@ -3573,6 +3605,24 @@ func _unhandled_input(event: InputEvent) -> void:
 			var mvl := get_parent()
 			if mvl and mvl.has_method("_roum_void_cast") and mvl._roum_void_cast(self):
 				return
+	# ROUM (warrior): ULTRA DE PORTALES = MANTENER R apretado ~½s y SOLTARLO (2 barras + combo vivo).
+	# Al apretar R sale su empujón normal; si lo mantenés medio segundo y lo soltás, dispara el ultra.
+	if archetype == "warrior" and event.is_action_pressed(act("weak_punch")):
+		_r_press_ms = Time.get_ticks_msec()
+	if archetype == "warrior" and not airborne and event.is_action_released(act("weak_punch")):
+		var _held := Time.get_ticks_msec() - _r_press_ms
+		_r_press_ms = 0
+		if _held >= 450:
+			var mpu := get_parent()
+			if mpu and mpu.has_method("try_roum_portal_ultra") and mpu.try_roum_portal_ultra(self):
+				return
+	# ROUM (warrior): → → + Q (dos adelante, Q) = UPPERCUT (lanzador). Mismo esquema que el ←←→ del void lash.
+	if archetype == "warrior" and not airborne and event.is_action_pressed(act("attack")) and double_fwd_t > 0.0 \
+			and sprite.sprite_frames.has_animation("uppercut"):
+		crouching = false
+		double_fwd_t = 0.0
+		sprite.play("uppercut")
+		return
 	if fx_floral:
 		# --- AYE: su SÚPER propio. NO hereda los ultras de fuego de DAM ni los de agua de Fe. ---
 		# CRYSTAL FLURRY (↓←+Q): ráfaga del báculo tras 3 golpes (cuesta 1.5 barras).
@@ -3614,6 +3664,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			var mzc := get_parent()
 			if mzc and mzc.has_method("try_critical") and mzc.try_critical(self):
 				return
+	elif archetype == "warrior":
+		# --- ROUM: su ultra CORTO propio (NO hereda los finishers de fuego de DAM). ---
+		# ANNIHILATION (→ Q = ADELANTE + Q): agarre-machaque de suelo. 2 barras + combo(2) + rival ≤25%.
+		# (→→Q = UPPERCUT se revisa ANTES; esto es el → SIMPLE sostenido + Q. Si no hay condiciones,
+		#  cae al punch normal de abajo — es un REMATE que solo entra con el rival en rojo.)
+		if event.is_action_pressed(act("attack")):
+			var _ud := Input.get_axis(act("ui_left"), act("ui_right"))
+			if _ud != 0.0 and int(signf(_ud)) == facing:
+				var mru := get_parent()
+				if mru and mru.has_method("try_roum_ultra") and mru.try_roum_ultra(self):
+					return
 	else:
 		# --- DAM: sus finishers de fuego ---
 		# comando ANIQUILACIÓN: → R (adelante reciente + R)
@@ -3755,15 +3816,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				return false
 			if BTN_LEVEL.get(accion, 0) < ANIM_LEVEL.get(anim_actual, 0):
 				return false
-	# ROUM (warrior): ↓ → + W = UPPERCUT (lanzador). Cuarto ADELANTE con BUFFER (no exige → en el
-	# frame exacto: ↓ reciente + → reciente + ya NO tienes ↓ apretado -> se distingue del ↓W súper).
-	if archetype == "warrior" and accion == "kick" and not desde_aire and not airborne \
-			and down_recent_t > 0.0 and fwd_recent_t > 0.0 \
-			and not Input.is_action_pressed(act("ui_down")) \
-			and sprite.sprite_frames.has_animation("uppercut"):
-		crouching = false
-		sprite.play("uppercut")
-		return true
+	# (UPPERCUT de ROUM = → → + Q, se detecta en el event handler junto al void lash — no aquí)
 	# agachados SOLO en el suelo Y con press EN EL SUELO: un botón apretado en el aire
 	# (buffer de aterrizaje, desde_aire) NO abre agachados — evita "salto + ↓R = tigre"
 	if not airborne and not desde_aire and (crouching or Input.is_action_pressed(act("ui_down"))):
@@ -3947,13 +4000,15 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 		"weak_punch":
 			# salto + R = PATADA AÉREA DOBLE de Fe (air_jab), exclusiva (DAM no la tiene)
 			if airborne and sprite.sprite_frames.has_animation("air_jab"):
-				if fx_floral:
-					if not _spell_afford(0.20):
-						return true
-					jp_shots = 0   # reinicia para que su barrage (down) dispare, incluso tras un cancel E->R
+				# AYE-2 (↑R = patada de ballet, grand jeté): SIN maná ni barrage — eso era de la AYE VIEJA (fuera del roster).
 				sprite.play("air_jab")
 				return true
 			if not airborne:
+				# ROUM: ↓↓R = PIT GRAB (ANTI-AÉREO: azota vendas al frente-abajo por PORTAL, agarra al rival del aire)
+				if archetype == "warrior" and double_down_t > 0.0:
+					var mpg := get_parent()
+					if mpg and mpg.has_method("_roum_pit_grab") and mpg._roum_pit_grab(self):
+						return true
 				# ROUM: ←→R (atrás luego adelante + R) = WARP GRAB (agarre por PORTAL de vendas)
 				if archetype == "warrior" and back_recent_t > 0.0:
 					var _wd := Input.get_axis(act("ui_left"), act("ui_right"))

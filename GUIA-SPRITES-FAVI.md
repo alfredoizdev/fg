@@ -1290,10 +1290,10 @@ as one prompt):**
 > like a kid champion. She stays ON ONE SPOT the whole clip — no walking, no jumping
 > out of frame. NO effects: no glow, no aura, no particles, no confetti — only the girl.
 >
-> CAMERA HARD-LOCKED: absolutely NO zoom in, NO zoom out, NO push-in, NO pan, NO tilt,
-> NO drift — the camera is a fixed tripod for the ENTIRE clip. The wide full-body
+> CAMERA HARD-LOCKED: the camera is a fixed tripod for the ENTIRE clip — a flatbed
+> scanner, not a movie camera. NO pan, NO tilt, NO drift. The wide full-body
 > framing described above holds in EVERY single frame: same distance, same size, feet
-> and head always inside the frame with margin. This is a SIMPLE, SUBTLE animation —
+> and head always inside the frame with margin that never tightens. This is a SIMPLE, SUBTLE animation —
 > do NOT invent extra action or camera drama.
 >
 > WEAPONS LOCKED: she holds TWO identical SHORT THIN STRAIGHT needles (slim stilettos),

@@ -7,6 +7,8 @@ extends Control
 
 var roster: Array = []
 var picking := 0            # 0 = eligiendo 1P, 1 = eligiendo 2P (en VS 2P: 0 = AMBOS a la vez)
+var skin_sel := [0, 0]      # AYE-2: skin por lado (0=skin-1 tutú, 1=skin-2 overol)
+var skin_picking := -1      # -1 = no; 0/1 = eligiendo la SKIN de ese lado con ← → (sub-paso tras confirmar aye)
 # VS 2P: selección SIMULTÁNEA — cada jugador confirma el suyo; con los dos listos -> stage
 var locked1 := false
 var locked2 := false
@@ -55,10 +57,30 @@ const ST_SPACING := 250.0   # separación entre centros de tarjetas (juntas, tip
 # MODAL: rectángulo perfecto que ENMARCA y RECORTA el carrusel. Lo que se salga por los
 # lados (la tarjeta de al lado) queda OCULTO tras el modal en vez de invadir a los peleadores.
 const ST_PANEL := Rect2(490.0, 194.0, 940.0, 708.0)
-# --- pantalla de CARGA (logo FG FIGHTER + spinner) tras elegir stage ---
+# --- pantalla de CARGA = pantalla "VS" cinemática (dos peleadores enfrentados, estilo SF/KOF) ---
 var load_overlay: Control
-var load_logo: TextureRect
-var load_spin: Control
+var load_logo: TextureRect         # (legado) ya no se usa en la pantalla VS
+var load_spin: Control             # spinner chico en la esquina (indicador LOADING)
+var load_p1_clip: Control          # panel IZQ recortado (retrato P1) — se desliza desde la izquierda
+var load_p2_clip: Control          # panel DER recortado (retrato P2) — se desliza desde la derecha
+var load_p1_tex: TextureRect       # textura del avatar P1 (cubre su mitad)
+var load_p2_tex: TextureRect       # textura del avatar P2 (cubre su mitad, espejada)
+var load_vs_fx: Control            # capa que dibuja diagonal + tintes + "VS" + destello (draw callback)
+var load_name_l: Label             # nombre del peleador P1 (abajo-izq)
+var load_name_r: Label             # nombre del peleador P2 (abajo-der)
+var load_slide := 0.0              # 0→1 (con easing): deslizamiento de entrada de los retratos
+var load_vs_k := 0.0               # 0→1: el "VS" baja/aterriza al centro con destello
+var load_flash := 0.0             # 0→1: fogonazo blanco del "choque" (cuando los retratos se juntan)
+# geometría de la pantalla VS (1920×1080, centro x=960). Diagonal: arriba x=1010 → abajo x=910.
+const LOAD_DX_TOP := 1010.0        # x de la diagonal en el borde SUPERIOR
+const LOAD_DX_BOT := 910.0         # x de la diagonal en el borde INFERIOR
+const LOAD_HALF_W := 1020.0        # ancho de cada panel de retrato (se solapan bajo la diagonal)
+const LOAD_SLIDE_T := 0.42         # duración del deslizamiento de entrada (rápido, se lee en cargas veloces)
+const LOAD_VS_START := 0.30        # instante en que el "VS" empieza a aterrizar
+const LOAD_VS_T := 0.22            # duración del aterrizaje del "VS"
+const LOAD_CLASH_T := 0.42         # instante del fogonazo de choque (los retratos ya casi juntos)
+const LOAD_RED := Color(0.92, 0.16, 0.13)   # tinte cálido del lado P1 (izquierda)
+const LOAD_BLU := Color(0.16, 0.36, 0.98)   # tinte frío del lado P2 (derecha)
 
 # PALETA del logo: MORADO principal + blanco + rojo (sin dorado ni azul)
 const RED := Color(0.95, 0.24, 0.20)
@@ -301,6 +323,18 @@ func _set_side(s: int, id: String) -> void:
 			sc = disp_h / float(tex.get_height())
 	spr.scale = Vector2(sc, sc)
 	spr.position = Vector2(CX_L if s == 0 else CX_R, FEET_Y - disp_h * 0.5)
+	# COLOR 2: tinta el preview si este lado eligió la paleta alterna (↑/↓)
+	spr.material = null
+
+# AYE-2: ↑/↓ elige el SKIN (tutú / overol). Otros personajes: no hace nada.
+func _toggle_color(side: int) -> void:
+	var id := String(roster[sel1 if side == 0 else sel2]["id"])
+	if id == "aye":
+		skin_sel[side] = 1 - int(skin_sel[side])
+		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):
+			_sfx_sel.stream = load(HOVER_SFX)
+			_sfx_sel.play()
+		_refresh()
 
 # al SELECCIONAR el personaje: reproduce su animación (gesto) UNA vez desde el principio.
 # La voz va con demora (SEL_DELAY) para caer con el movimiento de boca del gesto.
@@ -327,7 +361,10 @@ func _anim_side(s: int, ap: float, dir: float, active: bool) -> void:
 	var dim := 1.0 if active else 0.62
 	spr.modulate = Color(dim, dim, dim, e)
 
-# ---------- PANTALLA DE CARGA (logo FG FIGHTER + spinner) ----------
+# ---------- PANTALLA DE CARGA = pantalla "VS" cinemática ----------
+# Dos retratos enfrentados (P1 izq ROJO / P2 der AZUL), diagonal con destello, "VS" metálico
+# al centro que aterriza con fogonazo. La MECÁNICA (carga en hilos + VS_MIN_SHOW) no cambia:
+# esto solo re-decora el overlay. Los retratos se asignan en _start_loading (dependen de Sel.p1/p2).
 func _build_loading_overlay() -> void:
 	load_overlay = Control.new()
 	load_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -335,42 +372,177 @@ func _build_loading_overlay() -> void:
 	load_overlay.visible = false
 	load_overlay.z_index = 6                       # por ENCIMA del overlay de stage (z=4)
 	add_child(load_overlay)
-	# fondo oscuro opaco
+	# fondo oscuro opaco (se ve en las esquinas que el retrato no cubre)
 	var bg := ColorRect.new()
-	bg.color = Color(0.04, 0.025, 0.06, 1.0)
+	bg.color = Color(0.03, 0.02, 0.05, 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	load_overlay.add_child(bg)
-	# LOGO FG FIGHTER (croma ya recortado), centrado
-	load_logo = TextureRect.new()
-	if ResourceLoader.exists("res://imagen-action/ui/title-logo.png"):
-		load_logo.texture = load("res://imagen-action/ui/title-logo.png")
-	load_logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	load_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
-	load_logo.size = Vector2(820, 458); load_logo.position = Vector2(550, 250)
-	load_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	load_overlay.add_child(load_logo)
-	# SPINNER (se dibuja girando en _update_loading)
+	# PANEL P1 (izquierda) — Control con recorte; dentro, el avatar que CUBRE la mitad
+	load_p1_clip = Control.new()
+	load_p1_clip.clip_contents = true
+	load_p1_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_p1_clip.position = Vector2(0, 0)
+	load_p1_clip.size = Vector2(LOAD_HALF_W, 1080)
+	load_overlay.add_child(load_p1_clip)
+	load_p1_tex = TextureRect.new()
+	load_p1_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	load_p1_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED   # llena el panel sin deformar
+	load_p1_tex.position = Vector2(0, 0)
+	load_p1_tex.size = Vector2(LOAD_HALF_W, 1080)
+	load_p1_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_p1_clip.add_child(load_p1_tex)
+	# PANEL P2 (derecha) — mismo patrón, retrato ESPEJADO (se miran de frente)
+	load_p2_clip = Control.new()
+	load_p2_clip.clip_contents = true
+	load_p2_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_p2_clip.position = Vector2(1920 - LOAD_HALF_W, 0)
+	load_p2_clip.size = Vector2(LOAD_HALF_W, 1080)
+	load_overlay.add_child(load_p2_clip)
+	load_p2_tex = TextureRect.new()
+	load_p2_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	load_p2_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	load_p2_tex.flip_h = true                        # espejo: el P2 mira hacia el P1
+	load_p2_tex.position = Vector2(0, 0)
+	load_p2_tex.size = Vector2(LOAD_HALF_W, 1080)
+	load_p2_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_p2_clip.add_child(load_p2_tex)
+	# NOMBRES de los peleadores (abajo, hacia cada esquina)
+	load_name_l = _mk_vs_name(HORIZONTAL_ALIGNMENT_LEFT)
+	load_name_r = _mk_vs_name(HORIZONTAL_ALIGNMENT_RIGHT)
+	load_overlay.add_child(load_name_l)
+	load_overlay.add_child(load_name_r)
+	# CAPA FX: diagonal + tintes rojo/azul + destello + "VS" metálico (todo por draw callback)
+	load_vs_fx = Control.new()
+	load_vs_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	load_vs_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_overlay.add_child(load_vs_fx)
+	load_vs_fx.draw.connect(_draw_vs)
+	# SPINNER pequeño en la esquina inferior derecha (indicador "cargando")
 	load_spin = Control.new()
 	load_spin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	load_spin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	load_overlay.add_child(load_spin)
 	load_spin.draw.connect(_draw_spinner)
 
+# etiqueta de nombre estilo VERSUS (fuente pesada + contorno) para los retratos
+func _mk_vs_name(align: int) -> Label:
+	var l := Label.new()
+	l.add_theme_font_override("font", big_font)
+	l.add_theme_font_size_override("font_size", 64)
+	l.add_theme_constant_override("outline_size", 12)
+	l.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.02))
+	l.add_theme_color_override("font_color", WHITE)
+	l.horizontal_alignment = align
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.size = Vector2(760, 90)
+	l.position = Vector2(70 if align == HORIZONTAL_ALIGNMENT_LEFT else (1920 - 70 - 760), 918)
+	return l
+
+# asigna los retratos (avatares del HUD) y nombres desde Sel.p1/Sel.p2 al arrancar la carga
+func _set_vs_portraits() -> void:
+	_apply_vs_side(load_p1_tex, load_name_l, Sel.p1)
+	_apply_vs_side(load_p2_tex, load_name_r, Sel.p2)
+
+# retratos GRANDES dedicados a la pantalla VS (mejores que el avatar chico del HUD).
+# roum-face.png es 286px y se pixela al agrandarlo -> usa su retrato grande (chroma ya quitado).
+const VS_PORTRAIT := {
+	"roum":  "res://imagen-action/roum/sheets/roum-vs.png",
+	"dam":   "res://imagen-action/dam/sheets/dam-vs.png",
+	"favi":  "res://imagen-action/favi/sheets/favi-vs.png",
+	"aye":   "res://imagen-action/aye/sheets/aye-vs.png",
+	"zetma": "res://imagen-action/zetma/sheets/zetma-vs.png",
+}
+
+func _apply_vs_side(tex: TextureRect, name_lbl: Label, cid: String) -> void:
+	var d: Dictionary = Sel.data(cid)
+	var av: String = String(VS_PORTRAIT.get(cid, d.get("avatar", "")))   # retrato VS dedicado si existe
+	if av != "" and ResourceLoader.exists(av):
+		var t: Texture2D = load(av)
+		tex.texture = t
+		# ENCUADRE cover con TOPE ARRIBA: llena el panel y ancla la CABEZA arriba (muestra cara+torso,
+		# no el medio). KEEP_ASPECT_COVERED centra y cortaba la cabeza en retratos altos.
+		if t != null:
+			var tw := float(t.get_width())
+			var th := float(t.get_height())
+			var s: float = max(LOAD_HALF_W / tw, 1080.0 / th)   # cover: llena ambos ejes
+			var w := tw * s
+			var hh := th * s
+			tex.stretch_mode = TextureRect.STRETCH_SCALE
+			tex.size = Vector2(w, hh)
+			tex.position = Vector2((LOAD_HALF_W - w) * 0.5, 0.0)   # centrado en X, TOPE arriba en Y
+	name_lbl.text = str(d.get("name", ""))
+
 func _draw_spinner() -> void:
-	# spinner de puntos girando (estela que se desvanece), centrado bajo el logo
-	var purple := Color(0.62, 0.35, 1.0)           # morado (a juego con el logo)
-	var c := Vector2(960, 860)
+	# spinner de puntos girando (estela que se desvanece) — CENTRADO en el medio-abajo de la pantalla
+	var purple := Color(0.72, 0.5, 1.0)
+	var c := Vector2(960, 980)
 	var n := 12
 	var head := fmod(load_t * 2.4, 1.0)            # posición de la cabeza (0..1) girando
 	for i in n:
 		var f := float(i) / float(n)
 		var ang := f * TAU - PI * 0.5
-		# distancia angular DETRÁS de la cabeza -> más tenue cuanto más atrás (estela)
-		var d := fmod(head - f + 1.0, 1.0)
-		var a := 0.15 + 0.85 * d
-		var pos := c + Vector2(cos(ang), sin(ang)) * 42.0
-		load_spin.draw_circle(pos, 7.0, Color(purple.r, purple.g, purple.b, a))
+		var dd := fmod(head - f + 1.0, 1.0)         # distancia DETRÁS de la cabeza -> estela
+		var a := 0.12 + 0.78 * dd
+		var pos := c + Vector2(cos(ang), sin(ang)) * 26.0
+		load_spin.draw_circle(pos, 4.4, Color(purple.r, purple.g, purple.b, a))
+	# etiqueta "LOADING" CENTRADA debajo del spinner
+	load_spin.draw_string(big_font, Vector2(560, 1044), "LOADING", HORIZONTAL_ALIGNMENT_CENTER, 800, 28, Color(0.85, 0.85, 0.95, 0.9))
+
+# ---------- dibujo de la composición "VS" (diagonal + tintes + destello + glifos) ----------
+func _draw_vs() -> void:
+	var ci := load_vs_fx
+	# diagonal: A (arriba) → B (abajo). Los retratos son rectangulares; los tintes y el destello
+	# diagonal ENCIMA crean la sensación de corte inclinado y tapan la costura vertical del centro.
+	var ax := LOAD_DX_TOP
+	var bx := LOAD_DX_BOT
+	# --- ACENTOS de color SÓLO junto a la costura (NO cubren las caras): bandas que se DESVANECEN ---
+	# (antes había 2 polígonos de tinte a media pantalla ENCIMA de los avatares -> los lavaban; retirados)
+	var band := 260.0
+	var lp := PackedVector2Array([Vector2(ax, 0), Vector2(ax - band, 0), Vector2(bx - band, 1080), Vector2(bx, 1080)])
+	var lc := PackedColorArray([Color(LOAD_RED.r, LOAD_RED.g, LOAD_RED.b, 0.42), Color(LOAD_RED.r, LOAD_RED.g, LOAD_RED.b, 0.0), Color(LOAD_RED.r, LOAD_RED.g, LOAD_RED.b, 0.0), Color(LOAD_RED.r, LOAD_RED.g, LOAD_RED.b, 0.42)])
+	ci.draw_polygon(lp, lc)
+	var rp := PackedVector2Array([Vector2(ax, 0), Vector2(ax + band, 0), Vector2(bx + band, 1080), Vector2(bx, 1080)])
+	var rc := PackedColorArray([Color(LOAD_BLU.r, LOAD_BLU.g, LOAD_BLU.b, 0.42), Color(LOAD_BLU.r, LOAD_BLU.g, LOAD_BLU.b, 0.0), Color(LOAD_BLU.r, LOAD_BLU.g, LOAD_BLU.b, 0.0), Color(LOAD_BLU.r, LOAD_BLU.g, LOAD_BLU.b, 0.42)])
+	ci.draw_polygon(rp, rc)
+	# --- viñeta suave: bandas oscuras arriba y abajo para enfocar el centro ---
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(0, 0), Vector2(1920, 0), Vector2(1920, 150), Vector2(0, 150)]), Color(0, 0, 0, 0.35))
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(0, 930), Vector2(1920, 930), Vector2(1920, 1080), Vector2(0, 1080)]), Color(0, 0, 0, 0.35))
+	# --- DESTELLO diagonal (streak blanco-azulado sobre la costura) ---
+	var pulse := 0.55 + 0.45 * sin(load_t * 6.0) + load_flash   # late + brilla en el choque
+	var w := 30.0
+	var streak := PackedVector2Array([
+		Vector2(ax - w, 0), Vector2(ax + w, 0),
+		Vector2(bx + w, 1080), Vector2(bx - w, 1080)])
+	ci.draw_colored_polygon(streak, Color(0.55, 0.75, 1.0, clampf(0.22 * pulse, 0.0, 0.7)))
+	# núcleo brillante fino
+	var wc := 8.0
+	var core := PackedVector2Array([
+		Vector2(ax - wc, 0), Vector2(ax + wc, 0),
+		Vector2(bx + wc, 1080), Vector2(bx - wc, 1080)])
+	ci.draw_colored_polygon(core, Color(0.95, 0.98, 1.0, clampf(0.6 * pulse, 0.0, 0.95)))
+	ci.draw_line(Vector2(ax, 0), Vector2(bx, 1080), Color(1, 1, 1, clampf(0.7 * pulse, 0.0, 1.0)), 2.0)
+	# --- "VS" metálico al centro (aterriza con load_vs_k: escala grande → 1.0 + destello) ---
+	if load_vs_k > 0.001:
+		var slam := 1.0 + (1.0 - load_vs_k) * 1.2       # arranca ~2.2× y aterriza a 1.0
+		var fs := int(300.0 * slam)
+		var a := clampf(load_vs_k, 0.0, 1.0)
+		var ts := big_font.get_string_size("VS", HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+		var pos := Vector2(960.0 - ts.x * 0.5, 540.0 + fs * 0.36)   # baseline centrado
+		# halo/glow (varias pasadas moradas detrás)
+		for g in [40, 26, 14]:
+			var gs: int = fs + int(g)
+			var gts := big_font.get_string_size("VS", HORIZONTAL_ALIGNMENT_LEFT, -1, gs)
+			var gp := Vector2(960.0 - gts.x * 0.5, 540.0 + gs * 0.36)
+			ci.draw_string(big_font, gp, "VS", HORIZONTAL_ALIGNMENT_LEFT, -1, gs, Color(0.6, 0.35, 1.0, 0.10 * a))
+		# contorno oscuro grueso + relleno blanco metálico + brillo superior
+		ci.draw_string_outline(big_font, pos, "VS", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 14, Color(0.06, 0.02, 0.10, a))
+		ci.draw_string(big_font, pos, "VS", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.95, 0.95, 1.0, a))
+		ci.draw_string(big_font, pos - Vector2(0, fs * 0.04), "VS", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 1.0, 1.0, 0.35 * a))
+	# --- FOGONAZO de choque (blanco a pantalla completa, se desvanece) ---
+	if load_flash > 0.001:
+		ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(1, 1, 1, clampf(load_flash, 0.0, 0.85)))
 
 # ---------- paso SELECT STAGE (overlay a pantalla completa) ----------
 func _build_stage_overlay() -> void:
@@ -547,6 +719,11 @@ func _stage_card_poly(r: Rect2, k: float) -> PackedVector2Array:
 func _start_loading() -> void:
 	loading = true
 	load_t = 0.0
+	# reinicia la animación de entrada de la pantalla VS y asigna los retratos de Sel.p1/Sel.p2
+	load_slide = 0.0
+	load_vs_k = 0.0
+	load_flash = 0.0
+	_set_vs_portraits()
 	set_process_unhandled_input(false)
 	# cierra el hilo de precalentado de select si aún corre (evita hilo colgando al cambiar escena)
 	if _sel_warm_thread != null:
@@ -773,6 +950,31 @@ func _draw_fx() -> void:
 		_ready_plate(CX_L, RED)
 	if r2:
 		_ready_plate(CX_R, BLU)
+	# PANEL DE SKIN (solo AYE-2): tras confirmar, se elige tutú (SKIN 1) / overol (SKIN 2) con ← →.
+	if String(roster[sel1]["id"]) == "aye" and (a1 or r1 or skin_picking == 0):
+		_skin_panel(CX_L, 0, RED)
+	if String(roster[sel2]["id"]) == "aye" and (a2 or r2 or skin_picking == 1):
+		_skin_panel(CX_R, 1, BLU)
+
+func _skin_panel(cx: float, side: int, col: Color) -> void:
+	var cur := int(skin_sel[side])
+	var active := (skin_picking == side)   # se está eligiendo AHORA la skin de este lado
+	var y := 548.0
+	var labels := ["SKIN 1", "SKIN 2"]
+	fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(0.05, 0.05, 0.09, 0.92 if active else 0.7))
+	if active:
+		var pul := 0.55 + 0.45 * sin(t * 6.0)
+		fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(1, 1, 1, pul), false, 3.0)   # borde pulsante
+		fx.draw_string(big_font, Vector2(cx - 78, y - 8), "← →  ELIGE SKIN · ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.95))
+	for i in 2:
+		var bx := cx - 138 + i * 140.0
+		var on := (i == cur)
+		var bg := Color(col.r * 0.85, col.g * 0.55, col.b * 0.55, 0.96) if on else Color(0.13, 0.13, 0.17, 0.75)
+		fx.draw_rect(Rect2(bx, y + 4, 134, 38), bg)
+		if on:
+			fx.draw_rect(Rect2(bx, y + 4, 134, 38), Color(1, 1, 1, 0.9), false, 2.0)
+		var tcol := Color(1, 1, 1, 0.98) if on else Color(0.72, 0.72, 0.78, 0.9)
+		fx.draw_string(big_font, Vector2(bx + 24, y + 31), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 22, tcol)
 
 func _ready_plate(cx: float, col: Color) -> void:
 	var r := Rect2(cx - 130, 470, 260, 64)   # sobre el CUERPO (antes 118 = sobre la cabeza)
@@ -871,6 +1073,21 @@ func _process(delta: float) -> void:
 
 func _update_loading(delta: float) -> void:
 	load_t += delta
+	# --- ANIMACIÓN de entrada de la pantalla VS (rápida, se lee aun en cargas veloces) ---
+	# retratos deslizan desde los lados con ease-out; el "VS" aterriza; fogonazo en el choque.
+	var se := clampf(load_t / LOAD_SLIDE_T, 0.0, 1.0)
+	load_slide = 1.0 - pow(1.0 - se, 3.0)                       # ease-out cúbico
+	load_vs_k = clampf((load_t - LOAD_VS_START) / LOAD_VS_T, 0.0, 1.0)
+	load_vs_k = 1.0 - pow(1.0 - load_vs_k, 3.0)
+	load_flash = clampf(1.0 - abs(load_t - LOAD_CLASH_T) / 0.14, 0.0, 1.0)   # pico en el choque
+	if load_p1_clip != null:
+		load_p1_clip.position.x = -LOAD_HALF_W * (1.0 - load_slide)          # entra desde la izquierda
+		load_p2_clip.position.x = (1920.0 - LOAD_HALF_W) + LOAD_HALF_W * (1.0 - load_slide)  # desde la derecha
+	if load_name_l != null:
+		load_name_l.modulate.a = load_slide
+		load_name_r.modulate.a = load_slide
+	if load_vs_fx != null:
+		load_vs_fx.queue_redraw()
 	if load_spin != null:
 		load_spin.queue_redraw()
 	# los HILOS precalientan en paralelo: el spinner sigue girando sin bloquearse.
@@ -954,6 +1171,8 @@ func _goto_stage_after_hold() -> void:
 	_advancing = true
 	Sel.p1 = String(roster[sel1]["id"])
 	Sel.p2 = String(roster[sel2]["id"])
+	Sel.p1_skin = "skin-2" if skin_sel[0] == 1 else "skin-1"   # AYE-2: skin elegido por lado
+	Sel.p2_skin = "skin-2" if skin_sel[1] == 1 else "skin-1"
 	await get_tree().create_timer(SELECT_HOLD).timeout
 	picking = 2                                 # -> SELECT STAGE
 	_advancing = false
@@ -972,6 +1191,8 @@ func _input_vs2p() -> void:
 		if d1 != 0:
 			sel1 = posmod(sel1 + d1, roster.size())
 			moved = true
+		elif Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down"):
+			_toggle_color(0)                            # ↑/↓ P1: elige SKIN (aye) / color-2
 		elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
 			locked1 = true
 			_play_anim(0)                               # gesto del personaje P1
@@ -986,6 +1207,8 @@ func _input_vs2p() -> void:
 		if d2 != 0:
 			sel2 = posmod(sel2 + d2, roster.size())
 			moved = true
+		elif Input.is_action_just_pressed("ui_up_p2") or Input.is_action_just_pressed("ui_down_p2"):
+			_toggle_color(1)                            # ↑/↓ P2: elige SKIN (aye) / color-2
 		elif Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"):
 			locked2 = true
 			_play_anim(1)                               # gesto del personaje P2
@@ -1021,7 +1244,9 @@ func _unhandled_input(_e: InputEvent) -> void:
 	elif Input.is_action_just_pressed("ui_right") or (p2_also and Input.is_action_just_pressed("ui_right_p2")):
 		dc = 1
 	if dc != 0:
-		if picking == 0:
+		if skin_picking >= 0:
+			skin_sel[skin_picking] = 1 - int(skin_sel[skin_picking])   # ← → alterna SKIN 1 / SKIN 2
+		elif picking == 0:
 			sel1 = posmod(sel1 + dc, roster.size())
 		elif picking == 1:
 			sel2 = posmod(sel2 + dc, roster.size())
@@ -1034,15 +1259,30 @@ func _unhandled_input(_e: InputEvent) -> void:
 		return
 	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack") \
 			or (p2_also and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
-		if picking == 0:
+		if skin_picking >= 0:
+			# SKIN confirmada -> avanzar al siguiente paso
+			var was := skin_picking
+			skin_picking = -1
+			if was == 0:
+				picking = 1                             # ahora elegir el rival (CPU)
+				_refresh()
+			else:
+				_goto_stage_after_hold()                # skin del CPU lista -> stage
+		elif picking == 0:
 			_play_anim(0)                               # gesto del personaje (1P)
 			_play_select(String(roster[sel1]["id"]))    # ping + voz demorada
-			picking = 1
+			if String(roster[sel1]["id"]) == "aye":
+				skin_picking = 0                        # AYE-2: sub-paso -> elegir SKIN con ← →
+			else:
+				picking = 1
 			_refresh()
 		elif picking == 1:
 			_play_anim(1)                               # gesto del rival (2P/CPU)
 			_play_select(String(roster[sel2]["id"]))    # ping + voz demorada
-			_goto_stage_after_hold()                    # pausa breve viendo la animación -> stage
+			if String(roster[sel2]["id"]) == "aye":
+				skin_picking = 1                        # AYE-2: sub-paso -> elegir SKIN del rival
+			else:
+				_goto_stage_after_hold()                # pausa breve viendo la animación -> stage
 		else:                                           # confirmar STAGE -> a la pelea
 			Sel.stage = int(Sel.STAGES[sel_stage]["code"])
 			Sel.configured = true
@@ -1051,7 +1291,10 @@ func _unhandled_input(_e: InputEvent) -> void:
 				_sfx_sel.play()
 			_start_loading()   # pantalla de carga (logo) mientras carga la pelea
 	elif Input.is_action_just_pressed("ui_cancel"):
-		if picking == 2:
+		if skin_picking >= 0:
+			skin_picking = -1                           # cancela la SKIN -> vuelve a elegir personaje
+			_refresh()
+		elif picking == 2:
 			if _vs2p():
 				# volver a la selección simultánea con los dos SIN confirmar
 				picking = 0

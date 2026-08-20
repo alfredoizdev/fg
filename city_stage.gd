@@ -63,3 +63,56 @@ func _ready() -> void:
 		ns2.position = Vector2(ntw * 2.0, NEAR_Y); ns2.z_index = -1
 		nl.add_child(ns2)
 		pbg.add_child(nl)
+	# ---- LLUVIA suave (llovizna): fija a la pantalla, encima de todo pero tenue ----
+	_add_rain()
+
+# LLUVIA — llovizna sutil. CanvasLayer fijo a cámara con 2 capas de partículas
+# (lejana fina/tenue + cercana un poco más marcada), gotas alargadas en diagonal leve.
+const RAIN_DIAG := 0.16          # inclinación de la caída (x por cada 1 de y)
+
+func _make_drop_tex() -> ImageTexture:
+	# gota = línea vertical suave (más brillante en el medio, se desvanece en las puntas)
+	var w := 3
+	var h := 26
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		var t := float(y) / float(h - 1)
+		var a := pow(sin(t * PI), 0.7)                 # 0 → 1 → 0 a lo largo
+		for x in w:
+			var cx := (float(w) - 1.0) * 0.5
+			var ax: float = 1.0 - absf(float(x) - cx) / (cx + 0.001)   # falloff horizontal
+			img.set_pixel(x, y, Color(0.72, 0.80, 0.95, float(a) * ax))
+	return ImageTexture.create_from_image(img)
+
+func _make_rain_emitter(drop: ImageTexture, amount: int, vel: float, sc: float, alpha: float) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.texture = drop
+	p.amount = amount
+	p.lifetime = 1.4
+	p.preprocess = 1.4                                 # la pantalla arranca ya lloviendo
+	p.local_coords = false
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(1060.0, 8.0)
+	p.position = Vector2(960.0, -30.0)                 # borde superior, ancho completo
+	p.direction = Vector2(RAIN_DIAG, 1.0)
+	p.spread = 2.0
+	p.gravity = Vector2(0.0, 240.0)
+	p.initial_velocity_min = vel * 0.9
+	p.initial_velocity_max = vel * 1.12
+	p.scale_amount_min = sc * 0.8
+	p.scale_amount_max = sc * 1.2
+	var ang := rad_to_deg(atan2(RAIN_DIAG, 1.0))       # inclina la raya para seguir la caída
+	p.angle_min = ang
+	p.angle_max = ang
+	p.color = Color(0.72, 0.80, 0.95, alpha)
+	return p
+
+func _add_rain() -> void:
+	var drop := _make_drop_tex()
+	var cl := CanvasLayer.new()
+	cl.layer = 3                                       # encima de la pelea, pero tenue
+	add_child(cl)
+	# capa LEJANA: fina, tenue, lenta
+	cl.add_child(_make_rain_emitter(drop, 90, 780.0, 0.7, 0.16))
+	# capa CERCANA: un poco más gruesa y rápida
+	cl.add_child(_make_rain_emitter(drop, 70, 1060.0, 1.05, 0.28))

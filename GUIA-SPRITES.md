@@ -931,15 +931,21 @@ golpe con un snap — esta anim lo arregla):_
 
 **`parry.mp4` (postura de DESVÍO — ventana del counter Q+W):**
 
-> READ THIS FIRST — THE #1 RULE: this is a STATIC, LOCKED-OFF shot, like ONE frame of a
-> sprite sheet that barely moves. The character is DEAD-CENTER of the frame and stays
-> there. He is the SAME SIZE in pixels in EVERY frame — first, MIDDLE, and last all
-> identical in scale. There is ZERO zoom, the camera NEVER moves or pushes in — NOT at
-> the start, NOT in the middle, NOT at the end. He ALWAYS faces the SAME way: STRICT
+> READ THIS FIRST — THE #1 RULE: the OUTPUT must look like a flat 2D FIGHTING-GAME SPRITE
+> SHEET (Street Fighter / King of Fighters), where every frame is the identical character
+> redrawn at the identical size on a flat 2D canvas. It is a flat hand-drawn 2D animation on
+> a fixed canvas — NO camera, NO lens, NO perspective, NO depth, NO 3D space — just a flat
+> drawing that only moves its limbs. CONCRETE ANCHOR (obey exactly): picture a horizontal line touching the TOP
+> of his head and another touching the SOLES of his boots. In EVERY frame those two lines are
+> at the EXACT SAME two positions — his head reaches the same height and his boots rest on the
+> same floor line, frame 1 through the last frame. The distance from the top edge of the frame
+> down to his head is CONSTANT, and the distance from the bottom edge up to his boots is
+> CONSTANT — a WIDE band of empty green fills all four sides the whole clip and he stays SMALL
+> inside it. He ALWAYS faces the SAME way: STRICT
 > SIDE PROFILE looking toward the RIGHT edge of the screen, forward over his guard, the
 > whole clip — he NEVER turns frontal, NEVER three-quarter, NEVER looks at the camera,
-> NEVER mirrors or flips. If his scale changes, if he drifts off-center, or if his
-> facing changes at any point, the clip is WRONG and must be redone.
+> NEVER mirrors or flips. Treat any change in his on-screen height between frames as a
+> defect: his silhouette's top and bottom stay PINNED at the same two heights all clip.
 >
 > ONE quick defensive SNAP and then a tense HOLD: from his fighting guard he whips the
 > big sword up-and-across in one sharp motion into a DEFLECT position — the blade held
@@ -951,7 +957,10 @@ golpe con un snap — esta anim lo arregla):_
 > swing, does NOT attack, does NOT return to guard, does NOT step or turn — the clip
 > ENDS still holding the exact same deflect stance, centered, facing right.
 > Nothing touches him and nothing appears: NO flashes, NO glow, NO sparks, NO opponent.
-> He stays DEAD-CENTER, ON ONE SPOT, SAME SIZE, facing RIGHT the whole clip.
+> He stays DEAD-CENTER, ON ONE SPOT, facing RIGHT the whole clip. FINAL REMINDER: flat 2D
+> sprite-sheet look — his head-line and boot-line are PINNED at the same two heights in
+> every single frame, wide even green margin on all four sides throughout, identical size
+> start to finish. Any drift in his on-screen height means the clip is WRONG.
 
 > _Guardar como `sheets/block.mp4`, `sheets/block_low.mp4` y `sheets/parry.mp4` → los
 > proceso a `dam/block/`, `dam/block-low/` (drop-in sobre los frames estáticos de 1
@@ -1024,7 +1033,7 @@ golpe con un snap — esta anim lo arregla):_
 
 > READ THIS FIRST — THE #1 RULE: this is a STATIC, LOCKED-OFF shot. The character is
 > the SAME SIZE in pixels in EVERY single frame — first frame, MIDDLE frames, and last
-> frame all identical in scale. There is absolutely NO zoom, the camera NEVER moves,
+> frame all identical in scale. The framing is FROZEN, the camera NEVER moves,
 > and the character NEVER grows or shrinks at any point — especially not in the MIDDLE
 > of the clip, where it keeps breaking. Treat it like a sprite-sheet pose: a fixed
 > character on a fixed background, only limbs and cloth animating. If his scale changes
@@ -1058,10 +1067,10 @@ golpe con un snap — esta anim lo arregla):_
 > mirror or flip horizontally.
 >
 > CAMERA HARD-LOCKED — STATIC WIDE footage, like a fixed security camera: the framing
-> of the FIRST frame is the framing of EVERY frame. NO zoom in, NO push-in, NO pan,
+> of the FIRST frame is the framing of EVERY frame. NO pan,
 > NO drift, NO dramatic creep during the roar — his whole body head-to-boots visible
 > always, with clear green margin above his head and below his feet; that empty space
-> is REQUIRED, do NOT move closer to fill it. His head must be the SAME SIZE in
+> is REQUIRED, keep the SAME wide framing and do NOT tighten it. His head must be the SAME SIZE in
 > pixels in the first, middle and last frame — if he gets bigger at ANY point, the
 > clip is WRONG.
 >

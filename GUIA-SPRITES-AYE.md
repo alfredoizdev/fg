@@ -810,7 +810,10 @@ character.
 > Do NOT draw the swirling crystals — those purple victory crystals are a SEPARATE engine effect; her clip is
 > ONLY her body + staff. THE STAFF IS A RIGID SOLID STRAIGHT ROD of CONSTANT length and shape — no bending,
 > stretching, tapering, warping or smear; the same straight staff every frame. Pure green screen #00FF00, flat,
-> camera fixed and locked.
+> camera fixed and locked — a STATIC WIDE flatbed shot, not a movie camera. She is the EXACT SAME SIZE (same
+> head-to-feet pixel height) in the FIRST, MIDDLE and LAST frame — she never grows or shrinks, never gets closer
+> or farther (a size change looks like a glitch and is FORBIDDEN). WIDE full-body framing with green margin on
+> all four sides that NEVER tightens; the framing of the first frame is the framing of every frame.
 
 ### IMPACT EFFECT (only the effect over green, no character)
 
