@@ -8,7 +8,6 @@ extends Control
 var roster: Array = []
 var picking := 0            # 0 = eligiendo 1P, 1 = eligiendo 2P (en VS 2P: 0 = AMBOS a la vez)
 var skin_sel := [0, 0]      # AYE-2: skin por lado (0=skin-1 tutú, 1=skin-2 overol)
-var skin_picking := -1      # -1 = no; 0/1 = eligiendo la SKIN de ese lado con ← → (sub-paso tras confirmar aye)
 # VS 2P: selección SIMULTÁNEA — cada jugador confirma el suyo; con los dos listos -> stage
 var locked1 := false
 var locked2 := false
@@ -986,22 +985,22 @@ func _draw_fx() -> void:
 		_ready_plate(CX_L, RED)
 	if r2:
 		_ready_plate(CX_R, BLU)
-	# PANEL DE SKIN (solo AYE-2): tras confirmar, se elige tutú (SKIN 1) / overol (SKIN 2) con ← →.
-	if String(roster[sel1]["id"]) == "aye" and (a1 or r1 or skin_picking == 0):
+	# PANEL DE SKIN (solo AYE-2): indicador en HOVER — tutú/overol con ↑/↓.
+	if String(roster[sel1]["id"]) == "aye" and (a1 or r1):
 		_skin_panel(CX_L, 0, RED)
-	if String(roster[sel2]["id"]) == "aye" and (a2 or r2 or skin_picking == 1):
+	if String(roster[sel2]["id"]) == "aye" and (a2 or r2):
 		_skin_panel(CX_R, 1, BLU)
 
 func _skin_panel(cx: float, side: int, col: Color) -> void:
 	var cur := int(skin_sel[side])
-	var active := (skin_picking == side)   # se está eligiendo AHORA la skin de este lado
+	var active := true                      # en HOVER siempre se puede cambiar la skin con ↑/↓
 	var y := 548.0
-	var labels := ["SKIN 1", "SKIN 2"]
+	var labels := ["TUTÚ", "OVEROL"]
 	fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(0.05, 0.05, 0.09, 0.92 if active else 0.7))
 	if active:
 		var pul := 0.55 + 0.45 * sin(t * 6.0)
 		fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(1, 1, 1, pul), false, 3.0)   # borde pulsante
-		fx.draw_string(big_font, Vector2(cx - 78, y - 8), "← →  ELIGE SKIN · ENTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.95))
+		fx.draw_string(big_font, Vector2(cx - 70, y - 8), "↑ ↓  ELIGE SKIN", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.95))
 	for i in 2:
 		var bx := cx - 138 + i * 140.0
 		var on := (i == cur)
