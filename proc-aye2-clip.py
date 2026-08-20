@@ -19,6 +19,7 @@ Uso:
 import argparse, os, glob, subprocess, tempfile, shutil
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 CW, CH, FEET_Y, ANCHOR_X = 1300, 1280, 1140, 650
 
@@ -28,7 +29,12 @@ def chroma(path):
     green = (G > 110) & (G - R > 45) & (G - B > 45)
     m = ~green
     rgba = np.dstack([a.astype(np.uint8), np.where(m, 255, 0).astype(np.uint8)])
-    sp = m & (G > R) & (G > B) & (G - np.maximum(R, B) > 18)
+    # DESPILL solo en el FLECO pegado al fondo (borde de la silueta), no en TODO el interior.
+    # Si despillamos todo, cualquier material legítimamente verde (p.ej. la bota holográfica
+    # verde de Aye) se agrisa a max(R,B) y se ve "deshecho/desvanecido". El verde de pantalla
+    # solo toca el borde, así que ahí basta con limpiar el fleco.
+    fringe = m & ndimage.binary_dilation(green, iterations=3)
+    sp = fringe & (G > R) & (G > B) & (G - np.maximum(R, B) > 18)
     rgba[sp, 1] = np.maximum(R, B)[sp].astype(np.uint8)
     return rgba, m
 

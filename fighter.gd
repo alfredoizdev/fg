@@ -3651,19 +3651,21 @@ func _unhandled_input(event: InputEvent) -> void:
 				if mfl and mfl.has_method("try_fe_ultra_long") and mfl.try_fe_ultra_long(self):
 					return
 	elif fx_dark:
-		# --- ZETMA: ultras con inputs PROPIOS (distintos de DAM →R/→E). Esquema ↓↓ + botón. ---
-		if event.is_action_pressed(act("weak_punch")) and double_down_t > 0.0:   # ↓↓ R = ANIQUILACIÓN
-			var mzu := get_parent()
-			if mzu and mzu.has_method("try_ultra") and mzu.try_ultra(self):
-				return
-		if event.is_action_pressed(act("kick")) and double_down_t > 0.0:          # ↓↓ W = APOCALIPSIS
-			var mzu2 := get_parent()
-			if mzu2 and mzu2.has_method("try_ultra") and mzu2.try_ultra(self, true):
-				return
-		if event.is_action_pressed(act("spin_kick")) and double_down_t > 0.0:     # ↓↓ E = INFIERNO (crítico)
-			var mzc := get_parent()
-			if mzc and mzc.has_method("try_critical") and mzc.try_critical(self):
-				return
+		# --- ZETMA: ultras con inputs PROPIOS. ANIQUILACIÓN = ↓→ R (cuarto ADELANTE); APOCALIPSIS = ↓← W (cuarto ATRÁS). ---
+		if event.is_action_pressed(act("weak_punch")) and down_recent_t > 0.0:   # ↓→ R = ANIQUILACIÓN
+			var _afd := Input.get_axis(act("ui_left"), act("ui_right"))
+			if _afd != 0.0 and int(signf(_afd)) == facing:                        # ADELANTE al apretar R
+				var mzu := get_parent()
+				if mzu and mzu.has_method("try_ultra") and mzu.try_ultra(self):
+					return
+		if event.is_action_pressed(act("kick")) and down_recent_t > 0.0:          # ↓← W = APOCALIPSIS
+			var _pfd := Input.get_axis(act("ui_left"), act("ui_right"))
+			if _pfd != 0.0 and int(signf(_pfd)) == -facing:                       # ATRÁS al apretar W
+				var mzu2 := get_parent()
+				if mzu2 and mzu2.has_method("try_ultra") and mzu2.try_ultra(self, true):
+					return
+		# (↓↓ E QUITADO: casteaba el INFERNO de DAM por error — NO es de Zetma. Su súper es el
+		#  VOID ORB en ↓←E, con input propio. Sin remate de fuego para Zetma.)
 	elif archetype == "warrior":
 		# --- ROUM: su ultra CORTO propio (NO hereda los finishers de fuego de DAM). ---
 		# ANNIHILATION (→ Q = ADELANTE + Q): agarre-machaque de suelo. 2 barras + combo(2) + rival ≤25%.

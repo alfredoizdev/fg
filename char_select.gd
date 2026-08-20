@@ -7,7 +7,8 @@ extends Control
 
 var roster: Array = []
 var picking := 0            # 0 = eligiendo 1P, 1 = eligiendo 2P (en VS 2P: 0 = AMBOS a la vez)
-var skin_sel := [0, 0]      # AYE-2: skin por lado (0=skin-1 tutú, 1=skin-2 overol)
+var skin_sel := [0, 0]      # AYE-2: skin por lado (0=skin-1 GALA, 1=skin-2 CASUAL)
+var _in_skin := [false, false]   # AYE-2 (PASO 2): lado que está eligiendo skin (tras confirmar el player)
 # VS 2P: selección SIMULTÁNEA — cada jugador confirma el suyo; con los dos listos -> stage
 var locked1 := false
 var locked2 := false
@@ -477,8 +478,8 @@ func _mk_vs_name(align: int) -> Label:
 
 # asigna los retratos (avatares del HUD) y nombres desde Sel.p1/Sel.p2 al arrancar la carga
 func _set_vs_portraits() -> void:
-	_apply_vs_side(load_p1_tex, load_name_l, Sel.p1)
-	_apply_vs_side(load_p2_tex, load_name_r, Sel.p2)
+	_apply_vs_side(load_p1_tex, load_name_l, Sel.p1, Sel.p1_skin)
+	_apply_vs_side(load_p2_tex, load_name_r, Sel.p2, Sel.p2_skin)
 
 # retratos GRANDES dedicados a la pantalla VS (mejores que el avatar chico del HUD).
 # roum-face.png es 286px y se pixela al agrandarlo -> usa su retrato grande (chroma ya quitado).
@@ -490,9 +491,13 @@ const VS_PORTRAIT := {
 	"zetma": "res://imagen-action/zetma/sheets/zetma-vs.png",
 }
 
-func _apply_vs_side(tex: TextureRect, name_lbl: Label, cid: String) -> void:
+func _apply_vs_side(tex: TextureRect, name_lbl: Label, cid: String, skin: String = "skin-1") -> void:
 	var d: Dictionary = Sel.data(cid)
 	var av: String = String(VS_PORTRAIT.get(cid, d.get("avatar", "")))   # retrato VS dedicado si existe
+	if cid == "aye":                                    # AYE-2: retrato del VS/loading según la SKIN (GALA/CASUAL)
+		var sp := "res://imagen-action/aye-2/%s/aye2-vs.png" % skin
+		if ResourceLoader.exists(sp):
+			av = sp
 	if av != "" and ResourceLoader.exists(av):
 		var t: Texture2D = load(av)
 		tex.texture = t
@@ -923,15 +928,8 @@ func _draw() -> void:
 	# banda inferior (sostiene el roster, estilo GG)
 	draw_colored_polygon(PackedVector2Array([Vector2(0, 902), Vector2(w, 886), Vector2(w, h), Vector2(0, h)]), Color(0.035, 0.02, 0.055, 0.94))
 	draw_line(Vector2(0, 902), Vector2(w, 886), Color(0.5, 0.2, 0.7), 3.0)
-	# PLACAS DE NOMBRE estilo GG (inclinadas): roja P1 / morada P2, texto blanco encima
-	var apl := 0.75 + 0.25 * pl_active
-	var apr := 0.75 + 0.25 * pr_active
-	draw_colored_polygon(PackedVector2Array([Vector2(40, 790), Vector2(660, 782), Vector2(644, 876), Vector2(40, 884)]),
-			Color(RED.r * 0.82, RED.g * 0.5, RED.b * 0.5, apl))
-	draw_line(Vector2(40, 790), Vector2(660, 782), Color(1, 1, 1, 0.85 * apl), 3.0)
-	draw_colored_polygon(PackedVector2Array([Vector2(1260, 782), Vector2(1880, 790), Vector2(1880, 884), Vector2(1276, 876)]),
-			Color(BLU.r * 0.62, BLU.g * 0.5, BLU.b * 0.82, apr))
-	draw_line(Vector2(1260, 782), Vector2(1880, 790), Color(1, 1, 1, 0.85 * apr), 3.0)
+	# (Las PLACAS DE NOMBRE se dibujan ahora en _draw_fx() = capa ENCIMA del personaje, para que
+	#  los PIES queden DETRÁS del panel y no asomen las botas por delante.)
 	# marco de cada carta (bisel oscuro con esquinas cortadas) — el glow/cursor va en la capa fx
 	for c in cards:
 		var x: float = c["x"]; var y: float = c["y"]; var cw: float = c["w"]; var chh: float = c["h"]
@@ -941,6 +939,22 @@ func _draw() -> void:
 # ---------- CURSORES + GLOW (capa fx, encima de las cartas) ----------
 func _draw_fx() -> void:
 	var pulse := 0.6 + 0.4 * sin(t * 7.0)
+	# PLACAS DE NOMBRE (movidas aquí desde _draw(): esta capa va ENCIMA del personaje, así los
+	# PIES quedan DETRÁS del panel). Casi opacas para esconder la bota; borde inferior bajado a
+	# ~896 para tapar el pie completo. El texto grande ("AYE") es un Label aparte, encima de esto.
+	var pl_a: float = 1.0 if picking == 0 else 0.55
+	var pr_a: float = 1.0 if picking == 1 else 0.55
+	if _vs2p() and picking < 2:
+		pl_a = 0.7 if locked1 else 1.0
+		pr_a = 0.7 if locked2 else 1.0
+	var apl := 0.97 + 0.03 * pl_a
+	var apr := 0.97 + 0.03 * pr_a
+	fx.draw_colored_polygon(PackedVector2Array([Vector2(40, 790), Vector2(660, 782), Vector2(646, 892), Vector2(40, 900)]),
+			Color(RED.r * 0.82, RED.g * 0.5, RED.b * 0.5, apl))
+	fx.draw_line(Vector2(40, 790), Vector2(660, 782), Color(1, 1, 1, 0.85 * apl), 3.0)
+	fx.draw_colored_polygon(PackedVector2Array([Vector2(1260, 782), Vector2(1880, 790), Vector2(1880, 900), Vector2(1276, 892)]),
+			Color(BLU.r * 0.62, BLU.g * 0.5, BLU.b * 0.82, apr))
+	fx.draw_line(Vector2(1260, 782), Vector2(1880, 790), Color(1, 1, 1, 0.85 * apr), 3.0)
 	# FLASH ENCIMA del personaje al ELEGIRLO: un fogonazo del color del personaje sobre él que
 	# blinkea un instante y se va (va en la capa fx = por ENCIMA del sprite).
 	for s in 2:
@@ -985,22 +999,22 @@ func _draw_fx() -> void:
 		_ready_plate(CX_L, RED)
 	if r2:
 		_ready_plate(CX_R, BLU)
-	# PANEL DE SKIN (solo AYE-2): indicador en HOVER — tutú/overol con ↑/↓.
-	if String(roster[sel1]["id"]) == "aye" and (a1 or r1):
+	# PANEL DE SKIN (solo AYE-2): se ACTIVA en el PASO 2 (tras confirmar el player). GALA/CASUAL con ↑/↓.
+	if _in_skin[0] and String(roster[sel1]["id"]) == "aye":
 		_skin_panel(CX_L, 0, RED)
-	if String(roster[sel2]["id"]) == "aye" and (a2 or r2):
+	if _in_skin[1] and String(roster[sel2]["id"]) == "aye":
 		_skin_panel(CX_R, 1, BLU)
 
 func _skin_panel(cx: float, side: int, col: Color) -> void:
 	var cur := int(skin_sel[side])
 	var active := true                      # en HOVER siempre se puede cambiar la skin con ↑/↓
 	var y := 548.0
-	var labels := ["TUTÚ", "OVEROL"]
+	var labels := ["GALA", "CASUAL"]
 	fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(0.05, 0.05, 0.09, 0.92 if active else 0.7))
 	if active:
 		var pul := 0.55 + 0.45 * sin(t * 6.0)
 		fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(1, 1, 1, pul), false, 3.0)   # borde pulsante
-		fx.draw_string(big_font, Vector2(cx - 70, y - 8), "↑ ↓  ELIGE SKIN", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.95))
+		fx.draw_string(big_font, Vector2(cx - 92, y - 8), "↑ ↓  SKIN   ·   ENTER OK", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.95))
 	for i in 2:
 		var bx := cx - 138 + i * 140.0
 		var on := (i == cur)
@@ -1058,14 +1072,14 @@ func _refresh() -> void:
 	data_l.text = "CLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c1["arch"], c1["weapon"], c1["power"]]
 	data_r.text = "CLASS:  %s\nWEAPON: %s\nPOWER:  %s" % [c2["arch"], c2["weapon"], c2["power"]]
 	if _vs2p() and picking < 2:
-		var t1 := "1P  ✔ LISTO" if locked1 else "1P:  ← →  ENTER"
+		var t1 := "1P  ✔ LISTO" if locked1 else ("1P:  ↑↓ SKIN · ENTER" if _in_skin[0] else "1P:  ← →  ENTER")
 		var con_mando := Input.get_connected_joypads().size() > 0
-		var t2 := "2P  ✔ LISTO" if locked2 else ("2P:  MANDO  ✚  y  A" if con_mando else "2P:  J L  y  7")
+		var t2 := "2P  ✔ LISTO" if locked2 else ("2P:  ↑↓ SKIN · A" if _in_skin[1] else ("2P:  MANDO  ✚  y  A" if con_mando else "2P:  J L  y  7"))
 		prompt.text = t1 + "        " + t2
 	elif picking == 0:
-		prompt.text = "1P:  ELIGE TU PERSONAJE   ( ← →   ENTER  ·  ESC )"
+		prompt.text = "1P:  ↑ ↓  ELIGE SKIN   ( ENTER  ·  ESC )" if _in_skin[0] else "1P:  ELIGE TU PERSONAJE   ( ← →   ENTER  ·  ESC )"
 	elif picking == 1:
-		prompt.text = "2P:  ELIGE EL RIVAL (CPU)   ( ← →   ENTER  ·  ESC )"
+		prompt.text = "2P:  ↑ ↓  ELIGE SKIN   ( ENTER  ·  ESC )" if _in_skin[1] else "2P:  ELIGE EL RIVAL (CPU)   ( ← →   ENTER  ·  ESC )"
 	else:
 		prompt.text = ""
 	# overlay de SELECT STAGE visible solo en el 3er paso
@@ -1198,6 +1212,19 @@ func _play_select(char_id: String) -> void:
 func _vs2p() -> bool:
 	return Sel.mode == "vs_2p"
 
+# SECUENCIAL: lockea el lado y AVANZA (P1->rival, rival->stage). Lo usan el confirm DIRECTO
+# (personaje sin skin) y el 2º ENTER del sub-paso de skin de Aye.
+func _lock_side_secuencial(side: int) -> void:
+	if side == 0:
+		_play_anim(0)
+		_play_select(String(roster[sel1]["id"]))
+		picking = 1
+		_refresh()
+	else:
+		_play_anim(1)
+		_play_select(String(roster[sel2]["id"]))
+		_goto_stage_after_hold()
+
 # tras la ÚLTIMA selección de personaje: PAUSA breve (input congelado) para ver la
 # animación/gesto del último elegido, y luego pasa al SELECT STAGE.
 func _goto_stage_after_hold() -> void:
@@ -1215,47 +1242,82 @@ func _goto_stage_after_hold() -> void:
 
 # VS 2P: SELECCIÓN SIMULTÁNEA. P1 (← → + ENTER/Q) y P2 (J/L + 7, o mando ✚ + A/Y)
 # mueven su cursor A LA VEZ; cada uno confirma el suyo. ESC des-confirma (o sale al título).
+func _ping_hover() -> void:
+	if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):
+		_sfx_sel.stream = load(HOVER_SFX)
+		_sfx_sel.play()
+
 func _input_vs2p() -> void:
 	var moved := false
+	# ---- P1 ----
 	if not locked1:
-		var d1 := 0
-		if Input.is_action_just_pressed("ui_left"):
-			d1 = -1
-		elif Input.is_action_just_pressed("ui_right"):
-			d1 = 1
-		if d1 != 0:
-			sel1 = posmod(sel1 + d1, roster.size())
-			moved = true
-		elif Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down"):
-			_toggle_color(0)                            # ↑/↓ P1: elige SKIN (aye) / color-2
-		elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
-			locked1 = true
-			_play_anim(0)                               # gesto del personaje P1
-			_play_select(String(roster[sel1]["id"]))    # ping + voz demorada
-			_refresh()
+		if _in_skin[0]:                                  # PASO 2: eligiendo skin de Aye (↑/↓; confirma = lock)
+			if Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down"):
+				_toggle_color(0)
+			elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
+				_in_skin[0] = false
+				locked1 = true
+				_play_anim(0)
+				_play_select(String(roster[sel1]["id"]))
+				_refresh()
+		else:
+			var d1 := 0
+			if Input.is_action_just_pressed("ui_left"):
+				d1 = -1
+			elif Input.is_action_just_pressed("ui_right"):
+				d1 = 1
+			if d1 != 0:
+				sel1 = posmod(sel1 + d1, roster.size())
+				moved = true
+			elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
+				if String(roster[sel1]["id"]) == "aye":
+					_in_skin[0] = true                   # elige player -> ACTIVA skin (paso 2)
+					_ping_hover()
+					_refresh()
+				else:
+					locked1 = true
+					_play_anim(0)
+					_play_select(String(roster[sel1]["id"]))
+					_refresh()
+	# ---- P2 ----
 	if not locked2:
-		var d2 := 0
-		if Input.is_action_just_pressed("ui_left_p2"):
-			d2 = -1
-		elif Input.is_action_just_pressed("ui_right_p2"):
-			d2 = 1
-		if d2 != 0:
-			sel2 = posmod(sel2 + d2, roster.size())
-			moved = true
-		elif Input.is_action_just_pressed("ui_up_p2") or Input.is_action_just_pressed("ui_down_p2"):
-			_toggle_color(1)                            # ↑/↓ P2: elige SKIN (aye) / color-2
-		elif Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"):
-			locked2 = true
-			_play_anim(1)                               # gesto del personaje P2
-			_play_select(String(roster[sel2]["id"]))    # ping + voz demorada
-			_refresh()
+		if _in_skin[1]:
+			if Input.is_action_just_pressed("ui_up_p2") or Input.is_action_just_pressed("ui_down_p2"):
+				_toggle_color(1)
+			elif Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"):
+				_in_skin[1] = false
+				locked2 = true
+				_play_anim(1)
+				_play_select(String(roster[sel2]["id"]))
+				_refresh()
+		else:
+			var d2 := 0
+			if Input.is_action_just_pressed("ui_left_p2"):
+				d2 = -1
+			elif Input.is_action_just_pressed("ui_right_p2"):
+				d2 = 1
+			if d2 != 0:
+				sel2 = posmod(sel2 + d2, roster.size())
+				moved = true
+			elif Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"):
+				if String(roster[sel2]["id"]) == "aye":
+					_in_skin[1] = true
+					_ping_hover()
+					_refresh()
+				else:
+					locked2 = true
+					_play_anim(1)
+					_play_select(String(roster[sel2]["id"]))
+					_refresh()
 	if moved:
-		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):   # solo campana al pasar (sin voz)
-			_sfx_sel.stream = load(HOVER_SFX)
-			_sfx_sel.play()
+		_ping_hover()                                    # solo campana al pasar (sin voz)
 		_refresh()
 	if Input.is_action_just_pressed("ui_cancel"):
-		if locked1 or locked2:
+		if _in_skin[0] or _in_skin[1]:                   # ESC en el sub-paso: vuelve al hover
+			_in_skin[0] = false
+			_in_skin[1] = false
+			_refresh()
+		elif locked1 or locked2:
 			locked1 = false
 			locked2 = false
 			_refresh()
@@ -1273,6 +1335,21 @@ func _unhandled_input(_e: InputEvent) -> void:
 		return
 	# en VS 2P el stage (picking == 2) también responde a las teclas/mando de P2
 	var p2_also: bool = _vs2p() and picking == 2
+	# ---- PASO 2: sub-paso de SKIN (solo Aye). Se entra con el 1er ENTER; ↑/↓ cambia, ENTER
+	#      lockea+avanza, ESC vuelve al hover. Bloquea el movimiento del cursor mientras dura. ----
+	if picking < 2 and _in_skin[picking]:
+		if Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down"):
+			_toggle_color(picking)
+			return
+		if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
+			_in_skin[picking] = false
+			_lock_side_secuencial(picking)
+			return
+		if Input.is_action_just_pressed("ui_cancel"):
+			_in_skin[picking] = false
+			_refresh()
+			return
+		return
 	var dc := 0
 	if Input.is_action_just_pressed("ui_left") or (p2_also and Input.is_action_just_pressed("ui_left_p2")):
 		dc = -1
@@ -1290,24 +1367,16 @@ func _unhandled_input(_e: InputEvent) -> void:
 			_sfx_sel.play()
 		_refresh()
 		return
-	# ↑/↓ en HOVER sobre Aye: cambia la SKIN (mismo mecanismo que 2P). Otros personajes: nada.
-	if picking < 2:
-		var side_h := picking   # 0=P1, 1=rival
-		var id_hover := String(roster[sel1 if side_h == 0 else sel2]["id"])
-		if id_hover == "aye" and (Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down")):
-			_toggle_color(side_h)
-			return
 	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack") \
 			or (p2_also and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
-		if picking == 0:
-			_play_anim(0)                               # gesto del personaje (1P)
-			_play_select(String(roster[sel1]["id"]))    # ping + voz demorada
-			picking = 1                                 # AYE-2: lockea con la skin del HOVER (skin_sel[0]); sin sub-paso
-			_refresh()
-		elif picking == 1:
-			_play_anim(1)                               # gesto del rival (2P/CPU)
-			_play_select(String(roster[sel2]["id"]))    # ping + voz demorada
-			_goto_stage_after_hold()                    # lockea con skin_sel[1]; avanza al stage
+		if picking == 0 or picking == 1:
+			var idc := String(roster[sel1 if picking == 0 else sel2]["id"])
+			if idc == "aye":
+				_in_skin[picking] = true                # elige player -> ACTIVA la skin (paso 2)
+				_ping_hover()
+				_refresh()
+			else:
+				_lock_side_secuencial(picking)          # sin skin: lockea directo y avanza
 		else:                                           # confirmar STAGE -> a la pelea
 			Sel.stage = int(Sel.STAGES[sel_stage]["code"])
 			Sel.configured = true

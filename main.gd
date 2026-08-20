@@ -240,6 +240,7 @@ var flash_t := 0.0
 var code_stage: Node2D = null  # escenario activo (para el tinte de combo)
 var ultra_active := false       # ULTRA COMBO en curso (auto-ejecutado)
 var ultra_largo := false        # version larga (APOCALIPSIS): dos tandas + cambio de lado
+var _void_ko := false           # true = el perdedor ya se fue por el VOID LAUNCH de Zetma (no revivir su K.O.)
 var ultra_hint: Label           # aviso "→ R ANIQUILACIÓN" en pantalla
 var break_banners := []        # carteles inclinados que entran deslizando desde el borde
 var break_side := -1           # -1 = breaker a la izquierda (carteles izq), 1 = derecha
@@ -391,7 +392,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 HW"
+	get_window().title = "FG Fighter — build 2026-08-20 II"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -817,7 +818,7 @@ func _ready() -> void:
 	moves_avatar = mav
 	# lista de MOVES (columna izquierda). El texto por-personaje ya trae el encabezado "MOVES:".
 	var col1 := Label.new()
-	col1.add_theme_font_size_override("font_size", 24)
+	col1.add_theme_font_size_override("font_size", 21)   # más chico para que entren todas las líneas
 	col1.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col1.position = Vector2(70, 160)
 	col1.size = Vector2(mv_mid - 70.0 - 30.0, mv_h - 160.0 - 80.0)
@@ -833,7 +834,7 @@ func _ready() -> void:
 		vp.add_child(linea)
 	# bloque SPECIALS & FINISHERS (columna derecha completa)
 	var fin := Label.new()
-	fin.add_theme_font_size_override("font_size", 24)
+	fin.add_theme_font_size_override("font_size", 21)   # más chico para que entren todas las líneas
 	fin.add_theme_color_override("font_color", Color(0.82, 0.66, 1.0))
 	fin.add_theme_color_override("font_outline_color", Color(0.10, 0.02, 0.20))
 	fin.add_theme_constant_override("outline_size", 4)
@@ -1153,7 +1154,7 @@ func _char_move_text(cid: String) -> Dictionary:
 		return {
 			"title": "ZETMA — MOVE LIST",
 			"moves": "MOVES:\n\nR  —  Twin dagger · thrust + kick (2)\n↓ + R  —  Low mechanical jab (2)\nQ  —  Straight punch\nW  —  Kick\n↓ + Q  —  Crouch punch\n↓ + W  —  Crouch kick\nE  —  EXTENDING ARM · long reach\n↓ + E  —  Ground sweep ▼\nJump + Q  —  Air punch\nJump + W  —  Air kick\nJump + E  —  Air double kick\nJump + R  —  Air dagger jab (2)\n\n▼ = knocks down",
-			"fin": "★  SPECIALS  &  FINISHERS\n↓ → + Q  —  SCORPION HOOK · grab + pull\nJump ↓ → + Q  —  air hook (pull down)\n↓ ← + E  —  VOID ORB · slow-mo trap (1/round · charge ring)\n← → + E  —  COMBO BREAK · kicks out (while hit · ½ bar)\n↓ ↓ + R  —  ANNIHILATION · short ultra\n↓ ↓ + W  —  APOCALYPSE · long ultra\n↓ ↓ + E  —  INFERNO · crit\n        (ultras: 3-hit combo + rival ≤ 25% HP)\n\nPARRY (Q + W together):  counter · 1 bar",
+			"fin": "★  SPECIALS  &  FINISHERS\n↓ → + Q  —  SCORPION HOOK · grab + pull\nJump ↓ → + Q  —  air hook (pull down)\n↓ ← + E  —  VOID ORB · slow-mo trap (1/round · charge ring)\n← → + E  —  COMBO BREAK · kicks out (while hit · ½ bar)\n↓ → + R  —  ANNIHILATION · short ultra\n↓ ← + W  —  APOCALYPSE · long ultra\n        (ultras: 3-hit combo + rival ≤ 25% HP)\n\nPARRY (Q + W together):  counter · 1 bar",
 		}
 	if cid == "roum":
 		return {
@@ -1456,7 +1457,7 @@ func _build_pause() -> void:
 	var col_h := 740.0
 	var mid_x := CB_W * 0.5 + 20.0    # separador vertical algo a la derecha del centro
 	var cm := Label.new()
-	cm.add_theme_font_size_override("font_size", 25)
+	cm.add_theme_font_size_override("font_size", 21)   # más chico para que entren todas las líneas
 	cm.add_theme_color_override("font_color", Color(0.92, 0.92, 0.96))
 	cm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cm.position = Vector2(70, col_top); cm.size = Vector2(mid_x - 70.0 - 30.0, col_h)
@@ -1468,7 +1469,7 @@ func _build_pause() -> void:
 	vsep.color = Color(0.62, 0.42, 1.0, 0.45)
 	panel.add_child(vsep)
 	var cf := Label.new()
-	cf.add_theme_font_size_override("font_size", 25)
+	cf.add_theme_font_size_override("font_size", 21)   # más chico para que entren todas las líneas
 	cf.add_theme_color_override("font_color", Color(0.82, 0.66, 1.0))
 	cf.add_theme_color_override("font_outline_color", Color(0.10, 0.02, 0.20))
 	cf.add_theme_constant_override("outline_size", 4)
@@ -2984,10 +2985,15 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 	var dam := load("res://fighter_frames.tres") as SpriteFrames
 	var sf := SpriteFrames.new()
 	for anim in dam.get_animation_names():
+		var real := _aye2_action_frames(anim, skin)
+		# Anims EXCLUSIVAS del arte de DAM: si Aye-2 no tiene el suyo, se OMITEN (no placeholder de DAM).
+		#   pummeled -> recibe el ultra con "take_hit" (no sale DAM); ko_air -> cae con "ko";
+		#   fly_straight/wall_splat -> vuela/estampa con "hit_fly".
+		if real.is_empty() and anim in ["ko_air", "pummeled", "fly_straight", "wall_splat"]:
+			continue
 		if not sf.has_animation(anim):
 			sf.add_animation(anim)
 		sf.set_animation_loop(anim, dam.get_animation_loop(anim))
-		var real := _aye2_action_frames(anim, skin)
 		if real.is_empty():
 			sf.set_animation_speed(anim, dam.get_animation_speed(anim))
 			for i in dam.get_frame_count(anim):
@@ -3024,7 +3030,7 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 	# OJO combate: el motor tiene lógica de la AYE VIEJA en ↑E (jump_kick_cast, cristal + maná) y ↑R
 	# (air_jab barrage + maná) — hay que decoplarla para aye2 (que ahí van orbe/patada sin maná).
 	var atk_map := {"weak_punch": "orb_push", "punch": "orb_throw", "kick": "orb_jab", "spin_kick": "orb_e",
-		"crouch_punch": "crouch_low", "crouch_kick": "crouch_kick", "crouch_jab": "crouch_jab",
+		"crouch_punch": "crouch_low", "crouch_kick": "crouch_kick", "crouch_jab": "crouch_jab", "sweep": "crouch_kick",
 		"jump_punch": "jump_throw", "jump_kick": "jump_down", "air_spin_kick": "jump_up", "air_jab": "air_kick"}
 	for slot in atk_map:
 		var af := _aye2_action_frames(atk_map[slot], skin)
@@ -3145,6 +3151,10 @@ func _build_roum_frames() -> SpriteFrames:
 		# y no-sólido, caminabas a través). El aterrizaje KO cae al else que juega "ko" (fighter.gd).
 		if sf.has_animation("ko_air") and _roum_action_frames("ko_air").is_empty():
 			sf.remove_animation("ko_air")
+		# PUMMELED: ROUM no tiene ese clip (lo heredaba del .tres como POSE placeholder). QUITARLO hace
+		# que al RECIBIR un ultra caiga al take_hit/take_hit_low REAL en vez de quedarse PARADO en su pose.
+		if sf.has_animation("pummeled") and _roum_action_frames("pummeled").is_empty():
+			sf.remove_animation("pummeled")
 	return sf
 
 # Zetma usa el .tres base (estructura de anims). Sobreescribe con SUS clips a medida que
@@ -3803,6 +3813,13 @@ func _refresh_hud_chars() -> void:
 
 func _start_round() -> void:
 	state = "intro"
+	# por si el round anterior terminó con el VOID LAUNCH de Zetma (rival oculto/rotado): restaurar
+	for _f in [player, dummy]:
+		if _f != null:
+			_f.visible = true
+			_f.koed = false
+			if _f.sprite != null:
+				_f.sprite.rotation = 0.0
 	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
@@ -4119,26 +4136,29 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 	atacante.breaker_fx_t = 40.0   # sombras continuas durante toda la tanda
 	# el drenado reparte la vida entre TODOS los golpes (una tanda, o dos si es largo)
 	var total_golpes := ULTRA_FLURRY.size() * (2 if largo else 1)
+	if largo and atacante.fx_dark:
+		total_golpes = ULTRA_FLURRY.size() * 2 + 6   # ZETMA: 2 tandas de SUELO + 6 golpes AÉREOS
 	var drain := maxi(1, int(round(hp0 * 0.95 / float(total_golpes))))
 	n = await _ultra_flurry(atacante, victima, idx, dir, n, drain)
-	# APOCALIPSIS: cruza al OTRO lado del rival y hace otra tanda
+	# APOCALIPSIS: 2ª tanda de SUELO. DAM/otros CRUZAN al otro lado; ZETMA se queda del MISMO lado (no se vira).
 	if largo and state == "ultra":
-		dir = -dir
-		flash_ms = Time.get_ticks_msec()
-		flash_rect.color = Color(0.4, 0.55, 1.0, 0.5)
-		# dash cruzado con estela de sombras hasta el otro flanco
-		var destino := clampf(victima.position.x - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
-		var cruz := 0.0
-		while cruz < 0.16:
-			atacante.position.x = lerpf(atacante.position.x, destino, 0.35)
-			atacante.set_facing(dir)
-			await get_tree().process_frame
-			cruz += get_process_delta_time()
-		victima.set_facing(-dir)
+		if not atacante.fx_dark:
+			dir = -dir
+			flash_ms = Time.get_ticks_msec()
+			flash_rect.color = Color(0.4, 0.55, 1.0, 0.5)
+			# dash cruzado con estela de sombras hasta el otro flanco
+			var destino := clampf(victima.position.x - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
+			var cruz := 0.0
+			while cruz < 0.16:
+				atacante.position.x = lerpf(atacante.position.x, destino, 0.35)
+				atacante.set_facing(dir)
+				await get_tree().process_frame
+				cruz += get_process_delta_time()
+			victima.set_facing(-dir)
 		n = await _ultra_flurry(atacante, victima, idx, dir, n, drain)
-	# APOCALIPSIS (largo): pre-remate = PATADA GIRATORIA (→E) EN EL SITIO, sin empujar.
+	# APOCALIPSIS (largo, NO Zetma): pre-remate = PATADA GIRATORIA (→E) EN EL SITIO, sin empujar.
 	# El rival se queda en el lugar y recibe el impacto. Luego viene el mortal (arriba E).
-	if largo and state == "ultra":
+	if largo and not atacante.fx_dark and state == "ultra":
 		atacante.set_facing(dir)
 		atacante.position.x = clampf(victima.position.x - float(dir) * 200.0, LEFT_LIMIT, RIGHT_LIMIT)
 		var spx := atacante.position.x
@@ -4164,8 +4184,68 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 			await get_tree().process_frame
 			st += get_process_delta_time()
 		atacante.sprite.speed_scale = 1.0
-	# FINISHER: mortal aereo (E arriba) que manda al rival MUY alto + caida brusca
-	if state == "ultra":
+	# ZETMA APOCALYPSE: en vez de cruzar, LEVANTA al rival y remata el combo EN EL AIRE (POCOS golpes aéreos).
+	if largo and atacante.fx_dark and state == "ultra":
+		var _zairn := 6
+		var _zlift: float = victima.floor_y - 300.0        # altura del juggle
+		victima.airborne = true
+		victima.hit_flying = false
+		victima.ultra_hover = true                          # flota (no cae) durante la ráfaga aérea
+		victima.vel_x = 0.0
+		victima.vel_y = 0.0
+		atacante.airborne = true
+		atacante.vel_y = 0.0
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.55, 0.2, 1.0, 0.5)       # fogonazo MORADO (Zetma) al subir
+		for _zi in _zairn:
+			if state != "ultra":
+				break
+			var _zramp := float(_zi) / float(maxi(1, _zairn - 1))
+			victima.position.y = _zlift
+			atacante.position.y = _zlift + 20.0
+			atacante.position.x = clampf(victima.position.x - float(dir) * 150.0, LEFT_LIMIT, RIGHT_LIMIT)
+			atacante.set_facing(dir)
+			victima.set_facing(-dir)
+			atacante.sprite.speed_scale = lerpf(1.5, 2.6, _zramp)
+			atacante.sprite.play("air_jab" if _zi % 2 == 0 else "air_spin_kick")
+			# JUGGLE: en el aire NO usa la pose de suelo — usa hit_fly (pose AÉREA), reculando por golpe
+			if victima.sprite.sprite_frames.has_animation("hit_fly"):
+				if String(victima.sprite.animation) != "hit_fly":
+					victima.sprite.play("hit_fly")
+				var _hf: int = victima.sprite.sprite_frames.get_frame_count("hit_fly")
+				victima.sprite.frame = clampi(int(float(_hf) * 0.12), 0, _hf - 1)   # frame aéreo (reculón por golpe)
+			else:
+				victima.sprite.play("take_hit")
+			victima._play_sfx_key("take_hit")
+			victima._burst(0.95, false, 1, false, 500.0 * (1.0 - victima.base_scale.y))
+			_shake(lerpf(11.0, 16.0, _zramp), 0.10)
+			if ultra_panels.size() > 0:
+				ultra_panel.texture = ultra_panels[_zi % ultra_panels.size()]
+				ultra_panel.visible = true
+			n += 1
+			_ultra_count(idx, n)
+			_focus_set(clampf((float(n) - 2.0) / 14.0, 0.15, 1.0))
+			if idx == 0:
+				dummy_hp = maxi(1, dummy_hp - drain)
+			else:
+				player_hp = maxi(1, player_hp - drain)
+			combo_dmg[idx] += drain
+			combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+			await get_tree().create_timer(lerpf(0.26, 0.07, _zramp)).timeout
+		atacante.sprite.speed_scale = 1.0
+	# ZETMA: VENTANA (~0.7s) para apretar E y disparar el LANZAMIENTO AL VACÍO (remate especial).
+	var _void_launch := false
+	if largo and atacante.fx_dark and state == "ultra":
+		_show_announce("PRESS  E", Color(0.85, 0.45, 1.9), 0.7)
+		var _vw := 0.0
+		while _vw < 0.7 and state == "ultra":
+			if Input.is_action_just_pressed(atacante.act("spin_kick")):
+				_void_launch = true
+				break
+			await get_tree().process_frame
+			_vw += get_process_delta_time()
+	# FINISHER: mortal aereo (E arriba) que manda al rival MUY alto + caida brusca (NO si hubo VOID LAUNCH)
+	if state == "ultra" and not _void_launch:
 		victima.ultra_hover = false   # libera el juggle: ahora el remate lo lanza
 		atacante.sprite.speed_scale = 1.0
 		# arrima el atacante a distancia de patada para que la DOBLE PATADA conecte
@@ -4201,6 +4281,19 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 		Engine.time_scale = 1.0
 		# NO se espera el aterrizaje: _end_round maneja el vuelo→caída→boca abajo→freeze
 		# (K.O. a tiempo y el rival completa su vuelo por los aires, sin flotar).
+	# ZETMA VOID LAUNCH: el rival SALE VOLANDO del stage y cae MUY a lo lejos hasta desaparecer
+	# detrás del near layer; Zetma queda en pose de victoria.
+	if _void_launch and state == "ultra":
+		if idx == 0:
+			combo_dmg[idx] += dummy_hp
+			dummy_hp = 0
+		else:
+			combo_dmg[idx] += player_hp
+			player_hp = 0
+		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+		_ultra_count(idx, n + 1, "VOID OUT")
+		await _zetma_void_launch(atacante, victima, idx, dir)
+		_void_ko = true   # _end_round NO revive al perdedor (ya se hundió tras el piso)
 	atacante.breaker_fx_t = 0.0
 	atacante.sprite.speed_scale = 1.0
 	victima.ultra_hover = false   # por si el ultra se interrumpio en pleno juggle
@@ -4224,6 +4317,79 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 		state = "fight"
 		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
+
+# ParallaxBackground del stage activo (para meter overlays DETRÁS del near layer). null si no tiene.
+func _stage_parallax() -> Node:
+	if code_stage == null:
+		return null
+	for ch in code_stage.get_children():
+		if ch is ParallaxBackground:
+			return ch
+	return null
+
+# ZETMA — LANZAMIENTO AL VACÍO: el rival sale VOLANDO de la pantalla, reaparece MUY a lo lejos
+# cayendo, y se HUNDE detrás del near layer (piso) del stage. Zetma queda en pose de victoria.
+func _zetma_void_launch(atacante: Node2D, victima: Node2D, idx: int, dir: int) -> void:
+	Engine.time_scale = 1.0
+	# GANADOR: pose de victoria en el sitio
+	atacante.airborne = false
+	atacante.vel_x = 0.0
+	atacante.vel_y = 0.0
+	atacante.breaker_fx_t = 0.0
+	atacante.set_facing(dir)
+	if atacante.sprite.sprite_frames.has_animation("victory"):
+		atacante.sprite.play("victory")
+	# capturo el frame actual del rival ANTES de esconderlo (para el proxy lejano)
+	var _tex: Texture2D = victima.sprite.sprite_frames.get_frame_texture(victima.sprite.animation, victima.sprite.frame)
+	# 1) SALE VOLANDO: empujón fuerte ARRIBA + ATRÁS, se va de cuadro
+	victima.koed = true
+	victima.ultra_hover = false
+	victima.airborne = true
+	victima.hit_flying = true
+	if victima.sprite.sprite_frames.has_animation("hit_fly"):
+		victima.sprite.play("hit_fly")
+	_shake(20.0, 0.3)
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.5, 0.15, 1.0, 0.55)          # fogonazo morado (Zetma)
+	var _t := 0.0
+	while _t < 0.42:
+		var d := get_process_delta_time()
+		victima.position.x += float(-dir) * 1100.0 * d       # ATRÁS
+		victima.position.y -= 2800.0 * d                     # ARRIBA rápido (se va por el techo)
+		victima.sprite.rotation += 7.0 * d
+		await get_tree().process_frame
+		_t += d
+	victima.visible = false                                  # ya salió de la pantalla
+	victima.sprite.rotation = 0.0
+	# 2) PROXY MUY a lo LEJOS cayendo, DETRÁS del near layer (z=-2 dentro del ParallaxBackground:
+	#    delante del skyline, detrás del piso -> el piso lo TAPA al descender).
+	var proxy := Sprite2D.new()
+	proxy.texture = _tex
+	proxy.centered = true
+	proxy.z_index = -2
+	proxy.z_as_relative = false
+	var _pbg := _stage_parallax()
+	if _pbg != null:
+		_pbg.add_child(proxy)                                # espacio de PANTALLA (lo tapa el piso)
+	else:
+		add_child(proxy)                                     # fallback: sin oclusión real
+	var _fx := 1360.0 if dir > 0 else 560.0                  # hacia donde lo tiró, arriba en el cielo
+	proxy.position = Vector2(_fx, 300.0)
+	proxy.scale = Vector2(0.20, 0.20)
+	var _ft := 0.0
+	var _fall := 1.7
+	while _ft < _fall:
+		var p := _ft / _fall
+		proxy.position.y = lerpf(300.0, 900.0, p)            # CAE hasta hundirse tras el piso
+		proxy.position.x = _fx + sin(_ft * 2.0) * 22.0       # leve deriva
+		var s := lerpf(0.20, 0.10, p)                        # se ALEJA (más chico)
+		proxy.scale = Vector2(s, s)
+		proxy.rotation += 3.2 * get_process_delta_time()
+		if p > 0.82:
+			proxy.modulate.a = 1.0 - (p - 0.82) / 0.18       # se desvanece al final (respaldo si el piso no tapa)
+		await get_tree().process_frame
+		_ft += get_process_delta_time()
+	proxy.queue_free()
 
 # ---- INFIERNO: crítico de FUEGO (↓↘→+E tras un combo de 7+) ----
 const CRIT_DMG := 50   # el golpe mas fuerte del juego
@@ -6605,9 +6771,12 @@ func _focus_start(atacante: Node2D) -> void:
 		_outline_mat = ShaderMaterial.new()
 		_outline_mat.shader = sh
 	atacante.sprite.material = _outline_mat
-	# BORDE del focus: MORADO para Aye (fx_floral), ROJO para DAM/Fe (default del shader)
+	# BORDE del focus: MORADO para Aye (fx_floral), MORADO NEÓN OSCURO para Zetma (fx_dark),
+	# ROJO para DAM/Fe (default del shader)
 	_outline_mat.set_shader_parameter("line_color",
-		Color(1.45, 0.35, 2.0, 1.0) if atacante.fx_floral else Color(1.9, 0.12, 0.12, 1.0))
+		Color(1.45, 0.35, 2.0, 1.0) if atacante.fx_floral \
+		else (Color(1.25, 0.18, 2.1, 1.0) if atacante.fx_dark \
+		else Color(1.9, 0.12, 0.12, 1.0)))
 	focus_atk = atacante
 	focus_cur = 0.0
 	focus_target = 0.0
@@ -6884,11 +7053,18 @@ func _round_banner_tick() -> void:
 
 # BANDA ROJA: muestra una palabra (READY / FIGHT). La banda se abre de extremo a extremo desde el
 # centro, aparece la palabra, y al final la banda se cierra. Reloj REAL (inmune al time_scale).
-func _show_round_band(word: String, dur: float, border_word := "") -> void:
+func _show_round_band(word: String, dur: float, border_word := "", band_col := Color(0, 0, 0, 0), border_col := Color(0, 0, 0, 0)) -> void:
 	if rb_band == null:
 		return
 	rb_text.text = word
-	# BORDES verdes: palabra (o border_word) repetida a lo ancho en letras negras
+	# COLORES por-llamada: si no se pasan (alfa 0), usa el MORADO/VERDE por defecto. DANGER pasa ROJO + AMARILLO.
+	rb_band.color = band_col if band_col.a > 0.0 else RB_BAND_COL
+	var bcol: Color = border_col if border_col.a > 0.0 else RB_BORDER_COL
+	if rb_border_top != null:
+		rb_border_top.color = bcol
+	if rb_border_bot != null:
+		rb_border_bot.color = bcol
+	# BORDES: palabra (o border_word) repetida a lo ancho en letras NEGRAS
 	var bw: String = border_word if border_word != "" else word
 	var rep: String = (bw + "     ").repeat(16)
 	if rb_border_top_lbl != null:
@@ -6911,7 +7087,13 @@ func _danger_ultra_banner_tick() -> void:
 	if state == "fight" and not danger_round_shown \
 			and (player_hp <= int(hp_max[0] * ULTRA_HP) or dummy_hp <= int(hp_max[1] * ULTRA_HP)):
 		danger_round_shown = true
-		_show_round_band("DANGER", 1.15)
+		# DANGER: banda ROJA + bordes AMARILLOS (letras negras) + dura MÁS en pantalla
+		_show_round_band("DANGER", 2.2, "DANGER", Color(0.74, 0.09, 0.11, 0.96), Color(0.98, 0.85, 0.10, 1.0))
+		# VOZ "DANGER" al salir la banda (archivo general DANGER.mp3)
+		if voz_player != null and ResourceLoader.exists("res://imagen-action/sound-effect/DANGER.mp3"):
+			voz_player.stream = load("res://imagen-action/sound-effect/DANGER.mp3")
+			voz_player.pitch_scale = 1.0
+			voz_player.play()
 	# nombre del ULTRA: al pasar ultra_active de true→false, muestra su nombre en banda + bordes
 	if _ultra_active_prev and not ultra_active and _ultra_banner_name != "":
 		_show_round_band(_ultra_banner_name, 1.4)
@@ -8622,6 +8804,11 @@ func _run_orb_cast(caster: Node2D) -> void:
 	if is_instance_valid(opp):
 		caster.set_facing(1 if opp.position.x >= caster.position.x else -1)
 	caster.sprite.play("orb_cast")
+	# VOZ robótica del súper ("VOID ORB"), estilo char-select, al LANZARLO
+	if voz_player != null and ResourceLoader.exists("res://imagen-action/zetma/sound-effect/VOID_ORB.mp3"):
+		voz_player.stream = load("res://imagen-action/zetma/sound-effect/VOID_ORB.mp3")
+		voz_player.pitch_scale = 1.0
+		voz_player.play()
 	var _px: float = caster.position.x   # x de origen (VUELVE aquí tras el retroceso — no es deriva)
 	_play_cutin(-1 if caster.position.x >= 960.0 else 1, caster)   # cut-in de HUD (como el especial de DAM)
 	await get_tree().create_timer(0.34).timeout   # la orb se carga en la punta
@@ -10026,23 +10213,29 @@ func _end_round(player_won: bool) -> void:
 	# CONGELA todo con el K.O. (slam mid-air); si murió PARADO, cae de espaldas y se
 	# congela YA TENDIDO en el piso. En ambos casos, tras el freeze sigue normal.
 	var aerial: bool = loser.airborne or loser.hit_flying
-	loser.die_ko()
-	ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
-	if aerial:
-		# SUBE hasta cerca del ápice (rojo tenue, aún SIN K.O.)
-		var ps := Time.get_ticks_msec()
-		while (loser.airborne or loser.hit_flying) and loser.vel_y < -100.0 and Time.get_ticks_msec() - ps < 600:
-			ko_red.color.a = 0.35
-			await get_tree().process_frame
+	if _void_ko:
+		# VOID LAUNCH de Zetma: el perdedor YA se fue de la pantalla (hundido tras el piso).
+		# NO lo revivimos ni animamos su K.O. de suelo — directo al remate/tally.
+		_void_ko = false
+		ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)
 	else:
-		# muerte parada: deja correr la caída de espaldas COMPLETA hasta quedar TENDIDO
-		# (el desplome v2 dura ~1.7s; antes se cortaba a los 750ms — espera dinámica)
-		var gs := Time.get_ticks_msec()
-		while String(loser.sprite.animation) == "ko" and loser.sprite.is_playing() \
-				and Time.get_ticks_msec() - gs < 2400:
-			ko_red.color.a = 0.35
-			await get_tree().process_frame
-		loser.force_grounded_ko()                            # asegura el frame TENDIDO
+		loser.die_ko()
+		ko_lines.modulate = Color(1.7, 0.28, 0.28, 0.0)         # líneas rojas (DETRÁS de players)
+		if aerial:
+			# SUBE hasta cerca del ápice (rojo tenue, aún SIN K.O.)
+			var ps := Time.get_ticks_msec()
+			while (loser.airborne or loser.hit_flying) and loser.vel_y < -100.0 and Time.get_ticks_msec() - ps < 600:
+				ko_red.color.a = 0.35
+				await get_tree().process_frame
+		else:
+			# muerte parada: deja correr la caída de espaldas COMPLETA hasta quedar TENDIDO
+			# (el desplome v2 dura ~1.7s; antes se cortaba a los 750ms — espera dinámica)
+			var gs := Time.get_ticks_msec()
+			while String(loser.sprite.animation) == "ko" and loser.sprite.is_playing() \
+					and Time.get_ticks_msec() - gs < 2400:
+				ko_red.color.a = 0.35
+				await get_tree().process_frame
+			loser.force_grounded_ko()                            # asegura el frame TENDIDO
 	# SLAM: CONGELA + K.O. + shake (rival mid-air si fue aéreo, o ya tendido si de suelo)
 	_show_announce("K.O.", Color(0.88, 0.15, 0.12), 2.4, -1)   # sólido, bajo el umbral de glow
 	ko_lines.visible = true

@@ -398,25 +398,28 @@
 > cropped. Pure flat green #00FF00 background, full body with green margin all around, no
 > opponent, no text, no effects, no ground shadow (nothing under him — he is in the air).
 
-### SUPER — MEGA GRAB (JALÓN MECÁNICO)
+### SUPER — VOID ORB (ESFERA DE VACÍO)
 
-**`mega_grab_cast` (súper — agarre potenciado):** _(clip del personaje)_
+> **(ES) Este es el súper REAL de Zetma en el juego (comando ↓ ← E, con su propio anillo de carga).**
+> La esfera atrapa al rival en CÁMARA LENTA y lo drena. **El arte de la esfera va APARTE** (shader
+> procedural del motor), igual que las esferas de Aye — el clip del personaje es **solo el gesto de
+> casteo**, sin dibujar la esfera. _(El viejo MEGA GRAB quedó DESCARTADO, no se implementó.)_
 
-> [Same Zetma from the reference — he faces RIGHT.] A powered-up grab: he plants his feet and
-> BOTH the shoulder and the black-metal robot arm surge with bright ORANGE energy along the
-> metal, then he BLASTS the ROBOT arm FORWARD to the RIGHT at full power — the metal arm
-> EXTENDS very far by rigid telescoping segments (segments sliding out like a mechanical piston,
-> straight and rigid, glowing orange at the joints, NOT rubbery, NOT organic, NOT a chain), the
-> big black metal CLAW opening wide as it lunges out to GRAB. At full reach the claw SNAPS SHUT
-> hard as if seizing the enemy, he HOLDS that fully-extended grab pose at the end (arm locked
-> out, gripping). Only the robot arm extends; torso and boots stay planted, no walking/sliding.
-> The OTHER (flesh) hand keeps holding the SINGLE dagger the whole time; the dagger is never on
-> the extending metal arm and never disappears. LOCKED SHOT: strict SIDE PROFILE facing the
-> RIGHT edge of the screen the WHOLE clip — never turns, mirrors or goes frontal. Fixed camera,
-> NO zoom (not even in the middle), SAME SIZE in every frame — leave LOTS of extra green room on
-> the RIGHT so the very long extended arm+claw fits fully inside the frame, never cropped. He
-> stays roughly centered. Pure flat green #00FF00 background, full body with green margin all
-> around, no opponent, no text, no other effects, no ground shadow (no cast shadow or dark blob under him).
+**`orb_cast` (súper — carga y lanza la esfera de vacío):** _(clip del personaje)_
+
+> [Same Zetma from the reference — he faces RIGHT.] He plants his feet and raises the black-metal
+> robot arm FORWARD to the RIGHT, the forearm reshaping into a short CANNON / emitter aimed straight
+> ahead; dark void energy gathers and crackles at the open muzzle as he WINDS UP, then he THRUSTS the
+> arm forward and releases the shot straight ahead, HOLDING the extended cast pose at the end (arm
+> locked out toward the right). Only the robot arm moves; torso and boots stay planted, no
+> walking/sliding. The OTHER (flesh) hand keeps holding the SINGLE dagger the whole time; the dagger
+> never disappears. **Do NOT draw the orb / sphere / energy ball itself — the game spawns and tints
+> it; his hand and the muzzle stay EMPTY, this clip is ONLY the casting gesture.** LOCKED SHOT: strict
+> SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip — never turns, mirrors or goes
+> frontal. Fixed camera, NO zoom (not even in the middle), SAME SIZE in every frame — leave extra green
+> room on the RIGHT for the extended arm, never cropped. He stays roughly centered, natural believable
+> motion (no unnatural or broken poses). Pure flat green #00FF00 background, full body with green margin
+> all around, no opponent, no text, no other effects, no ground shadow (no cast shadow or dark blob under him).
 
 ---
 

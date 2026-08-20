@@ -17,3 +17,6 @@
 imagen-action/**/sheets/**/*.mp4
 # respaldos de clips
 imagen-action/**/sheets/backup/
+
+__pycache__/
+*.pyc
