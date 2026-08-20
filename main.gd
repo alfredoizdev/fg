@@ -80,7 +80,7 @@ enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL }          
 enum { OMODE_BOOMERANG, OMODE_PLANT }                                            # modo de un lanzamiento
 const ORB_ORBIT_R := 90.0            # radio de la órbita alrededor de Aye
 const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
-const ORB_RANGE := 1050.0            # boomerang: alcance máx si no toca
+const ORB_RANGE := 480.0             # boomerang: alcance CORTO (~2 cuerpos); tiro largo = plantar (PLANT_DIST)
 const PLANT_DIST := 860.0            # plantar: distancia fija de aterrizaje
 const PLANT_TIMEOUT := 8.0           # vida de un plantado antes de auto-volver
 const RECALL_HOLD := 0.25            # mantener R para llamar los 3 (vs tap = 1)
