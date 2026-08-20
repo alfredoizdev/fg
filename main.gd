@@ -416,7 +416,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 IS"
+	get_window().title = "FG Fighter — build 2026-08-20 IT"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3097,11 +3097,15 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 		sf.remove_animation("get_up")   # sin get_up propio: evita que el motor reproduzca el get_up de DAM
 	return sf
 
-func _zetma_action_frames(accion: String) -> Array:
+func _zetma_action_frames(accion: String, skin := "skin-1") -> Array:
 	var out := []
+	var dir := "zetma"
+	# skin-2: usa zetma/skin-2/<accion>/ si ESE clip existe; si no, CAE a skin-1 (por acción)
+	if skin == "skin-2" and ResourceLoader.exists("res://imagen-action/zetma/skin-2/%s/zetma-%s-1.png" % [accion, accion]):
+		dir = "zetma/skin-2"
 	var i := 1
 	while true:
-		var p := "res://imagen-action/zetma/%s/zetma-%s-%d.png" % [accion, accion, i]
+		var p := "res://imagen-action/%s/%s/zetma-%s-%d.png" % [dir, accion, accion, i]
 		if ResourceLoader.exists(p):
 			out.append(load(p))
 			i += 1
@@ -3184,9 +3188,9 @@ func _build_roum_frames() -> SpriteFrames:
 # Zetma usa el .tres base (estructura de anims). Sobreescribe con SUS clips a medida que
 # llegan; las que aún NO tiene se rellenan con su POSE (placeholder — siempre se ve a Zetma,
 # nunca a DAM). Registra cada anim de zetma/<accion>/ que exista.
-func _build_zetma_frames() -> SpriteFrames:
+func _build_zetma_frames(skin := "skin-1") -> SpriteFrames:
 	var sf := load("res://fighter_frames.tres").duplicate(true) as SpriteFrames
-	var pose := _zetma_action_frames("pose")
+	var pose := _zetma_action_frames("pose", skin)
 	if not pose.is_empty():
 		# la POSE de Zetma reemplaza el idle Y sirve de placeholder para TODA anim aún sin arte
 		for anim in sf.get_animation_names():
@@ -3231,7 +3235,7 @@ func _build_zetma_frames() -> SpriteFrames:
 	if not sf.has_animation("crouch_up"):
 		sf.add_animation("crouch_up")
 	for accion in reg:
-		var fr := _zetma_action_frames(accion)
+		var fr := _zetma_action_frames(accion, skin)
 		if fr.size() > 1:
 			if not sf.has_animation(accion):
 				sf.add_animation(accion)   # anims NUEVAS (ground_grab, air_grab) no están en el .tres base
@@ -3614,8 +3618,9 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.spd = AYE2_MOVE_SPD
 		f.jump_mult = 1.12
 	elif id == "zetma":
-		f.sprite.sprite_frames = _build_zetma_frames()
-		_fix_placeholders(f.sprite.sprite_frames, _zetma_action_frames)   # nada de arte de DAM
+		var zskin: String = Sel.p1_skin if f == player else Sel.p2_skin   # SKIN por lado (como Aye)
+		f.sprite.sprite_frames = _build_zetma_frames(zskin)
+		_fix_placeholders(f.sprite.sprite_frames, func(a): return _zetma_action_frames(a, zskin))   # nada de arte de DAM
 		f.base_scale = Vector2(ZETMA_SCALE, ZETMA_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, ZETMA_FEET_FROM_CENTER / ZETMA_SCALE - ZETMA_FEET_FROM_CENTER)

@@ -134,6 +134,30 @@ var side_spr: Array = [null, null]    # AnimatedSprite2D por lado
 var sel_frames := {}                  # id -> SpriteFrames COMPLETO (todos los frames, para el gesto al SELECCIONAR)
 var sel_frames_lite := {}             # id -> SpriteFrames de 1 SOLO frame (pose), para el HOVER (instantáneo)
 var aye_sel_frames := {}              # "skin-1"/"skin-2" -> SpriteFrames del select_char (avatar ANIMADO en loop)
+var zetma_sel_frames := {}            # "skin-1"/"skin-2" -> SpriteFrames del preview de Zetma (su POSE en loop)
+
+# personajes con selector de skin (↑/↓): Aye y Zetma
+func _has_skins(id: String) -> bool:
+	return id == "aye" or id == "zetma"
+
+# preview del char-select de Zetma por skin: usa su POSE (skin-1 = zetma/pose, skin-2 = zetma/skin-2/pose)
+func _zetma_sel_frames(skin: String) -> SpriteFrames:
+	if zetma_sel_frames.has(skin):
+		return zetma_sel_frames[skin]
+	var sf := SpriteFrames.new()
+	sf.add_animation("idle")
+	sf.set_animation_loop("idle", true)
+	sf.set_animation_speed("idle", 24.0)
+	var d := "zetma/skin-2/pose" if skin == "skin-2" else "zetma/pose"
+	var i := 1
+	while true:
+		var p := "res://imagen-action/%s/zetma-pose-%d.png" % [d, i]
+		if not ResourceLoader.exists(p):
+			break
+		sf.add_frame("idle", load(p))
+		i += 1
+	zetma_sel_frames[skin] = sf
+	return sf
 # precarga en HILO de los frames de select de TODOS los personajes: sin esto, la 1ª vez que
 # el cursor cae en un personaje se cargaban sus 145 frames de golpe y el cursor se "trababa".
 var _sel_warm_thread: Thread = null
@@ -326,10 +350,10 @@ func _aye_sel_frames(skin: String) -> SpriteFrames:
 
 func _set_side(s: int, id: String) -> void:
 	var spr: AnimatedSprite2D = side_spr[s]
-	if id == "aye":
-		# AYE-2: preview = avatar animado de la skin del lado, en LOOP (no congelado).
+	if _has_skins(id):
+		# AYE-2 / ZETMA: preview = avatar de la skin del lado, en LOOP (no congelado).
 		var skin := "skin-2" if int(skin_sel[s]) == 1 else "skin-1"
-		spr.sprite_frames = _aye_sel_frames(skin)
+		spr.sprite_frames = _aye_sel_frames(skin) if id == "aye" else _zetma_sel_frames(skin)
 		spr.speed_scale = 1.0
 		spr.play("idle")
 	else:
@@ -355,9 +379,9 @@ func _set_side(s: int, id: String) -> void:
 # AYE-2: ↑/↓ elige el SKIN (tutú / overol). Otros personajes: no hace nada.
 func _toggle_color(side: int) -> void:
 	var id := String(roster[sel1 if side == 0 else sel2]["id"])
-	if id == "aye":
+	if _has_skins(id):
 		skin_sel[side] = 1 - int(skin_sel[side])
-		_set_side(side, "aye")   # recarga el avatar animado de la NUEVA skin (tutú↔overol)
+		_set_side(side, id)      # recarga el avatar de la NUEVA skin (Aye tutú↔overol / Zetma skin1↔skin2)
 		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):
 			_sfx_sel.stream = load(HOVER_SFX)
 			_sfx_sel.play()
@@ -372,11 +396,10 @@ func _play_anim(s: int) -> void:
 	# recién AQUÍ (al SELECCIONAR) se construye el set COMPLETO de frames del gesto; en hover
 	# solo estaba el frame 0 (lite). El frame 0 es el mismo png, así que la escala no cambia.
 	var id := String(roster[sel1 if s == 0 else sel2]["id"])
-	if id == "aye":
-		# AYE-2: al SELECCIONAR seguimos con el MISMO avatar animado de la skin (loop),
-		# NO el gesto de la Aye vieja (_frames_for cargaría aye/select/anim y la pisaría).
+	if _has_skins(id):
+		# AYE-2 / ZETMA: al SELECCIONAR seguimos con el MISMO avatar de la skin (loop).
 		var skin := "skin-2" if int(skin_sel[s]) == 1 else "skin-1"
-		spr.sprite_frames = _aye_sel_frames(skin)
+		spr.sprite_frames = _aye_sel_frames(skin) if id == "aye" else _zetma_sel_frames(skin)
 		spr.speed_scale = 1.0
 		spr.play("idle")
 		_sel_flash[s] = 1.0
@@ -1000,16 +1023,17 @@ func _draw_fx() -> void:
 	if r2:
 		_ready_plate(CX_R, BLU)
 	# PANEL DE SKIN (solo AYE-2): se ACTIVA en el PASO 2 (tras confirmar el player). GALA/CASUAL con ↑/↓.
-	if _in_skin[0] and String(roster[sel1]["id"]) == "aye":
+	if _in_skin[0] and _has_skins(String(roster[sel1]["id"])):
 		_skin_panel(CX_L, 0, RED)
-	if _in_skin[1] and String(roster[sel2]["id"]) == "aye":
+	if _in_skin[1] and _has_skins(String(roster[sel2]["id"])):
 		_skin_panel(CX_R, 1, BLU)
 
 func _skin_panel(cx: float, side: int, col: Color) -> void:
 	var cur := int(skin_sel[side])
 	var active := true                      # en HOVER siempre se puede cambiar la skin con ↑/↓
 	var y := 548.0
-	var labels := ["GALA", "CASUAL"]
+	var _pid := String(roster[sel1 if side == 0 else sel2]["id"])
+	var labels := ["NINJA", "PURPLE"] if _pid == "zetma" else ["GALA", "CASUAL"]
 	fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(0.05, 0.05, 0.09, 0.92 if active else 0.7))
 	if active:
 		var pul := 0.55 + 0.45 * sin(t * 6.0)
@@ -1270,7 +1294,7 @@ func _input_vs2p() -> void:
 				sel1 = posmod(sel1 + d1, roster.size())
 				moved = true
 			elif Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack"):
-				if String(roster[sel1]["id"]) == "aye":
+				if _has_skins(String(roster[sel1]["id"])):
 					_in_skin[0] = true                   # elige player -> ACTIVA skin (paso 2)
 					_ping_hover()
 					_refresh()
@@ -1300,7 +1324,7 @@ func _input_vs2p() -> void:
 				sel2 = posmod(sel2 + d2, roster.size())
 				moved = true
 			elif Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"):
-				if String(roster[sel2]["id"]) == "aye":
+				if _has_skins(String(roster[sel2]["id"])):
 					_in_skin[1] = true
 					_ping_hover()
 					_refresh()
@@ -1371,7 +1395,7 @@ func _unhandled_input(_e: InputEvent) -> void:
 			or (p2_also and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
 		if picking == 0 or picking == 1:
 			var idc := String(roster[sel1 if picking == 0 else sel2]["id"])
-			if idc == "aye":
+			if _has_skins(idc):
 				_in_skin[picking] = true                # elige player -> ACTIVA la skin (paso 2)
 				_ping_hover()
 				_refresh()

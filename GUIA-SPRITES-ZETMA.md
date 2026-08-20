@@ -142,16 +142,25 @@
 
 **`weak_punch` (R — jab de la mano mecánica):**
 
-> [Same Zetma from the reference.] He throws ONE short quick JAB straight forward with his
-> RIGHT mechanical fist — a dry piston-snap, the arm punching out a short distance and
-> retracting instantly. The fastest, lightest move he has: minimal motion, no wide swings.
-> LOCKED SHOT: strict SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip —
-> never turns, mirrors or goes frontal. Fixed camera, NO zoom (not even in the middle), SAME
-> SIZE in every frame. He stays DEAD-CENTER with boots planted in place (no sliding). ONE
-> rigid dagger of constant shape (stays sheathed here), never splits or changes hands; his
-> right arm is ONE continuous telescoping mechanical limb that stays attached. Pure flat
-> green #00FF00 background, full body with green margin all around (extra room on the RIGHT),
-> no opponent, no text, no effects, no ground shadow (no cast shadow or dark blob under him).
+> [Same Zetma from the reference.] He throws a fast straight PUNCH by EXTENDING his RIGHT
+> mechanical arm forward: ONLY the RIGHT black-metal mechanical arm TELESCOPES OUT to the RIGHT
+> in rigid piston segments (segments sliding straight out like a piston, glowing orange at the
+> joints, NOT rubbery, NOT organic, NOT a chain), ending in a CLOSED METAL FIST / knuckle that
+> SHOOTS forward to PUNCH at full reach, then the segments SNAP BACK and the arm retracts
+> instantly to his side. Quick and dry like a piston-snap, but the arm clearly EXTENDS a long way
+> to reach — the extension IS the punch. It is ONLY the mechanical (right) arm that stretches and
+> delivers the hit; the LEFT arm does NOT extend. ⛔ The mechanical arm ends in a FIST, NOT a
+> blade: there is NO sword, NO knife and NO dagger mounted on the arm or at its tip — the
+> extending limb is a PUNCHING FIST only. The SINGLE dagger stays ONLY in the LEFT (flesh) hand
+> the whole time (held back near his chest, blade forward); it NEVER moves to the mechanical arm
+> and never splits. ⛔ He is NOT pushed or shoved BACKWARD and does NOT slide back or recoil — his
+> boots stay PLANTED in a wide stance and his weight drives FORWARD into the punch. LOCKED SHOT:
+> strict SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip — he NEVER turns to face
+> the camera, NEVER goes frontal, NEVER mirrors. Fixed camera, NO zoom (not even in the middle),
+> SAME SIZE in every frame. He stays roughly centered with boots planted. His right arm is ONE
+> continuous telescoping mechanical limb that stays attached (never detaches). Pure flat green
+> #00FF00 background, full body with LOTS of extra room on the RIGHT so the fully-extended
+> arm+fist fits inside the frame (never cropped), no opponent, no text, no effects, no ground shadow.
 
 **`spin_kick` (E — BRAZO EXTENSIBLE, su SELLO):**
 
