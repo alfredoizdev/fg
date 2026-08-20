@@ -1531,9 +1531,14 @@ func revive() -> void:
 
 func celebrate() -> void:
 	crouching = false
+	# el GANADOR encara al rival caído y NO se cambia de lado (facing estable durante la victoria)
+	var m := get_parent()
+	if m != null and m.get("player") != null and m.get("dummy") != null:
+		var opp: Node2D = m.dummy if self == m.player else m.player
+		if is_instance_valid(opp):
+			set_facing(1 if opp.position.x >= position.x else -1)
 	sprite.play("victory")
-	var m := get_parent()          # el ganador dice su frase de victoria (boca sincronizada)
-	if m and m.has_method("_play_victory_line"):
+	if m and m.has_method("_play_victory_line"):   # el ganador dice su frase (boca sincronizada)
 		m._play_victory_line(self)
 
 func is_downed() -> bool:

@@ -392,7 +392,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 II"
+	get_window().title = "FG Fighter — build 2026-08-20 IR"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3818,6 +3818,8 @@ func _start_round() -> void:
 		if _f != null:
 			_f.visible = true
 			_f.koed = false
+			_f.ultra_hover = false
+			_f.hit_flying = false
 			if _f.sprite != null:
 				_f.sprite.rotation = 0.0
 	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
@@ -4237,13 +4239,23 @@ func _run_ultra(atacante: Node2D, idx: int, largo := false) -> void:
 	var _void_launch := false
 	if largo and atacante.fx_dark and state == "ultra":
 		_show_announce("PRESS  E", Color(0.85, 0.45, 1.9), 0.7)
-		var _vw := 0.0
-		while _vw < 0.7 and state == "ultra":
+		Engine.time_scale = 0.35                                   # SLOW-MO: le da tiempo al player a reaccionar
+		var _ws := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - _ws < 500 and state == "ultra":   # 0.5s de tiempo REAL (inmune al slow-mo)
+			# el rival se queda FLOTANDO en pose AÉREA (cayendo), NO tendido, durante la ventana
+			victima.ultra_hover = true
+			victima.airborne = true
+			victima.position.y = victima.floor_y - 300.0
+			if victima.sprite.sprite_frames.has_animation("hit_fly"):
+				if String(victima.sprite.animation) != "hit_fly":
+					victima.sprite.play("hit_fly")
+				var _wf: int = victima.sprite.sprite_frames.get_frame_count("hit_fly")
+				victima.sprite.frame = clampi(int(float(_wf) * 0.14), 0, maxi(0, _wf - 1))
 			if Input.is_action_just_pressed(atacante.act("spin_kick")):
 				_void_launch = true
 				break
 			await get_tree().process_frame
-			_vw += get_process_delta_time()
+		Engine.time_scale = 1.0                                    # restaura ANTES del finisher (si no apretó, sigue normal)
 	# FINISHER: mortal aereo (E arriba) que manda al rival MUY alto + caida brusca (NO si hubo VOID LAUNCH)
 	if state == "ultra" and not _void_launch:
 		victima.ultra_hover = false   # libera el juggle: ahora el remate lo lanza
@@ -4327,69 +4339,167 @@ func _stage_parallax() -> Node:
 			return ch
 	return null
 
-# ZETMA — LANZAMIENTO AL VACÍO: el rival sale VOLANDO de la pantalla, reaparece MUY a lo lejos
-# cayendo, y se HUNDE detrás del near layer (piso) del stage. Zetma queda en pose de victoria.
+# GRITO de derrota por personaje: Aye/Aye-2 = "NOOOO", Fe = "Nooo", Roum = "YHAAA"; resto (DAM/Zetma) = HAAAA de DAM.
+func _scream_path_for(f: Node2D) -> String:
+	var dam := "res://imagen-action/sound-effect/voz-ko-dam.wav"
+	var p := ""
+	if f.fx_floral:        # Aye / Aye-2
+		p = "res://imagen-action/aye/sound-effect/NOOOOOO_Cupcake_Eleven_v3_019ff60e-c81b-7b9b-a55b-c0ce8fe29dcc.mp3"
+	elif f.fx_blue:        # Fe
+		p = "res://imagen-action/favi/Fe-sound-effect/nooo-fe-derrota.wav"
+	elif f.fx_warrior:     # Roum
+		p = "res://imagen-action/roum/sound-effect/YHAAAA_League_Eleven_v3_01a01682-6dc9-78dc-b70e-1b849305c26e.mp3"
+	return p if (p != "" and ResourceLoader.exists(p)) else dam
+
+# HUMO del inferno (humo-1..5) como AnimatedSprite2D suelto, para pegarle al que cae al vacío.
+func _void_smoke_sprite() -> AnimatedSprite2D:
+	var sf := SpriteFrames.new()
+	sf.add_animation("s")
+	sf.set_animation_loop("s", true)
+	sf.set_animation_speed("s", 12.0)
+	for i in range(1, 6):
+		var pth := "res://imagen-action/impact-effect/humo/humo-%d.png" % i
+		if ResourceLoader.exists(pth):
+			sf.add_frame("s", load(pth))
+	if sf.get_frame_count("s") == 0:
+		return null
+	var a := AnimatedSprite2D.new()
+	a.sprite_frames = sf
+	a.play("s")
+	a.modulate = Color(0.8, 0.62, 1.0, 0.78)   # humo tenue morado-grisáceo (estela del inferno)
+	a.z_index = -1                              # detrás del cuerpo del proxy
+	a.position = Vector2(0.0, 60.0)             # un pelín abajo (estela de la caída)
+	a.scale = Vector2(2.4, 2.4)                 # grande respecto al proxy chico
+	return a
+
+# ZETMA — LANZAMIENTO AL VACÍO: remate con OTRA patada + FREEZE, el rival sube y SALE de la pantalla,
+# medio segundo después se lo ve CAYENDO a lo lejos con humo, y se hunde detrás del piso. Zetma posa.
 func _zetma_void_launch(atacante: Node2D, victima: Node2D, idx: int, dir: int) -> void:
 	Engine.time_scale = 1.0
-	# GANADOR: pose de victoria en el sitio
+	# --- REMATE: Zetma SALTA a la altura del rival y le mete una PATADA AÉREA que lo vuela ---
+	atacante.airborne = true
+	atacante.ultra_hover = true                          # sin gravedad: se queda AÉREO dando la patada (no cae al piso)
+	atacante.vel_x = 0.0
+	atacante.vel_y = 0.0
+	atacante.set_facing(dir)
+	atacante.position.x = clampf(victima.position.x - float(dir) * 175.0, LEFT_LIMIT, RIGHT_LIMIT)
+	atacante.position.y = victima.position.y + 30.0      # a la ALTURA del rival (patada aérea de verdad)
+	var _kickanim := "air_spin_kick" if atacante.sprite.sprite_frames.has_animation("air_spin_kick") else ("jump_kick" if atacante.sprite.sprite_frames.has_animation("jump_kick") else "spin_kick")
+	atacante.sprite.speed_scale = 1.4
+	atacante.sprite.play(_kickanim)
+	# el rival espera en pose aérea
+	if victima.sprite.sprite_frames.has_animation("hit_fly"):
+		victima.sprite.play("hit_fly")
+		var _hf0: int = victima.sprite.sprite_frames.get_frame_count("hit_fly")
+		victima.sprite.frame = clampi(int(float(_hf0) * 0.14), 0, maxi(0, _hf0 - 1))
+	await get_tree().create_timer(0.16).timeout          # deja correr la PATADA para que se VEA conectar
+	# IMPACTO + FREEZE
+	victima._play_sfx_key("take_hit")
+	victima._burst(1.0, false, 1, false, 500.0 * (1.0 - victima.base_scale.y))
+	_shake(28.0, 0.35)
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.6, 0.2, 1.0, 0.62)
+	atacante.sprite.speed_scale = 1.0
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(0.5, true, false, true).timeout   # FREEZE real (inmune al time_scale)
+	Engine.time_scale = 1.0
+	# capturo un frame AÉREO del rival para el proxy lejano (pose de caída, sirve p/ TODOS)
+	var _hfn: int = victima.sprite.sprite_frames.get_frame_count("hit_fly") if victima.sprite.sprite_frames.has_animation("hit_fly") else 0
+	var _tex: Texture2D = victima.sprite.sprite_frames.get_frame_texture("hit_fly", clampi(int(float(_hfn) * 0.2), 0, maxi(0, _hfn - 1))) if _hfn > 0 else victima.sprite.sprite_frames.get_frame_texture(victima.sprite.animation, victima.sprite.frame)
+	# GANADOR: recupera control tras la patada (la pose de victoria va DESPUÉS de que el rival se va)
 	atacante.airborne = false
+	atacante.ultra_hover = false                         # ya puede caer/posar normal
+	atacante.position.y = atacante.floor_y               # vuelve al PISO (estaba aéreo por la patada)
 	atacante.vel_x = 0.0
 	atacante.vel_y = 0.0
 	atacante.breaker_fx_t = 0.0
-	atacante.set_facing(dir)
-	if atacante.sprite.sprite_frames.has_animation("victory"):
-		atacante.sprite.play("victory")
-	# capturo el frame actual del rival ANTES de esconderlo (para el proxy lejano)
-	var _tex: Texture2D = victima.sprite.sprite_frames.get_frame_texture(victima.sprite.animation, victima.sprite.frame)
-	# 1) SALE VOLANDO: empujón fuerte ARRIBA + ATRÁS, se va de cuadro
+	# --- 1) SALE VOLANDO: SUBE y se va GRADUAL por arriba del stage. ultra_hover=TRUE para que el fighter
+	#        NO aplique gravedad ni KO (si no, REBOTA en el piso y se ACUESTA); main controla su posición.
 	victima.koed = true
-	victima.ultra_hover = false
+	victima.ultra_hover = true
 	victima.airborne = true
-	victima.hit_flying = true
+	victima.hit_flying = false
+	victima.vel_x = 0.0
+	victima.vel_y = 0.0
 	if victima.sprite.sprite_frames.has_animation("hit_fly"):
 		victima.sprite.play("hit_fly")
-	_shake(20.0, 0.3)
-	flash_ms = Time.get_ticks_msec()
-	flash_rect.color = Color(0.5, 0.15, 1.0, 0.55)          # fogonazo morado (Zetma)
+	# GRITO que se aleja: cada personaje grita con SU voz de derrota
+	var _scream := _scream_path_for(victima)
+	if ResourceLoader.exists(_scream) and victima.voz_player != null:
+		victima.voz_player.stream = load(_scream)
+		victima.voz_player.pitch_scale = 1.05
+		victima.voz_player.volume_db = 3.0
+		victima.voz_player.play()
 	var _t := 0.0
-	while _t < 0.42:
+	var _top := _screen_off.y - 350.0                    # borde superior de la vista (mundo) - margen = fuera de cuadro
+	while victima.position.y > _top and _t < 1.3:
 		var d := get_process_delta_time()
-		victima.position.x += float(-dir) * 1100.0 * d       # ATRÁS
-		victima.position.y -= 2800.0 * d                     # ARRIBA rápido (se va por el techo)
-		victima.sprite.rotation += 7.0 * d
+		victima.ultra_hover = true                       # se mantiene (que nada le vuelva a poner gravedad)
+		victima.position.x += float(dir) * 600.0 * d     # un poco ADELANTE
+		victima.position.y -= 2500.0 * d                 # SUBE GRADUAL -> sale POCO A POCO por arriba del stage
+		if victima.sprite.sprite_frames.has_animation("hit_fly"):
+			var _hf: int = victima.sprite.sprite_frames.get_frame_count("hit_fly")
+			victima.sprite.frame = clampi(int(float(_hf) * 0.18), 0, maxi(0, _hf - 1))   # pose de VUELO (no tendida)
+		victima.sprite.rotation += 5.0 * d
+		if victima.voz_player != null:
+			victima.voz_player.volume_db = lerpf(3.0, -3.0, clampf(_t / 0.8, 0.0, 1.0))
 		await get_tree().process_frame
 		_t += d
-	victima.visible = false                                  # ya salió de la pantalla
+	victima.visible = false                              # recién ahora (ya está FUERA de cuadro, sin salto visible)
 	victima.sprite.rotation = 0.0
-	# 2) PROXY MUY a lo LEJOS cayendo, DETRÁS del near layer (z=-2 dentro del ParallaxBackground:
-	#    delante del skyline, detrás del piso -> el piso lo TAPA al descender).
+	# ahora sí: GANADOR en pose de VICTORIA (ya voló al rival)
+	if atacante.sprite.sprite_frames.has_animation("victory"):
+		atacante.sprite.play("victory")
+	# --- GAP ~0.4s: el ganador posa; el rival ya subió y está fuera, arriba ---
+	await get_tree().create_timer(0.4).timeout
+	# --- 2) CAE A LO LEJOS: proxy con HUMO del inferno, cayendo al espacio (arranca cerca y se aleja),
+	#        DETRÁS del near layer (z=-2 en el ParallaxBackground) -> el piso lo tapa al descender ---
 	var proxy := Sprite2D.new()
 	proxy.texture = _tex
 	proxy.centered = true
-	proxy.z_index = -2
 	proxy.z_as_relative = false
 	var _pbg := _stage_parallax()
-	if _pbg != null:
-		_pbg.add_child(proxy)                                # espacio de PANTALLA (lo tapa el piso)
+	var _occ := _pbg != null
+	if _occ:
+		_pbg.add_child(proxy)      # stages con piso en ParallaxBackground (city/santuario/inferno)
+		proxy.z_index = -2         # DETRÁS del piso (near z=-1) -> se HUNDE tras él al caer
 	else:
-		add_child(proxy)                                     # fallback: sin oclusión real
-	var _fx := 1360.0 if dir > 0 else 560.0                  # hacia donde lo tiró, arriba en el cielo
-	proxy.position = Vector2(_fx, 300.0)
-	proxy.scale = Vector2(0.20, 0.20)
+		add_child(proxy)           # stages procedurales (night/templo): no hay sprite de piso separado
+		proxy.z_index = -1         # VISIBLE delante del fondo del stage, detrás de los peleadores -> se desvanece a lo lejos
+	proxy.modulate = Color(0.5, 0.46, 0.62, 1.0)       # OSCURO (silueta nocturna)
+	var _smoke := _void_smoke_sprite()                 # HUMO del inferno pegado al que cae
+	if _smoke != null:
+		proxy.add_child(_smoke)
+	var _fx := 1260.0 if dir > 0 else 660.0
+	proxy.position = Vector2(_fx, -90.0)               # arranca ARRIBA del borde -> ENTRA gradual desde el cielo
+	proxy.scale = Vector2(0.17, 0.17)                  # LEJOS (más chico al caer)
 	var _ft := 0.0
-	var _fall := 1.7
+	var _fall := 2.0
 	while _ft < _fall:
 		var p := _ft / _fall
-		proxy.position.y = lerpf(300.0, 900.0, p)            # CAE hasta hundirse tras el piso
-		proxy.position.x = _fx + sin(_ft * 2.0) * 22.0       # leve deriva
-		var s := lerpf(0.20, 0.10, p)                        # se ALEJA (más chico)
+		proxy.position.y = lerpf(-90.0, 980.0, p)      # CAE desde arriba hasta hundirse tras el piso
+		proxy.position.x = _fx + sin(_ft * 1.8) * 26.0
+		var s := lerpf(0.17, 0.06, p)                  # se ALEJA cayendo (más lejos)
 		proxy.scale = Vector2(s, s)
-		proxy.rotation += 3.2 * get_process_delta_time()
-		if p > 0.82:
-			proxy.modulate.a = 1.0 - (p - 0.82) / 0.18       # se desvanece al final (respaldo si el piso no tapa)
+		proxy.rotation += 2.6 * get_process_delta_time()
+		# con piso (occ): se desvanece justo al final (lo tapa el piso). Sin piso (procedural): se desvanece
+		# ANTES, cayendo a lo lejos (no hay piso que lo esconda).
+		if _occ:
+			if p > 0.85:
+				proxy.modulate.a = 1.0 - (p - 0.85) / 0.15
+		elif p > 0.5:
+			proxy.modulate.a = 1.0 - (p - 0.5) / 0.5
+		if victima.voz_player != null:
+			victima.voz_player.volume_db = lerpf(-5.0, -46.0, p)
+			victima.voz_player.pitch_scale = lerpf(1.08, 0.82, p)
 		await get_tree().process_frame
 		_ft += get_process_delta_time()
 	proxy.queue_free()
+	# el grito ya se apagó: cortar y RESTAURAR el canal de voz (si no, futuras voces salen mudas/graves)
+	if victima.voz_player != null:
+		victima.voz_player.stop()
+		victima.voz_player.volume_db = 0.0
+		victima.voz_player.pitch_scale = 1.0
 
 # ---- INFIERNO: crítico de FUEGO (↓↘→+E tras un combo de 7+) ----
 const CRIT_DMG := 50   # el golpe mas fuerte del juego
@@ -7128,10 +7238,10 @@ func _round_band_tick() -> void:
 	if t < IN_T:
 		dx = lerpf(-2200.0, 0.0, _ease_out_cubic(t / IN_T))       # entra desde la izquierda
 	elif t > OUT_START:
-		# SALE DISPARADA por la esquina SUPERIOR-DERECHA de la pantalla (no se desvanece en el centro)
+		# SALE por el COSTADO (a la DERECHA) SIGUIENDO la inclinación de la banda — NO hacia arriba
+		# (el movimiento vertical hacía que la palabra se saliera de la banda y quedara overlap feo).
 		var pe := _ease_in_cubic((t - OUT_START) / maxf(rb_band_dur - OUT_START, 0.01))
-		dx = lerpf(0.0, 2600.0, pe)     # a la DERECHA
-		dy = lerpf(0.0, -1000.0, pe)    # y hacia ARRIBA → cruza el borde superior de la pantalla
+		dx = lerpf(0.0, 2600.0, pe)     # a la DERECHA, a lo largo de la banda (dx*sin da la leve subida de la inclinación)
 	var base_y := RB_BAND_CY - RB_BAND_H * 0.5
 	rb_text.position.x = _screen_off.x - 240.0 + dx * cos(RB_BAND_ROT)   # se mueve a lo largo de la banda (+ sigue la pantalla)
 	rb_text.position.y = _screen_off.y + base_y + dx * sin(RB_BAND_ROT) + dy
