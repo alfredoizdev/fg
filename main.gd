@@ -90,7 +90,7 @@ const ORB_DMG_BLUE := 45             # daño del 🔵
 const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
-const ORB_CENTER_DY := 70.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo, hacia la cintura/cadera)
+const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
 var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
