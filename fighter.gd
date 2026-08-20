@@ -956,6 +956,21 @@ func _orb_plant_buffered() -> bool:
 	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
 	return back_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == facing
 
+# RECALL (R = weak_punch): tap = 1 (más viejo, FIFO) · hold = los 3. Solo si hay plantados.
+const ORB_RECALL_HOLD := 0.25
+var _orb_recall_held := 0.0
+var _orb_recall_hold_done := false
+func _has_planted_orbs() -> bool:
+	var mb := get_parent()
+	if mb == null or not mb.has_method("_orb_set_for"):
+		return false
+	var st: Dictionary = mb._orb_set_for(self)
+	return not st.is_empty() and not (st["plant_order"] as Array).is_empty()
+func _do_recall(n: int) -> void:
+	var mb := get_parent()
+	if mb != null and mb.has_method("_orb_recall"):
+		mb._orb_recall(self, n)
+
 func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
 	if breaker_inv_t > 0.0:
@@ -1240,6 +1255,8 @@ func current_attack() -> Dictionary:
 					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode)
 				_orb_fired = true
 			return {}
+		if sprite.animation == "weak_punch":
+			return {}   # gesto de RECALL (orb_push): no pega melee; el recall lo dispara el input de R
 		return aa
 	# MOLINETE de DAM (salto+W): hasta 3 GOLPES si agarra al rival en el aire — una pasada
 	# del círculo por golpe (ventanas con nombres distintos, como la peonza de Fe)
@@ -2840,6 +2857,18 @@ func _physics_process(delta: float) -> void:
 		if _hcb_win <= 0.0:
 			_hcb_stage = 0
 	hcb_t = maxf(0.0, hcb_t - delta)
+	# ORBES DE AYE-2: RECALL con R (weak_punch). tap = 1 (más viejo) · hold ≥ ORB_RECALL_HOLD = los 3.
+	if fx_floral and _es_humano() and input_enabled:
+		if Input.is_action_pressed(act("weak_punch")):
+			_orb_recall_held += delta
+			if _orb_recall_held >= ORB_RECALL_HOLD and not _orb_recall_hold_done and _has_planted_orbs():
+				_do_recall(3)
+				_orb_recall_hold_done = true
+		else:
+			if _orb_recall_held > 0.0 and not _orb_recall_hold_done and _has_planted_orbs():
+				_do_recall(1)   # fue tap
+			_orb_recall_held = 0.0
+			_orb_recall_hold_done = false
 	# DASH DE AGUJAS de Fe en curso: embiste hacia adelante y deja estela azul
 	if fe_dash_t > 0.0:
 		fe_dash_t = maxf(0.0, fe_dash_t - delta)

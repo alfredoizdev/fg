@@ -7564,14 +7564,21 @@ func _orb_update(delta: float) -> void:
 						if not st["plant_order"].has(c):
 							st["plant_order"].append(c)     # FIFO para el recall de a 1
 				OST_PLANTED:
-					# flota fijo con un bob leve; a PLANT_TIMEOUT vuelve a la órbita (Tarea 4: auto-recall).
+					# flota fijo con un bob leve; a PLANT_TIMEOUT AUTO-RECALL (vuela de vuelta y pega).
 					o["age"] += delta
 					o["pos"] = o["world_pos"] + Vector2(0, sin(o["age"] * 3.0) * 8.0)
 					if o["age"] >= PLANT_TIMEOUT:
-						o["state"] = OST_ORBIT
+						o["state"] = OST_RECALL
+						o["hit_done"] = false
 						st["plant_order"].erase(c)
-				_:
-					pass   # RECALL: Tarea 4
+				OST_RECALL:
+					# vuelve desde el punto plantado hacia Aye; golpe FULL al cruzar; re-orbita al llegar.
+					o["pos"] += (center - o["pos"]).normalized() * ORB_SPEED * delta
+					if not o["hit_done"] and _orb_hits_target(st, o) != null:
+						_orb_apply_effect(st, c, true)
+						o["hit_done"] = true
+					if o["pos"].distance_to(center) < 40.0:
+						o["state"] = OST_ORBIT
 			spr.global_position = o["pos"]
 			spr.visible = true
 
@@ -7641,6 +7648,20 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
 		if player_hp <= 0:
 			if _round_real(): _end_round(false)
 			else: player_hp = hp_max[0]
+
+# RECALL: pasa los `count` orbes plantados MÁS VIEJOS (FIFO) a OST_RECALL (vuelan y pegan al volver).
+func _orb_recall(owner: Node2D, count: int) -> void:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return
+	var n := 0
+	while n < count and not (st["plant_order"] as Array).is_empty():
+		var c: int = st["plant_order"].pop_front()   # el más viejo
+		var o: Dictionary = st["orbs"][c]
+		if o["state"] == OST_PLANTED:
+			o["state"] = OST_RECALL
+			o["hit_done"] = false
+		n += 1
 
 func _physics_process(_delta: float) -> void:
 	# PRACTICE (training): salto automático del dummy + su HP clavado en 25%
