@@ -357,6 +357,7 @@ func _toggle_color(side: int) -> void:
 	var id := String(roster[sel1 if side == 0 else sel2]["id"])
 	if id == "aye":
 		skin_sel[side] = 1 - int(skin_sel[side])
+		_set_side(side, "aye")   # recarga el avatar animado de la NUEVA skin (tutú↔overol)
 		if _sfx_sel != null and ResourceLoader.exists(HOVER_SFX):
 			_sfx_sel.stream = load(HOVER_SFX)
 			_sfx_sel.play()
@@ -1292,6 +1293,13 @@ func _unhandled_input(_e: InputEvent) -> void:
 			_sfx_sel.play()
 		_refresh()
 		return
+	# ↑/↓ en HOVER sobre Aye: cambia la SKIN (mismo mecanismo que 2P). Otros personajes: nada.
+	if picking < 2:
+		var side_h := picking   # 0=P1, 1=rival
+		var id_hover := String(roster[sel1 if side_h == 0 else sel2]["id"])
+		if id_hover == "aye" and (Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_down")):
+			_toggle_color(side_h)
+			return
 	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack") \
 			or (p2_also and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
 		if skin_picking >= 0:
