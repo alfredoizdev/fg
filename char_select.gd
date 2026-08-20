@@ -1280,9 +1280,7 @@ func _unhandled_input(_e: InputEvent) -> void:
 	elif Input.is_action_just_pressed("ui_right") or (p2_also and Input.is_action_just_pressed("ui_right_p2")):
 		dc = 1
 	if dc != 0:
-		if skin_picking >= 0:
-			skin_sel[skin_picking] = 1 - int(skin_sel[skin_picking])   # ← → alterna SKIN 1 / SKIN 2
-		elif picking == 0:
+		if picking == 0:
 			sel1 = posmod(sel1 + dc, roster.size())
 		elif picking == 1:
 			sel2 = posmod(sel2 + dc, roster.size())
@@ -1302,30 +1300,15 @@ func _unhandled_input(_e: InputEvent) -> void:
 			return
 	if Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("attack") \
 			or (p2_also and (Input.is_action_just_pressed("attack_p2") or Input.is_action_just_pressed("kick_p2"))):
-		if skin_picking >= 0:
-			# SKIN confirmada -> avanzar al siguiente paso
-			var was := skin_picking
-			skin_picking = -1
-			if was == 0:
-				picking = 1                             # ahora elegir el rival (CPU)
-				_refresh()
-			else:
-				_goto_stage_after_hold()                # skin del CPU lista -> stage
-		elif picking == 0:
+		if picking == 0:
 			_play_anim(0)                               # gesto del personaje (1P)
 			_play_select(String(roster[sel1]["id"]))    # ping + voz demorada
-			if String(roster[sel1]["id"]) == "aye":
-				skin_picking = 0                        # AYE-2: sub-paso -> elegir SKIN con ← →
-			else:
-				picking = 1
+			picking = 1                                 # AYE-2: lockea con la skin del HOVER (skin_sel[0]); sin sub-paso
 			_refresh()
 		elif picking == 1:
 			_play_anim(1)                               # gesto del rival (2P/CPU)
 			_play_select(String(roster[sel2]["id"]))    # ping + voz demorada
-			if String(roster[sel2]["id"]) == "aye":
-				skin_picking = 1                        # AYE-2: sub-paso -> elegir SKIN del rival
-			else:
-				_goto_stage_after_hold()                # pausa breve viendo la animación -> stage
+			_goto_stage_after_hold()                    # lockea con skin_sel[1]; avanza al stage
 		else:                                           # confirmar STAGE -> a la pelea
 			Sel.stage = int(Sel.STAGES[sel_stage]["code"])
 			Sel.configured = true
@@ -1334,10 +1317,7 @@ func _unhandled_input(_e: InputEvent) -> void:
 				_sfx_sel.play()
 			_start_loading()   # pantalla de carga (logo) mientras carga la pelea
 	elif Input.is_action_just_pressed("ui_cancel"):
-		if skin_picking >= 0:
-			skin_picking = -1                           # cancela la SKIN -> vuelve a elegir personaje
-			_refresh()
-		elif picking == 2:
+		if picking == 2:
 			if _vs2p():
 				# volver a la selección simultánea con los dos SIN confirmar
 				picking = 0
