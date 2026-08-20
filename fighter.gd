@@ -3148,8 +3148,8 @@ func _physics_process(delta: float) -> void:
 				position.x += facing * 300.0 * CHAR_SCALE * delta
 			if floating:
 				vel_y = minf(vel_y, (190.0 if (jkc_spin or dam_jk) else 300.0) * CHAR_SCALE)   # descenso lento (más suave en jkc / tajo de DAM)
-			if air_spin:
-				position.x += facing * SPIN_TRAVEL * 0.8 * delta
+			if air_spin and not fx_floral:
+				position.x += facing * SPIN_TRAVEL * 0.8 * delta   # aye2: sus aéreos son LANZAMIENTOS parados, no viajan
 		elif hit_flying:
 			position.x += vel_x * delta
 			# ESQUINA (estilo Marvel/anime): al llegar al borde NO rebota ni juega wall_splat. Se PEGA a la
