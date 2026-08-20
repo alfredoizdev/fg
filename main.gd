@@ -4449,11 +4449,12 @@ func _zetma_void_launch(atacante: Node2D, victima: Node2D, idx: int, dir: int) -
 	victima.vel_y = 0.0
 	if victima.sprite.sprite_frames.has_animation("hit_fly"):
 		victima.sprite.play("hit_fly")
-	# GRITO que se aleja: cada personaje grita con SU voz de derrota
+	# GRITO que se aleja: cada personaje grita con SU voz de derrota. ROUM = GRAVE (como todas sus voces).
 	var _scream := _scream_path_for(victima)
+	var _spitch: float = 0.72 if victima.fx_warrior else 1.05
 	if ResourceLoader.exists(_scream) and victima.voz_player != null:
 		victima.voz_player.stream = load(_scream)
-		victima.voz_player.pitch_scale = 1.05
+		victima.voz_player.pitch_scale = _spitch
 		victima.voz_player.volume_db = 3.0
 		victima.voz_player.play()
 	var _t := 0.0
@@ -4517,7 +4518,7 @@ func _zetma_void_launch(atacante: Node2D, victima: Node2D, idx: int, dir: int) -
 			proxy.modulate.a = 1.0 - (p - 0.5) / 0.5
 		if victima.voz_player != null:
 			victima.voz_player.volume_db = lerpf(-5.0, -46.0, p)
-			victima.voz_player.pitch_scale = lerpf(1.08, 0.82, p)
+			victima.voz_player.pitch_scale = lerpf(_spitch, _spitch * 0.78, p)   # doppler desde su tono base (Roum grave)
 		await get_tree().process_frame
 		_ft += get_process_delta_time()
 	proxy.queue_free()
@@ -7538,10 +7539,88 @@ func _orb_update(delta: float) -> void:
 				OST_ORBIT:
 					o["orbit_ang"] += delta * 1.4
 					o["pos"] = center + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"]) * 0.5) * ORB_ORBIT_R
+				OST_FLIGHT:
+					# BOOMERANG: viaja hasta ORB_RANGE y VUELVE; golpea UNA vez a la ida (efecto full).
+					o["pos"] += o["vel"] * delta
+					o["age"] += delta
+					if not o["hit_done"] and _orb_hits_target(st, o) != null:
+						_orb_apply_effect(st, c, true)
+						o["hit_done"] = true
+					if o["vel"].x != 0.0 and signf(o["vel"].x) == signf(o["pos"].x - center.x) and absf(o["pos"].x - center.x) >= ORB_RANGE:
+						o["vel"] = -o["vel"]                 # llegó al alcance -> vuelve
+					elif signf(o["vel"].x) != signf(o["pos"].x - center.x) and absf(o["pos"].x - center.x) < 40.0:
+						o["state"] = OST_ORBIT               # volvió -> re-orbita
 				_:
-					pass   # FLIGHT/PLANT_OUT/PLANTED/RECALL: Tareas 2-4
+					pass   # PLANT_OUT/PLANTED/RECALL: Tareas 3-4
 			spr.global_position = o["pos"]
 			spr.visible = true
+
+# lanza un orbe: boomerang (tap) o plantar (←→). Solo si ese color está en órbita.
+func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return
+	var o: Dictionary = st["orbs"][color]
+	if o["state"] != OST_ORBIT:
+		return   # ese color no está disponible (en vuelo o plantado)
+	var dir := 1.0 if owner.facing > 0 else -1.0
+	o["pos"] = owner.global_position + Vector2(0, -120)   # sale del torso de Aye
+	o["mode"] = mode
+	o["hit_done"] = false
+	o["age"] = 0.0
+	o["vel"] = Vector2(dir * ORB_SPEED, 0.0)
+	o["state"] = OST_PLANT_OUT if mode == OMODE_PLANT else OST_FLIGHT
+
+# ¿el orbe está tocando al rival del owner? (AABB contra su cuerpo)
+func _orb_hits_target(st: Dictionary, o: Dictionary) -> Node2D:
+	var owner: Node2D = st["owner"]
+	var tgt: Node2D = dummy if owner == player else player
+	if not is_instance_valid(tgt) or tgt.koed:
+		return null
+	var hw: float = float(tgt.body_halfw)
+	var fx: float = tgt.global_position.x
+	var fy: float = tgt.global_position.y   # pies del rival
+	if absf(o["pos"].x - fx) <= hw + 50.0 and o["pos"].y >= fy - 420.0 and o["pos"].y <= fy + 20.0:
+		return tgt
+	return null
+
+# aplica el golpe del orbe (mismo patrón que _process_attacker): reacción + resta HP del lado correcto.
+# full=false -> golpe de IDA al plantar (chip, SIN efecto de color).
+func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
+	var owner: Node2D = st["owner"]
+	var tgt: Node2D = dummy if owner == player else player
+	if not is_instance_valid(tgt):
+		return
+	var dir: int = signi(int(tgt.global_position.x - owner.global_position.x))
+	if dir == 0:
+		dir = owner.facing
+	var dmg: int
+	var res: String
+	if not full:
+		res = tgt.receive_hit(false, false, dir, "kick_impact")   # chip de ida al plantar
+		dmg = PLANT_CHIP
+	elif color == ORB_PINK:
+		# 🩷 congela (freeze = 9º parámetro de receive_hit)
+		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, true)
+		dmg = ORB_DMG_BLUE
+	else:
+		res = tgt.receive_hit(false, false, dir, "kick_impact")
+		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
+	if res != "hit" and res != "launched":
+		return   # bloqueado/ignorado: sin daño
+	_dmg_number(tgt, dmg)
+	if full and color == ORB_BLUE:
+		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
+	if tgt == dummy:
+		dummy_hp = maxi(0, dummy_hp - dmg)
+		if dummy_hp <= 0:
+			if _round_real(): _end_round(true)
+			else: dummy_hp = hp_max[1]
+	else:
+		player_hp = maxi(0, player_hp - dmg)
+		if player_hp <= 0:
+			if _round_real(): _end_round(false)
+			else: player_hp = hp_max[0]
 
 func _physics_process(_delta: float) -> void:
 	# PRACTICE (training): salto automático del dummy + su HP clavado en 25%

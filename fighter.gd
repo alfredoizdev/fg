@@ -623,6 +623,11 @@ const SMOKE_MOVES := ["kick", "crouch_kick", "spin_kick", "air_spin_kick", "swee
 
 func _on_animation_changed() -> void:
 	var nombre := String(sprite.animation)
+	# ORBES DE AYE-2: al empezar un gesto de lanzar (punch/kick/spin_kick), rearma el disparo del
+	# orbe y captura el modo (boomerang vs plantar por el motion ←→, buffered al inicio del gesto).
+	if fx_floral and nombre in ["punch", "kick", "spin_kick"]:
+		_orb_fired = false
+		_orb_pending_mode = 1 if _orb_plant_buffered() else 0
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
 	# activo (hitstop/frozen/orb_trap manejan speed_scale por su cuenta).
@@ -941,6 +946,14 @@ func set_facing(f: int) -> void:
 		facing = f
 		sprite.flip_h = f < 0
 
+# ORBES DE AYE-2 (fx_floral): estado del disparo del orbe desde el gesto de PIE.
+var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en _on_animation_changed)
+var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
+func _orb_color_for(anim: String) -> int:
+	return {"punch": 0, "kick": 1, "spin_kick": 2}.get(anim, -1)   # 🟡🩷🔵 (main.ORB_YELLOW/PINK/BLUE)
+func _orb_plant_buffered() -> bool:
+	return false   # Tarea 3: motion ←→ para plantar. Por ahora siempre boomerang.
+
 func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
 	if breaker_inv_t > 0.0:
@@ -1216,6 +1229,15 @@ func current_attack() -> Dictionary:
 		if AYE_ATK_OVERRIDE.has(sprite.animation):
 			for k in AYE_ATK_OVERRIDE[sprite.animation]:
 				aa[k] = AYE_ATK_OVERRIDE[sprite.animation][k]
+		# ORBES: los 3 golpes de PIE (punch🟡/kick🩷/spin_kick🔵) NO pegan melee — lanzan un ORBE
+		# a su hit_frame; el orbe hace el daño. (crouch/aire siguen normales.)
+		if sprite.animation in ["punch", "kick", "spin_kick"]:
+			if not _orb_fired and int(sprite.frame) >= int(aa["hit_frame"]):
+				var mb := get_parent()
+				if mb != null and mb.has_method("_orb_launch"):
+					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode)
+				_orb_fired = true
+			return {}
 		return aa
 	# MOLINETE de DAM (salto+W): hasta 3 GOLPES si agarra al rival en el aire — una pasada
 	# del círculo por golpe (ventanas con nombres distintos, como la peonza de Fe)
