@@ -89,8 +89,10 @@ const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
 const ORB_DMG_BLUE := 45             # daño del 🔵
 const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
-const ORB_SCALE := 0.15              # arte 512px -> ~77px
+const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
+const ORB_CENTER_DY := 70.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo, hacia la cintura/cadera)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
+var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
 var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
 var mana_hud := [null, null]         # contenedor Node2D del anillo por lado (toggle visibilidad)
 var mana_ring_fill := [null, null]   # arco morado que se vacia (Line2D)
@@ -7500,6 +7502,24 @@ func _tint_hp_bar(bar: ColorRect, hp: int) -> void:
 func _orb_name(c: int) -> String:
 	return ["yellow", "pink", "blue"][c]
 
+# SpriteFrames animado (loop) del orbe de ese color, con caché. El usuario puso varios frames por color.
+func _orb_frames(c: int) -> SpriteFrames:
+	if _orb_frames_cache.has(c):
+		return _orb_frames_cache[c]
+	var sf := SpriteFrames.new()
+	sf.add_animation("spin")
+	sf.set_animation_loop("spin", true)
+	sf.set_animation_speed("spin", 14.0)
+	var i := 1
+	while true:
+		var p := "res://imagen-action/aye-2/orb_%s/aye2-orb_%s-%d.png" % [_orb_name(c), _orb_name(c), i]
+		if not ResourceLoader.exists(p):
+			break
+		sf.add_frame("spin", load(p))
+		i += 1
+	_orb_frames_cache[c] = sf
+	return sf
+
 func _orb_set_for(owner: Node2D) -> Dictionary:
 	for st in orb_sets:
 		if st["owner"] == owner:
@@ -7515,21 +7535,34 @@ func _orb_setup_for(owner: Node2D, idx: int) -> void:
 		$UI.add_child(_orb_hud)
 		_orb_hud.draw.connect(_orb_hud_draw)
 	var sprites := []
+	var ghosts := []
 	var orbs := []
 	for c in 3:
-		var s := Sprite2D.new()
-		var p := "res://imagen-action/aye-2/orb_%s/aye2-orb_%s-1.png" % [_orb_name(c), _orb_name(c)]
-		if ResourceLoader.exists(p):
-			s.texture = load(p)
+		var s := AnimatedSprite2D.new()
+		s.sprite_frames = _orb_frames(c)   # animado (loop)
+		s.play("spin")
 		s.modulate = ORB_TINT[c]
 		s.z_index = 5
 		s.scale = Vector2(ORB_SCALE, ORB_SCALE)
 		add_child(s)
 		sprites.append(s)
+		# ESTELA: 3 fantasmas tenues detrás (visibles solo al VIAJAR) para simular velocidad.
+		var gtex: Texture2D = _orb_frames(c).get_frame_texture("spin", 0)
+		var gh := []
+		for gi in 3:
+			var g := Sprite2D.new()
+			g.texture = gtex
+			g.modulate = Color(ORB_TINT[c].r, ORB_TINT[c].g, ORB_TINT[c].b, 0.0)
+			g.z_index = 4
+			g.scale = Vector2(ORB_SCALE, ORB_SCALE)
+			g.visible = false
+			add_child(g)
+			gh.append(g)
+		ghosts.append(gh)
 		orbs.append({ "state": OST_ORBIT, "pos": Vector2.ZERO, "vel": Vector2.ZERO,
 			"world_pos": Vector2.ZERO, "age": 0.0, "hit_done": false,
-			"orbit_ang": TAU * float(c) / 3.0, "mode": OMODE_BOOMERANG })
-	orb_sets.append({ "owner": owner, "idx": idx, "sprites": sprites, "orbs": orbs,
+			"orbit_ang": TAU * float(c) / 3.0, "mode": OMODE_BOOMERANG, "hist": [] })
+	orb_sets.append({ "owner": owner, "idx": idx, "sprites": sprites, "ghosts": ghosts, "orbs": orbs,
 		"plant_order": [], "recall_held_t": 0.0 })
 
 func _orb_update(delta: float) -> void:
@@ -7537,10 +7570,10 @@ func _orb_update(delta: float) -> void:
 		var owner: Node2D = st["owner"]
 		if not is_instance_valid(owner):
 			continue
-		var center: Vector2 = owner.global_position + Vector2(0, -120)   # a la altura del torso
+		var center: Vector2 = owner.global_position + Vector2(0, ORB_CENTER_DY)   # cintura/cadera
 		for c in 3:
 			var o: Dictionary = st["orbs"][c]
-			var spr: Sprite2D = st["sprites"][c]
+			var spr: AnimatedSprite2D = st["sprites"][c]
 			match o["state"]:
 				OST_ORBIT:
 					o["orbit_ang"] += delta * 1.4
@@ -7587,6 +7620,26 @@ func _orb_update(delta: float) -> void:
 						o["state"] = OST_ORBIT
 			spr.global_position = o["pos"]
 			spr.visible = true
+			# ESTELA: al VIAJAR arrastra fantasmas por posiciones recientes; en reposo, ocultos.
+			var ghs: Array = st["ghosts"][c]
+			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL:
+				o["hist"].push_front(o["pos"])
+				if o["hist"].size() > 8:
+					o["hist"].resize(8)
+				for gi in 3:
+					var g: Sprite2D = ghs[gi]
+					var hi := (gi + 1) * 2   # 2, 4, 6 frames atrás
+					if hi < o["hist"].size():
+						g.global_position = o["hist"][hi]
+						g.modulate.a = 0.42 - gi * 0.12
+						g.visible = true
+					else:
+						g.visible = false
+			else:
+				if not (o["hist"] as Array).is_empty():
+					o["hist"].clear()
+				for g in ghs:
+					g.visible = false
 	if _orb_hud != null:
 		_orb_hud.queue_redraw()
 
