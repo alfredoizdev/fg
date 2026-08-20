@@ -628,6 +628,7 @@ func _on_animation_changed() -> void:
 	if fx_floral and nombre in ["punch", "kick", "spin_kick"]:
 		_orb_fired = false
 		_orb_pending_mode = 1 if _orb_plant_buffered() else 0
+		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
 	# activo (hitstop/frozen/orb_trap manejan speed_scale por su cuenta).
@@ -951,6 +952,12 @@ var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en
 var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
 func _orb_color_for(anim: String) -> int:
 	return {"punch": 0, "kick": 1, "spin_kick": 2}.get(anim, -1)   # 🟡🩷🔵 (main.ORB_YELLOW/PINK/BLUE)
+func _orb_outline_col(anim: String) -> Color:
+	match anim:
+		"punch": return Color(1.6, 1.3, 0.35, 1.0)      # 🟡
+		"kick": return Color(1.7, 0.6, 1.15, 1.0)       # 🩷
+		"spin_kick": return Color(0.5, 0.95, 1.8, 1.0)  # 🔵
+	return Color(1.45, 0.35, 2.0, 1.0)
 func _orb_plant_buffered() -> bool:
 	# ←→ (ATRÁS y luego ADELANTE): back_recent_t quedó armado al tocar atrás; ahora vamos adelante.
 	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
@@ -2301,11 +2308,11 @@ func spawn_ice_spikes(gx: float) -> Node2D:
 	return g
 
 # enciende el BORDE MORADO de cast (Aye) durante `dur` seg; se apaga solo en _physics_process.
-func _cast_border_on(dur: float) -> void:
+func _cast_border_on(dur: float, col := Color(1.45, 0.35, 2.0, 1.0)) -> void:
 	cast_border_t = maxf(cast_border_t, dur)
 	var mb := get_parent()
 	if mb and mb.has_method("_cast_border"):
-		mb._cast_border(self, true)
+		mb._cast_border(self, true, col)
 
 var water_geyser_frames: SpriteFrames = null
 func spawn_water_geyser(gx: float) -> Node2D:

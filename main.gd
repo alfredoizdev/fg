@@ -6944,16 +6944,16 @@ func _focus_apply() -> void:
 # borde MORADO para los CAST de hielo de Aye (W pilar / ↓W luna): como los ultras, pero
 # corto y sin oscurecer la escena. Reusa el shader de outline con line_color morado.
 var _cast_mat: ShaderMaterial = null
-func _cast_border(atacante: Node2D, on: bool) -> void:
+func _cast_border(atacante: Node2D, on: bool, col := Color(1.45, 0.35, 2.0, 1.0)) -> void:
 	if on:
 		if _cast_mat == null:
 			var sh := Shader.new()
 			sh.code = _OUTLINE_CODE
 			_cast_mat = ShaderMaterial.new()
 			_cast_mat.shader = sh
-			_cast_mat.set_shader_parameter("line_color", Color(1.45, 0.35, 2.0, 1.0))  # MORADO brillante
 			_cast_mat.set_shader_parameter("width", 3.6)
 			_cast_mat.set_shader_parameter("intensity", 0.95)
+		_cast_mat.set_shader_parameter("line_color", col)   # color por cast (orbe = por color; default MORADO)
 		atacante.sprite.material = _cast_mat
 	elif atacante.sprite.material == _cast_mat:
 		atacante.sprite.material = atacante.base_material   # restaura el color alterno (P2)
