@@ -91,6 +91,7 @@ const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
 const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
+const ORB_CROUCH_DY := 90.0          # baja extra las esferas cuando Aye está AGACHADA (siguen su cuerpo)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
 var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
@@ -416,7 +417,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 IT"
+	get_window().title = "FG Fighter — build 2026-08-20 IU"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7399,8 +7400,11 @@ func _play_cutin(side: int, caster: Node2D = null) -> void:
 			ctex = "res://imagen-action/aye/sheets/victory-hud-aye-key.png"
 		elif caster.fx_blue:       # Fe: su victory-hud
 			ctex = "res://imagen-action/favi/sheets/victory-hud-fe-key.png"
-		elif caster.fx_dark:       # ZETMA: su cut-in (frame-avatar-screen keyeado)
+		elif caster.fx_dark:       # ZETMA: su cut-in (frame-avatar-screen keyeado); skin-2 = su propio avatar
 			ctex = "res://imagen-action/zetma/cutin/zetma-cutin.png"
+			var cskin: String = Sel.p1_skin if caster == player else Sel.p2_skin
+			if cskin == "skin-2" and ResourceLoader.exists("res://imagen-action/zetma/cutin/zetma-cutin2.png"):
+				ctex = "res://imagen-action/zetma/cutin/zetma-cutin2.png"
 		elif caster.fx_warrior:    # ROUM: su avatar (frame-avatar-screen keyeado)
 			ctex = "res://imagen-action/roum/cutin/roum-cutin.png"
 		if ResourceLoader.exists(ctex):
@@ -7575,7 +7579,7 @@ func _orb_update(delta: float) -> void:
 		var owner: Node2D = st["owner"]
 		if not is_instance_valid(owner):
 			continue
-		var center: Vector2 = owner.global_position + Vector2(0, ORB_CENTER_DY)   # cintura/cadera
+		var center: Vector2 = owner.global_position + Vector2(0, ORB_CENTER_DY + (ORB_CROUCH_DY if owner.crouching else 0.0))   # baja al agacharse
 		for c in 3:
 			var o: Dictionary = st["orbs"][c]
 			var spr: AnimatedSprite2D = st["sprites"][c]
@@ -7674,7 +7678,7 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	if o["state"] != OST_ORBIT:
 		return   # ese color no está disponible (en vuelo o plantado)
 	var dir := 1.0 if owner.facing > 0 else -1.0
-	o["pos"] = owner.global_position + Vector2(0, ORB_CENTER_DY)   # sale a la ALTURA de la órbita (no por arriba)
+	o["pos"] = owner.global_position + Vector2(0, ORB_CENTER_DY + (ORB_CROUCH_DY if owner.crouching else 0.0))   # sale a la altura de la órbita (baja si agachada)
 	o["mode"] = mode
 	o["hit_done"] = false
 	o["age"] = 0.0
@@ -7718,8 +7722,8 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
 		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
 	if res != "hit" and res != "launched" and res != "frozen":
 		return   # bloqueado/ignorado: sin daño
-	if full and color == ORB_PINK and owner.has_method("spawn_ice_grow"):
-		owner.spawn_ice_grow(tgt.global_position.x)   # PILAR de hielo al IMPACTAR el 🩷 (te gustó)
+	if full and color == ORB_PINK and not tgt.airborne and owner.has_method("spawn_ice_grow"):
+		owner.spawn_ice_grow(tgt.global_position.x)   # PILAR solo si el rival está en el SUELO (en el aire: solo freeze)
 	_dmg_number(tgt, dmg)
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná

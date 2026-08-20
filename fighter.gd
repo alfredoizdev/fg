@@ -625,7 +625,7 @@ func _on_animation_changed() -> void:
 	var nombre := String(sprite.animation)
 	# ORBES DE AYE-2: al empezar un gesto de lanzar (punch/kick/spin_kick), rearma el disparo del
 	# orbe y captura el modo (boomerang vs plantar por el motion ←→, buffered al inicio del gesto).
-	if fx_floral and nombre in ["punch", "kick", "spin_kick"]:
+	if fx_floral and _orb_color_for(nombre) >= 0:
 		_orb_fired = false
 		_orb_pending_mode = 1 if _orb_plant_buffered() else 0
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
@@ -951,12 +951,15 @@ func set_facing(f: int) -> void:
 var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en _on_animation_changed)
 var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
 func _orb_color_for(anim: String) -> int:
-	return {"punch": 0, "kick": 1, "spin_kick": 2}.get(anim, -1)   # 🟡🩷🔵 (main.ORB_YELLOW/PINK/BLUE)
+	# 🟡🩷🔵 por FAMILIA de botón (de pie / agachado / en el aire) — main.ORB_YELLOW/PINK/BLUE
+	return {"punch": 0, "crouch_punch": 0, "jump_punch": 0,
+		"kick": 1, "crouch_kick": 1, "jump_kick": 1,
+		"spin_kick": 2, "sweep": 2, "air_spin_kick": 2}.get(anim, -1)
 func _orb_outline_col(anim: String) -> Color:
-	match anim:
-		"punch": return Color(1.6, 1.3, 0.35, 1.0)      # 🟡
-		"kick": return Color(1.7, 0.6, 1.15, 1.0)       # 🩷
-		"spin_kick": return Color(0.5, 0.95, 1.8, 1.0)  # 🔵
+	match _orb_color_for(anim):
+		0: return Color(1.6, 1.3, 0.35, 1.0)      # 🟡
+		1: return Color(1.7, 0.6, 1.15, 1.0)      # 🩷
+		2: return Color(0.5, 0.95, 1.8, 1.0)      # 🔵
 	return Color(1.45, 0.35, 2.0, 1.0)
 func _orb_plant_buffered() -> bool:
 	# ←→ (ATRÁS y luego ADELANTE): back_recent_t quedó armado al tocar atrás; ahora vamos adelante.
@@ -1255,15 +1258,16 @@ func current_attack() -> Dictionary:
 				aa[k] = AYE_ATK_OVERRIDE[sprite.animation][k]
 		# ORBES: los 3 golpes de PIE (punch🟡/kick🩷/spin_kick🔵) NO pegan melee — lanzan un ORBE
 		# a su hit_frame; el orbe hace el daño. (crouch/aire siguen normales.)
-		if sprite.animation in ["punch", "kick", "spin_kick"]:
+		if _orb_color_for(String(sprite.animation)) >= 0:
+			# TODOS los golpes de color (de pie / agachado / aire) lanzan su ORBE y NO pegan melee.
 			if not _orb_fired and int(sprite.frame) >= int(aa["hit_frame"]):
 				var mb := get_parent()
 				if mb != null and mb.has_method("_orb_launch"):
 					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode)
 				_orb_fired = true
 			return {}
-		if sprite.animation == "weak_punch":
-			return {}   # gesto de RECALL (orb_push): no pega melee; el recall lo dispara el input de R
+		if sprite.animation in ["weak_punch", "crouch_jab", "air_jab"]:
+			return {}   # gesto de RECALL: no pega melee; el recall lo dispara el input de R (weak_punch)
 		return aa
 	# MOLINETE de DAM (salto+W): hasta 3 GOLPES si agarra al rival en el aire — una pasada
 	# del círculo por golpe (ventanas con nombres distintos, como la peonza de Fe)
@@ -2512,6 +2516,14 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	# encara al ATACANTE al recibir (push_dir = empuje del golpe; el atacante está
 	# del lado contrario). Así el escudo de bloqueo (flip_h = facing<0) mira al golpe.
 	set_facing(-push_dir)
+	# CONGELADO (🩷) EN EL AIRE: prioridad sobre el derribo — se queda EXACTO donde está (su pose aérea) +
+	# morado. El pilar NO sale en el aire (lo decide el árbitro). El freeze en SUELO sigue más abajo (tras bloqueo).
+	if freeze and airborne:
+		_burst(0.9, false, 1, atk_blue)
+		vel_x = 0.0
+		vel_y = 0.0
+		frozen_t = FREEZE_DUR
+		return "frozen"
 	# en el aire cualquier golpe lo derriba
 	if airborne:
 		_burst(1.2, false, 1, atk_blue)
@@ -2918,21 +2930,13 @@ func _physics_process(delta: float) -> void:
 		moon_cast_spawned = false
 		spikes_cast_spawned = false
 	elif fx_floral and String(sprite.animation) == "crouch_kick" and sprite.is_playing():
+		# ORBES aye2: ↓W lanza el 🩷 orbe. Quitada la MEDIA LUNA (ice_moon) — no se usa por ahora.
 		ice_cast_spawned = false
 		spikes_cast_spawned = false
-		if sprite.frame >= 2 and not moon_cast_spawned:   # erupta apenas barre el báculo hacia arriba
-			moon_cast_spawned = true
-			breaker_fx_t = maxf(breaker_fx_t, 0.7)
-			_cast_border_on(0.7)                          # borde MORADO de cast
-			spawn_ice_moon(position.x + float(facing) * 190.0)
 	elif fx_floral and String(sprite.animation) == "sweep" and sprite.is_playing():
+		# ORBES aye2: ↓E lanza el 🔵 orbe. Quitadas las púas (ice_spikes).
 		ice_cast_spawned = false
 		moon_cast_spawned = false
-		if sprite.frame >= 5 and not spikes_cast_spawned:   # erupta en el RELEASE (báculo al frente/suelo)
-			spikes_cast_spawned = true
-			breaker_fx_t = maxf(breaker_fx_t, 0.7)
-			_cast_border_on(0.7)                            # borde MORADO de cast
-			spawn_ice_spikes(position.x + float(facing) * 240.0)   # un poco separado de ella (freeze al conectar)
 	else:
 		ice_cast_spawned = false
 		moon_cast_spawned = false
@@ -2962,13 +2966,8 @@ func _physics_process(delta: float) -> void:
 			if mbp2 and mbp2.has_method("_aye_air_barrage"):
 				mbp2._aye_air_barrage(self)
 	elif fx_floral and String(sprite.animation) == "air_jab" and sprite.is_playing():
-		# AYE salto+R = casteo DIAGONAL ABAJO: al llegar a la pose de apuntado (frame >=3) invoca los 3
-		# bolts que salen en DIAGONAL abajo-adelante (aire-contra-suelo), uno detrás del otro.
-		if jp_shots == 0 and sprite.frame >= 3:
-			jp_shots = 3
-			var mbaj := get_parent()
-			if mbaj and mbaj.has_method("_aye_air_barrage"):
-				mbaj._aye_air_barrage(self, true)   # down=true -> diagonal abajo
+		# ORBES aye2: ↑R = RECALL (lo dispara el poll de weak_punch). Quitado el barrage de bolts.
+		pass
 	else:
 		crystal_fired = false
 		# corta el whoosh del giro al TERMINAR jump_kick_cast (si no seguiría sonando ~4.5s)
