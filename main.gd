@@ -91,6 +91,7 @@ const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_SCALE := 0.15              # arte 512px -> ~77px
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
+var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
 var mana_hud := [null, null]         # contenedor Node2D del anillo por lado (toggle visibilidad)
 var mana_ring_fill := [null, null]   # arco morado que se vacia (Line2D)
 var mana_ring_glow := [null, null]   # HALO neón detrás del arco (Line2D ancho translúcido -> bloom)
@@ -7508,6 +7509,11 @@ func _orb_set_for(owner: Node2D) -> Dictionary:
 func _orb_setup_for(owner: Node2D, idx: int) -> void:
 	if not _orb_set_for(owner).is_empty():
 		return
+	if _orb_hud == null:                 # HUD de orbes (screen-space, en $UI): 3 chips por Aye
+		_orb_hud = Node2D.new()
+		_orb_hud.z_index = 10
+		$UI.add_child(_orb_hud)
+		_orb_hud.draw.connect(_orb_hud_draw)
 	var sprites := []
 	var orbs := []
 	for c in 3:
@@ -7581,6 +7587,25 @@ func _orb_update(delta: float) -> void:
 						o["state"] = OST_ORBIT
 			spr.global_position = o["pos"]
 			spr.visible = true
+	if _orb_hud != null:
+		_orb_hud.queue_redraw()
+
+# HUD: 3 chips de estado por Aye — lleno=órbita (disponible) · contorno=plantado · tenue=en vuelo.
+func _orb_hud_draw() -> void:
+	for st in orb_sets:
+		var cx: float = MANA_CX_L if st["idx"] == 0 else MANA_CX_R
+		var y: float = MANA_CY - MANA_R - 26.0
+		for c in 3:
+			var o: Dictionary = st["orbs"][c]
+			var p := Vector2(cx + (c - 1) * 32.0, y)
+			var col: Color = ORB_TINT[c]
+			match o["state"]:
+				OST_ORBIT:
+					_orb_hud.draw_circle(p, 11.0, col)
+				OST_PLANTED:
+					_orb_hud.draw_arc(p, 11.0, 0.0, TAU, 22, col, 2.5)
+				_:
+					_orb_hud.draw_circle(p, 11.0, Color(col.r, col.g, col.b, 0.35))
 
 # lanza un orbe: boomerang (tap) o plantar (←→). Solo si ese color está en órbita.
 func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
