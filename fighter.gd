@@ -2708,15 +2708,10 @@ func _physics_process(delta: float) -> void:
 		frozen_t -= delta
 		vel_x = 0.0
 		vel_y = 0.0
-		# pose de CONGELADO estándar (GUIA-COMUN): si el personaje tiene su anim "frozen",
-		# se muestra esa (el tiritón corre en loop); si no, se pausa el frame actual
-		if sprite.sprite_frames.has_animation("frozen") and String(sprite.animation) != "frozen":
-			sprite.play("frozen")
+		# CONGELADO SIMPLE (pedido): NO se reproduce la anim "frozen" (el tiritón/pose de Dam y Fe).
+		# El personaje se PAUSA en el frame EXACTO en que quedó + tinte morado (abajo).
 		if frozen_t > 0.0:
-			if String(sprite.animation) == "frozen":
-				sprite.speed_scale = 1.0   # el tiritón SÍ avanza
-			else:
-				sprite.speed_scale = 0.0   # congela el frame ACTUAL (no avanza la animación)
+			sprite.speed_scale = 0.0   # congela el frame ACTUAL (no avanza la animación)
 			sprite.position.y = 0.0   # anula el offset de "tendido" si algo lo aplico (el modelo NO baja)
 			var fk := 0.55 + 0.45 * absf(sin((FREEZE_DUR - frozen_t) * 20.0))
 			sprite.modulate = Color(1, 1, 1, 1).lerp(Color(1.35, 0.45, 2.0, 1.0), fk)
