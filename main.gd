@@ -391,7 +391,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 HV"
+	get_window().title = "FG Fighter — build 2026-08-20 HW"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3845,7 +3845,12 @@ func _start_round() -> void:
 		timer_label.text = str(int(MATCH_TIME))
 		timer_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	_show_player_tags()
-	# BANDA ROJA animada: READY entra por la izq y sale por la der, luego FIGHT.
+	# BANDA "ROUND 2 / ROUND 3" al empezar un round NUEVO (round_num ya viene incrementado); el round 1
+	# va directo al READY. Se muestra, se espera, y recién ahí arranca READY → FIGHT.
+	if round_num >= 2:
+		_show_round_band("ROUND %d" % round_num, 1.30)
+		await get_tree().create_timer(1.25).timeout
+	# BANDA morada animada: READY entra por la izq y sale por la der, luego FIGHT.
 	# Voz sintetizada (misma fórmula que inferno/apocalypse) al aparecer cada palabra.
 	_show_round_band("READY", 1.45, "GET READY")   # centro "READY", bordes verdes "GET READY"
 	_play_voz("ready")
