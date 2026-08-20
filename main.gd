@@ -7574,9 +7574,9 @@ func _orb_update(delta: float) -> void:
 		for c in 3:
 			var o: Dictionary = st["orbs"][c]
 			var spr: AnimatedSprite2D = st["sprites"][c]
+			o["orbit_ang"] += delta * 1.4   # el SLOT gira SIEMPRE (mantiene 120° aunque el orbe esté fuera)
 			match o["state"]:
 				OST_ORBIT:
-					o["orbit_ang"] += delta * 1.4
 					o["pos"] = center + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"]) * 0.5) * ORB_ORBIT_R
 				OST_FLIGHT:
 					# BOOMERANG: viaja hasta ORB_RANGE y VUELVE; golpea UNA vez a la ida (efecto full).
@@ -7669,7 +7669,7 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	if o["state"] != OST_ORBIT:
 		return   # ese color no está disponible (en vuelo o plantado)
 	var dir := 1.0 if owner.facing > 0 else -1.0
-	o["pos"] = owner.global_position + Vector2(0, -120)   # sale del torso de Aye
+	o["pos"] = owner.global_position + Vector2(0, ORB_CENTER_DY)   # sale a la ALTURA de la órbita (no por arriba)
 	o["mode"] = mode
 	o["hit_done"] = false
 	o["age"] = 0.0
