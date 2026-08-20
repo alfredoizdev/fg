@@ -417,7 +417,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 IU"
+	get_window().title = "FG Fighter — build 2026-08-20 IW"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7693,8 +7693,10 @@ func _orb_hits_target(st: Dictionary, o: Dictionary) -> Node2D:
 		return null
 	var hw: float = float(tgt.body_halfw)
 	var fx: float = tgt.global_position.x
-	var fy: float = tgt.global_position.y   # pies del rival
-	if absf(o["pos"].x - fx) <= hw + 50.0 and o["pos"].y >= fy - 420.0 and o["pos"].y <= fy + 20.0:
+	var fy: float = tgt.global_position.y   # ORIGEN del rival (~mid-body), NO los pies
+	# banda vertical = CUERPO del rival (cabeza ~fy-230 .. pies ~fy+340). Antes -420/+20 pegaba a un
+	# rival ABAJO desde un salto (banda muy alta) y NO pegaba agachada (banda muy corta hacia abajo).
+	if absf(o["pos"].x - fx) <= hw + 50.0 and o["pos"].y >= fy - 230.0 and o["pos"].y <= fy + 340.0:
 		return tgt
 	return null
 
