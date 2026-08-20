@@ -70,6 +70,27 @@ var mana_is_mage := [false, false]   # ¿ese lado es mago? (se setea en _refresh
 var mana_flash_t := [0.0, 0.0]       # parpadeo ROJO del anillo cuando falto mana (feedback)
 var mana_full_flash_t := [0.0, 0.0]  # destello cuando el mana llega a FULL (avisa al player)
 var mana_was_full := [false, false]  # estado full del frame anterior (detecta el cruce a lleno)
+
+# ============ ORBES DE AYE-2 (mecánica firma: boomerang / plantar / recall) ============
+# fx_floral == aye2. El árbitro posee 3 sprites de orbe por Aye y los actualiza cada frame.
+# Ver docs/superpowers/specs/2026-08-20-aye-orb-system-design.md
+enum { ORB_YELLOW, ORB_PINK, ORB_BLUE }                                          # índice de color
+const ORB_TINT := [Color(1.0, 0.85, 0.25), Color(1.0, 0.45, 0.72), Color(0.4, 0.62, 1.0)]  # 🟡🩷🔵
+enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL }           # estado del orbe
+enum { OMODE_BOOMERANG, OMODE_PLANT }                                            # modo de un lanzamiento
+const ORB_ORBIT_R := 90.0            # radio de la órbita alrededor de Aye
+const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
+const ORB_RANGE := 1050.0            # boomerang: alcance máx si no toca
+const PLANT_DIST := 860.0            # plantar: distancia fija de aterrizaje
+const PLANT_TIMEOUT := 8.0           # vida de un plantado antes de auto-volver
+const RECALL_HOLD := 0.25            # mantener R para llamar los 3 (vs tap = 1)
+const ORB_DMG_YELLOW := 100          # daño del 🟡
+const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
+const ORB_DMG_BLUE := 45             # daño del 🔵
+const ORB_FREEZE_T := 0.8            # congelado del 🩷
+const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
+const ORB_SCALE := 0.15              # arte 512px -> ~77px
+var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var mana_hud := [null, null]         # contenedor Node2D del anillo por lado (toggle visibilidad)
 var mana_ring_fill := [null, null]   # arco morado que se vacia (Line2D)
 var mana_ring_glow := [null, null]   # HALO neón detrás del arco (Line2D ancho translúcido -> bloom)
@@ -3832,6 +3853,11 @@ func _start_round() -> void:
 		Sel.warm_cache.clear()
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
 	hp_max[1] = int(ARCH_HP.get(dummy.archetype, 1200))
+	# ORBES DE AYE-2: si algún lado es Aye (fx_floral), crea sus 3 orbes orbitando.
+	if player.fx_floral:
+		_orb_setup_for(player, 0)
+	if dummy.fx_floral:
+		_orb_setup_for(dummy, 1)
 	_refresh_hud_chars()
 	_set_inputs(false)
 	dummy.ai_enabled = false
@@ -7468,9 +7494,59 @@ func _tint_hp_bar(bar: ColorRect, hp: int) -> void:
 	else:
 		bar.color = Color(0.32, 0.82, 0.4, 1.0)                # verde normal
 
+# ---------- ORBES DE AYE-2: manager (el árbitro posee y actualiza los 3 orbes) ----------
+func _orb_name(c: int) -> String:
+	return ["yellow", "pink", "blue"][c]
+
+func _orb_set_for(owner: Node2D) -> Dictionary:
+	for st in orb_sets:
+		if st["owner"] == owner:
+			return st
+	return {}
+
+func _orb_setup_for(owner: Node2D, idx: int) -> void:
+	if not _orb_set_for(owner).is_empty():
+		return
+	var sprites := []
+	var orbs := []
+	for c in 3:
+		var s := Sprite2D.new()
+		var p := "res://imagen-action/aye-2/orb_%s/aye2-orb_%s-1.png" % [_orb_name(c), _orb_name(c)]
+		if ResourceLoader.exists(p):
+			s.texture = load(p)
+		s.modulate = ORB_TINT[c]
+		s.z_index = 5
+		s.scale = Vector2(ORB_SCALE, ORB_SCALE)
+		add_child(s)
+		sprites.append(s)
+		orbs.append({ "state": OST_ORBIT, "pos": Vector2.ZERO, "vel": Vector2.ZERO,
+			"world_pos": Vector2.ZERO, "age": 0.0, "hit_done": false,
+			"orbit_ang": TAU * float(c) / 3.0, "mode": OMODE_BOOMERANG })
+	orb_sets.append({ "owner": owner, "idx": idx, "sprites": sprites, "orbs": orbs,
+		"plant_order": [], "recall_held_t": 0.0 })
+
+func _orb_update(delta: float) -> void:
+	for st in orb_sets:
+		var owner: Node2D = st["owner"]
+		if not is_instance_valid(owner):
+			continue
+		var center: Vector2 = owner.global_position + Vector2(0, -120)   # a la altura del torso
+		for c in 3:
+			var o: Dictionary = st["orbs"][c]
+			var spr: Sprite2D = st["sprites"][c]
+			match o["state"]:
+				OST_ORBIT:
+					o["orbit_ang"] += delta * 1.4
+					o["pos"] = center + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"]) * 0.5) * ORB_ORBIT_R
+				_:
+					pass   # FLIGHT/PLANT_OUT/PLANTED/RECALL: Tareas 2-4
+			spr.global_position = o["pos"]
+			spr.visible = true
+
 func _physics_process(_delta: float) -> void:
 	# PRACTICE (training): salto automático del dummy + su HP clavado en 25%
 	_update_dummy_practice(_delta)
+	_orb_update(_delta)   # ORBES DE AYE-2: orbitan/viajan cada frame
 	# ESPECIAL de Zetma: la ORB se CARGA con el tiempo durante el combate (1 vez por round)
 	if state == "fight":
 		for _os in 2:
