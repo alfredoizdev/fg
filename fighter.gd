@@ -2917,33 +2917,11 @@ func _physics_process(delta: float) -> void:
 	# Aye — W (kick) = PILAR ice-grow; ↓W (crouch_kick) = LUNA ice-moon (anti-aéreo, lanza al rival).
 	# Al arrancar el cast spawna el hielo morado delante + SFX + aura MORADA. Una sola vez por golpe.
 	if fx_floral and String(sprite.animation) == "kick" and sprite.is_playing():
+		# ORBES aye2: el pilar de hielo y el freeze salen al IMPACTAR el 🩷 orbe
+		# (main._orb_apply_effect), NO al tirar. Antes acá se spawneaba el pilar + _pilar_freeze_watch
+		# en el gesto (congelaba sin impactar) — quitado a pedido.
 		moon_cast_spawned = false
 		spikes_cast_spawned = false
-		if sprite.frame >= 3 and not ice_cast_spawned:   # sale APENAS sube el báculo (no al pico)
-			ice_cast_spawned = true
-			breaker_fx_t = maxf(breaker_fx_t, 0.7)
-			_cast_border_on(0.7)                          # borde MORADO de cast
-			# el pilar NAVEGA hasta el MEDIO del rival (pedido) con tope de alcance ~1250;
-			# antes brotaba a distancia fija y con DAM lejos le quedaba en la pierna
-			var _mbp := get_parent()
-			var _tx: float = position.x + float(facing) * 690.0
-			if _mbp != null and _mbp.get("player") != null:
-				var _rival: Node2D = _mbp.dummy if self == _mbp.player else _mbp.player
-				# apunta a la PIERNA DELANTERA del rival (centro - 110), no a su centro:
-				# al centro el remolino lo "sobrepasaba" visualmente
-				var _goal: float = _rival.position.x - float(facing) * 110.0
-				var _fmin: float = position.x + float(facing) * 300.0
-				var _fmax: float = position.x + float(facing) * 1250.0
-				_tx = clampf(_goal, minf(_fmin, _fmax), maxf(_fmin, _fmax))
-				# CONGELAMIENTO POR CONTACTO (a prueba de todo): cuando el remolino ERUPTA
-				# (~0.22s), si el rival esta a <330 + 1.5*su_medio_ancho -> receive_hit(freeze).
-				# Escala por el CUERPO del rival: la postura de DAM abre ~250px y su PIE
-				# delantero rozaba el remolino a ~480 del centro sin congelar (Fe angosta si).
-				# DIRECTO. Ya no depende del alcance del golpe ni de las puertas del arbitro
-				# ("lo toca y no congela" NUNCA mas). El bloqueo/armor siguen valiendo:
-				# receive_hit los evalua adentro.
-				_pilar_freeze_watch(_rival, _tx)
-			spawn_ice_grow(_tx)
 	elif fx_floral and String(sprite.animation) == "crouch_kick" and sprite.is_playing():
 		ice_cast_spawned = false
 		spikes_cast_spawned = false

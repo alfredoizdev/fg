@@ -7711,8 +7711,10 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
 	else:
 		res = tgt.receive_hit(false, false, dir, "kick_impact")
 		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
-	if res != "hit" and res != "launched":
+	if res != "hit" and res != "launched" and res != "frozen":
 		return   # bloqueado/ignorado: sin daño
+	if full and color == ORB_PINK and owner.has_method("spawn_ice_grow"):
+		owner.spawn_ice_grow(tgt.global_position.x)   # PILAR de hielo al IMPACTAR el 🩷 (te gustó)
 	_dmg_number(tgt, dmg)
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
