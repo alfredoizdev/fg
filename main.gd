@@ -413,7 +413,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 IR"
+	get_window().title = "FG Fighter — build 2026-08-20 IS"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7550,8 +7550,28 @@ func _orb_update(delta: float) -> void:
 						o["vel"] = -o["vel"]                 # llegó al alcance -> vuelve
 					elif signf(o["vel"].x) != signf(o["pos"].x - center.x) and absf(o["pos"].x - center.x) < 40.0:
 						o["state"] = OST_ORBIT               # volvió -> re-orbita
+				OST_PLANT_OUT:
+					# PLANTAR: viaja PLANT_DIST (atravesando al rival con chip), y se queda plantado.
+					o["pos"] += o["vel"] * delta
+					o["age"] += delta
+					if not o["hit_done"] and _orb_hits_target(st, o) != null:
+						_orb_apply_effect(st, c, false)     # golpe de IDA = chip, SIN efecto
+						o["hit_done"] = true
+					if absf(o["pos"].x - center.x) >= PLANT_DIST:
+						o["state"] = OST_PLANTED
+						o["world_pos"] = o["pos"]
+						o["age"] = 0.0
+						if not st["plant_order"].has(c):
+							st["plant_order"].append(c)     # FIFO para el recall de a 1
+				OST_PLANTED:
+					# flota fijo con un bob leve; a PLANT_TIMEOUT vuelve a la órbita (Tarea 4: auto-recall).
+					o["age"] += delta
+					o["pos"] = o["world_pos"] + Vector2(0, sin(o["age"] * 3.0) * 8.0)
+					if o["age"] >= PLANT_TIMEOUT:
+						o["state"] = OST_ORBIT
+						st["plant_order"].erase(c)
 				_:
-					pass   # PLANT_OUT/PLANTED/RECALL: Tareas 3-4
+					pass   # RECALL: Tarea 4
 			spr.global_position = o["pos"]
 			spr.visible = true
 

@@ -952,7 +952,9 @@ var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija 
 func _orb_color_for(anim: String) -> int:
 	return {"punch": 0, "kick": 1, "spin_kick": 2}.get(anim, -1)   # 🟡🩷🔵 (main.ORB_YELLOW/PINK/BLUE)
 func _orb_plant_buffered() -> bool:
-	return false   # Tarea 3: motion ←→ para plantar. Por ahora siempre boomerang.
+	# ←→ (ATRÁS y luego ADELANTE): back_recent_t quedó armado al tocar atrás; ahora vamos adelante.
+	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
+	return back_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == facing
 
 func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
