@@ -133,6 +133,7 @@ const SIDE_BODY_K := {"dam": 1.0, "favi": 0.71, "aye": 0.65, "zetma": 0.85, "rou
 var side_spr: Array = [null, null]    # AnimatedSprite2D por lado
 var sel_frames := {}                  # id -> SpriteFrames COMPLETO (todos los frames, para el gesto al SELECCIONAR)
 var sel_frames_lite := {}             # id -> SpriteFrames de 1 SOLO frame (pose), para el HOVER (instantáneo)
+var aye_sel_frames := {}              # "skin-1"/"skin-2" -> SpriteFrames del select_char (avatar ANIMADO en loop)
 # precarga en HILO de los frames de select de TODOS los personajes: sin esto, la 1ª vez que
 # el cursor cae en un personaje se cargaban sus 145 frames de golpe y el cursor se "trababa".
 var _sel_warm_thread: Thread = null
@@ -305,14 +306,39 @@ func _frames_for_lite(id: String) -> SpriteFrames:
 	sel_frames_lite[id] = sf
 	return sf
 
+# AYE-2: avatar animado del char-select por skin (loop). Frames en aye-2/<skin>/select_char/.
+func _aye_sel_frames(skin: String) -> SpriteFrames:
+	if aye_sel_frames.has(skin):
+		return aye_sel_frames[skin]
+	var sf := SpriteFrames.new()
+	sf.add_animation("idle")
+	sf.set_animation_loop("idle", true)     # HOVER = anim en loop (a diferencia de los demás)
+	sf.set_animation_speed("idle", 24.0)
+	var i := 1
+	while true:
+		var p := "res://imagen-action/aye-2/%s/select_char/aye2-select_char-%d.png" % [skin, i]
+		if not ResourceLoader.exists(p):
+			break
+		sf.add_frame("idle", load(p))
+		i += 1
+	aye_sel_frames[skin] = sf
+	return sf
+
 func _set_side(s: int, id: String) -> void:
 	var spr: AnimatedSprite2D = side_spr[s]
-	spr.sprite_frames = _frames_for_lite(id)
-	# CONGELADO en el primer frame: reproduce a velocidad 0 (así SÍ se dibuja el personaje;
-	# un sprite detenido con stop() no renderiza en este Godot). Hover = quieto pero VISIBLE.
-	spr.speed_scale = 0.0
-	spr.play("idle")
-	spr.frame = 0   # pose neutral (frame 1) hasta que lo SELECCIONEN
+	if id == "aye":
+		# AYE-2: preview = avatar animado de la skin del lado, en LOOP (no congelado).
+		var skin := "skin-2" if int(skin_sel[s]) == 1 else "skin-1"
+		spr.sprite_frames = _aye_sel_frames(skin)
+		spr.speed_scale = 1.0
+		spr.play("idle")
+	else:
+		spr.sprite_frames = _frames_for_lite(id)
+		# CONGELADO en el primer frame: reproduce a velocidad 0 (así SÍ se dibuja el personaje;
+		# un sprite detenido con stop() no renderiza en este Godot). Hover = quieto pero VISIBLE.
+		spr.speed_scale = 0.0
+		spr.play("idle")
+		spr.frame = 0   # pose neutral (frame 1) hasta que lo SELECCIONEN
 	# altura EN PANTALLA según la estatura real (body_k): DAM alto, Fe y Aye más bajitas.
 	# Pies anclados en FEET_Y, así las niñas quedan con la cabeza más abajo (centered).
 	var disp_h := CHAR_H * float(SIDE_BODY_K.get(id, 1.0))
@@ -345,6 +371,15 @@ func _play_anim(s: int) -> void:
 	# recién AQUÍ (al SELECCIONAR) se construye el set COMPLETO de frames del gesto; en hover
 	# solo estaba el frame 0 (lite). El frame 0 es el mismo png, así que la escala no cambia.
 	var id := String(roster[sel1 if s == 0 else sel2]["id"])
+	if id == "aye":
+		# AYE-2: al SELECCIONAR seguimos con el MISMO avatar animado de la skin (loop),
+		# NO el gesto de la Aye vieja (_frames_for cargaría aye/select/anim y la pisaría).
+		var skin := "skin-2" if int(skin_sel[s]) == 1 else "skin-1"
+		spr.sprite_frames = _aye_sel_frames(skin)
+		spr.speed_scale = 1.0
+		spr.play("idle")
+		_sel_flash[s] = 1.0
+		return
 	spr.sprite_frames = _frames_for(id)
 	spr.speed_scale = 1.0   # velocidad normal: ejecuta el gesto UNA vez y queda en la pose
 	spr.frame = 0
