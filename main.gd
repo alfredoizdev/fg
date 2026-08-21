@@ -3133,6 +3133,17 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 		sf.set_animation_speed("orb_bounce", maxf(1.0, float(bnc.size()) / 0.4))   # ~0.4s (cast rápido)
 		for t in bnc:
 			sf.add_frame("orb_bounce", t)
+	# GET_PULL: reacción de ser HALADA por un agarre (Roum/Zetma). La lógica de agarre ya la
+	# reproduce si el personaje TIENE la anim; solo hay que registrarla. LOOP (dura lo que el hale).
+	var agp := _aye2_action_frames("get_pull", skin)
+	if not agp.is_empty():
+		if not sf.has_animation("get_pull"):
+			sf.add_animation("get_pull")
+		sf.clear("get_pull")
+		sf.set_animation_loop("get_pull", true)
+		sf.set_animation_speed("get_pull", 10.0)   # 5f -> loop de ~0.5s mientras la halan
+		for t in agp:
+			sf.add_frame("get_pull", t)
 	return sf
 
 func _zetma_action_frames(accion: String, skin := "skin-1") -> Array:
