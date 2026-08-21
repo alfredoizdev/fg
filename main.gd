@@ -99,6 +99,7 @@ const ANTIAIR_STAGGER := 0.7         # desfase angular entre las 3 -> se ven sep
 # ESCUDO GIRATORIO (salto+R): las 3 giran en CÍRCULO cerrado alrededor de Aye; si tocan, LEVANTAN al rival.
 const ORB_SPIN_DUR := 0.75           # cuánto dura el escudo giratorio
 const ORB_SPIN_R := 230.0            # radio del círculo AMPLIO (escudo grande alrededor de Aye)
+const ORB_SPIN_UP := 150.0           # sube el CENTRO del círculo: ella queda ABAJO y las esferas giran ARRIBA
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (los levanta por los aires)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
@@ -427,7 +428,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 IY"
+	get_window().title = "FG Fighter — build 2026-08-20 JD"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7663,7 +7664,8 @@ func _orb_update(delta: float) -> void:
 					# ESCUDO GIRATORIO (salto+R): círculo CERRADO alrededor de Aye, gira rápido; si toca, LEVANTA.
 					o["age"] += delta
 					o["orbit_ang"] += delta * ORB_SPIN_SPEED   # gira RÁPIDO (encima del giro base)
-					o["pos"] = center + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"])) * ORB_SPIN_R   # círculo real
+					var spin_c := center - Vector2(0, ORB_SPIN_UP)   # centro ARRIBA: ella abajo, esferas girando encima
+					o["pos"] = spin_c + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"])) * ORB_SPIN_R   # círculo real
 					if not o["hit_done"] and _orb_hits_target(st, o) != null:
 						_orb_apply_effect(st, c, true, true)   # full + LANZADOR (los levanta)
 						o["hit_done"] = true
@@ -7770,8 +7772,7 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, launch := false) 
 		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
 	if res != "hit" and res != "launched" and res != "frozen":
 		return   # bloqueado/ignorado: sin daño
-	if full and color == ORB_PINK and not tgt.airborne and owner.has_method("spawn_ice_grow"):
-		owner.spawn_ice_grow(tgt.global_position.x)   # PILAR solo si el rival está en el SUELO (en el aire: solo freeze)
+	# 🩷 esfera rosada: SOLO congela (rival morado). SIN cristal del piso (pedido: que no salga el pilar).
 	_dmg_number(tgt, dmg)
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
