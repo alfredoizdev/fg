@@ -4047,14 +4047,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				if kade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
 					_start_water_special(2)
 					return true
-			if airborne and fx_floral and down_recent_t > 0.0:
-				# AYE en el AIRE: ↓→+W = BACKSTAB también (teleporta DETRÁS del rival y aterriza)
-				var kdir_a := Input.get_axis(act("ui_left"), act("ui_right"))
-				if kdir_a != 0.0 and int(signf(kdir_a)) == facing:
-					if not _spell_afford(0.30):
-						return true
-					_start_backstab()
-					return true
+			# AYE-2 en el AIRE: ↓→W ya NO es backstab -> jump_kick (orbe rosado aéreo). Teleport solo a la esfera AZUL (E).
 			sprite.play("jump_kick" if airborne else "kick")
 			if airborne and not fx_blue and not fx_floral:
 				# ↑W de DAM = salto CORTO: corta la subida YA y empieza el arco adelante-abajo
