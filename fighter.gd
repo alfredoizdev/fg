@@ -1789,7 +1789,7 @@ func _start_teleport() -> void:
 	if mb and mb.has_method("_aye_teleport"):
 		mb._aye_teleport(self, was_air)
 	else:
-		position.x = clampf(position.x + float(facing) * 430.0, 150.0, 1770.0)
+		position.x = clampf(position.x + float(facing) * 430.0, arena_left + 35.0, arena_right - 35.0)
 		if sprite.sprite_frames.has_animation("teleport"):
 			sprite.play("teleport")
 
@@ -1817,7 +1817,7 @@ func _start_blink(adelante := false) -> void:
 		mb._aye_blink(self, adelante)
 	else:
 		var _bs := 1.0 if adelante else -1.0
-		position.x = clampf(position.x + _bs * float(facing) * 340.0, 115.0, 1805.0)
+		position.x = clampf(position.x + _bs * float(facing) * 340.0, arena_left, arena_right)
 		if sprite.sprite_frames.has_animation("teleport"):
 			sprite.play("teleport")
 
@@ -2298,7 +2298,7 @@ var ice_grow_frames: SpriteFrames = null
 var ice_cast_spawned := false
 var cast_border_t := 0.0   # temporizador del BORDE MORADO durante los cast de hielo (W / ↓W)
 # Aye W (ice-grow): pilar de HIELO morado que erupciona del piso (RÁPIDO). Efecto aparte + SFX.
-func spawn_ice_grow(gx: float) -> Node2D:
+func spawn_ice_grow(gx: float, gy := -1.0) -> Node2D:
 	if ice_grow_frames == null:
 		if not ResourceLoader.exists("res://imagen-action/aye/ice_grow/aye-ice_grow-1.png"):
 			return null
@@ -2317,7 +2317,9 @@ func spawn_ice_grow(gx: float) -> Node2D:
 	var s := 0.62 * absf(scale.x)
 	g.scale = Vector2(s, s)
 	get_parent().add_child(g)
-	var ground_y := to_global(Vector2(0.0, SHADOW_FEET_OFFSET)).y
+	# si dan gy (piso EXACTO donde plantó el orbe), usarlo — la línea de pies genérica no incluye
+	# el sprite.offset ni base_scale de aye2, y el cristal quedaba un poco ALTO.
+	var ground_y := gy if gy >= 0.0 else to_global(Vector2(0.0, SHADOW_FEET_OFFSET)).y
 	g.global_position = Vector2(gx, ground_y - 499.0 * s)
 	g.animation_finished.connect(g.queue_free)
 	g.play("erupt")
@@ -2579,7 +2581,7 @@ func _launch(push_dir: int, mult := 1.0) -> void:
 		vel_x = push_dir * KNOCKBACK_X
 	fly_lean = float(push_dir)   # el cuerpo se ladea hacia donde sale despedido
 	# ESQUINA: lanzado CERCA de la pared -> el vuelo es RECTO hacia ARRIBA (no viaja a la pared)
-	if (push_dir < 0 and position.x - 115.0 < 300.0) or (push_dir > 0 and 1805.0 - position.x < 300.0):
+	if (push_dir < 0 and position.x - arena_left < 300.0) or (push_dir > 0 and arena_right - position.x < 300.0):
 		vel_y -= absf(vel_x) * 0.5
 		vel_x = 0.0
 	juggle_hits += 1
@@ -2714,7 +2716,7 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 	# push_dir (+derecha / -izquierda) -> empuja IGUAL a los dos lados. El nudge grande garantiza que
 	# se VEA de una aunque el hitstop se coma el arranque del slide.
 	if shove > 0.0:
-		position.x = clampf(position.x + float(push_dir) * 70.0, 115.0, 1805.0)
+		position.x = clampf(position.x + float(push_dir) * 70.0, arena_left, arena_right)
 		shove_vx = float(push_dir) * shove
 		shove_t = 0.45
 		vel_x = 0.0        # mata el impulso de caminar del rival: si no, su vel_x hacia ROUM
@@ -2847,7 +2849,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			vel_x = 0.0   # mientras dura el empujón, NADA de velocidad de caminar propia (que lo pisaba)
 			# desliza en la dirección del empujón (shove_vx ya trae el signo: + derecha / - izquierda)
-			position.x = clampf(position.x + shove_vx * delta, 115.0, 1805.0)
+			position.x = clampf(position.x + shove_vx * delta, arena_left, arena_right)
 			shove_vx = move_toward(shove_vx, 0.0, SHOVE_FRICTION * delta)
 			if shove_t <= 0.0:
 				shove_vx = 0.0
@@ -3262,14 +3264,14 @@ func _physics_process(delta: float) -> void:
 			# ESQUINA (estilo Marvel/anime): al llegar al borde NO rebota ni juega wall_splat. Se PEGA a la
 			# pared y su impulso HORIZONTAL se convierte en VERTICAL -> SUBE por la pared (juggle de esquina).
 			# Usa su pose de vuelo (hit_fly), sin animacion de pared.
-			if (position.x <= 115.0 and vel_x < 0.0) or (position.x >= 1805.0 and vel_x > 0.0):
+			if (position.x <= arena_left and vel_x < 0.0) or (position.x >= arena_right and vel_x > 0.0):
 				var into_wall := absf(vel_x)
 				vel_x = 0.0
 				# solo convierte a VERTICAL si aún SUBE; si ya viene cayendo, la pared solo
 				# lo frena y cae recto (sin pop hacia arriba = sin "rebote")
 				if vel_y < 0.0:
 					vel_y = minf(vel_y, -maxf(into_wall * 0.85, 340.0 * CHAR_SCALE))
-			position.x = clampf(position.x, 115.0, 1805.0)
+			position.x = clampf(position.x, arena_left, arena_right)
 		elif _es_humano() and not grab_hover:
 			var air_dir := Input.get_axis(act("ui_left"), act("ui_right"))
 			if air_dir != 0.0:

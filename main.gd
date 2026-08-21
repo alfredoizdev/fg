@@ -114,7 +114,7 @@ const ORB_SPIN_BODY_FRAC := 0.42     # centro del círculo = punto entre el orig
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (↓R / salto+R levantan)
 const ORB_PUSH := 550.0              # R (ráfaga): empujón (shove) — corre CLARO al rival hacia atrás (era 240, poco)
-const ORB_CRYSTAL_LAUNCH := 1.2      # 🩷 cristal del piso: lanza al rival RECTO arriba (y cae)
+const ORB_CRYSTAL_LAUNCH := 1.6      # 🩷 cristal del piso: lanza al rival RECTO arriba BIEN ALTO (y cae)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
@@ -441,7 +441,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KI"
+	get_window().title = "FG Fighter — build 2026-08-21 KJ"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -2199,18 +2199,18 @@ func _run_demo(id: String) -> void:
 				player.sprite.play("jump")
 			await _dt(0.26)
 			if state == "demo":
-				player.position.x = clampf(dummy.position.x - 180.0, 115.0, 1805.0)
+				player.position.x = clampf(dummy.position.x - 180.0, LEFT_LIMIT, RIGHT_LIMIT)
 			_demo_anim("jump_punch")
 			await _dt(0.42)
 			if state == "demo":
-				player.position.x = clampf(dummy.position.x - 180.0, 115.0, 1805.0)
+				player.position.x = clampf(dummy.position.x - 180.0, LEFT_LIMIT, RIGHT_LIMIT)
 			_demo_anim("air_spin_kick")
 			await _dt(1.1)
 		"corner":
 			_demo_anim("crouch_kick")
 			await _dt(1.0)
 			if state == "demo":
-				player.position.x = clampf(dummy.position.x - 300.0, 115.0, 1805.0)
+				player.position.x = clampf(dummy.position.x - 300.0, LEFT_LIMIT, RIGHT_LIMIT)
 			_demo_anim("punch")
 			await _dt(0.5)
 			_demo_anim("crouch_kick")
@@ -2256,7 +2256,7 @@ func _run_demo(id: String) -> void:
 			_demo_anim("crouch_kick")
 			await _dt(1.0)
 			if state == "demo":
-				player.position.x = clampf(dummy.position.x - 300.0, 115.0, 1805.0)
+				player.position.x = clampf(dummy.position.x - 300.0, LEFT_LIMIT, RIGHT_LIMIT)
 			_demo_anim("punch")
 			await _dt(0.5)
 			_demo_anim("crouch_kick")
@@ -2292,7 +2292,7 @@ func _run_demo(id: String) -> void:
 			_demo_snap()
 			await _dt(0.8)
 			if state == "demo":
-				player.position.x = clampf(dummy.position.x - 300.0, 115.0, 1805.0)
+				player.position.x = clampf(dummy.position.x - 300.0, LEFT_LIMIT, RIGHT_LIMIT)
 			_demo_anim("punch")
 			await _dt(0.5)
 			_demo_anim("crouch_kick")
@@ -8127,7 +8127,7 @@ func _orb_burst_at(st: Dictionary, color: int, pos: Vector2, grounded := false) 
 	# lo LANZA RECTO ARRIBA (y cae) — no congela. La rosa que FLOTA sigue con el pulso que CONGELA.
 	var pink_ground: bool = color == ORB_PINK and grounded and is_instance_valid(owner) and owner.has_method("spawn_ice_grow")
 	if pink_ground:
-		owner.spawn_ice_grow(pos.x)
+		owner.spawn_ice_grow(pos.x, pos.y)   # pos.y = piso EXACTO donde plantó el orbe (no queda alto)
 	else:
 		_orb_burst_vfx(pos, color)
 	_shake(11.0, 0.12)
@@ -8526,12 +8526,16 @@ func _physics_process(_delta: float) -> void:
 	# deslizamiento de asistencia del demo: DAM persigue al rival suavemente
 	if state == "demo" and demo_glide_t > 0.0:
 		demo_glide_t -= get_physics_process_delta_time()
-		var tx := clampf(dummy.position.x - 180.0, 115.0, 1805.0)
+		var tx := clampf(dummy.position.x - 180.0, LEFT_LIMIT, RIGHT_LIMIT)
 		player.position.x = lerpf(player.position.x, tx, 0.4)
 		if player.airborne and dummy.airborne:
 			player.position.y = lerpf(player.position.y, clampf(dummy.position.y, 145.0, 625.0), 0.4)
 
-	# limites de pantalla
+	# limites de pantalla. SINCRONIZA los límites al fighter (sus clamps internos de knockback/salto/
+	# shove los usan): en stages con SCROLL el mundo es más ancho y sin esto el empuje chocaba un muro
+	# invisible en 1805 a mitad del stage.
+	player.arena_left = LEFT_LIMIT; player.arena_right = RIGHT_LIMIT
+	dummy.arena_left = LEFT_LIMIT; dummy.arena_right = RIGHT_LIMIT
 	player.position.x = clampf(player.position.x, LEFT_LIMIT, RIGHT_LIMIT)
 	dummy.position.x = clampf(dummy.position.x, LEFT_LIMIT, RIGHT_LIMIT)
 
