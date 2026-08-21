@@ -99,6 +99,11 @@ CLIPS = [
     ("jump_2.mp4", "jump", False),
     ("punch_2.mp4", "punch", False),
     ("weak_punch.mp4", "weak_punch", False),
+    ("crouch_punch_2.mp4", "crouch_punch", False),
+    ("kick_2.mp4", "kick", False),
+    ("spin_kick_2.mp4", "spin_kick", False),
+    ("crouch_kick_2.mp4", "crouch_kick", False),
+    ("crouch_jab_2.mp4", "crouch_jab", False),
 ]
 
 if __name__ == "__main__":

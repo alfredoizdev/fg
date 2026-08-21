@@ -148,10 +148,15 @@ func _zetma_sel_frames(skin: String) -> SpriteFrames:
 	sf.add_animation("idle")
 	sf.set_animation_loop("idle", true)
 	sf.set_animation_speed("idle", 24.0)
-	var d := "zetma/skin-2/pose" if skin == "skin-2" else "zetma/pose"
+	# ANIMACIÓN de select (recortada 480x1022 -> llena el alto = tamaño correcto). skin-1 = la
+	# original (zetma/select/anim); skin-2 (APPRENTICE) = su clip nuevo (skin-2/select_anim).
+	var d := "zetma/select/anim"
+	var prefix := "zetma-select"
+	if skin == "skin-2" and ResourceLoader.exists("res://imagen-action/zetma/skin-2/select_anim/zetma-select_anim-1.png"):
+		d = "zetma/skin-2/select_anim"; prefix = "zetma-select_anim"
 	var i := 1
 	while true:
-		var p := "res://imagen-action/%s/zetma-pose-%d.png" % [d, i]
+		var p := "res://imagen-action/%s/%s-%d.png" % [d, prefix, i]
 		if not ResourceLoader.exists(p):
 			break
 		sf.add_frame("idle", load(p))
@@ -366,6 +371,8 @@ func _set_side(s: int, id: String) -> void:
 	# altura EN PANTALLA según la estatura real (body_k): DAM alto, Fe y Aye más bajitas.
 	# Pies anclados en FEET_Y, así las niñas quedan con la cabeza más abajo (centered).
 	var disp_h := CHAR_H * float(SIDE_BODY_K.get(id, 1.0))
+	if id == "zetma":
+		disp_h *= 1.12   # Zetma se veía chico en el select -> un poco más grande (pedido)
 	var sc := 1.0
 	if spr.sprite_frames.get_frame_count("idle") > 0:
 		var tex: Texture2D = spr.sprite_frames.get_frame_texture("idle", 0)
@@ -521,6 +528,10 @@ func _apply_vs_side(tex: TextureRect, name_lbl: Label, cid: String, skin: String
 		var sp := "res://imagen-action/aye-2/%s/aye2-vs.png" % skin
 		if ResourceLoader.exists(sp):
 			av = sp
+	elif cid == "zetma" and skin == "skin-2":           # ZETMA APPRENTICE: retrato VS propio de skin-2
+		var spz := "res://imagen-action/zetma/sheets/skin-2/zetma-vs2.png"
+		if ResourceLoader.exists(spz):
+			av = spz
 	if av != "" and ResourceLoader.exists(av):
 		var t: Texture2D = load(av)
 		tex.texture = t
@@ -823,6 +834,8 @@ func _start_loading() -> void:
 func _warm_worker(paths: Array) -> Array:
 	var res := []
 	for p in paths:
+		if not ResourceLoader.exists(p):
+			continue   # png aún SIN importar (skin/clip nuevo): sáltalo, no spamear "No loader found"
 		var tex = ResourceLoader.load(p)
 		if tex != null:
 			res.append(tex)
@@ -1033,7 +1046,7 @@ func _skin_panel(cx: float, side: int, col: Color) -> void:
 	var active := true                      # en HOVER siempre se puede cambiar la skin con ↑/↓
 	var y := 548.0
 	var _pid := String(roster[sel1 if side == 0 else sel2]["id"])
-	var labels := ["NINJA", "PURPLE"] if _pid == "zetma" else ["GALA", "CASUAL"]
+	var labels := ["SHADOW", "APPRENTICE"] if _pid == "zetma" else ["GALA", "CASUAL"]
 	fx.draw_rect(Rect2(cx - 142, y - 2, 284, 48), Color(0.05, 0.05, 0.09, 0.92 if active else 0.7))
 	if active:
 		var pul := 0.55 + 0.45 * sin(t * 6.0)
@@ -1047,7 +1060,11 @@ func _skin_panel(cx: float, side: int, col: Color) -> void:
 		if on:
 			fx.draw_rect(Rect2(bx, y + 4, 134, 38), Color(1, 1, 1, 0.9), false, 2.0)
 		var tcol := Color(1, 1, 1, 0.98) if on else Color(0.72, 0.72, 0.78, 0.9)
-		fx.draw_string(big_font, Vector2(bx + 24, y + 31), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 22, tcol)
+		# AUTO-FIT: encoge el nombre hasta que ENTRE en el botón (APPRENTICE es largo) y CENTRA
+		var fs := 22
+		while fs > 12 and big_font.get_string_size(labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > 134.0 - 16.0:
+			fs -= 1
+		fx.draw_string(big_font, Vector2(bx, y + 23 + fs * 0.35), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 134, fs, tcol)
 
 func _ready_plate(cx: float, col: Color) -> void:
 	var r := Rect2(cx - 130, 470, 260, 64)   # sobre el CUERPO (antes 118 = sobre la cabeza)
