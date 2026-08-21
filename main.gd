@@ -113,7 +113,7 @@ const ORB_SPIN_BODY_FRAC := 0.42     # centro del círculo = punto entre el orig
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (↓R / salto+R levantan)
 const ORB_PUSH := 550.0              # R (ráfaga): empujón (shove) — corre CLARO al rival hacia atrás (era 240, poco)
-const ORB_CRYSTAL_LAUNCH := 1.6      # 🩷 cristal del piso: lanza al rival RECTO arriba BIEN ALTO (y cae)
+const ORB_CRYSTAL_LAUNCH := 1.15     # 🩷 cristal del piso: POP moderado recto arriba + hang al caer (da tiempo al combo)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KR"
+	get_window().title = "FG Fighter — build 2026-08-21 KT"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -8081,7 +8081,10 @@ func _orb_launch(owner: Node2D, color: int, mode: int, diag := 0) -> void:
 		o["state"] = OST_BOUNCE
 	elif diag != 0:
 		# ↓← : DIAGONAL (suelo=ARRIBA diag=1 · aire=ABAJO diag=-1). Boomerang recto (sin gravedad).
-		o["vel"] = Vector2(dir * ORB_SPEED * 0.78, float(-diag) * ORB_SPEED * 0.62)
+		# El de ARRIBA va más TENDIDO (~24°, pedido: subía demasiado); el de ABAJO se mantiene.
+		var vx_k := 0.85 if diag > 0 else 0.78
+		var vy_k := 0.38 if diag > 0 else 0.62
+		o["vel"] = Vector2(dir * ORB_SPEED * vx_k, float(-diag) * ORB_SPEED * vy_k)
 		o["state"] = OST_FLIGHT
 	else:
 		o["vel"] = Vector2(dir * ORB_SPEED, 0.0)
@@ -8127,8 +8130,11 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, reaction := "norm
 		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, false, ORB_PUSH)
 		dmg = per_color
 	elif reaction == "launch_up":
-		# 🩷 cristal del piso: lo lanza RECTO ARRIBA (push_dir=0 -> sin empuje lateral) y cae.
+		# 🩷 cristal del piso: POP recto arriba (push_dir=0) + HANG al caer -> antes subía y bajaba muy
+		# rápido y no daba tiempo a nada; ahora flota al bajar (ventana para seguir el combo).
 		res = tgt.receive_hit(false, true, 0, "kick_impact", false, ORB_CRYSTAL_LAUNCH)
+		if res == "launched":
+			tgt.juggle_hold_t = 0.95   # cae LENTO tras el pop (hang)
 		dmg = per_color
 	elif color == ORB_PINK:
 		# 🩷 congela (freeze = 9º parámetro de receive_hit)
