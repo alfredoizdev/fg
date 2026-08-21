@@ -146,7 +146,7 @@ func _zetma_sel_frames(skin: String) -> SpriteFrames:
 		return zetma_sel_frames[skin]
 	var sf := SpriteFrames.new()
 	sf.add_animation("idle")
-	sf.set_animation_loop("idle", true)
+	sf.set_animation_loop("idle", false)   # juega UNA vez y queda en el último frame (no loop)
 	sf.set_animation_speed("idle", 24.0)
 	# ANIMACIÓN de select (recortada 480x1022 -> llena el alto = tamaño correcto). skin-1 = la
 	# original (zetma/select/anim); skin-2 (APPRENTICE) = su clip nuevo (skin-2/select_anim).
@@ -341,7 +341,7 @@ func _aye_sel_frames(skin: String) -> SpriteFrames:
 		return aye_sel_frames[skin]
 	var sf := SpriteFrames.new()
 	sf.add_animation("idle")
-	sf.set_animation_loop("idle", true)     # HOVER = anim en loop (a diferencia de los demás)
+	sf.set_animation_loop("idle", false)    # juega UNA vez y queda en el último frame (no loop)
 	sf.set_animation_speed("idle", 24.0)
 	var i := 1
 	while true:

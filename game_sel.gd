@@ -130,15 +130,27 @@ func play_menu_music() -> void:
 		_music.play()
 
 func stop_menu_music() -> void:
-	if _music != null:
-		_music.stop()
+	# al ENTRAR a la pelea LIBERAMOS el reproductor por completo (no solo stop()): así el hilo de
+	# audio suelta el AudioStreamPlayback durante el combate, y cerrar (X o Ctrl+C) NO deja el
+	# "AudioStreamPlayback/MP3 leaked at exit". Al volver al menú, play_menu_music lo recrea.
+	_free_music()
 
-# al CERRAR la ventana: parar la música y soltar el stream para que el AudioServer no
-# avise "resource still in use at exit". (En cierre por Ctrl+C / kill duro el aviso puede
-# seguir saliendo porque ese camino no dispara esta notificación — es inofensivo.)
+# al CERRAR: LIBERAR por completo el reproductor de música. Antes solo hacía stop()+stream=null,
+# pero eso NO libera ni el nodo AudioStreamPlayer ni su AudioStreamPlayback -> Godot avisaba
+# "2 ObjectDB instances leaked" + "1 resource still in use at exit". Hay que free() el nodo
+# (immediate, no queue_free: en el cierre no hay otro frame) para que el AudioServer suelte todo
+# ANTES del ObjectDB::cleanup. Cubre X, Ctrl+C y --quit-after (todos disparan EXIT_TREE/PREDELETE).
+func _free_music() -> void:
+	if _music != null:
+		if is_instance_valid(_music):
+			_music.stop()
+			_music.stream = null
+			if _music.is_inside_tree():
+				remove_child(_music)
+			_music.free()
+		_music = null
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE \
 			or what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_CRASH:
-		if _music != null:
-			_music.stop()
-			_music.stream = null
+		_free_music()

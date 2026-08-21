@@ -80,34 +80,34 @@ def process_select_anim(mp4, action="select_anim"):
         frames = extract(mp4, tmp)
         rgbas = [tight_crop(key_green_arr(Image.open(f))) for f in frames]
         stand = max(r.shape[0] for r in rgbas)          # cuerpo más alto del clip
-        scale = (SEL_H * 0.98) / float(stand)           # el cuerpo LLENA el alto (como el original)
+        # MISMO TAMAÑO que skin-1: su cuerpo más alto ocupa 0.9697 del frame (medido). Igualamos esa
+        # proporción para que en pantalla (el juego normaliza por altura de textura) midan IGUAL.
+        scale = (SEL_H * 0.9697) / float(stand)
         scaled = []
         for r in rgbas:
             img = Image.fromarray(r)
             scaled.append(img.resize((max(1, round(img.width * scale)),
                                       max(1, round(img.height * scale))), Image.LANCZOS))
-        # ANCLA por los PIES (punto ESTABLE, no se corre cuando el brazo se mueve) y hace el lienzo
-        # ANCHO para que el cuerpo/brazos que se extienden al lado de los pies NO se corten.
-        # Mide, respecto al centro de los pies, cuánto se va el cuerpo a izq/der en TODO el clip.
+        # ANCLA por el CENTRO DE LA SILUETA (cuerpo+brazo), no por los pies: así el conjunto queda
+        # CENTRADO en pantalla (el brazo mecánico extendido ya no lo corre a un lado). El body_cx del
+        # clip es estable (~2px), por eso centrar por bbox NO produce deriva. Lienzo simétrico y ancho
+        # para que nada se corte, con los PIES puestos a la altura del suelo (SEL_H).
         MARG = 40
-        feets, lefts, rights = [], [], []
+        bcs, lefts, rights = [], [], []
         for im in scaled:
             m = np.asarray(im)[..., 3] > 40
             xs = m.any(axis=0).nonzero()[0]
-            fx = feet_cx(m)
-            feets.append(fx); lefts.append(int(xs.min()) - fx); rights.append(int(xs.max()) - fx)
-        max_left = min(lefts)        # negativo: lo más a la IZQ del cuerpo respecto a los pies
-        max_right = max(rights)
-        # PIES al CENTRO del lienzo (el juego centra por textura) y lienzo SIMÉTRICO lo bastante
-        # ancho para que ni izq ni der se corten en ningún frame -> centrado + sin jitter + sin corte.
-        half = max(-max_left, max_right) + MARG
-        anchor = half                # pies fijos en el centro (=half) en TODOS los frames
+            bc = (int(xs.min()) + int(xs.max())) / 2.0     # centro de la silueta
+            bcs.append(bc); lefts.append(int(xs.min()) - bc); rights.append(int(xs.max()) - bc)
+        half = int(max(-min(lefts), max(rights)) + MARG)
+        anchor = half                # centro de silueta fijo en el centro del lienzo en TODOS los frames
         cw = 2 * half
         for i, im in enumerate(scaled, 1):
             m = np.asarray(im)[..., 3] > 40
-            fx = feet_cx(m)
+            xs = m.any(axis=0).nonzero()[0]
+            bc = (int(xs.min()) + int(xs.max())) / 2.0
             canvas = Image.new("RGBA", (cw, SEL_H), (0, 0, 0, 0))
-            canvas.alpha_composite(im, (anchor - fx, SEL_H - im.height))  # pies fijos en 'anchor'
+            canvas.alpha_composite(im, (int(round(anchor - bc)), SEL_H - im.height))  # silueta centrada; pies al piso
             canvas.save(f"{outdir}/zetma-{action}-{i}.png")
     print(f"  {mp4} -> {outdir}  ({len(rgbas)} frames, canvas {cw}x{SEL_H}, escala {scale:.4f}, pies@{anchor})")
 

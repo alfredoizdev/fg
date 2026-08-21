@@ -83,6 +83,30 @@ def compose(rgba, canvas_w=1300, bottom_y=FEET_Y):
     canvas.alpha_composite(img, (ANCHOR_X - fx, bottom_y - nh))
     return canvas
 
+def shoulder_xy(mask):
+    """centro-x y y del HOMBRO (banda 12-22% desde arriba): punto ESTABLE en un clavado aéreo."""
+    ys = mask.any(axis=1).nonzero()[0]
+    if len(ys) == 0:
+        return CANVAS_W // 2, 0
+    top, bot = ys.min(), ys.max(); h = bot - top
+    sb = mask[top + int(0.12 * h):top + int(0.22 * h) + 1]
+    sx = sb.any(axis=0).nonzero()[0]
+    scx = int((sx.min() + sx.max()) / 2) if len(sx) else CANVAS_W // 2
+    return scx, top + int(0.17 * h)
+
+def compose_shoulder(rgba, canvas_w, sh_x, sh_y):
+    """ancla por el HOMBRO a un punto FIJO (sh_x,sh_y): el cuerpo se queda quieto y el brazo
+    telescopea. Para air_grab (clavado aéreo): anclar por pies hace que el cuerpo derive
+    arriba-atrás cuando el brazo/pierna se vuelve el pixel más bajo."""
+    img = Image.fromarray(rgba)
+    nw, nh = max(1, round(img.width * SCALE)), max(1, round(img.height * SCALE))
+    img = img.resize((nw, nh), Image.LANCZOS)
+    m = np.asarray(img)[..., 3] > 40
+    scx, scy = shoulder_xy(m)
+    canvas = Image.new("RGBA", (canvas_w, CANVAS_H), (0, 0, 0, 0))
+    canvas.alpha_composite(img, (sh_x - scx, sh_y - scy))
+    return canvas
+
 def process(action):
     mp4, N, H, cw, by = SPEC[action]
     src = os.path.join(BASE, mp4)
@@ -114,9 +138,22 @@ def process(action):
         os.makedirs(outdir, exist_ok=True)
         for old in glob.glob(f"{outdir}/zetma-{action}-*.png*"):
             os.remove(old)
-        for i, r in enumerate(window, 1):
-            compose(r, cw, by).save(f"{outdir}/zetma-{action}-{i}.png")
-        print(f"[{action}] golpe_crudo=f{strike+1}  recorte=[{start+1}..{start+N}]  -> {len(window)}f (golpe@f{strike-start+1}=H{H}, lienzo {cw}, fondo {by})")
+        if action == "air_grab":
+            # CLAVADO AÉREO: anclar por HOMBRO (fijo) o el cuerpo deriva arriba-atrás al extender el brazo.
+            # El hombro-objetivo se toma del PRIMER frame como si fuera feet@by (continuidad de altura).
+            im0 = Image.fromarray(window[0]).resize(
+                (max(1, round(window[0].shape[1] * SCALE)), max(1, round(window[0].shape[0] * SCALE))), Image.LANCZOS)
+            m0 = np.asarray(im0)[..., 3] > 40
+            fx0 = feet_cx(m0); s0x, s0y = shoulder_xy(m0)
+            sh_x = ANCHOR_X + (s0x - fx0)
+            sh_y = (by - im0.height) + s0y
+            for i, r in enumerate(window, 1):
+                compose_shoulder(r, cw, sh_x, sh_y).save(f"{outdir}/zetma-{action}-{i}.png")
+            print(f"[{action}] recorte=[{start+1}..{start+N}] -> {len(window)}f ANCLA HOMBRO@({sh_x},{sh_y}) (cuerpo quieto, brazo telescopea)")
+        else:
+            for i, r in enumerate(window, 1):
+                compose(r, cw, by).save(f"{outdir}/zetma-{action}-{i}.png")
+            print(f"[{action}] golpe_crudo=f{strike+1}  recorte=[{start+1}..{start+N}]  -> {len(window)}f (golpe@f{strike-start+1}=H{H}, lienzo {cw}, fondo {by})")
 
 if __name__ == "__main__":
     only = sys.argv[1:] if len(sys.argv) > 1 else list(SPEC.keys())

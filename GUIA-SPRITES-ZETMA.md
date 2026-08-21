@@ -410,25 +410,34 @@
 ### SUPER — VOID ORB (ESFERA DE VACÍO)
 
 > **(ES) Este es el súper REAL de Zetma en el juego (comando ↓ ← E, con su propio anillo de carga).**
-> La esfera atrapa al rival en CÁMARA LENTA y lo drena. **El arte de la esfera va APARTE** (shader
-> procedural del motor), igual que las esferas de Aye — el clip del personaje es **solo el gesto de
-> casteo**, sin dibujar la esfera. _(El viejo MEGA GRAB quedó DESCARTADO, no se implementó.)_
+> **NUEVA entrega:** Zetma NO dispara nada. Hace un GESTO con las manos y **SEÑALA con la mano
+> mecánica al frente**; el juego le pone un glow azul eléctrico en el brazo, un LÁSER azul que baja
+> del cielo y el ORB que crece en el piso — **todo eso lo agrega el motor**, el clip del personaje es
+> **solo el gesto de señalar**, sin dibujar orb/láser/energía. La esfera atrapa al rival en cámara
+> lenta y lo drena. _(El viejo brazo-cañón que disparaba quedó DESCARTADO.)_
 
-**`orb_cast` (súper — carga y lanza la esfera de vacío):** _(clip del personaje)_
+**`orb_cast` (súper — gesto de señalar que invoca el orb):** _(clip del personaje)_
 
-> [Same Zetma from the reference — he faces RIGHT.] He plants his feet and raises the black-metal
-> robot arm FORWARD to the RIGHT, the forearm reshaping into a short CANNON / emitter aimed straight
-> ahead; dark void energy gathers and crackles at the open muzzle as he WINDS UP, then he THRUSTS the
-> arm forward and releases the shot straight ahead, HOLDING the extended cast pose at the end (arm
-> locked out toward the right). Only the robot arm moves; torso and boots stay planted, no
-> walking/sliding. The OTHER (flesh) hand keeps holding the SINGLE dagger the whole time; the dagger
-> never disappears. **Do NOT draw the orb / sphere / energy ball itself — the game spawns and tints
-> it; his hand and the muzzle stay EMPTY, this clip is ONLY the casting gesture.** LOCKED SHOT: strict
-> SIDE PROFILE facing the RIGHT edge of the screen the WHOLE clip — never turns, mirrors or goes
-> frontal. Fixed camera, NO zoom (not even in the middle), SAME SIZE in every frame — leave extra green
-> room on the RIGHT for the extended arm, never cropped. He stays roughly centered, natural believable
-> motion (no unnatural or broken poses). Pure flat green #00FF00 background, full body with green margin
-> all around, no opponent, no text, no other effects, no ground shadow (no cast shadow or dark blob under him).
+> Same Zetma from the reference — he faces RIGHT. He does ONE thing only: he EXTENDS his
+> BLACK-METAL ROBOT arm and POINTS the open robot HAND straight FORWARD to the RIGHT — arm locking
+> out, hand and fingers aimed dead ahead as if COMMANDING something to strike the ground in front of
+> him — then HOLDS that pointing pose steady for the rest of the clip. That is the WHOLE motion: a
+> single point-forward and hold. He does NOT attack, NOT swing, NOT thrust, NOT spin, NOT fire or
+> throw anything, NO extra flourish — ONLY the point. The robot hand STAYS A HAND (open fingers /
+> claw pointing forward); it does NOT turn into a cannon, gun, muzzle or emitter. His head turns to
+> follow the point, aimed forward-right; torso and boots stay planted (no walking/sliding).
+> THE DAGGER MUST STAY VISIBLE THE ENTIRE CLIP:** his OTHER (flesh) hand keeps gripping the SINGLE
+> dagger in EVERY frame, held in close by his hip/waist — the dagger NEVER disappears, never fades,
+> never blurs, never leaves his hand. If unsure, keep the dagger clearly in his hand.
+> **Do NOT draw any orb / sphere / energy ball / beam / laser / glow — the game adds ALL effects;
+> the robot hand stays EMPTY, this clip is ONLY the pointing gesture.**
+> CAMERA IS FROZEN — absolutely NO zoom, NO push-in, NO pull-back, NO dolly, NO scaling.** The
+> character stays the EXACT SAME SIZE and the SAME position on screen in EVERY single frame from
+> first to last — same distance the whole time. LOCKED SHOT: strict SIDE PROFILE facing the RIGHT
+> edge the WHOLE clip — never turns, mirrors or goes frontal. Leave extra green room on the RIGHT for
+> the extended pointing arm, never cropped. He stays roughly centered, natural believable motion (no
+> unnatural or broken poses). Pure flat green #00FF00 background, full body with green margin all
+> around, no opponent, no text, no other effects, no ground shadow (no cast shadow or dark blob under him).
 
 ---
 
