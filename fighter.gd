@@ -638,15 +638,16 @@ func _on_animation_changed() -> void:
 		_cast_border_on(0.45, _orb_outline_by_color(_orb_bounce_color))
 	elif fx_floral and _orb_color_for(nombre) >= 0:
 		_orb_fired = false
-		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
-		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
-		# TIRO DIAGONAL (boomerang normal): SUELO = ↓← -> diagonal ARRIBA · AIRE = ABAJO+color -> diagonal ABAJO
-		_orb_pending_diag = 0
-		if _orb_pending_mode == 0:
-			if airborne:
-				if _orb_air_down():
-					_orb_pending_diag = -1               # AIRE: ABAJO + color = DIAGONAL abajo
-			elif _orb_downback_buffered():
+		# EN EL AIRE: SIEMPRE boomerang (rebote/plantar son gestos de SUELO). ABAJO+color = DIAGONAL abajo.
+		# (Antes double_down_t/plantar robaban el modo en el aire y el diagonal no salía.)
+		if airborne:
+			_orb_pending_mode = 0
+			_orb_pending_diag = -1 if _orb_air_down() else 0   # AIRE: ABAJO = DIAGONAL abajo · si no, recto
+		else:
+			# SUELO: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · ↓← = DIAGONAL arriba · normal = recto
+			_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
+			_orb_pending_diag = 0
+			if _orb_pending_mode == 0 and _orb_downback_buffered():
 				_orb_pending_diag = 1 if not crouching else 0   # SUELO: ↓← = DIAGONAL arriba
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
@@ -3014,6 +3015,7 @@ func _physics_process(delta: float) -> void:
 		# normal (el aterrizaje la cortaba y "solo se veía subir la espada"). Pedido del usuario:
 		# que no caiga tanto para que la animación original se vea entera. Al terminar, cae normal.
 		var dam_jk: bool = not fx_blue and not fx_floral and not fx_dark and not fx_warrior and String(sprite.animation) == "jump_kick" and sprite.is_playing()   # ROUM NO flota (heredaba el hover del ↑W de DAM = se quedaba en el aire)
+		var aye2_air_cast: bool = fx_floral and sprite.is_playing() and String(sprite.animation) in ["jump_punch", "jump_kick", "air_spin_kick"]   # AYE-2: flota suave al castear orbs en el aire (sin depender de conectar)
 		var grab_hover: bool = fx_dark and String(sprite.animation) == "air_grab"
 		if grab_hover:
 			vel_y = 0.0   # ZETMA air_grab: FLOTA EN EL SITIO hasta terminar (no cae NI se desplaza)
@@ -3021,8 +3023,8 @@ func _physics_process(delta: float) -> void:
 		position.y += vel_y * delta
 		# FLOTA solo si el golpe aéreo CONECTÓ (juggle) Y aún NO gastaste tu siguiente golpe. En cuanto
 		# tiras el próximo golpe (air_move_used) y NO conecta, deja de flotar y CAE NORMAL (no "cae lento").
-		var floating: bool = (air_atk and air_float_t > 0.0 and not air_move_used) or jkc_spin or dam_jk
-		var g_mult := (0.30 if dam_jk else (0.20 if jkc_spin else 0.35)) if floating else 1.0
+		var floating: bool = (air_atk and air_float_t > 0.0 and not air_move_used) or jkc_spin or dam_jk or aye2_air_cast
+		var g_mult := (0.30 if dam_jk else (0.20 if jkc_spin else (0.30 if aye2_air_cast else 0.35))) if floating else 1.0
 		# caida BRUSCA del remate del ULTRA: al pasar el ápice se desploma
 		if hard_fall and hit_flying and vel_y > 0.0:
 			g_mult = 2.6
