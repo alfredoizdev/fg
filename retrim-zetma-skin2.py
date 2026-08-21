@@ -38,6 +38,7 @@ SPEC = {
     # agarre: NO usa hit_frame (conecta por proximidad+tiempo 0.28-0.95s). "Mismo agarre/velocidad"
     # = mismo Nº de frames (130) con el brazo extendido en el mismo momento (onset skin-1 ~f39).
     "air_grab":      ("air_grab_2.mp4",      130, 39, 1800, 1064),
+    "sweep":         ("sweep_2.mp4",          38, 15, 1300, 1139),
 }
 
 def key_green_arr(img):

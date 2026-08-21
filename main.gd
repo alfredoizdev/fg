@@ -438,7 +438,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 JN"
+	get_window().title = "FG Fighter — build 2026-08-21 JR"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -9485,37 +9485,85 @@ func _run_orb_cast(caster: Node2D) -> void:
 		voz_player.stream = load("res://imagen-action/zetma/sound-effect/VOID_ORB.mp3")
 		voz_player.pitch_scale = 1.0
 		voz_player.play()
-	var _px: float = caster.position.x   # x de origen (VUELVE aquí tras el retroceso — no es deriva)
 	_play_cutin(-1 if caster.position.x >= 960.0 else 1, caster)   # cut-in de HUD (como el especial de DAM)
-	await get_tree().create_timer(0.34).timeout   # la orb se carga en la punta
-	if is_instance_valid(caster): caster.position.x = _px
+	# GLOW AZUL ELÉCTRICO en el brazo mecánico mientras SEÑALA al frente (no dispara)
+	if caster.has_method("_cast_border_on"):
+		caster._cast_border_on(1.0, Color(0.32, 0.66, 2.1))
+	await get_tree().create_timer(0.40).timeout   # señala con la mano mecánica (ajustar al clip nuevo de "señalar")
+	# NUEVA ENTREGA: no dispara. Un LÁSER azul baja del cielo a un punto FIJO al frente y ahí CRECE el orb.
 	if state == "fight" and not caster.koed:
-		_spawn_zetma_orb(caster)
-	# RETROCESO VISIBLE con POLVO: el culatazo lo EMPUJA hacia atrás y levanta polvo en los pies
-	if is_instance_valid(caster) and caster.has_method("_spawn_dash_smoke"):
-		caster._spawn_dash_smoke(1.05, 45.0, true, 0.20)   # puff fuerte del empuje: ESPEJADO y pegado a los pies
-	var _kb := 170.0            # pico del culatazo
-	var _rest := 130.0         # SE QUEDA retrocedido acá (NO vuelve al frente)
-	var _rt := 0.0
-	var _dcd := 0.0
-	while _rt < 0.5 and is_instance_valid(caster) and not caster.koed:
-		_rt += get_process_delta_time()
-		var _off: float
-		if _rt < 0.10:
-			_off = _kb * (_rt / 0.10)                                            # golpe: sale disparado atrás
-		else:
-			_off = lerpf(_kb, _rest, clampf((_rt - 0.10) / 0.30, 0.0, 1.0))      # asienta y SE QUEDA retrocedido
-		caster.position.x = _px - float(caster.facing) * _off
-		_dcd -= get_process_delta_time()
-		if _dcd <= 0.0 and _rt < 0.26 and caster.has_method("_spawn_dash_smoke"):
-			_dcd = 0.07
-			caster._spawn_dash_smoke(0.7, 32.0, true, 0.20)   # polvo mientras se desliza atrás (espejado, a los pies)
-		await get_tree().process_frame
-	if is_instance_valid(caster): caster.position.x = _px - float(caster.facing) * _rest   # queda retrocedido, no rebota al frente
+		await _spawn_zetma_laser_orb(caster)
+	# (sin culatazo: ya no hay disparo que lo empuje)
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
 	if is_instance_valid(caster) and not caster.koed and String(caster.sprite.animation) == "orb_cast":
 		caster.sprite.play("pose")
+
+# NUEVA entrega del súper VOID ORB (pedido): Zetma SEÑALA al frente y, en vez de disparar el orb,
+# un LÁSER azul eléctrico BAJA del cielo a un punto FIJO al frente; ahí el orb CRECE en el piso.
+# Atrapa al rival SOLO si está en ese punto (si no, el orb se disuelve). Constantes tuneables.
+const ORB_LASER_DIST := 430.0   # distancia al frente donde cae el láser/orb
+const ORB_CATCH_R := 180.0      # radio para atrapar al rival en el punto
+func _spawn_zetma_laser_orb(caster: Node2D) -> void:
+	var dir: int = caster.facing
+	var opp: Node2D = dummy if caster == player else player
+	var arena: Node = caster.get_parent()
+	var fy: float = caster.floor_y
+	var tx: float = clampf(caster.position.x + float(dir) * ORB_LASER_DIST, LEFT_LIMIT + 80.0, RIGHT_LIMIT - 80.0)
+	# sonido de energía del orb
+	var _sh := "res://imagen-action/zetma/sound-effect/orb-energy.mp3"
+	if ResourceLoader.exists(_sh):
+		var _strm = load(_sh)
+		if _strm is AudioStreamMP3: _strm.loop = false
+		var _osp := AudioStreamPlayer.new()
+		_osp.stream = _strm; _osp.volume_db = 6.0
+		arena.add_child(_osp); _osp.finished.connect(_osp.queue_free); _osp.play()
+	# 1) LÁSER azul eléctrico que BAJA del cielo hasta (tx, fy) — con flicker + jitter
+	var top_y: float = fy - 1250.0
+	var bw := 22.0
+	var beam := ColorRect.new()
+	beam.color = Color(0.45, 0.78, 2.4, 0.0)
+	beam.size = Vector2(bw, 0.0)
+	beam.position = Vector2(tx - bw * 0.5, top_y)
+	beam.z_index = 8
+	arena.add_child(beam)
+	var head := ColorRect.new()            # cabeza brillante que desciende
+	head.color = Color(0.72, 0.92, 2.7, 1.0)
+	head.size = Vector2(bw * 2.4, bw * 2.4)
+	head.z_index = 9
+	arena.add_child(head)
+	var t0 := Time.get_ticks_msec()
+	while true:
+		var p: float = clampf(float(Time.get_ticks_msec() - t0) / 180.0, 0.0, 1.0)
+		var hy: float = lerpf(top_y, fy, p)
+		beam.size.y = hy - top_y
+		beam.color.a = 0.82 + 0.18 * sin(float(Time.get_ticks_msec()) * 0.08)   # flicker eléctrico
+		beam.position.x = tx - bw * 0.5 + randf_range(-3.0, 3.0)                 # jitter eléctrico
+		head.position = Vector2(tx - head.size.x * 0.5 + randf_range(-4.0, 4.0), hy - head.size.y * 0.5)
+		if p >= 1.0:
+			break
+		await get_tree().process_frame
+	# 2) IMPACTO en el piso: shake + el ORB CRECE ahí (no viaja)
+	_shake(9.0, 0.12)
+	var orb := _make_void_orb(arena)
+	orb.z_index = 7
+	orb.position = Vector2(tx, fy - 120.0)                 # centro del orb sobre el piso (tuneable)
+	orb.scale = Vector2(0.06, 0.06)
+	orb.modulate = Color(0.74, 0.62, 0.92, 1.0)
+	var tw := orb.create_tween()
+	tw.tween_property(orb, "scale", Vector2(0.82, 0.82), 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var tb := beam.create_tween(); tb.tween_property(beam, "color:a", 0.0, 0.18); tb.tween_callback(beam.queue_free)
+	var th := head.create_tween(); th.tween_property(head, "color:a", 0.0, 0.16); th.tween_callback(head.queue_free)
+	await get_tree().create_timer(0.32).timeout           # deja crecer el orb
+	# 3) ATRAPA solo si el rival está EN el punto; si no, el orb se disuelve
+	if is_instance_valid(opp) and not opp.koed and not opp.is_downed() \
+			and opp.breaker_inv_t <= 0.0 and absf(opp.position.x - tx) < ORB_CATCH_R:
+		_zetma_orb_hit(caster, opp, orb)
+	elif is_instance_valid(orb):
+		var tf := orb.create_tween()
+		tf.tween_interval(0.45)
+		tf.tween_property(orb, "modulate:a", 0.0, 0.28)
+		tf.tween_callback(orb.queue_free)
 
 func _make_void_orb(arena: Node) -> Sprite2D:
 	if void_orb_shader == null:

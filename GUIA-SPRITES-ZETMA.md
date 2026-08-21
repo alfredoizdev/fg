@@ -523,17 +523,24 @@
 
 **`block_low.mp4` (bloqueo agachado):**
 
-> [Same Zetma from the reference.] He is CROUCHED LOW the entire clip, compact, head down.
-> He CROSSES his two forearms in front of his body in a clear X-SHAPE guard: his BLACK-METAL
-> ROBOT arm and his OTHER arm HOLDING the DAGGER cross over each other like an X, forming a
-> defensive barrier low in front of his chest/knees — the crossed dagger-and-metal-arm X is
-> the obvious "I'm blocking" pose. He holds that crossed X guard and absorbs hits from the
-> front-low with small downward jolts, never rising, the arms stay crossed the whole time.
-> The dagger is DRAWN and held (blade steady, never changes shape); the robot arm stays
-> BLACK-METAL. LOCKED SHOT: strict SIDE PROFILE facing the RIGHT edge of the screen the WHOLE
-> clip — never turns, mirrors or goes frontal. Fixed camera, NO zoom, SAME SIZE every frame.
-> He stays DEAD-CENTER, crouched, boots planted in place. Pure flat green #00FF00 background,
-> full body with green margin all around, no opponent, no effects, no ground shadow (no cast shadow or dark blob under him).
+> [Same Zetma from the reference.] A DEFENSIVE LOW BLOCK, strict SIDE PROFILE facing RIGHT,
+> CROUCHED LOW the entire clip (knees deeply bent, compact, head down). The KEY read: he
+> BRINGS his BLACK-METAL ROBOT forearm UP AND FORWARD, presenting it edge-on OUT TOWARD THE
+> RIGHT/FRONT like a raised SHIELD to intercept a low blow coming from the front, and his
+> OTHER (flesh) hand brings the DAGGER forward too, braced in beside/behind the robot forearm
+> to reinforce that forward guard (blade angled flat to deflect). The forearm-and-dagger guard
+> is clearly EXTENDED toward the incoming attack — the robot arm FACES the blow — so it is
+> OBVIOUS he is blocking (not just hugging himself). He braces there and ABSORBS hits from the
+> front-low with small BACKWARD/DOWNWARD jolts (the guard gets shoved and holds), never rising,
+> staying crouched. This is CLEARLY a BLOCK, NOT an attack: the arm and dagger come forward to
+> SHIELD and BRACE and then HOLD firm — he NEVER thrusts, NEVER stabs, NEVER swings, no strike
+> motion; the guard only presents forward and holds steady. EXACTLY ONE DAGGER, in his flesh
+> hand only; the ROBOT forearm is EMPTY black-metal (NO weapon in the robot hand, NO second
+> dagger). The dagger keeps a steady constant shape; the robot arm stays BLACK-METAL, one
+> continuous limb. LOCKED SHOT: strict SIDE PROFILE facing the RIGHT edge of the screen the
+> WHOLE clip — never turns, mirrors or goes frontal. Fixed camera, NO zoom, SAME SIZE every
+> frame. He stays DEAD-CENTER, crouched, boots planted in place. Pure flat green #00FF00
+> background, full body with green margin all around, no opponent, no effects, no ground shadow (no cast shadow or dark blob under him).
 
 **`parry.mp4` (postura de desvío — Q+W):**
 

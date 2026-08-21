@@ -219,6 +219,25 @@ reaches far right and must never touch the frame edge. Feet on the same ground l
 > frame; consistent anatomy, correct hands and fingers, natural believable motion — NO unnatural, impossible, broken or contorted poses, NO jerky, floaty or warping movement. Keep her exact design: same face, tan skin, long
 > dark ponytail, her outfit and colors EXACTLY like the reference image (do NOT add, remove or change any garment). Flat cel shading — no glow, aura, particles, motion blur or post FX.
 
+**`orb_bounce` (↓↓ Q/W/E — DE PIE · lanza al PISO, rebota adelante):** _(ES: se usa para las 3 teclas; el motor la tiñe por color. Aye queda PARADA, no agachada.)_
+
+> 3/4 side view facing right, looking and facing FORWARD toward the target (to the right). She stays
+> STANDING the whole time — she does NOT kneel, crouch or sit, her legs stay planted and upright. A big
+> committed DOWNWARD throw aimed at the GROUND just in front of her feet: first she WINDS UP — the throwing
+> hand pulls back and UP near her head/shoulder, torso coiling, weight onto the back foot — then she snaps
+> the whole arm DOWN and FORWARD in one hard over-the-top motion, bending forward at the waist and stepping
+> into it, hurling toward the FLOOR just ahead of her at a steep downward angle, as if SPIKING or BOUNCING
+> something hard off the ground so it would skip forward and away along the floor. The hand follows through
+> LOW, reaching down-and-forward toward the ground in front of her. Hold the low follow-through pose
+> briefly, then straighten back UP to guard. Open empty hand. Pure green #00FF00 background. IMPORTANT — do
+> NOT zoom in on the character and do NOT change her: locked static wide full-body shot, she stays the EXACT
+> same size, framing and position in every frame — she stays SMALL and CENTERED in the MIDDLE of the frame with empty green margin on all four sides, filling only part of the frame, NEVER cropped or enlarged;
+> consistent anatomy, correct hands and fingers, natural believable motion — NO unnatural, impossible, broken or contorted poses, NO jerky, floaty or warping movement. Keep her exact design: same face, tan skin, long dark
+> ponytail, her outfit and colors EXACTLY like the reference image (do NOT add, remove or change any
+> garment). Flat cel shading — no glow, aura, particles, motion blur or post FX.
+
+---
+
 > **(ES) GOLPES EN EL AIRE (v2, 20 ago): 3 ORBES + 1 PATADA. ↑Q=`jump_throw`(recto) · ↑W=`jump_down`(diagonal ↓)
 > · ↑E=`jump_up`(diagonal ↑) · ↑R=`air_kick`(patada de ballet). Reemplazan al viejo `jump_orb`.**
 
