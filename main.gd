@@ -7910,7 +7910,8 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	o["returning"] = false
 	o["volley"] = false   # boomerang normal (la ráfaga R lo marca aparte)
 	# 🔵 E (esfera azul en boomerang): CARGA — se echa atrás antes de salir disparada. El resto sale directo.
-	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG) else 0.0
+	# 🔵 CARGA (atrás->adelante) solo en la E DE PIE (sincroniza con el brazo). Agachada (↓E): sale NORMAL y RÁPIDO.
+	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG and not owner.crouching) else 0.0
 	if mode == OMODE_BOUNCE:
 		# ↓→: sale ABAJO-adelante, con gravedad; rebota 1 vez y se planta (ver OST_BOUNCE).
 		o["vel"] = Vector2(dir * ORB_BOUNCE_VX, ORB_BOUNCE_VY0)
