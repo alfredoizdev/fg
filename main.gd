@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KV"
+	get_window().title = "FG Fighter — build 2026-08-21 KX"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -8310,6 +8310,7 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, reaction := "norm
 	var aname: String = "orb_yellow" if color == ORB_YELLOW else ("orb_pink" if color == ORB_PINK else "orb_blue")
 	var dmg_real: int = _combo_hit(idx, dmg, aname, tgt.airborne)
 	_dmg_number(tgt, dmg_real)
+	meter[idx] = minf(METER_MAX, meter[idx] + float(dmg_real) * 0.0020)   # los ORBES cargan barra de súper (como el melee) -> si no, aye2 nunca llenaba para su ultra
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
 		if reaction == "normal" and tgt.has_method("apply_orb_slow"):
@@ -10013,7 +10014,11 @@ func _run_orb_cast(caster: Node2D) -> void:
 	# (sin culatazo: ya no hay disparo que lo empuje)
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
-	caster.z_index = 0   # restaura el z-order normal al terminar el ultra
+	# NO pisar el z-order si la TRAMPA (_zetma_orb_hit) sigue corriendo: ese await falta
+	# arriba (fire-and-forget), así la trampa dura 2s DESPUÉS de esto. Si restauramos z=0 aquí,
+	# el rival (Dummy) vuelve a taparlo durante toda la jaula. La trampa restaura el z al soltar.
+	if not (is_instance_valid(opp) and opp.orb_trap_t > 0.0):
+		caster.z_index = 0   # restaura el z-order normal (solo si NO hay rival atrapado)
 	if is_instance_valid(caster) and not caster.koed and String(caster.sprite.animation) == "orb_cast":
 		caster.sprite.play("pose")
 
@@ -10756,6 +10761,8 @@ func _zetma_orb_hit(caster: Node2D, opp: Node2D, proj: Node2D) -> void:
 	var _dmat: ShaderMaterial = dome.material as ShaderMaterial
 	dome.z_index = 10                          # domo SEMI-TRANSPARENTE por delante (ves al rival adentro)
 	var _oppz0: int = opp.z_index
+	caster.z_index = 1                         # CASTER al FRENTE durante los 2s de la jaula (si no, el
+											   # rival —Dummy, dibujado después en main.tscn— lo tapaba)
 	var _bs: float = opp.base_scale.y          # el CÍRCULO escala con el tamaño del rival
 	var _dsc := 1.15 * _bs                     # tamaño (tuneable) — más CHICA que antes
 	# los PIES caen SIEMPRE en position.y+500 (el offset compensa la escala); la cabeza SÍ escala.
@@ -10839,6 +10846,8 @@ func _zetma_orb_hit(caster: Node2D, opp: Node2D, proj: Node2D) -> void:
 		opp.z_index = _oppz0
 		if not opp.koed and opp.sprite.sprite_frames.has_animation("pose"):
 			opp.sprite.play("pose")
+	if is_instance_valid(caster):
+		caster.z_index = 0                     # restaura el z-order normal al soltar la jaula
 	if is_instance_valid(dome):
 		var tw := dome.create_tween(); tw.tween_property(dome, "modulate:a", 0.0, 0.3); tw.tween_callback(dome.queue_free)
 	if is_instance_valid(_suck_root):
