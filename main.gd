@@ -85,6 +85,7 @@ const PLANT_TIMEOUT := 8.0           # vida de un plantado antes de auto-volver
 const ORB_OUT_MAX := 4.0             # tope de vida de un orbe FUERA de órbita (vuelo/rebote): failsafe -> NUNCA se pierde
 const ORB_DETONATE_R := 300.0        # radio del estallido (🟡 bomba / 🩷 pulso de hielo con W)
 const ORB_MINE_R := 190.0            # 🩷 mina: radio para AUTO-estallar si el rival pasa cerca
+const ORB_ARM_DELAY := 0.5           # 🩷 mina: ARMADO -> no estalla hasta 0.5s tras plantarse (no erupta al instante si cae junto al rival)
 const ORB_DMG_YELLOW := 100          # daño del 🟡
 const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
 const ORB_DMG_BLUE := 45             # daño del 🔵
@@ -438,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KP"
+	get_window().title = "FG Fighter — build 2026-08-21 KQ"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1909,7 +1910,10 @@ func _open_charswap() -> void:
 func _charswap_confirm() -> void:
 	var new_id := String(CHARS[charswap_sel]["id"])
 	selected_char = new_id
+	_orb_clear_for(player)                 # limpia las esferas de Aye antes de cambiar (si no, quedan en el nuevo)
 	_apply_char(player, new_id)
+	if player.fx_floral:                   # nuevo char = Aye -> recrea sus 3 orbes
+		_orb_setup_for(player, 0)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
 	player.revive()
 	player.position = Vector2(630, 625)
@@ -7831,6 +7835,21 @@ func _orb_setup_for(owner: Node2D, idx: int) -> void:
 	orb_sets.append({ "owner": owner, "idx": idx, "sprites": sprites, "ghosts": ghosts, "orbs": orbs,
 		"plant_order": [], "recall_held_t": 0.0, "throw_queue": [], "throw_t": 0.0, "vanish_k": 1.0 })
 
+# libera los orbes (sprites + estelas) de un fighter. Necesario al CAMBIAR de personaje en training:
+# si Aye deja de ser el personaje, sus 3 esferas quedaban flotando sobre el nuevo (Zetma).
+func _orb_clear_for(owner: Node2D) -> void:
+	for i in range(orb_sets.size() - 1, -1, -1):
+		var st = orb_sets[i]
+		if st["owner"] == owner:
+			for s in st["sprites"]:
+				if is_instance_valid(s): s.queue_free()
+			for gh in st["ghosts"]:
+				for g in gh:
+					if is_instance_valid(g): g.queue_free()
+			orb_sets.remove_at(i)
+	if _orb_hud != null:
+		_orb_hud.queue_redraw()
+
 func _orb_update(delta: float) -> void:
 	for st in orb_sets:
 		var owner: Node2D = st["owner"]
@@ -7905,16 +7924,11 @@ func _orb_update(delta: float) -> void:
 						o["age"] += delta
 						o["vel"].y += ORB_BOUNCE_GRAV * delta
 						o["pos"] += o["vel"] * delta
-						if not o["hit_done"] and _orb_hits_target(st, o) != null:
+						# 🩷 PINK: NO estalla al rebotar/tocar -> sigue y se PLANTA como TRAMPA (mina con delay de armado).
+						# Amarilla/azul SÍ pegan su efecto FULL en el trayecto del rebote.
+						if not o["hit_done"] and c != ORB_PINK and _orb_hits_target(st, o) != null:
 							o["hit_done"] = true
-							if c == ORB_PINK:
-								# 🩷 tocó al rival MIENTRAS rebotaba: erupta el CRISTAL a ras del piso y lo LANZA
-								# recto arriba (NO congela); el orbe vuelve a órbita (ya entregó su golpe).
-								_orb_burst_at(st, ORB_PINK, Vector2(o["pos"].x, o["ground_y"]), true)
-								st["plant_order"].erase(c)
-								o["state"] = OST_ORBIT
-							else:
-								_orb_apply_effect(st, c, true)      # amarilla/azul: golpea con su efecto FULL
+							_orb_apply_effect(st, c, true)
 						if o["pos"].y >= o["ground_y"]:
 							o["pos"].y = o["ground_y"]
 							if owner.has_method("spawn_orb_dust"):
@@ -7943,8 +7957,9 @@ func _orb_update(delta: float) -> void:
 					# flota fijo con un bob leve; a PLANT_TIMEOUT AUTO-RECALL (vuela de vuelta y pega).
 					o["age"] += delta
 					o["pos"] = o["world_pos"] + Vector2(0, sin(o["age"] * 3.0) * 8.0)
-					# 🩷 MINA: la rosada plantada estalla SOLA si el rival pasa cerca -> lo CONGELA.
-					if c == ORB_PINK and _orb_target_near(st, o["world_pos"], ORB_MINE_R):
+					# 🩷 MINA: la rosada plantada estalla SOLA si el rival pasa cerca -> CRISTAL que lo LANZA.
+					# ARMADO: recién ~0.5s DESPUÉS de plantarse (no erupta al instante si cayó junto al rival).
+					if c == ORB_PINK and o["age"] > ORB_ARM_DELAY and _orb_target_near(st, o["world_pos"], ORB_MINE_R):
 						_orb_burst_at(st, ORB_PINK, o["world_pos"], o.get("grounded", false))
 						st["plant_order"].erase(c)
 						o["state"] = OST_ORBIT
