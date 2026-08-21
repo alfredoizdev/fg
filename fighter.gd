@@ -485,6 +485,11 @@ var floor_bounce_pending := false   # REBOTE contra el suelo (ROUM E/cabezazo): 
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
 const FREEZE_DUR := 1.0   # Aye ↓E (ice-spikes): tiempo que el rival queda CONGELADO en su frame (tinte morado)
 var frozen_t := 0.0       # >0 = inmóvil, sprite pausado en su pose, teñido de morado (poder de hielo)
+const SLOW_DUR := 0.5     # ESFERA AZUL de Aye (E): tiempo que el rival queda AZUL y LENTO
+const SLOW_FACTOR := 0.45 # multiplicador de movimiento mientras dura el slow (se mueve lento, no inmóvil)
+var slow_t := 0.0         # >0 = rival AZUL y LENTO (esfera azul); tinte azul + walk a SLOW_FACTOR
+func apply_orb_slow() -> void:   # lo llama el árbitro cuando la esfera azul impacta
+	slow_t = SLOW_DUR
 var orb_trap_t := 0.0        # ESFERA de Zetma: >0 = rival en CÁMARA LENTA, no actúa, teñido morado (sí recibe golpes)
 var orb_trap_top_y := -640.0 # cima de la esfera en espacio LOCAL: la barra de tiempo se le pega justo encima
 var orb_trap_sprite_home := Vector2.ZERO  # pos normal del sprite: para HALARLO al centro del orb y luego restaurarlo
@@ -2779,6 +2784,7 @@ func _physics_process(delta: float) -> void:
 	air_float_t = maxf(0.0, air_float_t - delta)
 	juggle_hold_t = maxf(0.0, juggle_hold_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
+	slow_t = maxf(0.0, slow_t - delta)   # ESFERA AZUL: decae el slow (el tinte azul se pinta abajo)
 	if water_bg:
 		# volando por el poder del agua: cuerpo teñido de AZUL todo el vuelo (no se desvanece aún)
 		sprite.modulate = Color(0.5, 0.75, 1.6, 1)
@@ -2810,6 +2816,10 @@ func _physics_process(delta: float) -> void:
 		deny_t = maxf(0.0, deny_t - delta)
 		var dk := clampf(deny_t / 0.2, 0.0, 1.0)   # los últimos 0.2s se desvanece
 		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.42, 0.42, 0.48, 1.0), dk)
+	elif slow_t > 0.0:
+		# ESFERA AZUL de Aye: rival AZUL y LENTO ~0.5s (tinte azul pulsante; el slow de movimiento va en el walk)
+		var sk := 0.55 + 0.45 * absf(sin(slow_t * 16.0))
+		sprite.modulate = Color(1, 1, 1, 1).lerp(Color(0.45, 0.7, 1.7, 1.0), sk)
 	elif rage_mode:
 		# BERSERK de DAM: figura OSCURA con dejo rojizo mientras dura la rabia
 		sprite.modulate = Color(0.52, 0.34, 0.34, 1.0)
@@ -3191,7 +3201,7 @@ func _physics_process(delta: float) -> void:
 		elif _es_humano() and not grab_hover:
 			var air_dir := Input.get_axis(act("ui_left"), act("ui_right"))
 			if air_dir != 0.0:
-				position.x += air_dir * WALK_SPEED * (1.30 if rage_mode else 1.0) * spd * delta
+				position.x += air_dir * WALK_SPEED * (1.30 if rage_mode else 1.0) * (SLOW_FACTOR if slow_t > 0.0 else 1.0) * spd * delta
 		if position.y >= floor_y and vel_y >= 0.0:   # solo aterriza si NO va subiendo
 			# REBOTE contra el suelo (E de ROUM): al TOCAR el piso rebota ARRIBA una vez y sigue volando
 			# (sube y vuelve a caer), en vez de aterrizar. Se consume el flag -> la 2ª caída SÍ aterriza.
@@ -3398,7 +3408,7 @@ func _physics_process(delta: float) -> void:
 	var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 	if dir != 0.0:
 		var forward := signi(int(dir)) == facing
-		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * (1.30 if rage_mode else 1.0) * (1.7 if orb_haste_t > 0.0 else 1.0) * spd * delta
+		position.x += dir * (WALK_SPEED if forward else WALK_BACK_SPEED) * (1.30 if rage_mode else 1.0) * (1.7 if orb_haste_t > 0.0 else 1.0) * (SLOW_FACTOR if slow_t > 0.0 else 1.0) * spd * delta
 		var want := 1 if forward else -1
 		if walk_dir != want or not _is_locomotion_anim():
 			_play_locomotion(forward)
@@ -3471,7 +3481,7 @@ func _ai_process(delta: float) -> void:
 			else: ai_action = "idle"
 	match ai_action:
 		"advance":
-			position.x += facing * WALK_SPEED * 0.95 * (1.30 if rage_mode else 1.0) * spd * delta   # persigue más rápido
+			position.x += facing * WALK_SPEED * 0.95 * (1.30 if rage_mode else 1.0) * (SLOW_FACTOR if slow_t > 0.0 else 1.0) * spd * delta   # persigue más rápido
 			if sprite.animation != "walk" or walk_dir != 1:
 				sprite.play("walk")
 			walk_dir = 1

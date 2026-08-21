@@ -89,6 +89,9 @@ const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
 const ORB_DMG_BLUE := 45             # daño del 🔵
 const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
+const ORB_MANA_COST := 0.08          # ENERGÍA MALDITA: cada esfera que tira gasta esto (tirar las 3 gasta 3x); se recupera con el tiempo
+const ORB_CHARGE_WINDUP := 0.16      # 🔵 E: tiempo que la azul se echa ATRÁS (carga) antes de salir disparada
+const ORB_CHARGE_BACK := 300.0       # velocidad hacia atrás durante la carga (anticipación, ~48px)
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
 const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
 const ORB_CROUCH_DY := 90.0          # baja extra las esferas cuando Aye está AGACHADA (siguen su cuerpo)
@@ -428,7 +431,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 JD"
+	get_window().title = "FG Fighter — build 2026-08-20 JF"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7608,15 +7611,21 @@ func _orb_update(delta: float) -> void:
 					o["pos"] = center + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"]) * 0.5) * ORB_ORBIT_R
 				OST_FLIGHT:
 					# BOOMERANG: viaja hasta ORB_RANGE y VUELVE; golpea UNA vez a la ida (efecto full).
-					o["pos"] += o["vel"] * delta
 					o["age"] += delta
-					if not o["hit_done"] and _orb_hits_target(st, o) != null:
-						_orb_apply_effect(st, c, true)
-						o["hit_done"] = true
-					if o["vel"].x != 0.0 and signf(o["vel"].x) == signf(o["pos"].x - center.x) and absf(o["pos"].x - center.x) >= ORB_RANGE:
-						o["vel"] = -o["vel"]                 # llegó al alcance -> vuelve
-					elif signf(o["vel"].x) != signf(o["pos"].x - center.x) and absf(o["pos"].x - center.x) < 40.0:
-						o["state"] = OST_ORBIT               # volvió -> re-orbita
+					if o.get("charge_t", 0.0) > 0.0:
+						# 🔵 E: CARGA — se echa ATRÁS un poco (anticipación) antes de salir disparada.
+						o["charge_t"] -= delta
+						o["pos"].x -= signf(o["vel"].x) * ORB_CHARGE_BACK * delta
+					else:
+						o["pos"] += o["vel"] * delta
+						if not o["hit_done"] and _orb_hits_target(st, o) != null:
+							_orb_apply_effect(st, c, true)
+							o["hit_done"] = true
+						if not o.get("returning", false) and absf(o["pos"].x - center.x) >= ORB_RANGE:
+							o["vel"] = -o["vel"]                 # llegó al alcance -> vuelve
+							o["returning"] = true
+						elif o.get("returning", false) and absf(o["pos"].x - center.x) < 40.0:
+							o["state"] = OST_ORBIT               # volvió -> re-orbita
 				OST_PLANT_OUT:
 					# PLANTAR: viaja PLANT_DIST (atravesando al rival con chip), y se queda plantado.
 					o["pos"] += o["vel"] * delta
@@ -7721,11 +7730,18 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	var o: Dictionary = st["orbs"][color]
 	if o["state"] != OST_ORBIT:
 		return   # ese color no está disponible (en vuelo o plantado)
+	if not _mana_ok(owner, ORB_MANA_COST):
+		_mana_denied(owner)
+		return   # ENERGÍA MALDITA insuficiente: no sale (anillo parpadea rojo)
+	_mana_spend(owner, ORB_MANA_COST)
 	var dir := 1.0 if owner.facing > 0 else -1.0
 	o["pos"] = owner.global_position + Vector2(0, ORB_CENTER_DY + (ORB_CROUCH_DY if owner.crouching else 0.0))   # sale a la altura de la órbita (baja si agachada)
 	o["mode"] = mode
 	o["hit_done"] = false
 	o["age"] = 0.0
+	o["returning"] = false
+	# 🔵 E (esfera azul en boomerang): CARGA — se echa atrás antes de salir disparada. El resto sale directo.
+	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG) else 0.0
 	o["vel"] = Vector2(dir * ORB_SPEED, 0.0)
 	o["state"] = OST_PLANT_OUT if mode == OMODE_PLANT else OST_FLIGHT
 
@@ -7776,6 +7792,8 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, launch := false) 
 	_dmg_number(tgt, dmg)
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
+		if tgt.has_method("apply_orb_slow"):
+			tgt.apply_orb_slow()   # 🔵 deja al rival AZUL y LENTO ~0.5s
 	if tgt == dummy:
 		dummy_hp = maxi(0, dummy_hp - dmg)
 		if dummy_hp <= 0:
@@ -7787,15 +7805,28 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, launch := false) 
 			if _round_real(): _end_round(false)
 			else: player_hp = hp_max[0]
 
+# cuenta las esferas EN ÓRBITA (disponibles) y cobra su ENERGÍA MALDITA (n * ORB_MANA_COST).
+# Devuelve la lista de colores a activar, o [] si no alcanza el maná (parpadea rojo).
+func _orb_spend_available(owner: Node2D, st: Dictionary) -> Array:
+	var avail := []
+	for c in 3:
+		if st["orbs"][c]["state"] == OST_ORBIT:
+			avail.append(c)
+	if avail.is_empty():
+		return []
+	if not _mana_ok(owner, avail.size() * ORB_MANA_COST):
+		_mana_denied(owner)
+		return []
+	_mana_spend(owner, avail.size() * ORB_MANA_COST)
+	return avail
+
 # ANTI-AÉREO (↓R): las 3 esferas que estén EN ÓRBITA barren un arco amplio hacia arriba (OST_SWEEP) y vuelven.
 func _orb_antiair(owner: Node2D) -> void:
 	var st := _orb_set_for(owner)
 	if st.is_empty():
 		return
-	for c in 3:
+	for c in _orb_spend_available(owner, st):
 		var o: Dictionary = st["orbs"][c]
-		if o["state"] != OST_ORBIT:
-			continue   # solo participan las disponibles (las en vuelo/plantadas no)
 		o["state"] = OST_SWEEP
 		o["age"] = 0.0
 		o["hit_done"] = false
@@ -7805,10 +7836,8 @@ func _orb_spin(owner: Node2D) -> void:
 	var st := _orb_set_for(owner)
 	if st.is_empty():
 		return
-	for c in 3:
+	for c in _orb_spend_available(owner, st):
 		var o: Dictionary = st["orbs"][c]
-		if o["state"] != OST_ORBIT:
-			continue   # solo las disponibles
 		o["state"] = OST_SPIN
 		o["age"] = 0.0
 		o["hit_done"] = false
