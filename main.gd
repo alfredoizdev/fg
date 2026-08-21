@@ -90,8 +90,9 @@ const ORB_DMG_BLUE := 45             # daño del 🔵
 const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_MANA_COST := 0.08          # ENERGÍA MALDITA: cada esfera que tira gasta esto (tirar las 3 gasta 3x); se recupera con el tiempo
-const ORB_CHARGE_WINDUP := 0.16      # 🔵 E: tiempo que la azul se echa ATRÁS (carga) antes de salir disparada
-const ORB_CHARGE_BACK := 300.0       # velocidad hacia atrás durante la carga (anticipación, ~48px)
+const ORB_CHARGE_WINDUP := 0.26      # 🔵 E: la azul se queda cargada ARRIBA-ATRÁS mientras ella sube el brazo; sale al lanzarlo
+const ORB_CHARGE_BACK := 520.0       # velocidad hacia atrás durante la carga (más ATRÁS, ~135px)
+const ORB_CHARGE_UP := 200.0         # velocidad hacia ARRIBA durante la carga (sube junto a la mano, ~52px)
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
 const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
 const ORB_CROUCH_DY := 90.0          # baja extra las esferas cuando Aye está AGACHADA (siguen su cuerpo)
@@ -431,7 +432,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 JF"
+	get_window().title = "FG Fighter — build 2026-08-20 JG"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7616,6 +7617,7 @@ func _orb_update(delta: float) -> void:
 						# 🔵 E: CARGA — se echa ATRÁS un poco (anticipación) antes de salir disparada.
 						o["charge_t"] -= delta
 						o["pos"].x -= signf(o["vel"].x) * ORB_CHARGE_BACK * delta
+						o["pos"].y -= ORB_CHARGE_UP * delta   # sube junto a la mano (arriba-atrás)
 					else:
 						o["pos"] += o["vel"] * delta
 						if not o["hit_done"] and _orb_hits_target(st, o) != null:

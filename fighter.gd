@@ -4396,6 +4396,9 @@ func _draw_swing_trail_on(ci: CanvasItem) -> void:
 	if not sprite.is_playing():
 		return
 	var anim := String(sprite.animation)
+	# AYE-2 TIRA ESFERAS, no da golpes: sus gestos de orbe NO llevan estela de swing (media luna).
+	if fx_floral and _orb_color_for(anim) >= 0:
+		return
 	# Aye (fx_floral) puede tener un arco PROPIO por anim (ej. jump_punch barrido grande #171);
 	# si no, cae al arco compartido SWING_FX.
 	var fx_table: Dictionary = SWING_FX
