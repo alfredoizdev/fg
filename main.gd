@@ -7808,7 +7808,7 @@ func _orb_update(delta: float) -> void:
 					o["pos"] = o["world_pos"] + Vector2(0, sin(o["age"] * 3.0) * 8.0)
 					# 🩷 MINA: la rosada plantada estalla SOLA si el rival pasa cerca -> lo CONGELA.
 					if c == ORB_PINK and _orb_target_near(st, o["world_pos"], ORB_MINE_R):
-						_orb_burst_at(st, ORB_PINK, o["world_pos"])
+						_orb_burst_at(st, ORB_PINK, o["world_pos"], o.get("grounded", false))
 						st["plant_order"].erase(c)
 						o["state"] = OST_ORBIT
 						o["hit_done"] = true
