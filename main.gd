@@ -440,7 +440,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KC"
+	get_window().title = "FG Fighter — build 2026-08-21 KF"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -2336,6 +2336,24 @@ func _apagar_audio() -> void:
 	if is_instance_valid(music_player):
 		music_player.stop()
 		music_player.stream = null
+	# apaga TODO reproductor de audio del árbol (voces/SFX de peleadores, dings, cargas, etc.):
+	# si alguno queda sonando al salir, su playback + stream son el "N ObjectDB / resource in use at exit".
+	var tree := get_tree()
+	if tree == null or not is_instance_valid(tree.root):
+		return
+	for ap in _todos_los_audio(tree.root):
+		if is_instance_valid(ap):
+			ap.stop()
+			ap.stream = null
+
+func _todos_los_audio(n: Node) -> Array:
+	var out := []
+	for c in n.get_children():
+		if c is AudioStreamPlayer or c is AudioStreamPlayer2D or c is AudioStreamPlayer3D:
+			out.append(c)
+		if c.get_child_count() > 0:
+			out.append_array(_todos_los_audio(c))
+	return out
 
 func _favi_action_frames(accion: String) -> Array:
 	for variante in [accion, accion.replace("_", "-")]:
@@ -3279,6 +3297,7 @@ func _build_zetma_frames(skin := "skin-1") -> SpriteFrames:
 		"ground_grab": [105.0, false],   # gancho tipo Scorpion (↓→Q suelo): garfio out ~f49 = 0.47s
 		"orb_cast": [24.0, false],   # ESPECIAL: brazo->cañón carga la orb morada (12f)
 		"air_grab": [105.0, false],      # gancho AÉREO (↓→Q en el aire): garra abajo-adelante
+		"get_pull": [12.0, true],        # VÍCTIMA: cuando a Zetma lo HALAN de un agarre (loop de forcejeo, 3f 0,1,3 — la 2 venía volteada)
 		"victory": [48.0, false],        # VICTORIA: parado, se vira, se quita la máscara, cae el pelo morado (91f ~1.9s, retiene)
 	}
 	if not sf.has_animation("crouch_up"):
