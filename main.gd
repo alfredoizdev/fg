@@ -91,7 +91,7 @@ const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
 const ORB_DMG_BLUE := 45             # daño del 🔵
 const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
-const ORB_MANA_COST := 0.03          # ENERGÍA MALDITA: MOVER esferas gasta POCO (no se agota rápido); los specials futuros gastarán más
+const ORB_MANA_COST := 0.05          # ENERGÍA MALDITA: cada esfera lanzada gasta esto (subido de 0.03); tirar las 3 gasta 3x
 const ORB_CHARGE_WINDUP := 0.26      # 🔵 E: la azul se queda cargada ARRIBA-ATRÁS mientras ella sube el brazo; sale al lanzarlo
 const ORB_CHARGE_BACK := 520.0       # velocidad hacia atrás durante la carga (más ATRÁS, ~135px)
 const ORB_CHARGE_UP := 200.0         # velocidad hacia ARRIBA durante la carga (sube junto a la mano, ~52px)
@@ -440,7 +440,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KG"
+	get_window().title = "FG Fighter — build 2026-08-21 KH"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
