@@ -110,7 +110,8 @@ const ORB_SPIN_DUR := 0.75           # cuánto dura el escudo giratorio
 const ORB_SPIN_R := 260.0            # radio del círculo: la RODEA de la cabeza a los pies
 const ORB_SPIN_BODY_FRAC := 0.42     # centro del círculo = punto entre el origen (pecho) y los pies -> ella queda EN EL MEDIO
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
-const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (los levanta por los aires)
+const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (↓R / salto+R levantan)
+const ORB_PUSH := 240.0              # R (ráfaga): empujón (shove) que corre un poco al rival
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
@@ -437,7 +438,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 JL"
+	get_window().title = "FG Fighter — build 2026-08-21 JN"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -2858,7 +2859,7 @@ func _build_aye_frames() -> SpriteFrames:
 		sf.set_animation_speed("victory", 22.0)    # 45 frames: celebracion + giro (~2s), retiene pose
 	# PUNCH (Q): estocada fuerte con el báculo. 12 frames @ 28fps = ~0.43s. Tuneable.
 	if sf.has_animation("punch") and not _aye_action_frames("punch").is_empty():
-		sf.set_animation_speed("punch", 28.0)
+		sf.set_animation_speed("punch", 46.0)
 	# PUNCH2 (2do golpe de →Q, doble estocada): Aye NO tiene arte propio de punch2 -> REUSA sus frames
 	# de punch. Sin esto, el 2do golpe caía al placeholder de DAM (se "transformaba" en la katana). Mismo ritmo.
 	var aye_p1 := _aye_action_frames("punch")
@@ -2872,13 +2873,13 @@ func _build_aye_frames() -> SpriteFrames:
 			sf.add_frame("punch2", t)
 	# KICK (W) = ICE-GROW cast: alza el báculo alto y vuelve. 33 frames @ 30fps = ~1.1s. Tuneable.
 	if sf.has_animation("kick") and not _aye_action_frames("kick").is_empty():
-		sf.set_animation_speed("kick", 30.0)
+		sf.set_animation_speed("kick", 50.0)
 	# CROUCH_PUNCH (↓Q): jab bajo agachada. 17 frames @ 42fps = ~0.40s (rápido, ágil). Tuneable.
 	if sf.has_animation("crouch_punch") and not _aye_action_frames("crouch_punch").is_empty():
 		sf.set_animation_speed("crouch_punch", 54.0)   # más SNAPPY (17 frames @54 = ~0.31s). Tuneable.
 	# CROUCH_KICK (↓W): gancho ascendente anti-aéreo. 15 frames @ 26fps = ~0.58s (más fluido). Tuneable.
 	if sf.has_animation("crouch_kick") and not _aye_action_frames("crouch_kick").is_empty():
-		sf.set_animation_speed("crouch_kick", 26.0)
+		sf.set_animation_speed("crouch_kick", 44.0)
 	# CROUCH_JAB (↓R): poke bajo agachada con el báculo. 12 frames @ 34fps = ~0.35s (snappy, jab rápido).
 	# guardia→windup→poke PICO(#6, extendido)→hold breve→recupera a guardia baja. Tuneable.
 	if sf.has_animation("crouch_jab") and not _aye_action_frames("crouch_jab").is_empty():
@@ -2886,7 +2887,10 @@ func _build_aye_frames() -> SpriteFrames:
 	# SWEEP (↓E) = ICE-SPIKES cast: giro bajo→release al frente (erupta el hielo, #6)→recover. RÁPIDO.
 	# 10 frames @ 28fps = ~0.36s. Al conectar CONGELA al rival (freeze morado). Tuneable.
 	if sf.has_animation("sweep") and not _aye_action_frames("sweep").is_empty():
-		sf.set_animation_speed("sweep", 28.0)
+		sf.set_animation_speed("sweep", 46.0)
+	# SPIN_KICK (E) de AYE-2: gesto de lanzar el orbe azul -> RÁPIDO (antes usaba el trompo lento de DAM).
+	if sf.has_animation("spin_kick") and not _aye_action_frames("spin_kick").is_empty():
+		sf.set_animation_speed("spin_kick", 46.0)
 	# JUMP_PUNCH (salto+Q): golpe aéreo con el báculo. 14 frames @ 24fps = ~0.58s (cabe en el airtime). Tuneable.
 	if sf.has_animation("jump_punch") and not _aye_action_frames("jump_punch").is_empty():
 		sf.set_animation_speed("jump_punch", 24.0)
@@ -7673,6 +7677,8 @@ func _orb_update(delta: float) -> void:
 				var tc: int = st["throw_queue"].pop_front()
 				if st["orbs"][tc]["state"] == OST_ORBIT:
 					_orb_launch(owner, tc, OMODE_BOOMERANG)
+					if st["orbs"][tc]["state"] == OST_FLIGHT:
+						st["orbs"][tc]["volley"] = true   # R ráfaga: esta esfera EMPUJA al pegar
 				st["throw_t"] = VOLLEY_GAP
 		for c in 3:
 			var o: Dictionary = st["orbs"][c]
@@ -7692,7 +7698,7 @@ func _orb_update(delta: float) -> void:
 					else:
 						o["pos"] += o["vel"] * delta
 						if not o["hit_done"] and _orb_hits_target(st, o) != null:
-							_orb_apply_effect(st, c, true)
+							_orb_apply_effect(st, c, true, "push" if o.get("volley", false) else "normal")
 							o["hit_done"] = true
 						if not o.get("returning", false) and absf(o["pos"].x - center.x) >= ORB_RANGE:
 							o["vel"] = -o["vel"]                 # llegó al alcance -> vuelve
@@ -7759,7 +7765,7 @@ func _orb_update(delta: float) -> void:
 					var ang := PI * 0.5 - fdir * (TAU * ep + float(c) * ANTIAIR_STAGGER)   # abajo -> adelante -> arriba
 					o["pos"] = center + Vector2(cos(ang), sin(ang)) * ANTIAIR_R
 					if not o["hit_done"] and _orb_hits_target(st, o) != null:
-						_orb_apply_effect(st, c, true)   # efecto FULL de su color (🟡 daño / 🩷 congela / 🔵 maná)
+						_orb_apply_effect(st, c, true, "launch")   # ↓R anti-aéreo: LEVANTA al rival
 						o["hit_done"] = true
 					if p >= 1.0:
 						o["state"] = OST_ORBIT
@@ -7770,7 +7776,7 @@ func _orb_update(delta: float) -> void:
 					var spin_c := _orb_body_center(owner)   # centro REAL del cuerpo: ella queda EN EL MEDIO
 					o["pos"] = spin_c + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"])) * ORB_SPIN_R   # círculo real
 					if not o["hit_done"] and _orb_hits_target(st, o) != null:
-						_orb_apply_effect(st, c, true, true)   # full + LANZADOR (los levanta)
+						_orb_apply_effect(st, c, true, "launch")   # salto+R escudo: LEVANTA al rival
 						o["hit_done"] = true
 					if o["age"] >= ORB_SPIN_DUR:
 						o["state"] = OST_ORBIT
@@ -7834,6 +7840,7 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	o["hit_done"] = false
 	o["age"] = 0.0
 	o["returning"] = false
+	o["volley"] = false   # boomerang normal (la ráfaga R lo marca aparte)
 	# 🔵 E (esfera azul en boomerang): CARGA — se echa atrás antes de salir disparada. El resto sale directo.
 	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG) else 0.0
 	if mode == OMODE_BOUNCE:
@@ -7863,7 +7870,7 @@ func _orb_hits_target(st: Dictionary, o: Dictionary) -> Node2D:
 
 # aplica el golpe del orbe (mismo patrón que _process_attacker): reacción + resta HP del lado correcto.
 # full=false -> golpe de IDA al plantar (chip, SIN efecto de color).
-func _orb_apply_effect(st: Dictionary, color: int, full: bool, launch := false) -> void:
+func _orb_apply_effect(st: Dictionary, color: int, full: bool, reaction := "normal") -> void:
 	var owner: Node2D = st["owner"]
 	var tgt: Node2D = dummy if owner == player else player
 	if not is_instance_valid(tgt):
@@ -7871,37 +7878,46 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, launch := false) 
 	var dir: int = signi(int(tgt.global_position.x - owner.global_position.x))
 	if dir == 0:
 		dir = owner.facing
+	var per_color: int = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
 	var dmg: int
 	var res: String
 	if not full:
 		res = tgt.receive_hit(false, false, dir, "kick_impact")   # chip de ida al plantar
 		dmg = PLANT_CHIP
-	elif launch:
-		# ESCUDO GIRATORIO (salto+R): golpe LANZADOR (strong) — los levanta por los aires.
+	elif reaction == "launch":
+		# ↓R / salto+R: golpe LANZADOR (strong) — LEVANTA al rival por los aires.
 		res = tgt.receive_hit(false, true, dir, "kick_impact", false, ORB_SPIN_LAUNCH)
-		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
+		dmg = per_color
+	elif reaction == "push":
+		# R (ráfaga): golpe con EMPUJÓN (shove) — lo empuja un poco hacia atrás.
+		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, false, ORB_PUSH)
+		dmg = per_color
 	elif color == ORB_PINK:
 		# 🩷 congela (freeze = 9º parámetro de receive_hit)
 		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, true)
 		dmg = ORB_DMG_BLUE
 	else:
 		res = tgt.receive_hit(false, false, dir, "kick_impact")
-		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
+		dmg = per_color
 	if res != "hit" and res != "launched" and res != "frozen":
 		return   # bloqueado/ignorado: sin daño
-	# 🩷 esfera rosada: SOLO congela (rival morado). SIN cristal del piso (pedido: que no salga el pilar).
-	_dmg_number(tgt, dmg)
+	# COMBO: cada orbe que pega cuenta como golpe encadenado. Distinto color -> sube el combo;
+	# mismo color seguido -> reinicia (regla de _combo_hit). El daño escalado sale de ahí.
+	var idx: int = 0 if owner == player else 1
+	var aname: String = "orb_yellow" if color == ORB_YELLOW else ("orb_pink" if color == ORB_PINK else "orb_blue")
+	var dmg_real: int = _combo_hit(idx, dmg, aname, tgt.airborne)
+	_dmg_number(tgt, dmg_real)
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
-		if tgt.has_method("apply_orb_slow"):
-			tgt.apply_orb_slow()   # 🔵 deja al rival AZUL y LENTO ~0.5s
+		if reaction == "normal" and tgt.has_method("apply_orb_slow"):
+			tgt.apply_orb_slow()   # 🔵 AZUL y LENTO solo en tiro NORMAL (en push/launch domina el empuje)
 	if tgt == dummy:
-		dummy_hp = maxi(0, dummy_hp - dmg)
+		dummy_hp = maxi(0, dummy_hp - dmg_real)
 		if dummy_hp <= 0:
 			if _round_real(): _end_round(true)
 			else: dummy_hp = hp_max[1]
 	else:
-		player_hp = maxi(0, player_hp - dmg)
+		player_hp = maxi(0, player_hp - dmg_real)
 		if player_hp <= 0:
 			if _round_real(): _end_round(false)
 			else: player_hp = hp_max[0]
@@ -8002,6 +8018,20 @@ func _orb_recall(owner: Node2D, count: int) -> void:
 			o["state"] = OST_RECALL
 			o["hit_done"] = false
 		n += 1
+
+# RECALL POR COLOR: si ESE color está PLANTADO, lo hace volver (Q=amarilla, W=rosada). Devuelve
+# true si lo recogió. La AZUL no usa esto (su botón E hace TELEPORT, no recall).
+func _orb_recall_color(owner: Node2D, color: int) -> bool:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return false
+	var o: Dictionary = st["orbs"][color]
+	if o["state"] != OST_PLANTED:
+		return false
+	o["state"] = OST_RECALL
+	o["hit_done"] = false
+	st["plant_order"].erase(color)
+	return true
 
 func _physics_process(_delta: float) -> void:
 	# PRACTICE (training): salto automático del dummy + su HP clavado en 25%

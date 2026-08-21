@@ -3982,6 +3982,12 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 		return false
 	match accion:
 		"attack":
+			# AYE-2: si la esfera AMARILLA está PLANTADA, Q la RECOGE (recall) en vez de tirar otra.
+			if fx_floral and not airborne:
+				var mby := get_parent()
+				if mby and mby.has_method("_orb_recall_color") and mby._orb_recall_color(self, 0):
+					sprite.play("punch")   # gesto de llamada; el orbe vuelve solo
+					return true
 			if airborne:
 				# AYE-2: el teleport direccional se retiró -> ahora teleporta a la esfera AZUL con E (ver spin_kick).
 				# ZETMA: ↓→Q en el AIRE = AIR GRAB (gancho aéreo que hala hacia él)
@@ -4033,6 +4039,12 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				sprite.play("punch")
 			return true
 		"kick":
+			# AYE-2: si la esfera ROSADA está PLANTADA, W la RECOGE (recall) en vez de tirar otra.
+			if fx_floral and not airborne:
+				var mbp := get_parent()
+				if mbp and mbp.has_method("_orb_recall_color") and mbp._orb_recall_color(self, 1):
+					sprite.play("kick")
+					return true
 			if not airborne:
 				var kdir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var kade := kdir != 0.0 and int(signf(kdir)) == facing
