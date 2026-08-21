@@ -4000,10 +4000,10 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 		return false
 	match accion:
 		"attack":
-			# AYE-2: si la esfera AMARILLA está PLANTADA, Q la RECOGE (recall) en vez de tirar otra.
+			# AYE-2: si la esfera AMARILLA está PLANTADA, Q la DETONA (bomba: estalla en el lugar) en vez de tirar otra.
 			if fx_floral and not airborne:
 				var mby := get_parent()
-				if mby and mby.has_method("_orb_recall_color") and mby._orb_recall_color(self, 0):
+				if mby and mby.has_method("_orb_detonate") and mby._orb_detonate(self, 0):
 					sprite.play("punch")   # gesto de llamada; el orbe vuelve solo
 					return true
 			# AYE-2 ↓↓Q: tira el orbe AMARILLO al PISO (gesto orb_bounce, rebota y planta).
@@ -4062,10 +4062,10 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				sprite.play("punch")
 			return true
 		"kick":
-			# AYE-2: si la esfera ROSADA está PLANTADA, W la RECOGE (recall) en vez de tirar otra.
+			# AYE-2: si la esfera ROSADA está PLANTADA, W la DETONA (pulso de hielo: congela) en vez de tirar otra.
 			if fx_floral and not airborne:
 				var mbp := get_parent()
-				if mbp and mbp.has_method("_orb_recall_color") and mbp._orb_recall_color(self, 1):
+				if mbp and mbp.has_method("_orb_detonate") and mbp._orb_detonate(self, 1):
 					sprite.play("kick")
 					return true
 			# AYE-2 ↓↓W: tira el orbe ROSADO al PISO (gesto orb_bounce).

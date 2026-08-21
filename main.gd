@@ -83,6 +83,8 @@ const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
 const ORB_RANGE := 480.0             # boomerang: alcance CORTO (~2 cuerpos); tiro largo = plantar (PLANT_DIST)
 const PLANT_DIST := 860.0            # plantar: distancia fija de aterrizaje
 const PLANT_TIMEOUT := 8.0           # vida de un plantado antes de auto-volver
+const ORB_DETONATE_R := 300.0        # radio del estallido (🟡 bomba / 🩷 pulso de hielo con W)
+const ORB_MINE_R := 190.0            # 🩷 mina: radio para AUTO-estallar si el rival pasa cerca
 const RECALL_HOLD := 0.25            # mantener R para llamar los 3 (vs tap = 1)
 const ORB_DMG_YELLOW := 100          # daño del 🟡
 const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
@@ -438,7 +440,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 JY"
+	get_window().title = "FG Fighter — build 2026-08-21 KC"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3248,7 +3250,7 @@ func _build_zetma_frames(skin := "skin-1") -> SpriteFrames:
 	# ~90fps -> weak_punch(54f)≈0.6s, kick(59f)≈0.65s, crouch_kick(28f)≈0.31s, spin_kick(31f)≈0.34s.
 	# NO subir pose/walk/crouch (idle/desplazamiento sincronizan con otra cosa). walk 43fps.
 	var reg := {
-		"pose": [26.0, true], "walk": [43.0, true], "jump": [60.0, false],
+		"pose": [30.0, true], "walk": [58.0, true], "jump": [60.0, false],
 		"crouch": [56.0, false], "crouch_up": [56.0, false], "punch": [120.0, false],
 		"kick": [120.0, false], "weak_punch": [120.0, false], "spin_kick": [120.0, false],
 		"crouch_punch": [120.0, false], "sweep": [120.0, false],
@@ -7505,11 +7507,11 @@ func _play_cutin(side: int, caster: Node2D = null) -> void:
 			ctex = "res://imagen-action/aye/sheets/victory-hud-aye-key.png"
 		elif caster.fx_blue:       # Fe: su victory-hud
 			ctex = "res://imagen-action/favi/sheets/victory-hud-fe-key.png"
-		elif caster.fx_dark:       # ZETMA: su cut-in (frame-avatar-screen keyeado); skin-2 = su propio avatar
+		elif caster.fx_dark:       # ZETMA: su cut-in del HUD; skin-2 usa su retrato select_vs_2 (zetma-vs2)
 			ctex = "res://imagen-action/zetma/cutin/zetma-cutin.png"
 			var cskin: String = Sel.p1_skin if caster == player else Sel.p2_skin
-			if cskin == "skin-2" and ResourceLoader.exists("res://imagen-action/zetma/cutin/zetma-cutin2.png"):
-				ctex = "res://imagen-action/zetma/cutin/zetma-cutin2.png"
+			if cskin == "skin-2" and ResourceLoader.exists("res://imagen-action/zetma/sheets/skin-2/zetma-vs2.png"):
+				ctex = "res://imagen-action/zetma/sheets/skin-2/zetma-vs2.png"
 		elif caster.fx_warrior:    # ROUM: su avatar (frame-avatar-screen keyeado)
 			ctex = "res://imagen-action/roum/cutin/roum-cutin.png"
 		if ResourceLoader.exists(ctex):
@@ -7772,7 +7774,13 @@ func _orb_update(delta: float) -> void:
 					# flota fijo con un bob leve; a PLANT_TIMEOUT AUTO-RECALL (vuela de vuelta y pega).
 					o["age"] += delta
 					o["pos"] = o["world_pos"] + Vector2(0, sin(o["age"] * 3.0) * 8.0)
-					if o["age"] >= PLANT_TIMEOUT:
+					# 🩷 MINA: la rosada plantada estalla SOLA si el rival pasa cerca -> lo CONGELA.
+					if c == ORB_PINK and _orb_target_near(st, o["world_pos"], ORB_MINE_R):
+						_orb_burst_at(st, ORB_PINK, o["world_pos"])
+						st["plant_order"].erase(c)
+						o["state"] = OST_ORBIT
+						o["hit_done"] = true
+					elif o["age"] >= PLANT_TIMEOUT:
 						o["state"] = OST_RECALL
 						o["hit_done"] = false
 						st["plant_order"].erase(c)
@@ -8061,6 +8069,51 @@ func _orb_recall_color(owner: Node2D, color: int) -> bool:
 	o["state"] = OST_RECALL
 	o["hit_done"] = false
 	st["plant_order"].erase(color)
+	return true
+
+# ¿el rival del owner está a menos de `r` de una posición del mundo? (para mina/estallido)
+func _orb_target_near(st: Dictionary, pos: Vector2, r: float) -> bool:
+	var owner: Node2D = st["owner"]
+	var tgt: Node2D = dummy if owner == player else player
+	return is_instance_valid(tgt) and not tgt.koed and tgt.global_position.distance_to(pos) < r
+
+# ESTALLIDO en una posición: si el rival está dentro de ORB_DETONATE_R, aplica el efecto del color
+# (🟡 daño / 🩷 congela) + combo, y muestra el VFX. Lo usan el detonar (Q/W) y la mina rosada.
+func _orb_burst_at(st: Dictionary, color: int, pos: Vector2) -> void:
+	_orb_burst_vfx(pos, color)
+	_shake(11.0, 0.12)
+	if _orb_target_near(st, pos, ORB_DETONATE_R):
+		_orb_apply_effect(st, color, true)   # 🟡 daño / 🩷 congela (+ combo + HP)
+
+# VFX del estallido: un flash REDONDO que crece y se desvanece, tinte del color.
+func _orb_burst_vfx(pos: Vector2, color: int) -> void:
+	if orb_mote_tex == null:
+		return
+	var s := Sprite2D.new()
+	s.texture = orb_mote_tex
+	s.global_position = pos
+	s.z_index = 7
+	s.modulate = ORB_TINT[color]
+	add_child(s)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(s, "scale", Vector2(3.2, 3.2), 0.28).from(Vector2(0.4, 0.4))
+	tw.tween_property(s, "modulate:a", 0.0, 0.28).from(1.0)
+	tw.chain().tween_callback(s.queue_free)
+
+# DETONAR (Q🟡 / W🩷): la esfera plantada de ese color ESTALLA en su lugar y vuelve a órbita.
+# Devuelve true si estalló (había una plantada de ese color).
+func _orb_detonate(owner: Node2D, color: int) -> bool:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return false
+	var o: Dictionary = st["orbs"][color]
+	if o["state"] != OST_PLANTED:
+		return false
+	_orb_burst_at(st, color, o["world_pos"])
+	st["plant_order"].erase(color)
+	o["state"] = OST_ORBIT
+	o["hit_done"] = true
 	return true
 
 func _physics_process(_delta: float) -> void:
@@ -9392,28 +9445,41 @@ func _run_air_grab(caster: Node2D) -> void:
 	# 1+2) la garra se EXTIENDE y BUSCA enganchar durante una VENTANA (no un instante). Así ATRAPA
 	# al rival que CAE tras un golpe: antes el chequeo era un único frame y ya lo había pasado / ya
 	# había tocado el piso, y además rechazaba a los JUGGLED (is_downed incluye hit_flying).
-	var GRAB_RANGE := 560.0
+	# ALCANCE del brazo (ajustado al pedido "agarra desde lejísimo"): la garra engancha SOLO al rival
+	# CERCA, no a media pantalla. El brazo telescopea abajo-adelante, así que hacia ABAJO llega un poco
+	# más que de lado, pero MUCHO menos que antes (560→380 lat, 900→520 abajo).
+	var GRAB_RANGE := 380.0
 	var _connected := false
 	var _seek := 0.0
-	while _seek < 0.95 and state == "fight" and not caster.koed \
+	while _seek < 0.55 and state == "fight" and not caster.koed \
 			and String(caster.sprite.animation) == "air_grab":
 		_seek += get_process_delta_time()
-		if _seek >= 0.28 and is_instance_valid(opp) and not opp.koed:
+		if _seek >= 0.22 and is_instance_valid(opp) and not opp.koed:
 			var _gdx: float = opp.position.x - caster.position.x
 			# cuerpos ENCIMADOS cuentan como "al frente" aunque el signo no calce
 			var _gfront: bool = int(signf(_gdx)) == caster.facing or absf(_gdx) < 175.0
 			# AGARRABLE: de pie, en el AIRE o JUGGLED (hit_flying) — NO tirado en el PISO
 			var _grabbable: bool = opp.airborne or opp.hit_flying or not opp.is_downed()
 			var _gdy: float = opp.position.y - caster.position.y   # + = rival ABAJO
-			# el brazo TELESCOPEA lejos abajo-adelante: mucho alcance hacia ABAJO (engancha la caída)
-			if _grabbable and _gfront and absf(_gdx) <= GRAB_RANGE and _gdy >= -280.0 and _gdy <= 900.0:
+			if _grabbable and _gfront and absf(_gdx) <= GRAB_RANGE and _gdy >= -240.0 and _gdy <= 520.0:
 				_connected = true
 				break
 		await get_tree().process_frame
 	if not _connected:
+		# WHIFF: el brazo NO se queda colgado estirado. RECOGE la garra (abre mano y jala de vuelta)
+		# reproduciendo los frames de retracción, LUEGO cae con pose de salto.
 		if is_instance_valid(caster) and String(caster.sprite.animation) == "air_grab":
-			caster.sprite.play("jump")   # WHIFF: apaga el hover -> cae
-			caster.sprite.frame = caster.sprite.sprite_frames.get_frame_count("jump") - 2   # pose de CAÍDA (no el agachado del despegue)
+			var _wf0: int = int(0.72 * float(caster.sprite.sprite_frames.get_frame_count("air_grab")))
+			var _wfN: int = caster.sprite.sprite_frames.get_frame_count("air_grab") - 1
+			caster.sprite.stop()
+			var _wt := 0.0
+			while _wt < 0.22 and is_instance_valid(caster) and String(caster.sprite.animation) == "air_grab":
+				caster.sprite.frame = int(lerpf(float(_wf0), float(_wfN), clampf(_wt / 0.22, 0.0, 1.0)))
+				await get_tree().process_frame
+				_wt += get_process_delta_time()
+			if is_instance_valid(caster) and String(caster.sprite.animation) == "air_grab":
+				caster.sprite.play("jump")   # apaga el hover -> cae
+				caster.sprite.frame = caster.sprite.sprite_frames.get_frame_count("jump") - 2   # pose de CAÍDA
 		caster.input_enabled = was_input
 		caster.ai_enabled = was_ai
 		return
@@ -9538,7 +9604,12 @@ func _spawn_zetma_laser_orb(caster: Node2D) -> void:
 	var dir: int = caster.facing
 	var opp: Node2D = dummy if caster == player else player
 	var arena: Node = caster.get_parent()
-	var fy: float = caster.floor_y
+	# PISO VISUAL = la MISMA línea de pies que usan las sombras del juego: floor_y + 500*base_scale.y
+	# (to_global(Vector2(0,SHADOW_FEET_OFFSET)).y). El láser CAE donde está el rival, así que el piso
+	# se toma del RIVAL (o del caster si no hay). floor_y es el ORIGEN del suelo (constante aunque salte),
+	# por eso NO se suma sprite.offset.y (eso lo hundía por debajo del piso -> el láser "se pasaba").
+	var floor_ref: Node2D = opp if is_instance_valid(opp) else caster
+	var fy: float = floor_ref.floor_y + 500.0 * floor_ref.base_scale.y
 	var tx: float = clampf(caster.position.x + float(dir) * ORB_LASER_DIST, LEFT_LIMIT + 80.0, RIGHT_LIMIT - 80.0)
 	# sonido de energía del orb
 	var _sh := "res://imagen-action/zetma/sound-effect/orb-energy.mp3"
@@ -9557,11 +9628,12 @@ func _spawn_zetma_laser_orb(caster: Node2D) -> void:
 	beam.position = Vector2(tx - bw * 0.5, top_y)
 	beam.z_index = 8
 	arena.add_child(beam)
-	var head := ColorRect.new()            # cabeza brillante que desciende
-	head.color = Color(0.72, 0.92, 2.7, 1.0)
-	head.size = Vector2(bw * 2.4, bw * 2.4)
+	var head := Sprite2D.new()             # punta REDONDA que desciende; al tocar el piso se achata en elipse
+	head.texture = _orb_mote_tex()
+	head.modulate = Color(0.72, 0.92, 2.7, 1.0)
 	head.z_index = 9
 	arena.add_child(head)
+	var _htw: float = max(1.0, float(head.texture.get_width()))
 	var t0 := Time.get_ticks_msec()
 	while true:
 		var p: float = clampf(float(Time.get_ticks_msec() - t0) / 180.0, 0.0, 1.0)
@@ -9569,36 +9641,50 @@ func _spawn_zetma_laser_orb(caster: Node2D) -> void:
 		beam.size.y = hy - top_y
 		beam.color.a = 0.82 + 0.18 * sin(float(Time.get_ticks_msec()) * 0.08)   # flicker eléctrico
 		beam.position.x = tx - bw * 0.5 + randf_range(-3.0, 3.0)                 # jitter eléctrico
-		head.position = Vector2(tx - head.size.x * 0.5 + randf_range(-4.0, 4.0), hy - head.size.y * 0.5)
+		# punta: círculo mientras baja; al LLEGAR AL PISO se achata en ELIPSE tilteada (impacto en el suelo)
+		var _base: float = (bw * 3.4) / _htw
+		head.scale = Vector2(_base * lerpf(1.0, 1.8, p), _base * lerpf(1.0, 0.42, p))
+		head.rotation = deg_to_rad(-18.0 * p)                                    # "de medio lado"
+		head.position = Vector2(tx + randf_range(-3.0, 3.0), hy)
 		if p >= 1.0:
 			break
 		await get_tree().process_frame
-	# 2) IMPACTO en el piso: shake + la línea se apaga y el ORB CRECE DESDE EL PISO (fondo pegado al
-	# suelo, sube hacia arriba). 185.86 = radio visual real del orb (mismo cutoff que el domo).
+	# 2) el láser TOCA el suelo: shake, se queda un beat en el piso, y LUEGO (no antes) brota la
+	# CÚPULA VOID DESDE EL SUELO en ese punto — NO un orb circular flotante. La línea se apaga al brotar.
 	_shake(9.0, 0.12)
+	await get_tree().create_timer(0.10).timeout          # el láser LLEGA y se queda un instante en el piso
+	if state != "fight" or caster.koed:
+		if is_instance_valid(beam): beam.queue_free()
+		if is_instance_valid(head): head.queue_free()
+		return
 	var tb := beam.create_tween(); tb.tween_property(beam, "color:a", 0.0, 0.18); tb.tween_callback(beam.queue_free)
-	var th := head.create_tween(); th.tween_property(head, "color:a", 0.0, 0.16); th.tween_callback(head.queue_free)
-	var orb := _make_void_orb(arena)
-	orb.z_index = 7
-	orb.modulate = Color(0.74, 0.62, 0.92, 1.0)
-	orb.scale = Vector2(0.06, 0.06)
-	orb.position = Vector2(tx, fy - 185.86 * 0.06)         # el FONDO del orb toca el suelo
-	var _gt := 0.0
-	while _gt < 0.34 and is_instance_valid(orb):
-		_gt += get_process_delta_time()
-		var _s: float = lerpf(0.06, 0.82, _ease_out_cubic(clampf(_gt / 0.34, 0.0, 1.0)))
-		orb.scale = Vector2(_s, _s)
-		orb.position = Vector2(tx, fy - 185.86 * _s)      # crece hacia ARRIBA emergiendo del piso
-		await get_tree().process_frame
-	# 3) ATRAPA solo si el rival está EN el punto; si no, el orb se disuelve
+	var th := head.create_tween(); th.tween_property(head, "modulate:a", 0.0, 0.16); th.tween_callback(head.queue_free)
+	# 3) ATRAPA si el rival está EN el punto: la CÚPULA VOID emerge del suelo y lo ENJAULA (drena).
+	# Si no hay nadie ahí, una cúpula breve que BROTA del suelo y se disuelve.
 	if is_instance_valid(opp) and not opp.koed and not opp.is_downed() \
 			and opp.breaker_inv_t <= 0.0 and absf(opp.position.x - tx) < ORB_CATCH_R:
-		_zetma_orb_hit(caster, opp, orb)
-	elif is_instance_valid(orb):
-		var tf := orb.create_tween()
-		tf.tween_interval(0.45)
-		tf.tween_property(orb, "modulate:a", 0.0, 0.28)
-		tf.tween_callback(orb.queue_free)
+		_zetma_orb_hit(caster, opp, null)
+	else:
+		_zetma_floor_dome(arena, tx, fy)
+
+# CÚPULA VOID que BROTA del suelo en un punto (cuando el láser cae y NO atrapa a nadie): crece
+# desde el piso (grow 0->1) y se disuelve hundiéndose. 185.86 = cutoff del círculo -> fondo al piso.
+func _zetma_floor_dome(arena: Node, tx: float, fy: float) -> void:
+	var dome := _make_void_dome(arena)
+	dome.z_index = 10
+	var _dmat: ShaderMaterial = dome.material as ShaderMaterial
+	var dsc := 1.05
+	dome.scale = Vector2(dsc, dsc)
+	dome.position = Vector2(tx, fy - 185.86 * dsc)       # el FONDO de la cúpula queda en el suelo
+	var st := 0.0
+	while st < 0.95 and is_instance_valid(dome):
+		st += get_process_delta_time()
+		var g: float = clampf(st / 0.16, 0.0, 1.0)       # BROTA del suelo de golpe
+		if st > 0.62:
+			g = clampf((0.95 - st) / 0.33, 0.0, 1.0)     # se cierra/hunde al final
+		if _dmat != null: _dmat.set_shader_parameter("grow", g)
+		await get_tree().process_frame
+	if is_instance_valid(dome): dome.queue_free()
 
 func _make_void_orb(arena: Node) -> Sprite2D:
 	if void_orb_shader == null:
