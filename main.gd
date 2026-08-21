@@ -440,7 +440,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KF"
+	get_window().title = "FG Fighter — build 2026-08-21 KG"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -6058,12 +6058,12 @@ func _run_roum_ultra(atacante: Node2D, idx: int) -> void:
 	victima.airborne = false
 	victima.hit_flying = false
 	atacante.set_facing(dir)
-	atacante.position = Vector2(clampf(victima.position.x - float(dir) * 250.0, LEFT_LIMIT, RIGHT_LIMIT), gy)
+	atacante.position = Vector2(clampf(victima.position.x - float(dir) * PU_GAP, LEFT_LIMIT, RIGHT_LIMIT), gy)
 	if atacante.sprite.sprite_frames.has_animation("ground_grab"):
 		atacante.sprite.speed_scale = 1.0
 		atacante.sprite.play("ground_grab")
 	victima.set_facing(-dir)
-	victima.position = Vector2(clampf(atacante.position.x + float(dir) * 250.0, LEFT_LIMIT, RIGHT_LIMIT), gy)
+	victima.position = Vector2(clampf(atacante.position.x + float(dir) * PU_GAP, LEFT_LIMIT, RIGHT_LIMIT), gy)
 	victima.sprite.play("pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit")
 	await get_tree().create_timer(0.22).timeout
 	# RÁFAGA de suelo: fija la POSE DE IMPACTO de cada clip (145f) y acelera el ritmo
@@ -6075,7 +6075,7 @@ func _run_roum_ultra(atacante: Node2D, idx: int) -> void:
 		var anim: String = ROUM_ULTRA_SEQ[i][0]
 		var hitfrac: float = ROUM_ULTRA_SEQ[i][1]
 		atacante.set_facing(dir)
-		atacante.position = Vector2(clampf(victima.position.x - float(dir) * 250.0, LEFT_LIMIT, RIGHT_LIMIT), gy)
+		atacante.position = Vector2(clampf(victima.position.x - float(dir) * PU_GAP, LEFT_LIMIT, RIGHT_LIMIT), gy)
 		if atacante.sprite.sprite_frames.has_animation(anim):
 			atacante.sprite.play(anim)
 			atacante.sprite.speed_scale = 0.0
@@ -8115,21 +8115,27 @@ func _orb_burst_at(st: Dictionary, color: int, pos: Vector2) -> void:
 	if _orb_target_near(st, pos, ORB_DETONATE_R):
 		_orb_apply_effect(st, color, true)   # 🟡 daño / 🩷 congela (+ combo + HP)
 
-# VFX del estallido: un flash REDONDO que crece y se desvanece, tinte del color.
+# VFX del estallido: un flash REDONDO GRANDE que crece y se desvanece, tinte del color.
 func _orb_burst_vfx(pos: Vector2, color: int) -> void:
-	if orb_mote_tex == null:
+	var tex := _orb_mote_tex()   # crea la textura si aún no existe (aye2 no la tenía -> no se veía la bomba)
+	if tex == null:
 		return
-	var s := Sprite2D.new()
-	s.texture = orb_mote_tex
-	s.global_position = pos
-	s.z_index = 7
-	s.modulate = ORB_TINT[color]
-	add_child(s)
-	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(s, "scale", Vector2(3.2, 3.2), 0.28).from(Vector2(0.4, 0.4))
-	tw.tween_property(s, "modulate:a", 0.0, 0.28).from(1.0)
-	tw.chain().tween_callback(s.queue_free)
+	var col: Color = ORB_TINT[color]
+	# doble capa: un halo grande tenue + un núcleo brillante -> lee como EXPLOSIÓN
+	for capa in 2:
+		var s := Sprite2D.new()
+		s.texture = tex
+		s.global_position = pos
+		s.z_index = 7
+		var boost := 1.9 if capa == 0 else 1.3
+		s.modulate = Color(col.r * boost, col.g * boost, col.b * boost, 1.0)
+		add_child(s)
+		var big := 13.0 if capa == 0 else 8.0
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(s, "scale", Vector2(big, big), 0.30).from(Vector2(1.5, 1.5))
+		tw.tween_property(s, "modulate:a", 0.0, 0.30).from(1.0)
+		tw.chain().tween_callback(s.queue_free)
 
 # DETONAR (Q🟡 / W🩷): la esfera plantada de ese color ESTALLA en su lugar y vuelve a órbita.
 # Devuelve true si estalló (había una plantada de ese color).
