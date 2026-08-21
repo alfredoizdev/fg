@@ -366,6 +366,14 @@ var pause_plates: Array = []       # barras de resalte (Panel) de cada opción
 var pause_accent := Color(1.7, 0.35, 0.22)   # color del personaje (rojo DAM / azul Fe)
 var pause_sel := 0
 var pause_owner := 0               # quién ABRIÓ la pausa: 0 = P1 (ESC) · 1 = P2 (START del mando)
+# ---- MENÚ DE FIN DE MATCH (sidebar IZQUIERDO, solo VS CPU) ----
+var matchover_root: Control = null
+var matchover_items: Array = []
+var matchover_plates: Array = []
+var matchover_sub_lbl: Label = null
+var matchover_sel := 0
+const MATCHOVER_LABELS := ["REMATCH", "SELECT CHARACTERS", "MAIN MENU"]
+const MATCHOVER_PANEL := Rect2(60, 210, 560, 660)   # sidebar a la IZQUIERDA
 var pause_in_combos := false       # true = viendo la sublista de COMBOS
 # --- PRACTICE (dentro de la pausa): toggles de comportamiento del DUMMY ---
 var pause_in_practice := false     # true = viendo el sub-panel PRACTICE
@@ -430,7 +438,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KK"
+	get_window().title = "FG Fighter — build 2026-08-21 KO"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1945,10 +1953,127 @@ func _rematch() -> void:
 		pause_combos.visible = false
 	if pause_root != null:
 		pause_root.visible = false
+	if matchover_root != null:
+		matchover_root.visible = false
 	wins_p1 = 0
 	wins_p2 = 0
 	round_num = 1
 	_start_round()
+
+# ==== MENÚ DE FIN DE MATCH (sidebar IZQUIERDO, solo VS CPU) ====
+func _build_matchover() -> void:
+	if matchover_root != null:
+		return
+	var root := Control.new()
+	root.position = Vector2.ZERO
+	root.size = Vector2(1920, 1080)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.z_index = 121                        # sobre HUD/peleadores
+	root.visible = false
+	$UI.add_child(root)
+	matchover_root = root
+	var veil := ColorRect.new()               # velo suave: deja ver la pelea detrás
+	veil.color = Color(0.02, 0.02, 0.06, 0.55)
+	veil.position = Vector2.ZERO; veil.size = Vector2(1920, 1080)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(veil)
+	var glass := Panel.new()                  # panel de cristal violeta (firma SF6) a la IZQUIERDA
+	glass.position = MATCHOVER_PANEL.position
+	glass.size = MATCHOVER_PANEL.size
+	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_theme_stylebox_override("panel",
+		_pause_glass_style(Color(0.10, 0.04, 0.18, 0.92), Color(0.82, 0.55, 1.0, 0.9), 22, 1.0))
+	root.add_child(glass)
+	var ttl := Label.new()
+	ttl.add_theme_font_override("font", combo_font)
+	ttl.add_theme_font_size_override("font_size", 44)
+	ttl.add_theme_color_override("font_color", Color(1, 1, 1))
+	ttl.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.12, 0.9))
+	ttl.add_theme_constant_override("outline_size", 5)
+	ttl.text = "MATCH OVER"
+	ttl.position = Vector2(0, 34); ttl.size = Vector2(MATCHOVER_PANEL.size.x, 60)
+	ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ttl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(ttl)
+	var sub := Label.new()                    # GANADOR
+	sub.add_theme_font_size_override("font_size", 30)
+	sub.add_theme_color_override("font_color", Color(1.6, 0.5, 0.9))
+	sub.position = Vector2(0, 104); sub.size = Vector2(MATCHOVER_PANEL.size.x, 40)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(sub)
+	matchover_sub_lbl = sub
+	matchover_items.clear(); matchover_plates.clear()
+	var row_x := 50.0
+	var row_w := MATCHOVER_PANEL.size.x - 100.0
+	var row_h := 68.0
+	for i in MATCHOVER_LABELS.size():
+		var ry := 210.0 + float(i) * 96.0
+		var bar := Panel.new()
+		bar.position = Vector2(row_x, ry); bar.size = Vector2(row_w, row_h)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.add_theme_stylebox_override("panel",
+			_pause_glass_style(Color(1.0, 0.95, 1.0, 0.16), Color(0.9, 0.68, 1.0, 0.85), 12, 0.0))
+		bar.visible = false
+		glass.add_child(bar)
+		matchover_plates.append(bar)
+		var lab := Label.new()
+		lab.add_theme_font_override("font", combo_font)
+		lab.add_theme_font_size_override("font_size", 34)
+		lab.add_theme_color_override("font_color", Color(0.72, 0.68, 0.82))
+		lab.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.12, 0.8))
+		lab.add_theme_constant_override("outline_size", 4)
+		lab.position = Vector2(row_x, ry); lab.size = Vector2(row_w, row_h)
+		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lab.text = MATCHOVER_LABELS[i]
+		glass.add_child(lab)
+		matchover_items.append(lab)
+	var hint := Label.new()
+	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_color_override("font_color", Color(0.8, 0.7, 1.0))
+	hint.text = "↑ ↓  SELECT     ENTER  CONFIRM"
+	hint.position = Vector2(0, MATCHOVER_PANEL.size.y - 56); hint.size = Vector2(MATCHOVER_PANEL.size.x, 34)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(hint)
+
+func _open_matchover(player_won: bool) -> void:
+	_build_matchover()
+	Engine.time_scale = 1.0
+	_set_inputs(false)
+	dummy.ai_enabled = false
+	state = "matchover"
+	matchover_sel = 0
+	var win_id: String = selected_char if player_won else cpu_char   # VS CPU: P1 = jugador
+	var wname := win_id.to_upper()
+	for c in CHARS:
+		if String(c["id"]) == win_id:
+			wname = String(c["name"]); break
+	if matchover_sub_lbl != null:
+		matchover_sub_lbl.text = wname + " WINS"
+	matchover_root.visible = true
+	_matchover_refresh()
+
+func _matchover_refresh() -> void:
+	for i in matchover_items.size():
+		var selq := i == matchover_sel
+		(matchover_items[i] as Label).add_theme_color_override("font_color", Color(1, 1, 1) if selq else Color(0.72, 0.68, 0.82))
+		(matchover_plates[i] as Panel).visible = selq
+
+func _matchover_confirm() -> void:
+	if matchover_root != null:
+		matchover_root.visible = false
+	match matchover_sel:
+		0:
+			_rematch()                         # mismos personajes, reinicia el combate
+		1:
+			Sel.configured = false             # SELECT CHARACTERS -> pantalla de selección
+			get_tree().change_scene_to_file("res://char_select.tscn")
+		2:
+			Sel.configured = false             # MAIN MENU -> título
+			get_tree().change_scene_to_file("res://title.tscn")
 
 # ---- MODAL de CHOOSE STAGE (dentro de la pausa) ----
 func _build_stage_modal() -> void:
@@ -3260,6 +3385,7 @@ func _build_zetma_frames(skin := "skin-1") -> SpriteFrames:
 	# NO subir pose/walk/crouch (idle/desplazamiento sincronizan con otra cosa). walk 43fps.
 	var reg := {
 		"pose": [30.0, true], "walk": [58.0, true], "jump": [60.0, false],
+		"jump_spin_f": [120.0, false],   # MORTAL al saltar ADELANTE (los golpes aéreos lo cancelan)
 		"crouch": [56.0, false], "crouch_up": [56.0, false], "punch": [120.0, false],
 		"kick": [120.0, false], "weak_punch": [120.0, false], "spin_kick": [120.0, false],
 		"crouch_punch": [120.0, false], "sweep": [120.0, false],
@@ -3920,6 +4046,7 @@ func _start_round() -> void:
 			_f.koed = false
 			_f.ultra_hover = false
 			_f.hit_flying = false
+			_f.z_index = 0        # z-order parejo al arrancar (el ganador se trae al frente al terminar)
 			if _f.sprite != null:
 				_f.sprite.rotation = 0.0
 	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
@@ -8383,6 +8510,23 @@ func _physics_process(_delta: float) -> void:
 			pause_root.visible = true
 			state = "pause"
 		return
+	if state == "matchover":
+		# sidebar de fin de match (VS CPU): ↑↓ elige, ENTER/Q confirma. Acepta teclado (P1) y mando (P2).
+		var mpulse := 0.72 + 0.28 * absf(sin(float(Time.get_ticks_msec()) / 1000.0 * 4.0))
+		if matchover_sel < matchover_plates.size():
+			(matchover_plates[matchover_sel] as Panel).self_modulate = Color(1, 1, 1, mpulse)
+		var md := 0
+		if Input.is_action_just_pressed("ui_up") or Input.is_action_just_pressed("ui_up_p2"):
+			md = -1
+		if Input.is_action_just_pressed("ui_down") or Input.is_action_just_pressed("ui_down_p2"):
+			md = 1
+		if md != 0:
+			matchover_sel = posmod(matchover_sel + md, matchover_items.size())
+			_matchover_refresh()
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept") \
+				or Input.is_action_just_pressed("attack_p2"):
+			_matchover_confirm()
+		return
 	if state == "pause":
 		# animación en tiempo REAL (el juego está en time_scale 0): líneas manga ciclan
 		# y la placa activa PULSA. Time.get_ticks_msec NO se ve afectado por time_scale.
@@ -9649,6 +9793,7 @@ func _run_orb_cast(caster: Node2D) -> void:
 	var opp: Node2D = dummy if caster == player else player
 	if is_instance_valid(opp):
 		caster.set_facing(1 if opp.position.x >= caster.position.x else -1)
+	caster.z_index = 1   # el CASTER al FRENTE durante su ultra (si no, el rival —Dummy/CPU— lo tapaba)
 	caster.sprite.play("orb_cast")
 	# VOZ robótica del súper ("VOID ORB"), estilo char-select, al LANZARLO
 	if voz_player != null and ResourceLoader.exists("res://imagen-action/zetma/sound-effect/VOID_ORB.mp3"):
@@ -9666,6 +9811,7 @@ func _run_orb_cast(caster: Node2D) -> void:
 	# (sin culatazo: ya no hay disparo que lo empuje)
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
+	caster.z_index = 0   # restaura el z-order normal al terminar el ultra
 	if is_instance_valid(caster) and not caster.koed and String(caster.sprite.animation) == "orb_cast":
 		caster.sprite.play("pose")
 
@@ -11049,6 +11195,11 @@ func _end_round(player_won: bool) -> void:
 	_rage_end(0)   # el BERSERK muere con la ronda (la rabia restante se conserva)
 	_rage_end(1)
 	var loser: Node = dummy if player_won else player
+	# Z-ORDER: el GANADOR al FRENTE. Por defecto Dummy (CPU) se dibuja ENCIMA (se agrega después en
+	# la escena), así que si ganaba el jugador quedaba TAPADO por el rival (sobre todo vs ROUM, ancho).
+	var winner: Node2D = player if player_won else dummy
+	winner.z_index = 1
+	(loser as Node2D).z_index = 0
 	if player_won:
 		wins_p1 += 1
 	else:
@@ -11194,6 +11345,11 @@ func _end_round(player_won: bool) -> void:
 		_show_round_band("VICTORY", 2.6)
 		_play_voz("victory")
 		await get_tree().create_timer(3.0).timeout
+		# VS CPU: en vez de volver solo al título, MENÚ de fin de match (sidebar izquierdo):
+		# REMATCH · SELECT CHARACTERS · MAIN MENU. Otros modos mantienen el retorno automático.
+		if Sel.mode == "vs_cpu":
+			_open_matchover(player_won)
+			return
 		wins_p1 = 0
 		wins_p2 = 0
 		round_num = 1

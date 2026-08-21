@@ -3215,6 +3215,10 @@ func _physics_process(delta: float) -> void:
 				and sprite.sprite_frames.has_animation("neutral_spin") \
 				and sprite.sprite_frames.get_frame_count("neutral_spin") > 8:
 			sprite.play("neutral_spin")
+		elif fx_dark and _dirj != 0.0 and signi(int(_dirj)) == facing \
+				and sprite.sprite_frames.has_animation("jump_spin_f") \
+				and sprite.sprite_frames.get_frame_count("jump_spin_f") > 8:
+			sprite.play("jump_spin_f")   # ZETMA: MORTAL adelante. Los golpes aéreos lo cancelan (no está en la lista de bloqueo)
 		else:
 			sprite.play("jump")
 			# ZETMA: su clip de salto trae ~50 frames de AGACHARSE antes del despegue; la
