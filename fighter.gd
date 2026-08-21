@@ -985,6 +985,10 @@ func _do_antiair() -> void:   # ↓R: las 3 esferas barren un arco amplio hacia 
 	var mb := get_parent()
 	if mb != null and mb.has_method("_orb_antiair"):
 		mb._orb_antiair(self)
+func _do_spin() -> void:   # salto+R: las 3 esferas giran en círculo alrededor de Aye (escudo, levanta al tocar)
+	var mb := get_parent()
+	if mb != null and mb.has_method("_orb_spin"):
+		mb._orb_spin(self)
 
 func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
@@ -2879,7 +2883,14 @@ func _physics_process(delta: float) -> void:
 	# ORBES DE AYE-2: RECALL con R (weak_punch). tap = 1 (más viejo) · hold ≥ ORB_RECALL_HOLD = los 3.
 	if fx_floral and _es_humano() and input_enabled:
 		if Input.is_action_pressed(act("weak_punch")):
-			if crouching:
+			if airborne:
+				# salto+R = ESCUDO GIRATORIO: las 3 esferas giran en círculo alrededor de Aye; si tocan, LEVANTAN (1 vez por press).
+				if not _orb_antiair_done:
+					_do_spin()
+					_orb_antiair_done = true
+				_orb_recall_held = 0.0   # no cuenta como recall
+				_orb_recall_hold_done = false
+			elif crouching:
 				# ↓R = ANTI-AÉREO: las 3 esferas barren un arco amplio hacia arriba y vuelven (1 vez por press).
 				if not _orb_antiair_done:
 					_do_antiair()

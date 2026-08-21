@@ -76,7 +76,7 @@ var mana_was_full := [false, false]  # estado full del frame anterior (detecta e
 # Ver docs/superpowers/specs/2026-08-20-aye-orb-system-design.md
 enum { ORB_YELLOW, ORB_PINK, ORB_BLUE }                                          # índice de color
 const ORB_TINT := [Color(1.0, 0.85, 0.25), Color(1.0, 0.45, 0.72), Color(0.4, 0.62, 1.0)]  # 🟡🩷🔵
-enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL, OST_SWEEP } # estado del orbe (SWEEP = anti-aéreo ↓R)
+enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL, OST_SWEEP, OST_SPIN } # estado del orbe (SWEEP = anti-aéreo ↓R · SPIN = escudo giratorio salto+R)
 enum { OMODE_BOOMERANG, OMODE_PLANT }                                            # modo de un lanzamiento
 const ORB_ORBIT_R := 90.0            # radio de la órbita alrededor de Aye
 const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
@@ -97,6 +97,11 @@ const ANTIAIR_CX := 60.0             # pivote del arco: adelante de Aye
 const ANTIAIR_CY := 230.0            # pivote del arco: ARRIBA de Aye (el barrido sube por acá)
 const ANTIAIR_DUR := 0.6             # duración del arco completo (rápido, anti-aéreo)
 const ANTIAIR_STAGGER := 0.45        # desfase angular entre las 3 -> arco AMPLIO (no un solo punto)
+# ESCUDO GIRATORIO (salto+R): las 3 giran en CÍRCULO cerrado alrededor de Aye; si tocan, LEVANTAN al rival.
+const ORB_SPIN_DUR := 0.75           # cuánto dura el escudo giratorio
+const ORB_SPIN_R := 155.0            # radio del círculo (más ancho que la órbita normal -> escudo)
+const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
+const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (los levanta por los aires)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
 var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
@@ -7649,11 +7654,21 @@ func _orb_update(delta: float) -> void:
 						o["hit_done"] = true
 					if p >= 1.0:
 						o["state"] = OST_ORBIT
+				OST_SPIN:
+					# ESCUDO GIRATORIO (salto+R): círculo CERRADO alrededor de Aye, gira rápido; si toca, LEVANTA.
+					o["age"] += delta
+					o["orbit_ang"] += delta * ORB_SPIN_SPEED   # gira RÁPIDO (encima del giro base)
+					o["pos"] = center + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"])) * ORB_SPIN_R   # círculo real
+					if not o["hit_done"] and _orb_hits_target(st, o) != null:
+						_orb_apply_effect(st, c, true, true)   # full + LANZADOR (los levanta)
+						o["hit_done"] = true
+					if o["age"] >= ORB_SPIN_DUR:
+						o["state"] = OST_ORBIT
 			spr.global_position = o["pos"]
 			spr.visible = true
 			# ESTELA: al VIAJAR arrastra fantasmas por posiciones recientes; en reposo, ocultos.
 			var ghs: Array = st["ghosts"][c]
-			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL or o["state"] == OST_SWEEP:
+			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL or o["state"] == OST_SWEEP or o["state"] == OST_SPIN:
 				o["hist"].push_front(o["pos"])
 				if o["hist"].size() > 8:
 					o["hist"].resize(8)
@@ -7724,7 +7739,7 @@ func _orb_hits_target(st: Dictionary, o: Dictionary) -> Node2D:
 
 # aplica el golpe del orbe (mismo patrón que _process_attacker): reacción + resta HP del lado correcto.
 # full=false -> golpe de IDA al plantar (chip, SIN efecto de color).
-func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
+func _orb_apply_effect(st: Dictionary, color: int, full: bool, launch := false) -> void:
 	var owner: Node2D = st["owner"]
 	var tgt: Node2D = dummy if owner == player else player
 	if not is_instance_valid(tgt):
@@ -7737,6 +7752,10 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
 	if not full:
 		res = tgt.receive_hit(false, false, dir, "kick_impact")   # chip de ida al plantar
 		dmg = PLANT_CHIP
+	elif launch:
+		# ESCUDO GIRATORIO (salto+R): golpe LANZADOR (strong) — los levanta por los aires.
+		res = tgt.receive_hit(false, true, dir, "kick_impact", false, ORB_SPIN_LAUNCH)
+		dmg = ORB_DMG_YELLOW if color == ORB_YELLOW else ORB_DMG_BLUE
 	elif color == ORB_PINK:
 		# 🩷 congela (freeze = 9º parámetro de receive_hit)
 		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, true)
@@ -7772,6 +7791,19 @@ func _orb_antiair(owner: Node2D) -> void:
 		if o["state"] != OST_ORBIT:
 			continue   # solo participan las disponibles (las en vuelo/plantadas no)
 		o["state"] = OST_SWEEP
+		o["age"] = 0.0
+		o["hit_done"] = false
+
+# ESCUDO GIRATORIO (salto+R): las 3 esferas EN ÓRBITA giran en círculo cerrado (OST_SPIN); si tocan, LEVANTAN.
+func _orb_spin(owner: Node2D) -> void:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return
+	for c in 3:
+		var o: Dictionary = st["orbs"][c]
+		if o["state"] != OST_ORBIT:
+			continue   # solo las disponibles
+		o["state"] = OST_SPIN
 		o["age"] = 0.0
 		o["hit_done"] = false
 
