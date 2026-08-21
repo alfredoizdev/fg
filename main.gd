@@ -89,7 +89,7 @@ const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
 const ORB_DMG_BLUE := 45             # daño del 🔵
 const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
-const ORB_MANA_COST := 0.08          # ENERGÍA MALDITA: cada esfera que tira gasta esto (tirar las 3 gasta 3x); se recupera con el tiempo
+const ORB_MANA_COST := 0.03          # ENERGÍA MALDITA: MOVER esferas gasta POCO (no se agota rápido); los specials futuros gastarán más
 const ORB_CHARGE_WINDUP := 0.26      # 🔵 E: la azul se queda cargada ARRIBA-ATRÁS mientras ella sube el brazo; sale al lanzarlo
 const ORB_CHARGE_BACK := 520.0       # velocidad hacia atrás durante la carga (más ATRÁS, ~135px)
 const ORB_CHARGE_UP := 200.0         # velocidad hacia ARRIBA durante la carga (sube junto a la mano, ~52px)
@@ -103,7 +103,7 @@ const ANTIAIR_STAGGER := 0.7         # desfase angular entre las 3 -> se ven sep
 # ESCUDO GIRATORIO (salto+R): las 3 giran en CÍRCULO cerrado alrededor de Aye; si tocan, LEVANTAN al rival.
 const ORB_SPIN_DUR := 0.75           # cuánto dura el escudo giratorio
 const ORB_SPIN_R := 260.0            # radio del círculo: la RODEA de la cabeza a los pies
-const ORB_SPIN_UP := 0.0             # centro del círculo = su cuerpo (las esferas la RODEAN, NO arriba)
+const ORB_SPIN_BODY_FRAC := 0.42     # centro del círculo = punto entre el origen (pecho) y los pies -> ella queda EN EL MEDIO
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (los levanta por los aires)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
@@ -7675,7 +7675,7 @@ func _orb_update(delta: float) -> void:
 					# ESCUDO GIRATORIO (salto+R): círculo CERRADO alrededor de Aye, gira rápido; si toca, LEVANTA.
 					o["age"] += delta
 					o["orbit_ang"] += delta * ORB_SPIN_SPEED   # gira RÁPIDO (encima del giro base)
-					var spin_c := center - Vector2(0, ORB_SPIN_UP)   # centro ARRIBA: ella abajo, esferas girando encima
+					var spin_c := _orb_body_center(owner)   # centro REAL del cuerpo: ella queda EN EL MEDIO
 					o["pos"] = spin_c + Vector2(cos(o["orbit_ang"]), sin(o["orbit_ang"])) * ORB_SPIN_R   # círculo real
 					if not o["hit_done"] and _orb_hits_target(st, o) != null:
 						_orb_apply_effect(st, c, true, true)   # full + LANZADOR (los levanta)
@@ -7821,6 +7821,18 @@ func _orb_spend_available(owner: Node2D, st: Dictionary) -> Array:
 		return []
 	_mana_spend(owner, avail.size() * ORB_MANA_COST)
 	return avail
+
+# centro REAL del cuerpo del fighter (para centrar el escudo giratorio): punto entre el ORIGEN
+# (que en Aye queda a la altura del pecho) y la LÍNEA DE PIES. Así ella queda EN EL MEDIO del círculo.
+func _orb_body_center(owner: Node2D) -> Vector2:
+	var oy: float = owner.global_position.y
+	var spr = owner.get("sprite")
+	if spr != null:
+		# línea de pies en mundo (igual receta que sombras/polvo): (500 + offset) * base_scale.y
+		var feet_local: float = (500.0 + spr.offset.y) * owner.base_scale.y
+		var feet_y: float = owner.to_global(Vector2(0, feet_local)).y
+		oy = lerpf(owner.global_position.y, feet_y, ORB_SPIN_BODY_FRAC)
+	return Vector2(owner.global_position.x, oy)
 
 # ANTI-AÉREO (↓R): las 3 esferas que estén EN ÓRBITA barren un arco amplio hacia arriba (OST_SWEEP) y vuelven.
 func _orb_antiair(owner: Node2D) -> void:
