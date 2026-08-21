@@ -11269,7 +11269,7 @@ func _end_round(player_won: bool) -> void:
 	ko_red.color.a = 0.0
 	ko_lines.visible = false
 	await get_tree().create_timer(0.7).timeout
-	var winner: Node2D = player if player_won else dummy
+	# winner ya está declarado arriba (bloque z-order) -> acá se REUSA (no redeclarar)
 	if player_won:
 		player.celebrate()
 	else:
