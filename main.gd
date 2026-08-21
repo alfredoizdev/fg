@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KT"
+	get_window().title = "FG Fighter — build 2026-08-21 KV"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3268,6 +3268,16 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 		sf.set_animation_speed("jump_spin", maxf(1.0, float(js.size()) / 0.8))   # ~0.8s de giro
 		for t in js:
 			sf.add_frame("jump_spin", t)
+	# CAST_ULTRA (súper corto): Aye mueve las manos y castea. Clip propio (no es anim de DAM).
+	var cu := _aye2_action_frames("cast_ultra", skin)
+	if not cu.is_empty():
+		if not sf.has_animation("cast_ultra"):
+			sf.add_animation("cast_ultra")
+		sf.clear("cast_ultra")
+		sf.set_animation_loop("cast_ultra", false)
+		sf.set_animation_speed("cast_ultra", maxf(1.0, float(cu.size()) / 2.4))   # ~2.4s de casteo (la coreo controla el ritmo)
+		for t in cu:
+			sf.add_frame("cast_ultra", t)
 	# ORB_BOUNCE (↓↓ Q/W/E): gesto DE PIE que tira el orbe al PISO. Anim PROPIA (no un slot de botón):
 	# las 3 teclas la reproducen; el color lo decide el botón. Velocidad = ~0.5s sin importar los frames.
 	var bnc := _aye2_action_frames("orb_bounce", skin)
@@ -5153,6 +5163,155 @@ func _run_crystal_flurry(atacante: Node2D, idx: int) -> void:
 	atacante.sprite.play("pose")           # se para tras el uppercut
 	_set_inputs(true)
 	dummy.ai_enabled = dummy_ai_mode
+
+# ---- AYE-2: ULTRA CORTO "PRISM STORM" (→ R · 2 barras + combo + rival en ROJO) ----
+# Aye castea (mueve las manos) y sus orbes ROSADOS machacan al rival en el AIRE (juggle); luego lo
+# CONGELA en el aire con la rosada y remata con su ANTI-AÉREO (↑R): lo LEVANTA recto arriba y lo deja CAER.
+func try_aye_ultra(atacante: Node2D) -> bool:
+	if state != "fight" or ultra_active:
+		return false
+	if atacante.airborne or atacante.hit_flying or atacante.position.y < atacante.floor_y - 4.0:
+		return false
+	var idx := 0 if atacante == player else 1
+	if meter[idx] < 2.0:
+		return false
+	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
+		return false
+	var vhp: int = dummy_hp if idx == 0 else player_hp
+	if float(vhp) > float(hp_max[1 - idx]) * 0.25:
+		return false
+	var victima: Node2D = dummy if idx == 0 else player
+	if absf(victima.position.x - atacante.position.x) > 560.0:
+		return false
+	meter[idx] -= 2.0
+	_run_aye_ultra(atacante, idx)
+	return true
+
+func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
+	var victima: Node2D = dummy if idx == 0 else player
+	var dir := 1 if victima.position.x >= atacante.position.x else -1
+	ultra_active = true
+	_ultra_banner_name = "PRISM STORM"
+	state = "ultra"
+	_set_inputs(false)
+	dummy.ai_enabled = false
+	atacante.buffer_t = 0.0
+	atacante.special_t = 0.0
+	atacante.airborne = false
+	atacante.crouching = false
+	atacante.set_facing(dir)
+	_focus_start(atacante)
+	_focus_set(0.4)
+	# grito (reusa la voz del súper de Aye si existe) + cut-in
+	var vult := "res://imagen-action/aye/sound-effect/crystal_flurry_Cupcake_Eleven_v3_019ff390-2631-7f3d-8d53-c74ae4ef5664.mp3"
+	if ResourceLoader.exists(vult):
+		atacante.voz_player.stream = load(vult)
+		atacante.voz_player.pitch_scale = 1.0
+		atacante.voz_player.play()
+	var combo_x: float = float(combo_rest_x[idx])
+	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)
+	atacante.sprite.play("cast_ultra")
+	atacante.position.x = clampf(victima.position.x - float(dir) * 300.0, LEFT_LIMIT, RIGHT_LIMIT)
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.9, 0.35, 1.4, 0.30)
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(1.0, true, false, true).timeout
+	Engine.time_scale = 1.0
+	# ---- FASE 1: orbes ROSADOS juggle en el AIRE (mientras Aye mueve las manos) ----
+	var n0: int = combo_n[idx]
+	var base_y: float = victima.floor_y - 330.0
+	var HITS := 8
+	var crit_total := int(hp_max[1 - idx] * 0.30)
+	var dealt := 0
+	victima.ultra_hover = true
+	victima.airborne = true
+	victima.hit_flying = true
+	victima.crouching = false
+	victima.frozen_t = 0.0
+	victima.set_facing(-dir)
+	for h in HITS:
+		if state != "ultra" or not is_instance_valid(victima):
+			break
+		atacante.set_facing(dir)
+		victima.vel_x = 0.0
+		victima.vel_y = 0.0
+		victima.position.y = base_y - float(h) * 8.0 + sin(float(h) * 1.4) * 14.0
+		if victima.sprite.sprite_frames.has_animation("hit_fly") and String(victima.sprite.animation) != "hit_fly":
+			victima.sprite.play("hit_fly")
+		_orb_burst_vfx(victima.global_position, ORB_PINK)   # orbe ROSADO estalla en el rival
+		victima._burst(0.9, false, 1)
+		victima._play_sfx_key("take_hit")
+		_shake(9.0, 0.08)
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.85, 0.35, 1.3, 0.35)
+		var d := (crit_total - dealt) if h == HITS - 1 else int(crit_total / HITS)
+		dealt += d
+		if idx == 0:
+			dummy_hp = maxi(1, dummy_hp - d)
+		else:
+			player_hp = maxi(1, player_hp - d)
+		_ultra_count(idx, n0 + h + 1)
+		combo_dmg[idx] += d
+		combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+		_focus_set(0.4 + 0.4 * float(h) / float(HITS))
+		if ultra_panels.size() > 0:
+			ultra_panel.texture = ultra_panels[h % ultra_panels.size()]
+			ultra_panel.visible = true
+		await get_tree().create_timer(0.15).timeout
+	# ---- FASE 2: CONGELADO en el aire con la ROSADA ----
+	if state == "ultra" and is_instance_valid(victima):
+		victima.position.y = base_y + 60.0
+		victima.vel_x = 0.0
+		victima.vel_y = 0.0
+		_orb_burst_vfx(victima.global_position, ORB_PINK)
+		victima.frozen_t = 1.2   # CONGELADO en el aire (ultra_hover lo sostiene)
+		_shake(13.0, 0.2)
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.55, 0.7, 1.6, 0.45)   # fogonazo helado
+		Engine.time_scale = 0.4
+		await get_tree().create_timer(0.5, true, false, true).timeout
+		Engine.time_scale = 1.0
+		await get_tree().create_timer(0.55).timeout
+	# ---- FASE 3: ANTI-AÉREO (↑R) -> lo LEVANTA recto arriba y lo deja CAER ----
+	if state == "ultra" and is_instance_valid(victima):
+		victima.frozen_t = 0.0
+		victima.ultra_hover = false   # ya no flota: el anti-aéreo lo lanza y CAE
+		atacante.set_facing(dir)
+		atacante.position.x = clampf(victima.position.x - float(dir) * 210.0, LEFT_LIMIT, RIGHT_LIMIT)
+		if atacante.sprite.sprite_frames.has_animation("air_jab"):
+			atacante.sprite.play("air_jab")
+		_orb_antiair(atacante)   # los 3 orbes barren el círculo (visual del anti-aéreo)
+		victima.set_facing(-dir)
+		victima.airborne = true
+		victima.hit_flying = false
+		victima.frozen_t = 0.0
+		victima.receive_hit(false, true, 0, "kick_impact", false, 1.5)   # recto arriba ALTO -> cae
+		_shake(26.0, 0.4)
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.9, 0.4, 1.6, 0.65)
+		var rec := 0.0
+		while rec < 0.55 and state == "ultra":
+			atacante.set_facing(dir)
+			await get_tree().process_frame
+			rec += get_process_delta_time()
+	# ---- FIN ----
+	_focus_end()
+	if ultra_panel != null:
+		ultra_panel.visible = false
+	if is_instance_valid(victima):
+		victima.ultra_hover = false
+	ultra_active = false
+	state = "fight"
+	combo_n[idx] = 0                        # no repetir: exige un combo NUEVO de 3
+	combo_t[idx] = COMBO_WINDOW + 1.0
+	if is_instance_valid(atacante):
+		atacante.sprite.play("pose")
+	_set_inputs(true)
+	dummy.ai_enabled = dummy_ai_mode
+	if idx == 0 and dummy_hp <= 0 and _round_real():
+		_end_round(true)
+	elif idx == 1 and player_hp <= 0 and _round_real():
+		_end_round(false)
 
 # TELEPORT de Aye (↓→Q, reemplaza el dash): glitch out + TIEMBLA + sonido -> reaparece AL FRENTE del
 # rival con un golpe. Sombras + borde MORADO que se desvanecen si no encadena un combo. Invulnerable.
@@ -8371,14 +8530,7 @@ func _physics_process(_delta: float) -> void:
 	# aviso en pantalla: el jugador puede lanzar ANIQUILACIÓN (rival en rojo +
 	# combo VIVO de 3+, dentro de la ventana, no mientras el numero se apaga)
 	if ultra_hint:
-		# NO se muestra en training/práctica (free ni break): solo en VS CPU real
-		var listo: bool = state == "fight" and not ultra_active \
-				and _round_real() \
-				and combo_n[0] >= 3 and combo_t[0] <= COMBO_WINDOW \
-				and meter[0] >= 2.0
-		ultra_hint.visible = listo
-		if listo:
-			ultra_hint.modulate.a = 0.6 + 0.4 * absf(sin(glow_time * 8.0))
+		ultra_hint.visible = false   # aviso "→R ANNIHILATION" DESHABILITADO (ese comando ya no se usa)
 	# contador de combos: pop, cierre y desvanecido
 	for i in 2:
 		var victima: Node2D = dummy if i == 0 else player

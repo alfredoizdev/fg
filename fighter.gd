@@ -1233,7 +1233,7 @@ func current_attack() -> Dictionary:
 			# ZETMA: E = BRAZO MECÁNICO que telescopea LARGO al frente (NO el torbellino de DAM). UN
 			# golpe de LARGO ALCANCE: el puño llega a FULL extensión ~f11 y el hit cae AHÍ (antes
 			# pegaba en f20, ya retraído, desde cerca). reach mayor -> conecta desde más lejos.
-			return {"name": "spin_kick", "frame": tfr, "hit_frame": 11, "reach": 680.0 * CHAR_SCALE,
+			return {"name": "spin_kick", "frame": tfr, "hit_frame": 11, "reach": 1026.0 * CHAR_SCALE,
 				"low": false, "strong": false, "damage": 90, "impact_sfx": "kick_impact"}
 		if tfr < 38:
 			return {"name": "spin_kick", "frame": tfr, "hit_frame": 20,
@@ -1640,7 +1640,10 @@ func celebrate() -> void:
 		var opp: Node2D = m.dummy if self == m.player else m.player
 		if is_instance_valid(opp):
 			set_facing(1 if opp.position.x >= position.x else -1)
-	sprite.play("victory")
+	# NO reiniciar la victoria si el ganador YA está en esa pose (p.ej. un finisher —void_launch de
+	# Zetma— ya la disparó): antes _end_round la relanzaba y "se reiniciaba" tras el cartel de WINS.
+	if sprite.animation != "victory":
+		sprite.play("victory")
 	if m and m.has_method("_play_victory_line"):   # el ganador dice su frase (boca sincronizada)
 		m._play_victory_line(self)
 
@@ -3627,6 +3630,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				var mru := get_parent()
 				if mru and mru.has_method("try_roum_ultra") and mru.try_roum_ultra(self):
 					return
+	elif fx_floral:
+		# --- AYE-2: ULTRA CORTO "PRISM STORM" = → R (adelante reciente + R). 2 barras + combo + rival en ROJO. ---
+		if event.is_action_pressed(act("weak_punch")) and fwd_recent_t > 0.0:
+			var mau := get_parent()
+			if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
+				return
 	else:
 		# --- DAM: sus finishers de fuego ---
 		# comando ANIQUILACIÓN: → R (adelante reciente + R)
