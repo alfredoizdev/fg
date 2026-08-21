@@ -1299,7 +1299,7 @@ func current_attack() -> Dictionary:
 	# (a mitad de la anim) y NO pega melee. El rebote/planta lo maneja el árbitro (OST_BOUNCE).
 	if fx_floral and sprite.animation == "orb_bounce" and sprite.is_playing():
 		if _orb_bounce_color >= 0:
-			var bhf: int = maxi(2, int(sprite.sprite_frames.get_frame_count("orb_bounce") * 0.55))
+			var bhf: int = maxi(1, int(sprite.sprite_frames.get_frame_count("orb_bounce") * 0.28))   # sale TEMPRANO (el orbe seguía al gesto muy tarde)
 			if not _orb_fired and int(sprite.frame) >= bhf:
 				var mbb := get_parent()
 				if mbb != null and mbb.has_method("_orb_launch"):

@@ -438,7 +438,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 JV"
+	get_window().title = "FG Fighter — build 2026-08-21 JX"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3128,7 +3128,7 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 			sf.add_animation("orb_bounce")
 		sf.clear("orb_bounce")
 		sf.set_animation_loop("orb_bounce", false)
-		sf.set_animation_speed("orb_bounce", maxf(1.0, float(bnc.size()) / 0.5))   # ~0.5s
+		sf.set_animation_speed("orb_bounce", maxf(1.0, float(bnc.size()) / 0.4))   # ~0.4s (cast rápido)
 		for t in bnc:
 			sf.add_frame("orb_bounce", t)
 	return sf
