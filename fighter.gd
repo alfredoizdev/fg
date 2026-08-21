@@ -1020,10 +1020,9 @@ var _orb_recall_hold_done := false
 var _orb_antiair_done := false   # ↓R disparó el anti-aéreo este press (se rearma al soltar R)
 func _has_planted_orbs() -> bool:
 	var mb := get_parent()
-	if mb == null or not mb.has_method("_orb_set_for"):
+	if mb == null or not mb.has_method("_orb_has_recoverable"):
 		return false
-	var st: Dictionary = mb._orb_set_for(self)
-	return not st.is_empty() and not (st["plant_order"] as Array).is_empty()
+	return mb._orb_has_recoverable(self)   # planta O rebota/viaja a plantar -> R las recoge (nunca se pierden)
 func _do_recall(n: int) -> void:
 	var mb := get_parent()
 	if mb != null and mb.has_method("_orb_recall"):

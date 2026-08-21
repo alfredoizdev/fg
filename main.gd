@@ -83,6 +83,7 @@ const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
 const ORB_RANGE := 480.0             # boomerang: alcance CORTO (~2 cuerpos); tiro largo = plantar (PLANT_DIST)
 const PLANT_DIST := 860.0            # plantar: distancia fija de aterrizaje
 const PLANT_TIMEOUT := 8.0           # vida de un plantado antes de auto-volver
+const ORB_OUT_MAX := 4.0             # tope de vida de un orbe FUERA de órbita (vuelo/rebote): failsafe -> NUNCA se pierde
 const ORB_DETONATE_R := 300.0        # radio del estallido (🟡 bomba / 🩷 pulso de hielo con W)
 const ORB_MINE_R := 190.0            # 🩷 mina: radio para AUTO-estallar si el rival pasa cerca
 const RECALL_HOLD := 0.25            # mantener R para llamar los 3 (vs tap = 1)
@@ -7762,11 +7763,11 @@ func _orb_update(delta: float) -> void:
 						if not o["hit_done"] and _orb_hits_target(st, o) != null:
 							_orb_apply_effect(st, c, true, "push" if o.get("volley", false) else "normal")
 							o["hit_done"] = true
-						if not o.get("returning", false) and absf(o["pos"].x - center.x) >= ORB_RANGE:
-							o["vel"] = -o["vel"]                 # llegó al alcance -> vuelve
+						if not o.get("returning", false) and (absf(o["pos"].x - center.x) >= ORB_RANGE or o["age"] > ORB_OUT_MAX):
+							o["vel"] = -o["vel"]                 # llegó al alcance (o timeout de seguridad) -> vuelve
 							o["returning"] = true
-						elif o.get("returning", false) and absf(o["pos"].x - center.x) < 40.0:
-							o["state"] = OST_ORBIT               # volvió -> re-orbita
+						elif o.get("returning", false) and (absf(o["pos"].x - center.x) < 40.0 or o["age"] > ORB_OUT_MAX * 2.0):
+							o["state"] = OST_ORBIT               # volvió (o failsafe: NUNCA se queda estancada) -> re-orbita
 				OST_PLANT_OUT:
 					# PLANTAR: viaja PLANT_DIST (atravesando al rival con chip), y se queda plantado.
 					o["pos"] += o["vel"] * delta
@@ -7787,8 +7788,15 @@ func _orb_update(delta: float) -> void:
 						o["vel"].y += ORB_BOUNCE_GRAV * delta
 						o["pos"] += o["vel"] * delta
 						if not o["hit_done"] and _orb_hits_target(st, o) != null:
-							_orb_apply_effect(st, c, true)      # golpea con su efecto FULL en el trayecto
 							o["hit_done"] = true
+							if c == ORB_PINK:
+								# 🩷 tocó al rival MIENTRAS rebotaba: erupta el CRISTAL a ras del piso y lo LANZA
+								# recto arriba (NO congela); el orbe vuelve a órbita (ya entregó su golpe).
+								_orb_burst_at(st, ORB_PINK, Vector2(o["pos"].x, o["ground_y"]), true)
+								st["plant_order"].erase(c)
+								o["state"] = OST_ORBIT
+							else:
+								_orb_apply_effect(st, c, true)      # amarilla/azul: golpea con su efecto FULL
 						if o["pos"].y >= o["ground_y"]:
 							o["pos"].y = o["ground_y"]
 							if owner.has_method("spawn_orb_dust"):
@@ -7803,6 +7811,16 @@ func _orb_update(delta: float) -> void:
 								o["age"] = 0.0
 								if not st["plant_order"].has(c):
 									st["plant_order"].append(c)
+						if o["state"] == OST_BOUNCE and o["age"] > ORB_OUT_MAX:
+							# FAILSAFE anti-esquina: si por geometría no logró plantar, se planta YA donde está
+							# para que R la recoja -> NUNCA se queda estancada fuera de pantalla.
+							o["pos"].y = minf(o["pos"].y, o["ground_y"])
+							o["state"] = OST_PLANTED
+							o["world_pos"] = o["pos"]
+							o["grounded"] = true
+							o["age"] = 0.0
+							if not st["plant_order"].has(c):
+								st["plant_order"].append(c)
 				OST_PLANTED:
 					# flota fijo con un bob leve; a PLANT_TIMEOUT AUTO-RECALL (vuela de vuelta y pega).
 					o["age"] += delta
@@ -8085,6 +8103,19 @@ func _orb_throw_all(owner: Node2D) -> void:
 	st["throw_queue"] = q
 	st["throw_t"] = 0.0   # la primera sale YA; el resto cada VOLLEY_GAP
 
+# true si Aye tiene algún orbe RECUPERABLE fuera de órbita (plantado o rebotando/viajando a plantar).
+func _orb_has_recoverable(owner: Node2D) -> bool:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return false
+	if not (st["plant_order"] as Array).is_empty():
+		return true
+	for c in 3:
+		var s: int = st["orbs"][c]["state"]
+		if s == OST_BOUNCE or s == OST_PLANT_OUT:
+			return true
+	return false
+
 # RECALL: pasa los `count` orbes plantados MÁS VIEJOS (FIFO) a OST_RECALL (vuelan y pegan al volver).
 func _orb_recall(owner: Node2D, count: int) -> void:
 	var st := _orb_set_for(owner)
@@ -8098,6 +8129,15 @@ func _orb_recall(owner: Node2D, count: int) -> void:
 			o["state"] = OST_RECALL
 			o["hit_done"] = false
 		n += 1
+	# SAFETY NET: además de las plantadas, recoge CUALQUIER orbe extraviado (rebotando o plantado
+	# fuera de la cola FIFO) -> R SIEMPRE las trae de vuelta, nunca se quedan perdidas.
+	for c2 in 3:
+		var o2: Dictionary = st["orbs"][c2]
+		var s2: int = o2["state"]
+		if s2 == OST_PLANTED or s2 == OST_BOUNCE or s2 == OST_PLANT_OUT:
+			o2["state"] = OST_RECALL
+			o2["hit_done"] = false
+			(st["plant_order"] as Array).erase(c2)
 
 # RECALL POR COLOR: si ESE color está PLANTADO, lo hace volver (Q=amarilla, W=rosada). Devuelve
 # true si lo recogió. La AZUL no usa esto (su botón E hace TELEPORT, no recall).
