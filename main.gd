@@ -437,7 +437,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 JJ"
+	get_window().title = "FG Fighter — build 2026-08-21 JL"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -5558,6 +5558,72 @@ func _aye_teleport(caster: Node2D, from_air := false) -> void:
 		caster.sprite.play("jump_punch")   # GOLPE AÉREO de llegada
 	else:
 		caster.sprite.play("weak_punch")   # el GOLPE de llegada (el árbitro aplica el hit a rango)
+	caster.input_enabled = was_input
+	caster.ai_enabled = was_ai
+
+# ¿la esfera AZUL está PLANTADA (tirada y quieta, fuera de su poder)? Solo así habilita el teleport.
+func _orb_blue_planted(caster: Node2D) -> bool:
+	var st := _orb_set_for(caster)
+	if st.is_empty():
+		return false
+	return st["orbs"][ORB_BLUE]["state"] == OST_PLANTED
+
+# NUEVO TELEPORT (poder de la esfera AZUL): E teletransporta a Aye a donde esté la AZUL PLANTADA,
+# con GLITCH + borde AZUL (su color). Al llegar RECOGE la esfera (vuelve a órbita). Reemplaza el
+# teleport direccional. Requiere que la azul esté OST_PLANTED (no orbitando ni de boomerang).
+func _aye_teleport_to_orb(caster: Node2D) -> void:
+	if state != "fight" or ultra_active:
+		return
+	var st := _orb_set_for(caster)
+	if st.is_empty():
+		return
+	var o: Dictionary = st["orbs"][ORB_BLUE]
+	if o["state"] != OST_PLANTED:
+		return
+	var dest_x: float = o["world_pos"].x
+	caster.crouching = false
+	caster.vel_x = 0.0
+	caster.vel_y = 0.0
+	caster.buffer_t = 0.0
+	caster.breaker_inv_t = maxf(caster.breaker_inv_t, 0.5)     # invulnerable (esquiva) durante el glitch
+	caster._cast_border_on(1.2, Color(0.4, 0.8, 2.0, 1.0))     # borde AZUL (poder de la esfera azul)
+	var was_input: bool = caster.input_enabled
+	var was_ai: bool = caster.ai_enabled
+	caster.input_enabled = false
+	caster.ai_enabled = false
+	if caster.sprite.sprite_frames.has_animation("teleport"):
+		caster.sprite.play("teleport")
+	caster._spawn_jump_dust(0.7)                               # poof de SALIDA
+	var vr := "res://imagen-action/aye/sound-effect/teleport-aye.mp3"
+	if ResourceLoader.exists(vr):
+		caster.voz_player.stream = load(vr)
+		caster.voz_player.pitch_scale = 1.0
+		caster.voz_player.play()
+	var base_off: float = caster.sprite.offset.x
+	var t := 0.0
+	while t < 0.18 and state == "fight":
+		caster.sprite.offset.x = base_off + randf_range(-13.0, 13.0)   # TIEMBLA
+		_shake(9.0, 0.05)
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	caster.sprite.offset.x = base_off
+	if state != "fight":
+		caster.input_enabled = was_input
+		caster.ai_enabled = was_ai
+		return
+	# REAPARECE en la x de la esfera azul, sobre el piso
+	caster.position.x = clampf(dest_x, LEFT_LIMIT, RIGHT_LIMIT)
+	caster.position.y = caster.floor_y
+	caster.airborne = false
+	caster._spawn_jump_dust(0.7)                              # poof de LLEGADA
+	var opp: Node2D = dummy if caster == player else player
+	caster.set_facing(1 if opp.position.x >= caster.position.x else -1)
+	caster._spawn_ghost(false)
+	_shake(15.0, 0.13)
+	# RECOGE la esfera azul: se reunió con ella -> vuelve a órbita
+	st["plant_order"].erase(ORB_BLUE)
+	o["state"] = OST_ORBIT
+	caster.sprite.play("pose")
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
 

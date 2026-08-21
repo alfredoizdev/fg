@@ -831,9 +831,15 @@ const DAM_UGH_PATHS := [
 	"res://imagen-action/sound-effect/voz-agh-dam.wav",
 	"res://imagen-action/sound-effect/voz-ugh-dam.wav",
 ]
+# ZETMA (máscara mecánica): sus quejidos son ROBÓTICOS (ring-mod), no la voz humana de DAM.
+const ZETMA_UGH_PATHS := [
+	"res://imagen-action/zetma/sound-effect/agh-zetma.wav",
+	"res://imagen-action/zetma/sound-effect/ugh-zetma.wav",
+]
 var _aye_ugh_sfx: AudioStream = null
 var _fe_ugh_sfx := []
 var _dam_ugh_sfx := []
+var _zetma_ugh_sfx := []
 var _ugh_ms := 0
 func _play_ugh() -> void:
 	var now := Time.get_ticks_msec()
@@ -852,6 +858,13 @@ func _play_ugh() -> void:
 					_fe_ugh_sfx.append(load(p))
 		if not _fe_ugh_sfx.is_empty():
 			st = _fe_ugh_sfx[randi() % _fe_ugh_sfx.size()]   # Ugh o Agh al azar
+	elif fx_dark:
+		if _zetma_ugh_sfx.is_empty():
+			for p in ZETMA_UGH_PATHS:
+				if ResourceLoader.exists(p):
+					_zetma_ugh_sfx.append(load(p))
+		if not _zetma_ugh_sfx.is_empty():
+			st = _zetma_ugh_sfx[randi() % _zetma_ugh_sfx.size()]   # quejido ROBÓTICO (Agh/Ugh)
 	else:
 		if _dam_ugh_sfx.is_empty():
 			for p in DAM_UGH_PATHS:
@@ -876,6 +889,8 @@ func _play_ko_cry() -> void:
 		ruta = AYE_NO_PATH
 	elif fx_blue:
 		ruta = "res://imagen-action/favi/Fe-sound-effect/nooo-fe-derrota.wav"
+	elif fx_dark:
+		ruta = "res://imagen-action/zetma/sound-effect/ko-zetma.wav"   # KO ROBÓTICO (no la voz humana de DAM)
 	else:
 		ruta = "res://imagen-action/sound-effect/voz-ko-dam.wav"
 	if ruta == "" or not ResourceLoader.exists(ruta):
@@ -3968,13 +3983,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 	match accion:
 		"attack":
 			if airborne:
-				# AYE: ↓→ + Q en el AIRE también teleporta (glitch). Sin ↓→ = jump_punch (invoca 3 cristales).
-				if fx_floral:
-					var adir_air := Input.get_axis(act("ui_left"), act("ui_right"))
-					var aade_air := adir_air != 0.0 and int(signf(adir_air)) == facing
-					if aade_air and down_recent_t > 0.0:
-						_start_teleport()
-						return true
+				# AYE-2: el teleport direccional se retiró -> ahora teleporta a la esfera AZUL con E (ver spin_kick).
 				# ZETMA: ↓→Q en el AIRE = AIR GRAB (gancho aéreo que hala hacia él)
 				if fx_dark and down_recent_t > 0.0:
 					var zdir_air := Input.get_axis(act("ui_left"), act("ui_right"))
@@ -3987,12 +3996,10 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var adelante := dir != 0.0 and int(signf(dir)) == facing
 				# cuarto adelante (↓ reciente y ya suelto) + Q:
-				#   AYE = TELEPORT (glitch morado) · Fe = ESPECIAL DE AGUA · DAM = EMBER DASH
-				if adelante and down_recent_t > 0.0:
-					if fx_floral:
-						_start_teleport()          # Aye: teleport (↓→Q). El REBOTE de orbe es ↓↓Q.
-						return true
-					elif fx_dark:
+				#   Fe = ESPECIAL DE AGUA · DAM = EMBER DASH · Zetma = GROUND GRAB
+				#   AYE-2 EXENTA: su teleport es a la esfera AZUL con E (ver spin_kick); ↓→Q = orbe amarillo normal.
+				if adelante and down_recent_t > 0.0 and not fx_floral:
+					if fx_dark:
 						# ZETMA: ↓→Q = GROUND GRAB (estira la mano y HALA). NO el dash de DAM.
 						var mgg := get_parent()
 						if mgg and mgg.has_method("_zetma_ground_grab"):
@@ -4055,6 +4062,13 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				vel_y = maxf(vel_y, 90.0)
 			return true
 		"spin_kick":
+			# AYE-2 (E): si la esfera AZUL está PLANTADA (fuera de su poder), E = TELEPORT a esa esfera
+			# (poder de la azul). Si NO está plantada, E lanza el orbe azul como siempre.
+			if fx_floral and not airborne:
+				var mbt := get_parent()
+				if mbt and mbt.has_method("_orb_blue_planted") and mbt._orb_blue_planted(self):
+					mbt._aye_teleport_to_orb(self)   # coroutine (fire-and-forget)
+					return true
 			# AYE (E) = CRYSTAL CAST a distancia: grita y alza el báculo (#181). El proyectil que
 			# viaja se anima aparte (crystal_shard) y se cablea cuando exista. En el suelo.
 			if fx_floral and not airborne and sprite.sprite_frames.has_animation("crystal_cast"):
