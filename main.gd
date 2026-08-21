@@ -7685,11 +7685,20 @@ func _orb_update(delta: float) -> void:
 		if not is_instance_valid(owner):
 			continue
 		var center: Vector2 = owner.global_position + Vector2(0, ORB_CENTER_DY + (ORB_CROUCH_DY if owner.crouching else 0.0))   # baja al agacharse
-		# ULTRA: si a Aye le conectan un ultra (state=="ultra", ella es la víctima), sus orbs se ENCOGEN
-		# hasta desaparecer; al terminar el ultra vuelven a crecer. vanish_k: 1=normal, 0=desaparecidas.
-		var vk_target: float = 0.0 if state == "ultra" else 1.0
+		# DESAPARECER: si a Aye la CAPTURAN o la sacan de juego —ultra en curso, VOID ORB de Zetma
+		# (orb_trap_t) o KO— sus orbs se ENCOGEN hasta desaparecer (no quedan flotando sin ella); al
+		# volver a la normalidad crecen otra vez. vanish_k: 1=normal, 0=desaparecidas.
+		var hide: bool = state == "ultra" or owner.koed or owner.orb_trap_t > 0.0
+		var vk_target: float = 0.0 if hide else 1.0
 		st["vanish_k"] = move_toward(float(st.get("vanish_k", 1.0)), vk_target, delta / 0.45)
 		var vk: float = st["vanish_k"]
+		# ya OCULTAS: reseteá TODO a órbita (plantadas/en vuelo/cola) para que NO reaparezcan estancadas sin Aye.
+		if hide and vk < 0.05:
+			for _c in 3:
+				st["orbs"][_c]["state"] = OST_ORBIT
+				st["orbs"][_c]["hit_done"] = true
+			(st["plant_order"] as Array).clear()
+			(st["throw_queue"] as Array).clear()
 		# R de pie: VOLLEY — suelta las 3 boomerang UNA POR UNA (VOLLEY_GAP entre cada una).
 		if not (st["throw_queue"] as Array).is_empty():
 			st["throw_t"] -= delta
