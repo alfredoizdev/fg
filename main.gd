@@ -114,6 +114,7 @@ const ORB_SPIN_BODY_FRAC := 0.42     # centro del círculo = punto entre el orig
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (↓R / salto+R levantan)
 const ORB_PUSH := 550.0              # R (ráfaga): empujón (shove) — corre CLARO al rival hacia atrás (era 240, poco)
+const ORB_CRYSTAL_LAUNCH := 1.2      # 🩷 cristal del piso: lanza al rival RECTO arriba (y cae)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
@@ -7963,6 +7964,10 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, reaction := "norm
 		# R (ráfaga): golpe con EMPUJÓN (shove) — lo empuja un poco hacia atrás.
 		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, false, ORB_PUSH)
 		dmg = per_color
+	elif reaction == "launch_up":
+		# 🩷 cristal del piso: lo lanza RECTO ARRIBA (push_dir=0 -> sin empuje lateral) y cae.
+		res = tgt.receive_hit(false, true, 0, "kick_impact", false, ORB_CRYSTAL_LAUNCH)
+		dmg = per_color
 	elif color == ORB_PINK:
 		# 🩷 congela (freeze = 9º parámetro de receive_hit)
 		res = tgt.receive_hit(false, false, dir, "kick_impact", false, 1.0, false, false, true)
@@ -8114,14 +8119,16 @@ func _orb_target_near(st: Dictionary, pos: Vector2, r: float) -> bool:
 # (🟡 daño / 🩷 congela) + combo, y muestra el VFX. Lo usan el detonar (Q/W) y la mina rosada.
 func _orb_burst_at(st: Dictionary, color: int, pos: Vector2, grounded := false) -> void:
 	var owner: Node2D = st["owner"]
-	# 🩷 ROSA EN EL PISO (plantada con ↓↓): en vez del flash, ERUPTA EL CRISTAL de hielo del piso.
-	if color == ORB_PINK and grounded and is_instance_valid(owner) and owner.has_method("spawn_ice_grow"):
+	# 🩷 ROSA EN EL PISO (plantada con ↓↓): ERUPTA EL CRISTAL de hielo del piso y, si le da al rival,
+	# lo LANZA RECTO ARRIBA (y cae) — no congela. La rosa que FLOTA sigue con el pulso que CONGELA.
+	var pink_ground: bool = color == ORB_PINK and grounded and is_instance_valid(owner) and owner.has_method("spawn_ice_grow")
+	if pink_ground:
 		owner.spawn_ice_grow(pos.x)
 	else:
 		_orb_burst_vfx(pos, color)
 	_shake(11.0, 0.12)
 	if _orb_target_near(st, pos, ORB_DETONATE_R):
-		_orb_apply_effect(st, color, true)   # 🟡 daño / 🩷 congela (+ combo + HP)
+		_orb_apply_effect(st, color, true, "launch_up" if pink_ground else "normal")   # cristal=recto arriba · resto=su efecto
 
 # VFX del estallido: un flash REDONDO GRANDE que crece y se desvanece, tinte del color.
 func _orb_burst_vfx(pos: Vector2, color: int) -> void:
