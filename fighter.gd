@@ -638,8 +638,8 @@ func _on_animation_changed() -> void:
 		_orb_fired = false
 		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
 		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
-		# ↑ mantenido (de pie, boomerang normal): la esfera sale DIAGONAL arriba
-		_orb_pending_up = _orb_pending_mode == 0 and not airborne and Input.is_action_pressed(act("ui_up"))
+		# ↓← (de pie, boomerang normal): la esfera sale DIAGONAL arriba-adelante
+		_orb_pending_up = _orb_pending_mode == 0 and not airborne and not crouching and _orb_downback_buffered()
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
@@ -981,12 +981,10 @@ var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en
 var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
 var _orb_pending_up := false   # ↑ mantenido al iniciar el gesto: la esfera sale DIAGONAL arriba
 var _orb_bounce_color := -1    # ↓↓: color del orbe a tirar al piso (lo fija el input al reproducir orb_bounce)
-# ↑ mantenido + color (de pie): tiro DIAGONAL arriba. Se detecta para SUPRIMIR el salto ese frame.
-func _orb_up_throw_input() -> bool:
-	if not fx_floral or airborne or not Input.is_action_pressed(act("ui_up")):
-		return false
-	return Input.is_action_just_pressed(act("attack")) or Input.is_action_just_pressed(act("kick")) \
-		or Input.is_action_just_pressed(act("spin_kick"))
+func _orb_downback_buffered() -> bool:
+	# ↓← (ABAJO y luego ATRÁS): down_recent_t quedó armado al tocar abajo; ahora vamos ATRÁS -> tiro DIAGONAL arriba.
+	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
+	return down_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == -facing
 func _orb_color_for(anim: String) -> int:
 	# 🟡🩷🔵 por FAMILIA de botón (de pie / agachado / en el aire) — main.ORB_YELLOW/PINK/BLUE
 	return {"punch": 0, "crouch_punch": 0, "jump_punch": 0,
@@ -3410,7 +3408,7 @@ func _physics_process(delta: float) -> void:
 			return
 		down_tap_win = 0.28
 	# salto
-	if Input.is_action_just_pressed(act("ui_up")) and not crouching and not _orb_up_throw_input():
+	if Input.is_action_just_pressed(act("ui_up")) and not crouching:
 		airborne = true
 		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(1.05 if fx_warrior else 0.6)   # polvo de despegue (ROUM tanque: ráfaga MÁS grande y visible)
@@ -3763,12 +3761,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		sprite.play("uppercut")
 		return
 	if fx_floral:
-		# --- AYE: su SÚPER propio. NO hereda los ultras de fuego de DAM ni los de agua de Fe. ---
-		# CRYSTAL FLURRY (↓←+Q): ráfaga del báculo tras 3 golpes (cuesta 1.5 barras).
-		if event.is_action_pressed(act("attack")) and down_recent_t > 0.0 and back_recent_t > 0.0:
-			var maf := get_parent()
-			if maf and maf.has_method("try_crystal_flurry") and maf.try_crystal_flurry(self):
-				return
+		# AYE-2: ↓← + Q/W/E = TIRO DIAGONAL arriba (lo maneja el gesto normal, ver _orb_downback_buffered).
+		# El viejo CRYSTAL FLURRY (↓←Q súper de Aye vieja) queda DESHABILITADO hasta rediseñar el súper de aye2.
+		pass
 	elif sprite.sprite_frames.has_animation("water_cast"):
 		# --- FE: sus propios especiales/ultra. NO hereda los ultras de fuego de DAM. ---
 		# WHIRLPOOL (↓←+E): finisher tras combo (cuesta 1 barra).

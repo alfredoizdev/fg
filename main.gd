@@ -3313,19 +3313,6 @@ func _build_zetma_frames(skin := "skin-1") -> SpriteFrames:
 				sf.add_frame(accion, t)
 			sf.set_animation_speed(accion, reg[accion][0])
 			sf.set_animation_loop(accion, reg[accion][1])
-	# ZETMA skin-2 NO tiene hit_down propio -> el reg lo llenó con el fallback de skin-1 (arte NEGRO
-	# y pose casi de PIE: h≈719 ≈ altura de pie -> "se ve grande/erguido" al derribo). Como hace AYE-2
-	# (ver _build_aye2_frames), usar su KO propio (morado, TENDIDO, tamaño correcto) como hit_down.
-	if skin == "skin-2" and not ResourceLoader.exists("res://imagen-action/zetma/skin-2/hit_down/zetma-hit_down-1.png"):
-		var zhd := _zetma_action_frames("ko", skin)
-		if zhd.size() > 1:
-			if not sf.has_animation("hit_down"):
-				sf.add_animation("hit_down")
-			sf.clear("hit_down")
-			sf.set_animation_loop("hit_down", false)
-			sf.set_animation_speed("hit_down", 48.0)
-			for t in zhd:
-				sf.add_frame("hit_down", t)
 	return sf
 
 func _build_dam_frames() -> SpriteFrames:
