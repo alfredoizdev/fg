@@ -102,8 +102,8 @@ const ANTIAIR_DUR := 0.6             # duración de la vuelta completa (rápido,
 const ANTIAIR_STAGGER := 0.7         # desfase angular entre las 3 -> se ven separadas en el círculo
 # ESCUDO GIRATORIO (salto+R): las 3 giran en CÍRCULO cerrado alrededor de Aye; si tocan, LEVANTAN al rival.
 const ORB_SPIN_DUR := 0.75           # cuánto dura el escudo giratorio
-const ORB_SPIN_R := 230.0            # radio del círculo AMPLIO (escudo grande alrededor de Aye)
-const ORB_SPIN_UP := 150.0           # sube el CENTRO del círculo: ella queda ABAJO y las esferas giran ARRIBA
+const ORB_SPIN_R := 260.0            # radio del círculo: la RODEA de la cabeza a los pies
+const ORB_SPIN_UP := 0.0             # centro del círculo = su cuerpo (las esferas la RODEAN, NO arriba)
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (los levanta por los aires)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
