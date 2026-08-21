@@ -76,8 +76,8 @@ var mana_was_full := [false, false]  # estado full del frame anterior (detecta e
 # Ver docs/superpowers/specs/2026-08-20-aye-orb-system-design.md
 enum { ORB_YELLOW, ORB_PINK, ORB_BLUE }                                          # índice de color
 const ORB_TINT := [Color(1.0, 0.85, 0.25), Color(1.0, 0.45, 0.72), Color(0.4, 0.62, 1.0)]  # 🟡🩷🔵
-enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL, OST_SWEEP, OST_SPIN } # estado del orbe (SWEEP = anti-aéreo ↓R · SPIN = escudo giratorio salto+R)
-enum { OMODE_BOOMERANG, OMODE_PLANT }                                            # modo de un lanzamiento
+enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL, OST_SWEEP, OST_SPIN, OST_BOUNCE } # estado (SWEEP=anti-aéreo ↓R · SPIN=escudo salto+R · BOUNCE=↓→ rebota y planta)
+enum { OMODE_BOOMERANG, OMODE_PLANT, OMODE_BOUNCE }                              # modo de un lanzamiento (BOUNCE = ↓→ tira abajo, rebota 1 vez y planta)
 const ORB_ORBIT_R := 90.0            # radio de la órbita alrededor de Aye
 const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
 const ORB_RANGE := 480.0             # boomerang: alcance CORTO (~2 cuerpos); tiro largo = plantar (PLANT_DIST)
@@ -93,6 +93,11 @@ const ORB_MANA_COST := 0.03          # ENERGÍA MALDITA: MOVER esferas gasta POC
 const ORB_CHARGE_WINDUP := 0.26      # 🔵 E: la azul se queda cargada ARRIBA-ATRÁS mientras ella sube el brazo; sale al lanzarlo
 const ORB_CHARGE_BACK := 520.0       # velocidad hacia atrás durante la carga (más ATRÁS, ~135px)
 const ORB_CHARGE_UP := 200.0         # velocidad hacia ARRIBA durante la carga (sube junto a la mano, ~52px)
+# ↓→ + Q/W/E (BOUNCE): tira la esfera ABAJO-adelante, REBOTA 1 vez en el piso, sigue y se PLANTA.
+const ORB_BOUNCE_VX := 850.0         # velocidad hacia adelante del rebote
+const ORB_BOUNCE_VY0 := 300.0        # velocidad inicial hacia ABAJO (la tira al piso)
+const ORB_BOUNCE_VY_UP := 1000.0     # impulso hacia ARRIBA del rebote
+const ORB_BOUNCE_GRAV := 2800.0      # gravedad del rebote (px/s²)
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
 const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
 const ORB_CROUCH_DY := 90.0          # baja extra las esferas cuando Aye está AGACHADA (siguen su cuerpo)
@@ -432,7 +437,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 JH"
+	get_window().title = "FG Fighter — build 2026-08-20 JJ"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7641,6 +7646,27 @@ func _orb_update(delta: float) -> void:
 						o["age"] = 0.0
 						if not st["plant_order"].has(c):
 							st["plant_order"].append(c)     # FIFO para el recall de a 1
+				OST_BOUNCE:
+						# ↓→: cae con gravedad, REBOTA 1 vez en el piso, sigue adelante y se PLANTA al 2º toque.
+						o["age"] += delta
+						o["vel"].y += ORB_BOUNCE_GRAV * delta
+						o["pos"] += o["vel"] * delta
+						if not o["hit_done"] and _orb_hits_target(st, o) != null:
+							_orb_apply_effect(st, c, true)      # golpea con su efecto FULL en el trayecto
+							o["hit_done"] = true
+						if o["pos"].y >= o["ground_y"]:
+							o["pos"].y = o["ground_y"]
+							if owner.has_method("spawn_orb_dust"):
+								owner.spawn_orb_dust(Vector2(o["pos"].x, o["ground_y"]))   # polvo CHICO al pegar el piso
+							if int(o.get("bounces", 0)) < 1:
+								o["vel"].y = -ORB_BOUNCE_VY_UP  # REBOTA (una sola vez)
+								o["bounces"] = int(o.get("bounces", 0)) + 1
+							else:
+								o["state"] = OST_PLANTED         # 2º toque -> se queda plantada acá
+								o["world_pos"] = o["pos"]
+								o["age"] = 0.0
+								if not st["plant_order"].has(c):
+									st["plant_order"].append(c)
 				OST_PLANTED:
 					# flota fijo con un bob leve; a PLANT_TIMEOUT AUTO-RECALL (vuela de vuelta y pega).
 					o["age"] += delta
@@ -7686,7 +7712,7 @@ func _orb_update(delta: float) -> void:
 			spr.visible = true
 			# ESTELA: al VIAJAR arrastra fantasmas por posiciones recientes; en reposo, ocultos.
 			var ghs: Array = st["ghosts"][c]
-			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL or o["state"] == OST_SWEEP or o["state"] == OST_SPIN:
+			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL or o["state"] == OST_SWEEP or o["state"] == OST_SPIN or o["state"] == OST_BOUNCE:
 				o["hist"].push_front(o["pos"])
 				if o["hist"].size() > 8:
 					o["hist"].resize(8)
@@ -7744,8 +7770,15 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	o["returning"] = false
 	# 🔵 E (esfera azul en boomerang): CARGA — se echa atrás antes de salir disparada. El resto sale directo.
 	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG) else 0.0
-	o["vel"] = Vector2(dir * ORB_SPEED, 0.0)
-	o["state"] = OST_PLANT_OUT if mode == OMODE_PLANT else OST_FLIGHT
+	if mode == OMODE_BOUNCE:
+		# ↓→: sale ABAJO-adelante, con gravedad; rebota 1 vez y se planta (ver OST_BOUNCE).
+		o["vel"] = Vector2(dir * ORB_BOUNCE_VX, ORB_BOUNCE_VY0)
+		o["bounces"] = 0
+		o["ground_y"] = _orb_ground_y(owner)
+		o["state"] = OST_BOUNCE
+	else:
+		o["vel"] = Vector2(dir * ORB_SPEED, 0.0)
+		o["state"] = OST_PLANT_OUT if mode == OMODE_PLANT else OST_FLIGHT
 
 # ¿el orbe está tocando al rival del owner? (AABB contra su cuerpo)
 func _orb_hits_target(st: Dictionary, o: Dictionary) -> Node2D:
@@ -7833,6 +7866,13 @@ func _orb_body_center(owner: Node2D) -> Vector2:
 		var feet_y: float = owner.to_global(Vector2(0, feet_local)).y
 		oy = lerpf(owner.global_position.y, feet_y, ORB_SPIN_BODY_FRAC)
 	return Vector2(owner.global_position.x, oy)
+
+# LÍNEA DE PISO en mundo (para el rebote ↓→): la línea de pies del owner (misma receta que sombras).
+func _orb_ground_y(owner: Node2D) -> float:
+	var spr = owner.get("sprite")
+	if spr != null:
+		return owner.to_global(Vector2(0, (500.0 + spr.offset.y) * owner.base_scale.y)).y
+	return owner.global_position.y + 300.0
 
 # ANTI-AÉREO (↓R): las 3 esferas que estén EN ÓRBITA barren un arco amplio hacia arriba (OST_SWEEP) y vuelven.
 func _orb_antiair(owner: Node2D) -> void:

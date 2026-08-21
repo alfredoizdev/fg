@@ -632,7 +632,8 @@ func _on_animation_changed() -> void:
 	# orbe y captura el modo (boomerang vs plantar por el motion ←→, buffered al inicio del gesto).
 	if fx_floral and _orb_color_for(nombre) >= 0:
 		_orb_fired = false
-		_orb_pending_mode = 1 if _orb_plant_buffered() else 0
+		# modo: ↓→ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
+		_orb_pending_mode = 2 if _orb_downfwd_buffered() else (1 if _orb_plant_buffered() else 0)
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
@@ -972,6 +973,10 @@ func _orb_plant_buffered() -> bool:
 	# ←→ (ATRÁS y luego ADELANTE): back_recent_t quedó armado al tocar atrás; ahora vamos adelante.
 	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
 	return back_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == facing
+func _orb_downfwd_buffered() -> bool:
+	# ↓→ (ABAJO y luego ADELANTE): down_recent_t quedó armado al tocar abajo; ahora vamos adelante.
+	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
+	return down_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == facing
 
 # RECALL (R = weak_punch): tap = 1 (más viejo, FIFO) · hold = los 3. Solo si hay plantados.
 const ORB_RECALL_HOLD := 0.25
@@ -1826,6 +1831,33 @@ func _spawn_dash_smoke(escala := 0.75, atras := 0.0, flip_extra := false, lift :
 	ds.global_position = pies - Vector2(0.0, tex.get_height() * s * lift)   # lift bajo = pegado a los pies
 	ds.scale = Vector2(s, s)
 	ds.modulate = dust_tint   # color del polvo segun el stage
+	ds.animation_finished.connect(ds.queue_free)
+	ds.play("puff")
+
+# POLVO CHICO en una posición del MUNDO (para el rebote de la esfera ↓→ al pegar en el piso).
+# Reusa el mismo dust del dash/caída pero MÁS PEQUEÑO (es una esfera). Lo llama el árbitro.
+func spawn_orb_dust(world_pos: Vector2, escala := 0.28) -> void:
+	if dashsmoke_frames == null:
+		if not ResourceLoader.exists("res://imagen-action/dust-effect/dash-dust/dash-dust-1.png"):
+			return
+		dashsmoke_frames = SpriteFrames.new()
+		dashsmoke_frames.add_animation("puff")
+		dashsmoke_frames.set_animation_speed("puff", 18.0)
+		dashsmoke_frames.set_animation_loop("puff", false)
+		var di := 1
+		while ResourceLoader.exists("res://imagen-action/dust-effect/dash-dust/dash-dust-%d.png" % di):
+			dashsmoke_frames.add_frame("puff", load("res://imagen-action/dust-effect/dash-dust/dash-dust-%d.png" % di))
+			di += 1
+	var ds := AnimatedSprite2D.new()
+	ds.sprite_frames = dashsmoke_frames
+	ds.animation = "puff"
+	ds.z_index = 1
+	var tex: Texture2D = dashsmoke_frames.get_frame_texture("puff", 0)
+	var s := escala * absf(scale.x) * 0.52 * base_scale.y   # chico (es una esfera)
+	get_parent().add_child(ds)
+	ds.global_position = world_pos - Vector2(0.0, tex.get_height() * s * 0.12)   # pegado al piso
+	ds.scale = Vector2(s, s)
+	ds.modulate = dust_tint
 	ds.animation_finished.connect(ds.queue_free)
 	ds.play("puff")
 
@@ -3956,12 +3988,10 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var adelante := dir != 0.0 and int(signf(dir)) == facing
 				# cuarto adelante (↓ reciente y ya suelto) + Q:
-				#   AYE = TELEPORT (glitch morado) · Fe = ESPECIAL DE AGUA · DAM = EMBER DASH
-				if adelante and down_recent_t > 0.0:
-					if fx_floral:
-						_start_teleport()          # Aye: teleport (NO el dash de fuego)
-						return true
-					elif fx_dark:
+				#   Fe = ESPECIAL DE AGUA · DAM = EMBER DASH · Zetma = GROUND GRAB
+				#   AYE-2 EXENTA: ↓→Q = ORBE AMARILLO que REBOTA (lo dispara el gesto punch, ver _orb_downfwd_buffered)
+				if adelante and down_recent_t > 0.0 and not fx_floral:
+					if fx_dark:
 						# ZETMA: ↓→Q = GROUND GRAB (estira la mano y HALA). NO el dash de DAM.
 						var mgg := get_parent()
 						if mgg and mgg.has_method("_zetma_ground_grab"):
@@ -3999,13 +4029,7 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				var kdir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var kade := kdir != 0.0 and int(signf(kdir)) == facing
 				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
-				# AYE ↓→+W = BACKSTAB: se teleporta DETRÁS del rival, golpea y lo EMPUJA ~3 cuerpos hacia
-				# adelante (si hay orbe delante, lo mete en ella -> congela). Mixup con el orb.
-				if fx_floral and kade and down_recent_t > 0.0:
-					if not _spell_afford(0.30):
-						return true
-					_start_backstab()
-					return true
+				# AYE-2 EXENTA en el SUELO: ↓→W ya NO es backstab -> ORBE ROSADO que REBOTA (lo dispara el gesto kick)
 				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
 				if kade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
 					_start_water_special(2)
