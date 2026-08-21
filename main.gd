@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KQ"
+	get_window().title = "FG Fighter — build 2026-08-21 KR"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3181,8 +3181,15 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 			for t in real:
 				sf.add_frame(anim, t)
 	# cadencias afinadas (tuneable) de sus anims propias
-	if not _aye2_action_frames("pose", skin).is_empty():
-		sf.set_animation_speed("pose", 24.0)     # idle 145f @24 = respiración de ~6s
+	var pose_fr := _aye2_action_frames("pose", skin)
+	if not pose_fr.is_empty():
+		sf.set_animation_speed("pose", 24.0)     # idle @24 = respiración
+		sf.set_animation_loop("pose", true)
+		# LOOP SIN COSTURA (boomerang): el clip idle no abre y cierra igual -> al reiniciar había un SALTO.
+		# Agregamos los frames en REVERSA (N-1..2) -> corre 1..N..2 y vuelve a 1 sin pop.
+		if pose_fr.size() >= 3:
+			for j in range(pose_fr.size() - 2, 0, -1):
+				sf.add_frame("pose", pose_fr[j])
 	if not _aye2_action_frames("walk", skin).is_empty():
 		sf.set_animation_speed("walk", 30.0)
 	if not _aye2_action_frames("crouch", skin).is_empty():
@@ -7959,7 +7966,7 @@ func _orb_update(delta: float) -> void:
 					o["pos"] = o["world_pos"] + Vector2(0, sin(o["age"] * 3.0) * 8.0)
 					# 🩷 MINA: la rosada plantada estalla SOLA si el rival pasa cerca -> CRISTAL que lo LANZA.
 					# ARMADO: recién ~0.5s DESPUÉS de plantarse (no erupta al instante si cayó junto al rival).
-					if c == ORB_PINK and o["age"] > ORB_ARM_DELAY and _orb_target_near(st, o["world_pos"], ORB_MINE_R):
+					if c == ORB_PINK and o["age"] > ORB_ARM_DELAY and _orb_target_near_x(st, o["world_pos"].x, ORB_MINE_R):
 						_orb_burst_at(st, ORB_PINK, o["world_pos"], o.get("grounded", false))
 						st["plant_order"].erase(c)
 						o["state"] = OST_ORBIT
@@ -8279,6 +8286,14 @@ func _orb_target_near(st: Dictionary, pos: Vector2, r: float) -> bool:
 	var tgt: Node2D = dummy if owner == player else player
 	return is_instance_valid(tgt) and not tgt.koed and tgt.global_position.distance_to(pos) < r
 
+# como _orb_target_near pero SOLO distancia HORIZONTAL. Para el CRISTAL (pilar vertical del piso) y la
+# MINA: el origen del rival está ~340px sobre el piso, así que la distancia radial al punto del piso
+# nunca entraba en el radio aunque estuviera justo al lado. Con dx el pilar pega a quien esté al lado.
+func _orb_target_near_x(st: Dictionary, x: float, r: float) -> bool:
+	var owner: Node2D = st["owner"]
+	var tgt: Node2D = dummy if owner == player else player
+	return is_instance_valid(tgt) and not tgt.koed and absf(tgt.global_position.x - x) < r
+
 # ESTALLIDO en una posición: si el rival está dentro de ORB_DETONATE_R, aplica el efecto del color
 # (🟡 daño / 🩷 congela) + combo, y muestra el VFX. Lo usan el detonar (Q/W) y la mina rosada.
 func _orb_burst_at(st: Dictionary, color: int, pos: Vector2, grounded := false) -> void:
@@ -8291,7 +8306,9 @@ func _orb_burst_at(st: Dictionary, color: int, pos: Vector2, grounded := false) 
 	else:
 		_orb_burst_vfx(pos, color)
 	_shake(11.0, 0.12)
-	if _orb_target_near(st, pos, ORB_DETONATE_R):
+	# CRISTAL = pilar vertical -> check HORIZONTAL (dx). Bomba/pulso (no-grounded) = radial normal.
+	var hit: bool = _orb_target_near_x(st, pos.x, ORB_DETONATE_R) if pink_ground else _orb_target_near(st, pos, ORB_DETONATE_R)
+	if hit:
 		_orb_apply_effect(st, color, true, "launch_up" if pink_ground else "normal")   # cristal=recto arriba · resto=su efecto
 
 # VFX del estallido: un flash REDONDO GRANDE que crece y se desvanece, tinte del color.

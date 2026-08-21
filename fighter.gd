@@ -501,6 +501,7 @@ var orb_trap_was_input := true
 var orb_trap_was_ai := false
 var orb_haste_t := 0.0       # Zetma: >0 = velocidad de movimiento aumentada (mientras el rival está en la esfera)
 var air_float_t := 0.0 # flote aéreo SOLO tras conectar un golpe en el aire (juggle)
+var _aye_air_hang_t := 0.0 # AYE-2: hang time aéreo tras salto+R (escudo) -> flota un poco, no cae en picada
 var juggle_hold_t := 0.0   # SOSTÉN de juggle (víctima): tras cada rebote, la caída es LENTA un rato para que el combo aéreo la alcance
 var air_move_used := false   # ya se hizo UN golpe aéreo este salto (hasta caer o conectar)
 const AIR_MOVES := ["jump_punch", "jump_kick", "jump_kick_cast", "air_jab", "air_jab_2", "air_spin_kick"]
@@ -1038,6 +1039,8 @@ func _do_spin() -> void:   # salto+R: las 3 esferas giran en círculo alrededor 
 	var mb := get_parent()
 	if mb != null and mb.has_method("_orb_spin"):
 		mb._orb_spin(self)
+	if fx_floral:
+		_aye_air_hang_t = 0.7   # AYE-2: flota un poco mientras hace el escudo giratorio en el aire (pedido)
 func _do_throw_all() -> void:   # R de pie: tira las 3 hacia adelante una por una (boomerang volley)
 	var mb := get_parent()
 	if mb != null and mb.has_method("_orb_throw_all"):
@@ -2657,6 +2660,7 @@ func _physics_process(delta: float) -> void:
 	burst_t = maxf(0.0, burst_t - delta)
 	air_float_t = maxf(0.0, air_float_t - delta)
 	juggle_hold_t = maxf(0.0, juggle_hold_t - delta)
+	_aye_air_hang_t = maxf(0.0, _aye_air_hang_t - delta)
 	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
 	slow_t = maxf(0.0, slow_t - delta)   # ESFERA AZUL: decae el slow (el tinte azul se pinta abajo)
 	if water_bg:
@@ -3023,8 +3027,8 @@ func _physics_process(delta: float) -> void:
 		position.y += vel_y * delta
 		# FLOTA solo si el golpe aéreo CONECTÓ (juggle) Y aún NO gastaste tu siguiente golpe. En cuanto
 		# tiras el próximo golpe (air_move_used) y NO conecta, deja de flotar y CAE NORMAL (no "cae lento").
-		var floating: bool = (air_atk and air_float_t > 0.0 and not air_move_used) or jkc_spin or dam_jk or aye2_air_cast
-		var g_mult := (0.30 if dam_jk else (0.20 if jkc_spin else (0.30 if aye2_air_cast else 0.35))) if floating else 1.0
+		var floating: bool = (air_atk and air_float_t > 0.0 and not air_move_used) or jkc_spin or dam_jk or aye2_air_cast or (fx_floral and _aye_air_hang_t > 0.0)
+		var g_mult := (0.30 if dam_jk else (0.20 if jkc_spin else (0.30 if (aye2_air_cast or (fx_floral and _aye_air_hang_t > 0.0)) else 0.35))) if floating else 1.0
 		# caida BRUSCA del remate del ULTRA: al pasar el ápice se desploma
 		if hard_fall and hit_flying and vel_y > 0.0:
 			g_mult = 2.6
