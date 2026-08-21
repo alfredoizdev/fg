@@ -640,10 +640,14 @@ func _on_animation_changed() -> void:
 		_orb_fired = false
 		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
 		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
-		# ↓← (boomerang normal): SUELO = diagonal ARRIBA · AIRE = diagonal ABAJO
+		# TIRO DIAGONAL (boomerang normal): SUELO = ↓← -> diagonal ARRIBA · AIRE = ABAJO+color -> diagonal ABAJO
 		_orb_pending_diag = 0
-		if _orb_pending_mode == 0 and _orb_downback_buffered():
-			_orb_pending_diag = -1 if airborne else (1 if not crouching else 0)
+		if _orb_pending_mode == 0:
+			if airborne:
+				if _orb_air_down():
+					_orb_pending_diag = -1               # AIRE: ABAJO + color = DIAGONAL abajo
+			elif _orb_downback_buffered():
+				_orb_pending_diag = 1 if not crouching else 0   # SUELO: ↓← = DIAGONAL arriba
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
@@ -989,6 +993,9 @@ func _orb_downback_buffered() -> bool:
 	# ↓← (ABAJO y luego ATRÁS): down_recent_t quedó armado al tocar abajo; ahora vamos ATRÁS -> tiro DIAGONAL arriba.
 	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
 	return down_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == -facing
+func _orb_air_down() -> bool:
+	# AIRE: ABAJO (mantenido o recién tocado) + color = tiro DIAGONAL abajo. Reemplaza al ↓← en el aire.
+	return Input.is_action_pressed(act("ui_down")) or down_recent_t > 0.0
 func _orb_color_for(anim: String) -> int:
 	# 🟡🩷🔵 por FAMILIA de botón (de pie / agachado / en el aire) — main.ORB_YELLOW/PINK/BLUE
 	return {"punch": 0, "crouch_punch": 0, "jump_punch": 0,
@@ -3219,6 +3226,10 @@ func _physics_process(delta: float) -> void:
 				and sprite.sprite_frames.has_animation("jump_spin_f") \
 				and sprite.sprite_frames.get_frame_count("jump_spin_f") > 8:
 			sprite.play("jump_spin_f")   # ZETMA: MORTAL adelante. Los golpes aéreos lo cancelan (no está en la lista de bloqueo)
+		elif fx_floral and _dirj != 0.0 and signi(int(_dirj)) == facing \
+				and sprite.sprite_frames.has_animation("jump_spin") \
+				and sprite.sprite_frames.get_frame_count("jump_spin") > 8:
+			sprite.play("jump_spin")   # AYE-2: MORTAL adelante (adelante+arriba). Golpes aéreos lo cancelan (no está en la lista de bloqueo)
 		else:
 			sprite.play("jump")
 			# ZETMA: su clip de salto trae ~50 frames de AGACHARSE antes del despegue; la

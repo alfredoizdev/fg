@@ -3245,6 +3245,18 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 			sf.add_frame("get_up", t)
 	elif sf.has_animation("get_up"):
 		sf.remove_animation("get_up")   # sin get_up propio: evita que el motor reproduzca el get_up de DAM
+	# JUMP_SPIN (MORTAL adelante): clip PROPIO de aye2 (no es anim de DAM) -> se crea explícito. Corre
+	# UNA vez y dura ~0.8s (cabe en el arco del salto). Los golpes aéreos lo CANCELAN (no está en la
+	# lista de bloqueo de fighter -> _try_attack lo pisa al instante).
+	var js := _aye2_action_frames("jump_spin", skin)
+	if not js.is_empty():
+		if not sf.has_animation("jump_spin"):
+			sf.add_animation("jump_spin")
+		sf.clear("jump_spin")
+		sf.set_animation_loop("jump_spin", false)
+		sf.set_animation_speed("jump_spin", maxf(1.0, float(js.size()) / 0.8))   # ~0.8s de giro
+		for t in js:
+			sf.add_frame("jump_spin", t)
 	# ORB_BOUNCE (↓↓ Q/W/E): gesto DE PIE que tira el orbe al PISO. Anim PROPIA (no un slot de botón):
 	# las 3 teclas la reproducen; el color lo decide el botón. Velocidad = ~0.5s sin importar los frames.
 	var bnc := _aye2_action_frames("orb_bounce", skin)
