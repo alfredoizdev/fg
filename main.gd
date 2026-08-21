@@ -7894,7 +7894,7 @@ func _orb_hud_draw() -> void:
 					_orb_hud.draw_circle(p, 11.0, Color(col.r, col.g, col.b, 0.35))
 
 # lanza un orbe: boomerang (tap) o plantar (←→). Solo si ese color está en órbita.
-func _orb_launch(owner: Node2D, color: int, mode: int, up := false) -> void:
+func _orb_launch(owner: Node2D, color: int, mode: int, diag := 0) -> void:
 	var st := _orb_set_for(owner)
 	if st.is_empty():
 		return
@@ -7913,17 +7913,17 @@ func _orb_launch(owner: Node2D, color: int, mode: int, up := false) -> void:
 	o["returning"] = false
 	o["volley"] = false   # boomerang normal (la ráfaga R lo marca aparte)
 	# 🔵 E (esfera azul en boomerang): CARGA — se echa atrás antes de salir disparada. El resto sale directo.
-	# 🔵 CARGA (atrás->adelante) solo en la E DE PIE (sincroniza con el brazo). Agachada (↓E) o tiro ARRIBA: sale NORMAL y RÁPIDO.
-	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG and not owner.crouching and not up) else 0.0
+	# 🔵 CARGA (atrás->adelante) solo en la E DE PIE (sincroniza con el brazo). Agachada (↓E) o tiro DIAGONAL: sale NORMAL y RÁPIDO.
+	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG and not owner.crouching and diag == 0) else 0.0
 	if mode == OMODE_BOUNCE:
 		# ↓→: sale ABAJO-adelante, con gravedad; rebota 1 vez y se planta (ver OST_BOUNCE).
 		o["vel"] = Vector2(dir * ORB_BOUNCE_VX, ORB_BOUNCE_VY0)
 		o["bounces"] = 0
 		o["ground_y"] = _orb_ground_y(owner)
 		o["state"] = OST_BOUNCE
-	elif up:
-		# ↑ mantenido: DIAGONAL arriba-adelante (boomerang que sube y vuelve). Sin gravedad (línea recta).
-		o["vel"] = Vector2(dir * ORB_SPEED * 0.78, -ORB_SPEED * 0.62)
+	elif diag != 0:
+		# ↓← : DIAGONAL (suelo=ARRIBA diag=1 · aire=ABAJO diag=-1). Boomerang recto (sin gravedad).
+		o["vel"] = Vector2(dir * ORB_SPEED * 0.78, float(-diag) * ORB_SPEED * 0.62)
 		o["state"] = OST_FLIGHT
 	else:
 		o["vel"] = Vector2(dir * ORB_SPEED, 0.0)

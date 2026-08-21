@@ -482,6 +482,11 @@ var vel_x := 0.0
 var shove_vx := 0.0   # EMPUJÓN en SUELO (ROUM weak_punch): desliza al rival hacia atrás sin lanzarlo; decae con fricción
 var shove_t := 0.0    # timer del empujón: desliza mientras dure (indep. del take_hit/hitstop y de la DIRECCIÓN)
 const SHOVE_FRICTION := 1000.0   # px/s^2 de frenado del empujón (más bajo = desliza MÁS lejos)
+# LÍMITES del arena. main los sincroniza cada frame con LEFT_LIMIT/RIGHT_LIMIT. En stages con SCROLL
+# el mundo es más ANCHO (2720): sin usar estas vars, los clamps hardcodeados a 1805 hacían un MURO
+# invisible a mitad del stage -> el empuje/knockback "dejaba de funcionar" en esa zona.
+var arena_left := 115.0
+var arena_right := 1805.0
 var floor_bounce_pending := false   # REBOTE contra el suelo (ROUM E/cabezazo): al tocar el piso rebota ARRIBA una vez
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
 const FREEZE_DUR := 1.0   # Aye ↓E (ice-spikes): tiempo que el rival queda CONGELADO en su frame (tinte morado)
@@ -638,8 +643,10 @@ func _on_animation_changed() -> void:
 		_orb_fired = false
 		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
 		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
-		# ↓← (de pie, boomerang normal): la esfera sale DIAGONAL arriba-adelante
-		_orb_pending_up = _orb_pending_mode == 0 and not airborne and not crouching and _orb_downback_buffered()
+		# ↓← (boomerang normal): SUELO = diagonal ARRIBA · AIRE = diagonal ABAJO
+		_orb_pending_diag = 0
+		if _orb_pending_mode == 0 and _orb_downback_buffered():
+			_orb_pending_diag = -1 if airborne else (1 if not crouching else 0)
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
@@ -979,7 +986,7 @@ func set_facing(f: int) -> void:
 # ORBES DE AYE-2 (fx_floral): estado del disparo del orbe desde el gesto de PIE.
 var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en _on_animation_changed)
 var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
-var _orb_pending_up := false   # ↑ mantenido al iniciar el gesto: la esfera sale DIAGONAL arriba
+var _orb_pending_diag := 0     # ↓← al iniciar el gesto: 1=DIAGONAL arriba (suelo) · -1=DIAGONAL abajo (aire) · 0=recto
 var _orb_bounce_color := -1    # ↓↓: color del orbe a tirar al piso (lo fija el input al reproducir orb_bounce)
 func _orb_downback_buffered() -> bool:
 	# ↓← (ABAJO y luego ATRÁS): down_recent_t quedó armado al tocar abajo; ahora vamos ATRÁS -> tiro DIAGONAL arriba.
@@ -1327,7 +1334,7 @@ func current_attack() -> Dictionary:
 			if not _orb_fired and int(sprite.frame) >= int(aa["hit_frame"]):
 				var mb := get_parent()
 				if mb != null and mb.has_method("_orb_launch"):
-					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode, _orb_pending_up)
+					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode, _orb_pending_diag)
 				_orb_fired = true
 			return {}
 		if sprite.animation in ["weak_punch", "crouch_jab", "air_jab"]:
