@@ -113,7 +113,7 @@ const ORB_SPIN_R := 260.0            # radio del círculo: la RODEA de la cabeza
 const ORB_SPIN_BODY_FRAC := 0.42     # centro del círculo = punto entre el origen (pecho) y los pies -> ella queda EN EL MEDIO
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (↓R / salto+R levantan)
-const ORB_PUSH := 240.0              # R (ráfaga): empujón (shove) que corre un poco al rival
+const ORB_PUSH := 550.0              # R (ráfaga): empujón (shove) — corre CLARO al rival hacia atrás (era 240, poco)
 const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
