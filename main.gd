@@ -7776,6 +7776,7 @@ func _orb_update(delta: float) -> void:
 					if absf(o["pos"].x - center.x) >= PLANT_DIST:
 						o["state"] = OST_PLANTED
 						o["world_pos"] = o["pos"]
+						o["grounded"] = false   # plantada FLOTANDO (←→): detonar rosa = pulso normal
 						o["age"] = 0.0
 						if not st["plant_order"].has(c):
 							st["plant_order"].append(c)     # FIFO para el recall de a 1
@@ -7797,6 +7798,7 @@ func _orb_update(delta: float) -> void:
 							else:
 								o["state"] = OST_PLANTED         # 2º toque -> se queda plantada acá
 								o["world_pos"] = o["pos"]
+								o["grounded"] = true    # plantada EN EL PISO (↓↓): rosa detona = CRISTAL
 								o["age"] = 0.0
 								if not st["plant_order"].has(c):
 									st["plant_order"].append(c)
@@ -8110,8 +8112,13 @@ func _orb_target_near(st: Dictionary, pos: Vector2, r: float) -> bool:
 
 # ESTALLIDO en una posición: si el rival está dentro de ORB_DETONATE_R, aplica el efecto del color
 # (🟡 daño / 🩷 congela) + combo, y muestra el VFX. Lo usan el detonar (Q/W) y la mina rosada.
-func _orb_burst_at(st: Dictionary, color: int, pos: Vector2) -> void:
-	_orb_burst_vfx(pos, color)
+func _orb_burst_at(st: Dictionary, color: int, pos: Vector2, grounded := false) -> void:
+	var owner: Node2D = st["owner"]
+	# 🩷 ROSA EN EL PISO (plantada con ↓↓): en vez del flash, ERUPTA EL CRISTAL de hielo del piso.
+	if color == ORB_PINK and grounded and is_instance_valid(owner) and owner.has_method("spawn_ice_grow"):
+		owner.spawn_ice_grow(pos.x)
+	else:
+		_orb_burst_vfx(pos, color)
 	_shake(11.0, 0.12)
 	if _orb_target_near(st, pos, ORB_DETONATE_R):
 		_orb_apply_effect(st, color, true)   # 🟡 daño / 🩷 congela (+ combo + HP)
@@ -8147,7 +8154,7 @@ func _orb_detonate(owner: Node2D, color: int) -> bool:
 	var o: Dictionary = st["orbs"][color]
 	if o["state"] != OST_PLANTED:
 		return false
-	_orb_burst_at(st, color, o["world_pos"])
+	_orb_burst_at(st, color, o["world_pos"], o.get("grounded", false))
 	st["plant_order"].erase(color)
 	o["state"] = OST_ORBIT
 	o["hit_done"] = true
