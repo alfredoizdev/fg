@@ -92,16 +92,16 @@ const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
 const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
 const ORB_CROUCH_DY := 90.0          # baja extra las esferas cuando Aye está AGACHADA (siguen su cuerpo)
-# ANTI-AÉREO (↓R): las 3 esferas hacen UN arco AMPLIO hacia arriba (barren el espacio de un salto) y VUELVEN.
-const ANTIAIR_CX := 60.0             # pivote del arco: adelante de Aye
-const ANTIAIR_CY := 230.0            # pivote del arco: ARRIBA de Aye (el barrido sube por acá)
-const ANTIAIR_DUR := 0.6             # duración del arco completo (rápido, anti-aéreo)
-const ANTIAIR_STAGGER := 0.45        # desfase angular entre las 3 -> arco AMPLIO (no un solo punto)
+# ANTI-AÉREO (↓R): las 3 esferas GIRAN un CÍRCULO amplio alrededor de Aye (arranca abajo, sube por el frente) y VUELVEN.
+const ANTIAIR_R := 230.0             # radio del círculo amplio alrededor de Aye
+const ANTIAIR_DUR := 0.6             # duración de la vuelta completa (rápido, anti-aéreo)
+const ANTIAIR_STAGGER := 0.7         # desfase angular entre las 3 -> se ven separadas en el círculo
 # ESCUDO GIRATORIO (salto+R): las 3 giran en CÍRCULO cerrado alrededor de Aye; si tocan, LEVANTAN al rival.
 const ORB_SPIN_DUR := 0.75           # cuánto dura el escudo giratorio
-const ORB_SPIN_R := 155.0            # radio del círculo (más ancho que la órbita normal -> escudo)
+const ORB_SPIN_R := 230.0            # radio del círculo AMPLIO (escudo grande alrededor de Aye)
 const ORB_SPIN_SPEED := 15.0         # velocidad angular del giro (rad/s, RÁPIDO)
 const ORB_SPIN_LAUNCH := 1.1         # launch_mult del golpe lanzador (los levanta por los aires)
+const VOLLEY_GAP := 0.12             # R de pie: separación entre cada boomerang (las 3 salen UNA POR UNA)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
 var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
@@ -427,7 +427,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 IX"
+	get_window().title = "FG Fighter — build 2026-08-20 IY"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7582,7 +7582,7 @@ func _orb_setup_for(owner: Node2D, idx: int) -> void:
 			"world_pos": Vector2.ZERO, "age": 0.0, "hit_done": false,
 			"orbit_ang": TAU * float(c) / 3.0, "mode": OMODE_BOOMERANG, "hist": [] })
 	orb_sets.append({ "owner": owner, "idx": idx, "sprites": sprites, "ghosts": ghosts, "orbs": orbs,
-		"plant_order": [], "recall_held_t": 0.0 })
+		"plant_order": [], "recall_held_t": 0.0, "throw_queue": [], "throw_t": 0.0 })
 
 func _orb_update(delta: float) -> void:
 	for st in orb_sets:
@@ -7590,6 +7590,14 @@ func _orb_update(delta: float) -> void:
 		if not is_instance_valid(owner):
 			continue
 		var center: Vector2 = owner.global_position + Vector2(0, ORB_CENTER_DY + (ORB_CROUCH_DY if owner.crouching else 0.0))   # baja al agacharse
+		# R de pie: VOLLEY — suelta las 3 boomerang UNA POR UNA (VOLLEY_GAP entre cada una).
+		if not (st["throw_queue"] as Array).is_empty():
+			st["throw_t"] -= delta
+			if st["throw_t"] <= 0.0:
+				var tc: int = st["throw_queue"].pop_front()
+				if st["orbs"][tc]["state"] == OST_ORBIT:
+					_orb_launch(owner, tc, OMODE_BOOMERANG)
+				st["throw_t"] = VOLLEY_GAP
 		for c in 3:
 			var o: Dictionary = st["orbs"][c]
 			var spr: AnimatedSprite2D = st["sprites"][c]
@@ -7638,17 +7646,14 @@ func _orb_update(delta: float) -> void:
 					if o["pos"].distance_to(center) < 40.0:
 						o["state"] = OST_ORBIT
 				OST_SWEEP:
-					# ANTI-AÉREO (↓R): las 3 barren un ARCO amplio hacia ARRIBA y vuelven a la órbita.
-					# Arranca y termina PEGADO a Aye (radio = distancia pivote->Aye); golpea 1 vez al cruzar.
+					# ANTI-AÉREO (↓R): las 3 GIRAN un CÍRCULO amplio alrededor de Aye (arranca ABAJO, a sus
+					# pies, y sube por el FRENTE = anti-aéreo) y vuelven a la órbita. Golpea 1 vez al cruzar.
 					o["age"] += delta
 					var p: float = clampf(o["age"] / ANTIAIR_DUR, 0.0, 1.0)
 					var ep: float = p * p * (3.0 - 2.0 * p)   # smoothstep (acelera y frena)
 					var fdir: float = 1.0 if owner.facing > 0 else -1.0
-					var off := Vector2(fdir * ANTIAIR_CX, -ANTIAIR_CY)   # center -> pivote (adelante y arriba)
-					var pivot := center + off
-					var to_aye := -off                                   # pivote -> Aye
-					var ang := to_aye.angle() - fdir * (TAU * ep + float(c) * ANTIAIR_STAGGER)
-					o["pos"] = pivot + Vector2(cos(ang), sin(ang)) * to_aye.length()
+					var ang := PI * 0.5 - fdir * (TAU * ep + float(c) * ANTIAIR_STAGGER)   # abajo -> adelante -> arriba
+					o["pos"] = center + Vector2(cos(ang), sin(ang)) * ANTIAIR_R
 					if not o["hit_done"] and _orb_hits_target(st, o) != null:
 						_orb_apply_effect(st, c, true)   # efecto FULL de su color (🟡 daño / 🩷 congela / 🔵 maná)
 						o["hit_done"] = true
@@ -7806,6 +7811,21 @@ func _orb_spin(owner: Node2D) -> void:
 		o["state"] = OST_SPIN
 		o["age"] = 0.0
 		o["hit_done"] = false
+
+# R DE PIE: tira las 3 esferas EN ÓRBITA hacia adelante UNA POR UNA (boomerang) — las encola; el
+# loop las suelta con VOLLEY_GAP entre cada una. Cada una viaja, golpea con su efecto y vuelve.
+func _orb_throw_all(owner: Node2D) -> void:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return
+	var q := []
+	for c in 3:
+		if st["orbs"][c]["state"] == OST_ORBIT:
+			q.append(c)
+	if q.is_empty():
+		return
+	st["throw_queue"] = q
+	st["throw_t"] = 0.0   # la primera sale YA; el resto cada VOLLEY_GAP
 
 # RECALL: pasa los `count` orbes plantados MÁS VIEJOS (FIFO) a OST_RECALL (vuelan y pegan al volver).
 func _orb_recall(owner: Node2D, count: int) -> void:

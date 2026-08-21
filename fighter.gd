@@ -740,6 +740,8 @@ func _on_animation_changed() -> void:
 	if _humo_move and not airborne and dash_smoke_cd <= 0.0 and special_t <= 0.0 and not ultra_hover and not _en_ultra_fe:
 		if fx_warrior:
 			_spawn_dash_smoke(0.6, 150.0, false, 0.08)   # ROUM: MÁS ATRÁS (atras 150) y PEGADO a los pies (lift 0.08, pedido)
+		elif fx_floral:
+			_spawn_dash_smoke(0.5, 60.0, false, 0.12)   # AYE: su ancla queda alto -> lift bajo para que salga PEGADO al piso
 		else:
 			_spawn_dash_smoke(0.5, 60.0)   # JUSTO al pie (no en el aire: el polvo es de suelo)
 		dash_smoke_cd = 0.28
@@ -989,6 +991,10 @@ func _do_spin() -> void:   # salto+R: las 3 esferas giran en círculo alrededor 
 	var mb := get_parent()
 	if mb != null and mb.has_method("_orb_spin"):
 		mb._orb_spin(self)
+func _do_throw_all() -> void:   # R de pie: tira las 3 hacia adelante una por una (boomerang volley)
+	var mb := get_parent()
+	if mb != null and mb.has_method("_orb_throw_all"):
+		mb._orb_throw_all(self)
 
 func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
@@ -2891,22 +2897,16 @@ func _physics_process(delta: float) -> void:
 				_orb_recall_held = 0.0   # no cuenta como recall
 				_orb_recall_hold_done = false
 			elif crouching:
-				# ↓R = ANTI-AÉREO: las 3 esferas barren un arco amplio hacia arriba y vuelven (1 vez por press).
+				# ↓R = ANTI-AÉREO: las 3 esferas giran un círculo amplio alrededor de Aye y vuelven (1 vez por press).
 				if not _orb_antiair_done:
 					_do_antiair()
 					_orb_antiair_done = true
-				_orb_recall_held = 0.0   # no cuenta como recall
-				_orb_recall_hold_done = false
 			else:
-				_orb_recall_held += delta
-				if _orb_recall_held >= ORB_RECALL_HOLD and not _orb_recall_hold_done and _has_planted_orbs():
-					_do_recall(3)
-					_orb_recall_hold_done = true
+				# R de pie = tira las 3 hacia ADELANTE, UNA POR UNA, y vuelven (boomerang volley, 1 vez por press).
+				if not _orb_antiair_done:
+					_do_throw_all()
+					_orb_antiair_done = true
 		else:
-			if _orb_recall_held > 0.0 and not _orb_recall_hold_done and _has_planted_orbs():
-				_do_recall(1)   # fue tap
-			_orb_recall_held = 0.0
-			_orb_recall_hold_done = false
 			_orb_antiair_done = false
 	# DASH DE AGUJAS de Fe en curso: embiste hacia adelante y deja estela azul
 	if fe_dash_t > 0.0:
