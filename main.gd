@@ -438,7 +438,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 JX"
+	get_window().title = "FG Fighter — build 2026-08-21 JY"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3089,7 +3089,7 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 			sf.add_animation(slot)
 		sf.clear(slot)
 		sf.set_animation_loop(slot, false)
-		sf.set_animation_speed(slot, 150.0)   # 145f -> ~1s (primer pase; a recortar para combate)
+		sf.set_animation_speed(slot, maxf(1.0, float(af.size()) / 0.35))   # ~0.35s por gesto (rápido, para encadenar combos), no importa la cantidad de frames
 		for t in af:
 			sf.add_frame(slot, t)
 	# DERRIBO (hit_down): aye2 NO lo hereda de DAM. Usa su clip PROPIO (el TRAMO FINAL del hit_fly:
@@ -5638,6 +5638,10 @@ func _aye_teleport_to_orb(caster: Node2D) -> void:
 	# RECOGE la esfera azul: se reunió con ella -> vuelve a órbita
 	st["plant_order"].erase(ORB_BLUE)
 	o["state"] = OST_ORBIT
+	# GOLPE al LLEGAR: si el rival quedó CERCA de donde reapareció, la azul recogida le pega
+	# (daño + slow) y ARRANCA COMBO (pasa por _combo_hit). Así el teleport es un abridor.
+	if is_instance_valid(opp) and absf(opp.global_position.x - caster.global_position.x) < 460.0:
+		_orb_apply_effect(st, ORB_BLUE, true)
 	caster.sprite.play("pose")
 	caster.input_enabled = was_input
 	caster.ai_enabled = was_ai
