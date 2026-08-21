@@ -441,7 +441,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KH"
+	get_window().title = "FG Fighter — build 2026-08-21 KI"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3313,6 +3313,19 @@ func _build_zetma_frames(skin := "skin-1") -> SpriteFrames:
 				sf.add_frame(accion, t)
 			sf.set_animation_speed(accion, reg[accion][0])
 			sf.set_animation_loop(accion, reg[accion][1])
+	# ZETMA skin-2 NO tiene hit_down propio -> el reg lo llenó con el fallback de skin-1 (arte NEGRO
+	# y pose casi de PIE: h≈719 ≈ altura de pie -> "se ve grande/erguido" al derribo). Como hace AYE-2
+	# (ver _build_aye2_frames), usar su KO propio (morado, TENDIDO, tamaño correcto) como hit_down.
+	if skin == "skin-2" and not ResourceLoader.exists("res://imagen-action/zetma/skin-2/hit_down/zetma-hit_down-1.png"):
+		var zhd := _zetma_action_frames("ko", skin)
+		if zhd.size() > 1:
+			if not sf.has_animation("hit_down"):
+				sf.add_animation("hit_down")
+			sf.clear("hit_down")
+			sf.set_animation_loop("hit_down", false)
+			sf.set_animation_speed("hit_down", 48.0)
+			for t in zhd:
+				sf.add_frame("hit_down", t)
 	return sf
 
 func _build_dam_frames() -> SpriteFrames:
@@ -7894,7 +7907,7 @@ func _orb_hud_draw() -> void:
 					_orb_hud.draw_circle(p, 11.0, Color(col.r, col.g, col.b, 0.35))
 
 # lanza un orbe: boomerang (tap) o plantar (←→). Solo si ese color está en órbita.
-func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
+func _orb_launch(owner: Node2D, color: int, mode: int, up := false) -> void:
 	var st := _orb_set_for(owner)
 	if st.is_empty():
 		return
@@ -7913,14 +7926,18 @@ func _orb_launch(owner: Node2D, color: int, mode: int) -> void:
 	o["returning"] = false
 	o["volley"] = false   # boomerang normal (la ráfaga R lo marca aparte)
 	# 🔵 E (esfera azul en boomerang): CARGA — se echa atrás antes de salir disparada. El resto sale directo.
-	# 🔵 CARGA (atrás->adelante) solo en la E DE PIE (sincroniza con el brazo). Agachada (↓E): sale NORMAL y RÁPIDO.
-	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG and not owner.crouching) else 0.0
+	# 🔵 CARGA (atrás->adelante) solo en la E DE PIE (sincroniza con el brazo). Agachada (↓E) o tiro ARRIBA: sale NORMAL y RÁPIDO.
+	o["charge_t"] = ORB_CHARGE_WINDUP if (color == ORB_BLUE and mode == OMODE_BOOMERANG and not owner.crouching and not up) else 0.0
 	if mode == OMODE_BOUNCE:
 		# ↓→: sale ABAJO-adelante, con gravedad; rebota 1 vez y se planta (ver OST_BOUNCE).
 		o["vel"] = Vector2(dir * ORB_BOUNCE_VX, ORB_BOUNCE_VY0)
 		o["bounces"] = 0
 		o["ground_y"] = _orb_ground_y(owner)
 		o["state"] = OST_BOUNCE
+	elif up:
+		# ↑ mantenido: DIAGONAL arriba-adelante (boomerang que sube y vuelve). Sin gravedad (línea recta).
+		o["vel"] = Vector2(dir * ORB_SPEED * 0.78, -ORB_SPEED * 0.62)
+		o["state"] = OST_FLIGHT
 	else:
 		o["vel"] = Vector2(dir * ORB_SPEED, 0.0)
 		o["state"] = OST_PLANT_OUT if mode == OMODE_PLANT else OST_FLIGHT

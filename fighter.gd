@@ -638,6 +638,8 @@ func _on_animation_changed() -> void:
 		_orb_fired = false
 		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
 		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
+		# ↑ mantenido (de pie, boomerang normal): la esfera sale DIAGONAL arriba
+		_orb_pending_up = _orb_pending_mode == 0 and not airborne and Input.is_action_pressed(act("ui_up"))
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
@@ -977,7 +979,14 @@ func set_facing(f: int) -> void:
 # ORBES DE AYE-2 (fx_floral): estado del disparo del orbe desde el gesto de PIE.
 var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en _on_animation_changed)
 var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
+var _orb_pending_up := false   # ↑ mantenido al iniciar el gesto: la esfera sale DIAGONAL arriba
 var _orb_bounce_color := -1    # ↓↓: color del orbe a tirar al piso (lo fija el input al reproducir orb_bounce)
+# ↑ mantenido + color (de pie): tiro DIAGONAL arriba. Se detecta para SUPRIMIR el salto ese frame.
+func _orb_up_throw_input() -> bool:
+	if not fx_floral or airborne or not Input.is_action_pressed(act("ui_up")):
+		return false
+	return Input.is_action_just_pressed(act("attack")) or Input.is_action_just_pressed(act("kick")) \
+		or Input.is_action_just_pressed(act("spin_kick"))
 func _orb_color_for(anim: String) -> int:
 	# 🟡🩷🔵 por FAMILIA de botón (de pie / agachado / en el aire) — main.ORB_YELLOW/PINK/BLUE
 	return {"punch": 0, "crouch_punch": 0, "jump_punch": 0,
@@ -1320,7 +1329,7 @@ func current_attack() -> Dictionary:
 			if not _orb_fired and int(sprite.frame) >= int(aa["hit_frame"]):
 				var mb := get_parent()
 				if mb != null and mb.has_method("_orb_launch"):
-					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode)
+					mb._orb_launch(self, _orb_color_for(String(sprite.animation)), _orb_pending_mode, _orb_pending_up)
 				_orb_fired = true
 			return {}
 		if sprite.animation in ["weak_punch", "crouch_jab", "air_jab"]:
@@ -3401,7 +3410,7 @@ func _physics_process(delta: float) -> void:
 			return
 		down_tap_win = 0.28
 	# salto
-	if Input.is_action_just_pressed(act("ui_up")) and not crouching:
+	if Input.is_action_just_pressed(act("ui_up")) and not crouching and not _orb_up_throw_input():
 		airborne = true
 		vel_y = -JUMP_SPEED * jump_mult
 		_spawn_jump_dust(1.05 if fx_warrior else 0.6)   # polvo de despegue (ROUM tanque: ráfaga MÁS grande y visible)
