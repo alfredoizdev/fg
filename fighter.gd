@@ -2899,23 +2899,17 @@ func _physics_process(delta: float) -> void:
 	# ORBES DE AYE-2: RECALL con R (weak_punch). tap = 1 (más viejo) · hold ≥ ORB_RECALL_HOLD = los 3.
 	if fx_floral and _es_humano() and input_enabled:
 		if Input.is_action_pressed(act("weak_punch")):
-			if airborne:
-				# salto+R = ESCUDO GIRATORIO: las 3 esferas giran en círculo alrededor de Aye; si tocan, LEVANTAN (1 vez por press).
-				if not _orb_antiair_done:
-					_do_spin()
-					_orb_antiair_done = true
-				_orb_recall_held = 0.0   # no cuenta como recall
-				_orb_recall_hold_done = false
-			elif crouching:
-				# ↓R = ANTI-AÉREO: las 3 esferas giran un círculo amplio alrededor de Aye y vuelven (1 vez por press).
-				if not _orb_antiair_done:
-					_do_antiair()
-					_orb_antiair_done = true
-			else:
-				# R de pie = tira las 3 hacia ADELANTE, UNA POR UNA, y vuelven (boomerang volley, 1 vez por press).
-				if not _orb_antiair_done:
-					_do_throw_all()
-					_orb_antiair_done = true
+			if not _orb_antiair_done:
+				# PRIORIDAD: si hay esferas PLANTADAS (←→+color), R —parado o agachado— las RECOGE.
+				if not airborne and _has_planted_orbs():
+					_do_recall(3)   # vuelven TODAS las plantadas (pegan al cruzar)
+				elif airborne:
+					_do_spin()       # salto+R = ESCUDO GIRATORIO (las levanta al tocar)
+				elif crouching:
+					_do_antiair()    # ↓R = ANTI-AÉREO (círculo amplio hacia arriba)
+				else:
+					_do_throw_all()  # R de pie = tira las 3 adelante, una por una, y vuelven
+				_orb_antiair_done = true
 		else:
 			_orb_antiair_done = false
 	# DASH DE AGUJAS de Fe en curso: embiste hacia adelante y deja estela azul

@@ -432,7 +432,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-20 JG"
+	get_window().title = "FG Fighter — build 2026-08-20 JH"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -7845,12 +7845,24 @@ func _orb_antiair(owner: Node2D) -> void:
 		o["age"] = 0.0
 		o["hit_done"] = false
 
-# ESCUDO GIRATORIO (salto+R): las 3 esferas EN ÓRBITA giran en círculo cerrado (OST_SPIN); si tocan, LEVANTAN.
+# ESCUDO GIRATORIO (salto+R): gira las esferas en círculo (OST_SPIN); si tocan, LEVANTAN.
+# RECOGE también las PLANTADAS: entran al círculo (por eso incluye OST_PLANTED, no solo ÓRBITA).
 func _orb_spin(owner: Node2D) -> void:
 	var st := _orb_set_for(owner)
 	if st.is_empty():
 		return
-	for c in _orb_spend_available(owner, st):
+	var avail := []
+	for c in 3:
+		if st["orbs"][c]["state"] == OST_ORBIT or st["orbs"][c]["state"] == OST_PLANTED:
+			avail.append(c)
+	if avail.is_empty():
+		return
+	if not _mana_ok(owner, avail.size() * ORB_MANA_COST):
+		_mana_denied(owner)
+		return
+	_mana_spend(owner, avail.size() * ORB_MANA_COST)
+	for c in avail:
+		st["plant_order"].erase(c)   # si estaba plantada, sale de la cola: la recoge al círculo
 		var o: Dictionary = st["orbs"][c]
 		o["state"] = OST_SPIN
 		o["age"] = 0.0
