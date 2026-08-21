@@ -76,7 +76,7 @@ var mana_was_full := [false, false]  # estado full del frame anterior (detecta e
 # Ver docs/superpowers/specs/2026-08-20-aye-orb-system-design.md
 enum { ORB_YELLOW, ORB_PINK, ORB_BLUE }                                          # índice de color
 const ORB_TINT := [Color(1.0, 0.85, 0.25), Color(1.0, 0.45, 0.72), Color(0.4, 0.62, 1.0)]  # 🟡🩷🔵
-enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL }           # estado del orbe
+enum { OST_ORBIT, OST_FLIGHT, OST_PLANT_OUT, OST_PLANTED, OST_RECALL, OST_SWEEP } # estado del orbe (SWEEP = anti-aéreo ↓R)
 enum { OMODE_BOOMERANG, OMODE_PLANT }                                            # modo de un lanzamiento
 const ORB_ORBIT_R := 90.0            # radio de la órbita alrededor de Aye
 const ORB_SPEED := 1400.0            # velocidad de viaje (ida/recall)
@@ -92,6 +92,11 @@ const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_SCALE := 0.11              # arte 512px -> ~56px (un poco más chicas)
 const ORB_CENTER_DY := 20.0          # centro de la órbita respecto al ORIGEN del fighter (+ = más abajo). 70 tapaba la cara -> 20 (despeja)
 const ORB_CROUCH_DY := 90.0          # baja extra las esferas cuando Aye está AGACHADA (siguen su cuerpo)
+# ANTI-AÉREO (↓R): las 3 esferas hacen UN arco AMPLIO hacia arriba (barren el espacio de un salto) y VUELVEN.
+const ANTIAIR_CX := 60.0             # pivote del arco: adelante de Aye
+const ANTIAIR_CY := 230.0            # pivote del arco: ARRIBA de Aye (el barrido sube por acá)
+const ANTIAIR_DUR := 0.6             # duración del arco completo (rápido, anti-aéreo)
+const ANTIAIR_STAGGER := 0.45        # desfase angular entre las 3 -> arco AMPLIO (no un solo punto)
 var orb_sets := []                   # un set por fighter fx_floral (ver _orb_setup_for)
 var _orb_frames_cache := {}          # SpriteFrames animado por color (0/1/2)
 var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja los 3 chips de estado
@@ -7627,11 +7632,28 @@ func _orb_update(delta: float) -> void:
 						o["hit_done"] = true
 					if o["pos"].distance_to(center) < 40.0:
 						o["state"] = OST_ORBIT
+				OST_SWEEP:
+					# ANTI-AÉREO (↓R): las 3 barren un ARCO amplio hacia ARRIBA y vuelven a la órbita.
+					# Arranca y termina PEGADO a Aye (radio = distancia pivote->Aye); golpea 1 vez al cruzar.
+					o["age"] += delta
+					var p: float = clampf(o["age"] / ANTIAIR_DUR, 0.0, 1.0)
+					var ep: float = p * p * (3.0 - 2.0 * p)   # smoothstep (acelera y frena)
+					var fdir: float = 1.0 if owner.facing > 0 else -1.0
+					var off := Vector2(fdir * ANTIAIR_CX, -ANTIAIR_CY)   # center -> pivote (adelante y arriba)
+					var pivot := center + off
+					var to_aye := -off                                   # pivote -> Aye
+					var ang := to_aye.angle() - fdir * (TAU * ep + float(c) * ANTIAIR_STAGGER)
+					o["pos"] = pivot + Vector2(cos(ang), sin(ang)) * to_aye.length()
+					if not o["hit_done"] and _orb_hits_target(st, o) != null:
+						_orb_apply_effect(st, c, true)   # efecto FULL de su color (🟡 daño / 🩷 congela / 🔵 maná)
+						o["hit_done"] = true
+					if p >= 1.0:
+						o["state"] = OST_ORBIT
 			spr.global_position = o["pos"]
 			spr.visible = true
 			# ESTELA: al VIAJAR arrastra fantasmas por posiciones recientes; en reposo, ocultos.
 			var ghs: Array = st["ghosts"][c]
-			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL:
+			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL or o["state"] == OST_SWEEP:
 				o["hist"].push_front(o["pos"])
 				if o["hist"].size() > 8:
 					o["hist"].resize(8)
@@ -7739,6 +7761,19 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool) -> void:
 		if player_hp <= 0:
 			if _round_real(): _end_round(false)
 			else: player_hp = hp_max[0]
+
+# ANTI-AÉREO (↓R): las 3 esferas que estén EN ÓRBITA barren un arco amplio hacia arriba (OST_SWEEP) y vuelven.
+func _orb_antiair(owner: Node2D) -> void:
+	var st := _orb_set_for(owner)
+	if st.is_empty():
+		return
+	for c in 3:
+		var o: Dictionary = st["orbs"][c]
+		if o["state"] != OST_ORBIT:
+			continue   # solo participan las disponibles (las en vuelo/plantadas no)
+		o["state"] = OST_SWEEP
+		o["age"] = 0.0
+		o["hit_done"] = false
 
 # RECALL: pasa los `count` orbes plantados MÁS VIEJOS (FIFO) a OST_RECALL (vuelan y pegan al volver).
 func _orb_recall(owner: Node2D, count: int) -> void:

@@ -970,6 +970,7 @@ func _orb_plant_buffered() -> bool:
 const ORB_RECALL_HOLD := 0.25
 var _orb_recall_held := 0.0
 var _orb_recall_hold_done := false
+var _orb_antiair_done := false   # ↓R disparó el anti-aéreo este press (se rearma al soltar R)
 func _has_planted_orbs() -> bool:
 	var mb := get_parent()
 	if mb == null or not mb.has_method("_orb_set_for"):
@@ -980,6 +981,10 @@ func _do_recall(n: int) -> void:
 	var mb := get_parent()
 	if mb != null and mb.has_method("_orb_recall"):
 		mb._orb_recall(self, n)
+func _do_antiair() -> void:   # ↓R: las 3 esferas barren un arco amplio hacia arriba (anti-aéreo)
+	var mb := get_parent()
+	if mb != null and mb.has_method("_orb_antiair"):
+		mb._orb_antiair(self)
 
 func current_attack() -> Dictionary:
 	# el mortal del breaker no es un golpe real (el impacto lo aplica on_breaker)
@@ -2874,15 +2879,24 @@ func _physics_process(delta: float) -> void:
 	# ORBES DE AYE-2: RECALL con R (weak_punch). tap = 1 (más viejo) · hold ≥ ORB_RECALL_HOLD = los 3.
 	if fx_floral and _es_humano() and input_enabled:
 		if Input.is_action_pressed(act("weak_punch")):
-			_orb_recall_held += delta
-			if _orb_recall_held >= ORB_RECALL_HOLD and not _orb_recall_hold_done and _has_planted_orbs():
-				_do_recall(3)
-				_orb_recall_hold_done = true
+			if crouching:
+				# ↓R = ANTI-AÉREO: las 3 esferas barren un arco amplio hacia arriba y vuelven (1 vez por press).
+				if not _orb_antiair_done:
+					_do_antiair()
+					_orb_antiair_done = true
+				_orb_recall_held = 0.0   # no cuenta como recall
+				_orb_recall_hold_done = false
+			else:
+				_orb_recall_held += delta
+				if _orb_recall_held >= ORB_RECALL_HOLD and not _orb_recall_hold_done and _has_planted_orbs():
+					_do_recall(3)
+					_orb_recall_hold_done = true
 		else:
 			if _orb_recall_held > 0.0 and not _orb_recall_hold_done and _has_planted_orbs():
 				_do_recall(1)   # fue tap
 			_orb_recall_held = 0.0
 			_orb_recall_hold_done = false
+			_orb_antiair_done = false
 	# DASH DE AGUJAS de Fe en curso: embiste hacia adelante y deja estela azul
 	if fe_dash_t > 0.0:
 		fe_dash_t = maxf(0.0, fe_dash_t - delta)
