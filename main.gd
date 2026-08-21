@@ -7677,7 +7677,7 @@ func _orb_setup_for(owner: Node2D, idx: int) -> void:
 			"world_pos": Vector2.ZERO, "age": 0.0, "hit_done": false,
 			"orbit_ang": TAU * float(c) / 3.0, "mode": OMODE_BOOMERANG, "hist": [] })
 	orb_sets.append({ "owner": owner, "idx": idx, "sprites": sprites, "ghosts": ghosts, "orbs": orbs,
-		"plant_order": [], "recall_held_t": 0.0, "throw_queue": [], "throw_t": 0.0 })
+		"plant_order": [], "recall_held_t": 0.0, "throw_queue": [], "throw_t": 0.0, "vanish_k": 1.0 })
 
 func _orb_update(delta: float) -> void:
 	for st in orb_sets:
@@ -7685,6 +7685,11 @@ func _orb_update(delta: float) -> void:
 		if not is_instance_valid(owner):
 			continue
 		var center: Vector2 = owner.global_position + Vector2(0, ORB_CENTER_DY + (ORB_CROUCH_DY if owner.crouching else 0.0))   # baja al agacharse
+		# ULTRA: si a Aye le conectan un ultra (state=="ultra", ella es la víctima), sus orbs se ENCOGEN
+		# hasta desaparecer; al terminar el ultra vuelven a crecer. vanish_k: 1=normal, 0=desaparecidas.
+		var vk_target: float = 0.0 if state == "ultra" else 1.0
+		st["vanish_k"] = move_toward(float(st.get("vanish_k", 1.0)), vk_target, delta / 0.45)
+		var vk: float = st["vanish_k"]
 		# R de pie: VOLLEY — suelta las 3 boomerang UNA POR UNA (VOLLEY_GAP entre cada una).
 		if not (st["throw_queue"] as Array).is_empty():
 			st["throw_t"] -= delta
@@ -7796,7 +7801,8 @@ func _orb_update(delta: float) -> void:
 					if o["age"] >= ORB_SPIN_DUR:
 						o["state"] = OST_ORBIT
 			spr.global_position = o["pos"]
-			spr.visible = true
+			spr.scale = Vector2(ORB_SCALE, ORB_SCALE) * vk   # ULTRA: encoge hasta 0 (víctima del ultra)
+			spr.visible = vk > 0.02
 			# ESTELA: al VIAJAR arrastra fantasmas por posiciones recientes; en reposo, ocultos.
 			var ghs: Array = st["ghosts"][c]
 			if o["state"] == OST_FLIGHT or o["state"] == OST_PLANT_OUT or o["state"] == OST_RECALL or o["state"] == OST_SWEEP or o["state"] == OST_SPIN or o["state"] == OST_BOUNCE:
