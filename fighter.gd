@@ -301,6 +301,7 @@ const ATTACKS := {
 	"air_spin_kick": {"hit_frame": 4, "reach": 620.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},
 	"weak_punch":   {"hit_frame": 1, "reach": 550.0 * CHAR_SCALE, "low": false, "damage": 50},
 	"uppercut":     {"hit_frame": 5, "reach": 500.0 * CHAR_SCALE, "low": false, "strong": true, "damage": 100, "impact_sfx": "kick_impact"},   # ROUM ↓→W (los valores reales los da current_attack del warrior)
+	"orb_bounce":   {"hit_frame": 2, "reach": 0.0, "low": false, "damage": 0},   # AYE-2 ↓↓: gesto de tirar al piso (el orbe hace el daño; no pega melee)
 }
 
 const FLY_TILT_DEG := 34.0   # inclinación del cuerpo al salir volando (se ladea hacia el empujón)
@@ -630,7 +631,10 @@ func _on_animation_changed() -> void:
 	var nombre := String(sprite.animation)
 	# ORBES DE AYE-2: al empezar un gesto de lanzar (punch/kick/spin_kick), rearma el disparo del
 	# orbe y captura el modo (boomerang vs plantar por el motion ←→, buffered al inicio del gesto).
-	if fx_floral and _orb_color_for(nombre) >= 0:
+	if fx_floral and nombre == "orb_bounce":
+		_orb_fired = false   # ↓↓: gesto propio; el color ya quedó en _orb_bounce_color
+		_cast_border_on(0.45, _orb_outline_by_color(_orb_bounce_color))
+	elif fx_floral and _orb_color_for(nombre) >= 0:
 		_orb_fired = false
 		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
 		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
@@ -973,17 +977,20 @@ func set_facing(f: int) -> void:
 # ORBES DE AYE-2 (fx_floral): estado del disparo del orbe desde el gesto de PIE.
 var _orb_fired := false        # ya se lanzó el orbe en este gesto (rearmado en _on_animation_changed)
 var _orb_pending_mode := 0     # 0=boomerang, 1=plantar (main.OMODE_*); se fija al iniciar el gesto
+var _orb_bounce_color := -1    # ↓↓: color del orbe a tirar al piso (lo fija el input al reproducir orb_bounce)
 func _orb_color_for(anim: String) -> int:
 	# 🟡🩷🔵 por FAMILIA de botón (de pie / agachado / en el aire) — main.ORB_YELLOW/PINK/BLUE
 	return {"punch": 0, "crouch_punch": 0, "jump_punch": 0,
 		"kick": 1, "crouch_kick": 1, "jump_kick": 1,
 		"spin_kick": 2, "sweep": 2, "air_spin_kick": 2}.get(anim, -1)
-func _orb_outline_col(anim: String) -> Color:
-	match _orb_color_for(anim):
+func _orb_outline_by_color(c: int) -> Color:
+	match c:
 		0: return Color(1.6, 1.3, 0.35, 1.0)      # 🟡
 		1: return Color(1.7, 0.6, 1.15, 1.0)      # 🩷
 		2: return Color(0.5, 0.95, 1.8, 1.0)      # 🔵
 	return Color(1.45, 0.35, 2.0, 1.0)
+func _orb_outline_col(anim: String) -> Color:
+	return _orb_outline_by_color(_orb_color_for(anim))
 func _orb_plant_buffered() -> bool:
 	# ←→ (ATRÁS y luego ADELANTE): back_recent_t quedó armado al tocar atrás; ahora vamos adelante.
 	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
@@ -1288,6 +1295,17 @@ func current_attack() -> Dictionary:
 		# 1300*0.65 = 845 reales. (Igual que la regla de oro del pilar.)
 		"crouch_kick": {"launch_mult": 1.15, "reach": 1300.0},
 	}
+	# ORB_BOUNCE (↓↓): gesto DE PIE que tira el orbe al PISO. Lanza el color guardado en modo REBOTE
+	# (a mitad de la anim) y NO pega melee. El rebote/planta lo maneja el árbitro (OST_BOUNCE).
+	if fx_floral and sprite.animation == "orb_bounce" and sprite.is_playing():
+		if _orb_bounce_color >= 0:
+			var bhf: int = maxi(2, int(sprite.sprite_frames.get_frame_count("orb_bounce") * 0.55))
+			if not _orb_fired and int(sprite.frame) >= bhf:
+				var mbb := get_parent()
+				if mbb != null and mbb.has_method("_orb_launch"):
+					mbb._orb_launch(self, _orb_bounce_color, 2)   # 2 = main.OMODE_BOUNCE
+				_orb_fired = true
+		return {}
 	if fx_floral and sprite.animation in ATTACKS and sprite.is_playing():
 		var aa: Dictionary = ATTACKS[sprite.animation].duplicate()
 		aa["name"] = sprite.animation
@@ -3357,7 +3375,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# ocupado: golpeando, recibiendo dano o bloqueando
-	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "take_hit", "take_hit_low", "block", "block_low", "water_cast", "crystal_cast"] \
+	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "orb_bounce", "take_hit", "take_hit_low", "block", "block_low", "water_cast", "crystal_cast"] \
 			and sprite.is_playing():
 		return
 
@@ -3488,7 +3506,7 @@ func _ai_process(delta: float) -> void:
 		else:
 			sprite.play(ai_combo.pop_front())
 			return
-	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "jump_punch", "jump_kick", "jump_kick_cast", "take_hit", "take_hit_low", "block", "block_low", "hit_down", "ko", "victory", "crouch", "electrocuted"] \
+	if sprite.animation in ["punch", "punch2", "kick", "spin_kick", "air_spin_kick", "weak_punch", "crouch_punch", "crouch_jab", "crouch_kick", "sweep", "orb_bounce", "jump_punch", "jump_kick", "jump_kick_cast", "take_hit", "take_hit_low", "block", "block_low", "hit_down", "ko", "victory", "crouch", "electrocuted"] \
 			and sprite.is_playing():
 		return
 	var dist := absf(ai_target.position.x - position.x)
@@ -3988,6 +4006,11 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				if mby and mby.has_method("_orb_recall_color") and mby._orb_recall_color(self, 0):
 					sprite.play("punch")   # gesto de llamada; el orbe vuelve solo
 					return true
+			# AYE-2 ↓↓Q: tira el orbe AMARILLO al PISO (gesto orb_bounce, rebota y planta).
+			if fx_floral and not airborne and double_down_t > 0.0 and sprite.sprite_frames.has_animation("orb_bounce"):
+				_orb_bounce_color = 0
+				sprite.play("orb_bounce")
+				return true
 			if airborne:
 				# AYE-2: el teleport direccional se retiró -> ahora teleporta a la esfera AZUL con E (ver spin_kick).
 				# ZETMA: ↓→Q en el AIRE = AIR GRAB (gancho aéreo que hala hacia él)
@@ -4045,6 +4068,11 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				if mbp and mbp.has_method("_orb_recall_color") and mbp._orb_recall_color(self, 1):
 					sprite.play("kick")
 					return true
+			# AYE-2 ↓↓W: tira el orbe ROSADO al PISO (gesto orb_bounce).
+			if fx_floral and not airborne and double_down_t > 0.0 and sprite.sprite_frames.has_animation("orb_bounce"):
+				_orb_bounce_color = 1
+				sprite.play("orb_bounce")
+				return true
 			if not airborne:
 				var kdir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var kade := kdir != 0.0 and int(signf(kdir)) == facing
@@ -4074,6 +4102,11 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				if mbt and mbt.has_method("_orb_blue_planted") and mbt._orb_blue_planted(self):
 					mbt._aye_teleport_to_orb(self)   # coroutine (fire-and-forget)
 					return true
+			# AYE-2 ↓↓E: tira el orbe AZUL al PISO (gesto orb_bounce).
+			if fx_floral and not airborne and double_down_t > 0.0 and sprite.sprite_frames.has_animation("orb_bounce"):
+				_orb_bounce_color = 2
+				sprite.play("orb_bounce")
+				return true
 			# AYE (E) = CRYSTAL CAST a distancia: grita y alza el báculo (#181). El proyectil que
 			# viaja se anima aparte (crystal_shard) y se cablea cuando exista. En el suelo.
 			if fx_floral and not airborne and sprite.sprite_frames.has_animation("crystal_cast"):

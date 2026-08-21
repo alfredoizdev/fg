@@ -438,7 +438,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 JR"
+	get_window().title = "FG Fighter — build 2026-08-21 JV"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3120,6 +3120,17 @@ func _build_aye2_frames(skin: String) -> SpriteFrames:
 			sf.add_frame("get_up", t)
 	elif sf.has_animation("get_up"):
 		sf.remove_animation("get_up")   # sin get_up propio: evita que el motor reproduzca el get_up de DAM
+	# ORB_BOUNCE (↓↓ Q/W/E): gesto DE PIE que tira el orbe al PISO. Anim PROPIA (no un slot de botón):
+	# las 3 teclas la reproducen; el color lo decide el botón. Velocidad = ~0.5s sin importar los frames.
+	var bnc := _aye2_action_frames("orb_bounce", skin)
+	if not bnc.is_empty():
+		if not sf.has_animation("orb_bounce"):
+			sf.add_animation("orb_bounce")
+		sf.clear("orb_bounce")
+		sf.set_animation_loop("orb_bounce", false)
+		sf.set_animation_speed("orb_bounce", maxf(1.0, float(bnc.size()) / 0.5))   # ~0.5s
+		for t in bnc:
+			sf.add_frame("orb_bounce", t)
 	return sf
 
 func _zetma_action_frames(accion: String, skin := "skin-1") -> Array:
@@ -9518,9 +9529,9 @@ func _spawn_zetma_laser_orb(caster: Node2D) -> void:
 		var _osp := AudioStreamPlayer.new()
 		_osp.stream = _strm; _osp.volume_db = 6.0
 		arena.add_child(_osp); _osp.finished.connect(_osp.queue_free); _osp.play()
-	# 1) LÁSER azul eléctrico que BAJA del cielo hasta (tx, fy) — con flicker + jitter
+	# 1) LÁSER azul eléctrico — una LÍNEA FINA que BAJA del cielo hasta (tx, fy), con flicker + jitter
 	var top_y: float = fy - 1250.0
-	var bw := 22.0
+	var bw := 9.0
 	var beam := ColorRect.new()
 	beam.color = Color(0.45, 0.78, 2.4, 0.0)
 	beam.size = Vector2(bw, 0.0)
@@ -9543,18 +9554,23 @@ func _spawn_zetma_laser_orb(caster: Node2D) -> void:
 		if p >= 1.0:
 			break
 		await get_tree().process_frame
-	# 2) IMPACTO en el piso: shake + el ORB CRECE ahí (no viaja)
+	# 2) IMPACTO en el piso: shake + la línea se apaga y el ORB CRECE DESDE EL PISO (fondo pegado al
+	# suelo, sube hacia arriba). 185.86 = radio visual real del orb (mismo cutoff que el domo).
 	_shake(9.0, 0.12)
-	var orb := _make_void_orb(arena)
-	orb.z_index = 7
-	orb.position = Vector2(tx, fy - 120.0)                 # centro del orb sobre el piso (tuneable)
-	orb.scale = Vector2(0.06, 0.06)
-	orb.modulate = Color(0.74, 0.62, 0.92, 1.0)
-	var tw := orb.create_tween()
-	tw.tween_property(orb, "scale", Vector2(0.82, 0.82), 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	var tb := beam.create_tween(); tb.tween_property(beam, "color:a", 0.0, 0.18); tb.tween_callback(beam.queue_free)
 	var th := head.create_tween(); th.tween_property(head, "color:a", 0.0, 0.16); th.tween_callback(head.queue_free)
-	await get_tree().create_timer(0.32).timeout           # deja crecer el orb
+	var orb := _make_void_orb(arena)
+	orb.z_index = 7
+	orb.modulate = Color(0.74, 0.62, 0.92, 1.0)
+	orb.scale = Vector2(0.06, 0.06)
+	orb.position = Vector2(tx, fy - 185.86 * 0.06)         # el FONDO del orb toca el suelo
+	var _gt := 0.0
+	while _gt < 0.34 and is_instance_valid(orb):
+		_gt += get_process_delta_time()
+		var _s: float = lerpf(0.06, 0.82, _ease_out_cubic(clampf(_gt / 0.34, 0.0, 1.0)))
+		orb.scale = Vector2(_s, _s)
+		orb.position = Vector2(tx, fy - 185.86 * _s)      # crece hacia ARRIBA emergiendo del piso
+		await get_tree().process_frame
 	# 3) ATRAPA solo si el rival está EN el punto; si no, el orb se disuelve
 	if is_instance_valid(opp) and not opp.koed and not opp.is_downed() \
 			and opp.breaker_inv_t <= 0.0 and absf(opp.position.x - tx) < ORB_CATCH_R:
