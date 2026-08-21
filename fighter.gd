@@ -632,8 +632,8 @@ func _on_animation_changed() -> void:
 	# orbe y captura el modo (boomerang vs plantar por el motion ←→, buffered al inicio del gesto).
 	if fx_floral and _orb_color_for(nombre) >= 0:
 		_orb_fired = false
-		# modo: ↓→ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
-		_orb_pending_mode = 2 if _orb_downfwd_buffered() else (1 if _orb_plant_buffered() else 0)
+		# modo: ↓↓ = REBOTE (2) · ←→ = PLANTAR (1) · normal = BOOMERANG (0)
+		_orb_pending_mode = 2 if _orb_doubledown_buffered() else (1 if _orb_plant_buffered() else 0)
 		_cast_border_on(0.45, _orb_outline_col(nombre))   # BORDE del color del orbe usado
 	# AYE-2: el "levantarse de agachado" corre acelerado (speed_scale=1.5). Al cambiar a CUALQUIER
 	# otra anim (pose/golpe/take_hit/…) se restaura la velocidad normal. Se respeta un congelado
@@ -973,10 +973,9 @@ func _orb_plant_buffered() -> bool:
 	# ←→ (ATRÁS y luego ADELANTE): back_recent_t quedó armado al tocar atrás; ahora vamos adelante.
 	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
 	return back_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == facing
-func _orb_downfwd_buffered() -> bool:
-	# ↓→ (ABAJO y luego ADELANTE): down_recent_t quedó armado al tocar abajo; ahora vamos adelante.
-	var fwd := Input.get_axis(act("ui_left"), act("ui_right"))
-	return down_recent_t > 0.0 and fwd != 0.0 and int(signf(fwd)) == facing
+func _orb_doubledown_buffered() -> bool:
+	# ↓↓ (ABAJO dos veces): double_down_t se arma al doble-tap abajo. NO usa ↓→ (ese es teleport/backstab).
+	return double_down_t > 0.0
 
 # RECALL (R = weak_punch): tap = 1 (más viejo, FIFO) · hold = los 3. Solo si hay plantados.
 const ORB_RECALL_HOLD := 0.25
@@ -3782,8 +3781,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			var mu := get_parent()
 			if mu and mu.has_method("try_ultra") and mu.try_ultra(self):
 				return
-		# comando INFIERNO (crítico de fuego): ↓↓ + E
-		if event.is_action_pressed(act("spin_kick")) and double_down_t > 0.0:
+		# comando INFIERNO (crítico de fuego): ↓↓ + E — EXENTO para aye2 (su ↓↓E = orbe azul que REBOTA)
+		if event.is_action_pressed(act("spin_kick")) and double_down_t > 0.0 and not fx_floral:
 			var mc := get_parent()
 			if mc and mc.has_method("try_critical") and mc.try_critical(self):
 				return
@@ -3988,10 +3987,12 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				var dir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var adelante := dir != 0.0 and int(signf(dir)) == facing
 				# cuarto adelante (↓ reciente y ya suelto) + Q:
-				#   Fe = ESPECIAL DE AGUA · DAM = EMBER DASH · Zetma = GROUND GRAB
-				#   AYE-2 EXENTA: ↓→Q = ORBE AMARILLO que REBOTA (lo dispara el gesto punch, ver _orb_downfwd_buffered)
-				if adelante and down_recent_t > 0.0 and not fx_floral:
-					if fx_dark:
+				#   AYE = TELEPORT (glitch morado) · Fe = ESPECIAL DE AGUA · DAM = EMBER DASH
+				if adelante and down_recent_t > 0.0:
+					if fx_floral:
+						_start_teleport()          # Aye: teleport (↓→Q). El REBOTE de orbe es ↓↓Q.
+						return true
+					elif fx_dark:
 						# ZETMA: ↓→Q = GROUND GRAB (estira la mano y HALA). NO el dash de DAM.
 						var mgg := get_parent()
 						if mgg and mgg.has_method("_zetma_ground_grab"):
@@ -4029,7 +4030,12 @@ func _try_attack(accion: String, desde_aire := false) -> bool:
 				var kdir := Input.get_axis(act("ui_left"), act("ui_right"))
 				var kade := kdir != 0.0 and int(signf(kdir)) == facing
 				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
-				# AYE-2 EXENTA en el SUELO: ↓→W ya NO es backstab -> ORBE ROSADO que REBOTA (lo dispara el gesto kick)
+				# AYE ↓→+W = BACKSTAB: se teleporta DETRÁS del rival, golpea y lo EMPUJA. (El REBOTE de orbe es ↓↓W.)
+				if fx_floral and kade and down_recent_t > 0.0:
+					if not _spell_afford(0.30):
+						return true
+					_start_backstab()
+					return true
 				# ↓↘→+W (medialuna adelante) = ESPECIAL DE AGUA de Fe a 2 CUERPOS
 				if kade and down_recent_t > 0.0 and sprite.sprite_frames.has_animation("water_cast"):
 					_start_water_special(2)
