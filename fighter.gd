@@ -16,7 +16,6 @@ const KNOCKBACK_X := 650.0 * CHAR_SCALE
 const KNOCKBACK_Y := 2200.0 * CHAR_SCALE
 
 const SHADOW_FEET_OFFSET := 500.0
-const SHADOW_RADIUS := 125.0
 const SHADOW_SQUASH := 0.3
 const SHADOW_ALPHA := 0.3
 
@@ -309,7 +308,6 @@ const SPIN_TRAVEL := 600.0 * CHAR_SCALE  # avance de la patada giratoria (px/s)
 const SPIN_HOVER := 130.0 * CHAR_SCALE   # elevacion durante el giro
 const SPECIAL_SPEED := 1500.0 * CHAR_SCALE  # embestida del EMBER DASH (px/s)
 const SPECIAL_TIME := 0.34                  # duracion del dash
-const HIT_ANIMS := ["take_hit", "take_hit_low", "block", "block_low"]
 
 # sonidos por animacion: al entrar una animacion suena su efecto (si existe)
 const SFX_FILES := {
@@ -429,7 +427,6 @@ var breaker_fx_t := 0.0
 var debris_frames: SpriteFrames = null  # escombros del estrellon (carga perezosa)
 # comando del ULTRA (→ R R): cuenta las R con adelante reciente
 var ultra_r_t := 0.0
-var ultra_r_n := 0
 var fwd_recent_t := 0.0
 var hcb_t := 0.0        # HCB (→↓←) reciente: media luna atrás para el FROST ORB de Aye (+R)
 var _hcb_stage := 0     # máquina: 0=idle, 1=vio ADELANTE, 2=vio ABAJO (tras adelante)
@@ -1015,8 +1012,6 @@ func _orb_doubledown_buffered() -> bool:
 
 # RECALL (R = weak_punch): tap = 1 (más viejo, FIFO) · hold = los 3. Solo si hay plantados.
 const ORB_RECALL_HOLD := 0.25
-var _orb_recall_held := 0.0
-var _orb_recall_hold_done := false
 var _orb_antiair_done := false   # ↓R disparó el anti-aéreo este press (se rearma al soltar R)
 func _has_planted_orbs() -> bool:
 	var mb := get_parent()
@@ -1463,31 +1458,6 @@ func current_attack() -> Dictionary:
 		return a
 	return {}
 
-func do_ko() -> void:
-	koed = true
-	_ko_dust_done = false
-	_play_ko_cry()   # AYE: "NOOOOOO!" al perder (una vez)
-	crouching = false
-	water_bg = false
-	fe_dash_t = 0.0
-	fe_dash_active = false
-	# KO EN EL AIRE: no teletransporta ni activa la anim de KO todavía; deja que CAIGA
-	# por su arco y quede TENDIDO al tocar el piso (lo maneja el aterrizaje).
-	if airborne or hit_flying:
-		return
-	# KO en el suelo: cae de espaldas con la animación completa (boca ARRIBA)
-	ko_facedown = false
-	hit_flying = false
-	airborne = false
-	vel_x = 0.0
-	vel_y = 0.0
-	position.y = floor_y
-	sprite.play("ko")
-
-# MUERTE (llamado por _end_round). NO corta el vuelo: si el golpe mortal lo lanzó,
-# COMPLETA su arco por los aires; al empezar a bajar se pone BOCA ABAJO (ko_air) y al
-# aterrizar queda tendido boca abajo (sin levantarse). Si muere PARADO en el suelo,
-# cae de espaldas (boca arriba) con la animación normal de "ko".
 func die_ko() -> void:
 	koed = true
 	_ko_dust_done = false
@@ -1940,35 +1910,6 @@ func _spawn_slam_dust(dir: int, escala := 0.9) -> void:
 
 # escombros al estrellarse contra la pared: piedras y polvo dibujados por la IA
 # (el borde derecho del lienzo es la pared; para la pared izquierda se espeja)
-func _spawn_wall_debris(lado: int) -> void:
-	if debris_frames == null:
-		if not ResourceLoader.exists("res://imagen-action/impact-effect/wall-debris/wall-debris-1.png"):
-			return
-		debris_frames = SpriteFrames.new()
-		debris_frames.add_animation("boom")
-		debris_frames.set_animation_speed("boom", 13.0)
-		debris_frames.set_animation_loop("boom", false)
-		for i in range(1, 9):
-			debris_frames.add_frame("boom", load("res://imagen-action/impact-effect/wall-debris/wall-debris-%d.png" % i))
-	var d := AnimatedSprite2D.new()
-	d.sprite_frames = debris_frames
-	d.z_index = -1
-	d.scale = Vector2(0.55, 0.55)
-	var tex: Texture2D = debris_frames.get_frame_texture("boom", 0)
-	# anclado al borde REAL de la pantalla (un poco enterrado para tapar margen)
-	if lado > 0:
-		d.position = Vector2(1935.0, 950.0)
-		d.offset = Vector2(-tex.get_width() / 2.0, -tex.get_height() / 2.0)
-	else:
-		d.position = Vector2(-15.0, 950.0)
-		d.flip_h = true
-		d.offset = Vector2(tex.get_width() / 2.0, -tex.get_height() / 2.0)
-	d.animation_finished.connect(d.queue_free)
-	get_parent().add_child(d)
-	d.play("boom")
-
-# sombra fantasma del dash: copia del frame actual que se desvanece en rojo
-# polvo de salto/aterrizaje: anillo de humo anime DIBUJADO (jump-dust, 6 frames)
 var jumpdust_frames: SpriteFrames = null
 func _spawn_jump_dust(escala := 0.7, at_x := NAN, tint := Color(1, 1, 1, 1)) -> void:
 	# at_x: x GLOBAL opcional (p.ej. el punto de impacto del THUNDER); por defecto los pies
@@ -2025,35 +1966,6 @@ func _soft_texture() -> Texture2D:
 # PROYECTIL de fuego del INFIERNO: vórtice giratorio que sale del frente de DAM.
 # Devuelve el nodo (main.gd lo mueve hacia el rival). null si no está importado.
 var firewave_frames: SpriteFrames = null
-func spawn_fire_wave() -> Node2D:
-	if firewave_frames == null:
-		if not ResourceLoader.exists("res://imagen-action/impact-effect/fire-wave/fire-wave-2.png"):
-			return null
-		firewave_frames = SpriteFrames.new()
-		firewave_frames.add_animation("spin")
-		firewave_frames.set_animation_speed("spin", 40.0)   # giro muy veloz
-		firewave_frames.set_animation_loop("spin", true)
-		# loop de los 6 vórtices (mismo tamaño, girando)
-		for i in range(1, 7):
-			firewave_frames.add_frame("spin", load("res://imagen-action/impact-effect/fire-wave/fire-wave-%d.png" % i))
-	var w := AnimatedSprite2D.new()
-	w.sprite_frames = firewave_frames
-	w.animation = "spin"
-	w.z_index = 5
-	w.flip_h = facing < 0
-	var s := 0.95 * absf(scale.x)   # vórtice grande
-	w.scale = Vector2(s, s)
-	get_parent().add_child(w)
-	var tex: Texture2D = firewave_frames.get_frame_texture("spin", 0)
-	# RUEDA por el suelo: su base queda apoyada al ras del piso
-	var base := to_global(Vector2(float(facing) * 90.0, SHADOW_FEET_OFFSET))
-	w.global_position = base - Vector2(0.0, tex.get_height() * s * 0.42)
-	w.play("spin")
-	return w
-
-# INFIERNO v2 (arte "faller" del usuario): el FUEGO se junta y crece en DOMO fundido
-# frente a DAM ("build" 22f), explota (los 2 impact-frames de pantalla los pone main
-# con _inferno_boom_overlay) y deja escombros ("out" 7f, se libera solo al terminar).
 var inferno_dome_frames: SpriteFrames = null
 func spawn_inferno_dome(dir: int) -> AnimatedSprite2D:
 	if inferno_dome_frames == null:
@@ -2137,33 +2049,6 @@ func spawn_inferno_super() -> AnimatedSprite2D:
 # EXPLOSIÓN de impacto del INFIERNO (6 frames dibujados): estalla UNA vez sobre el
 # rival cuando el vórtice conecta y luego se apaga sola
 var fireimpact_frames: SpriteFrames = null
-func spawn_fire_impact() -> Node2D:
-	if fireimpact_frames == null:
-		if not ResourceLoader.exists("res://imagen-action/impact-effect/fire-wave-impact/fire-wave-impact-1.png"):
-			return null
-		fireimpact_frames = SpriteFrames.new()
-		fireimpact_frames.add_animation("boom")
-		fireimpact_frames.set_animation_speed("boom", 22.0)   # estallido rápido
-		fireimpact_frames.set_animation_loop("boom", false)
-		for i in range(1, 7):
-			fireimpact_frames.add_frame("boom", load("res://imagen-action/impact-effect/fire-wave-impact/fire-wave-impact-%d.png" % i))
-	var e := AnimatedSprite2D.new()
-	e.sprite_frames = fireimpact_frames
-	e.animation = "boom"
-	e.z_index = 6   # por delante del vórtice
-	var s := 0.85 * absf(scale.x)
-	e.scale = Vector2(s, s)
-	get_parent().add_child(e)
-	# centrado en el torso del rival
-	e.global_position = to_global(Vector2(0.0, SHADOW_FEET_OFFSET - 200.0))
-	e.animation_finished.connect(e.queue_free)
-	e.play("boom")
-	return e
-
-# ===== MARCAS de Fe sobre ESTE personaje (la víctima marcada) =====
-# 1-3 diamantes finos azules (como sus agujas) flotando sobre la cabeza, PULSANDO:
-# el player ve cuántas marcas lleva y que está marcado. Con 3, se encienden al blanco
-# (crítico listo). El conteo lo maneja main (fe_marks); acá solo el visual.
 var fe_mark_count := 0
 var fe_marks_node: Node2D = null
 
@@ -2333,84 +2218,13 @@ func spawn_ice_grow(gx: float, gy := -1.0) -> Node2D:
 
 # Aye ↓W (crouch_kick): LUNA CRECIENTE de hielo morado que erupciona del piso (anti-aéreo, RÁPIDO).
 # Misma geometría de canvas que ice-grow (base en FEET_Y=1139) -> reusa offset 499 y escala 0.62.
-var ice_moon_frames: SpriteFrames = null
 var moon_cast_spawned := false
 var crystal_fired := false   # Aye E (crystal_cast): dispara el proyectil una sola vez por cast
 var jp_shots := 0            # Aye jump_punch (aéreo): cuántos de los 3 proyectiles ya salieron
 var channeling := false      # AYE (wizard): canaleo de mana (doble-tap abajo); recarga rapido, VULNERABLE
 var down_tap_win := 0.0      # ventana para detectar el DOBLE-TAP abajo (~0.28s)
-func spawn_ice_moon(gx: float) -> Node2D:
-	if ice_moon_frames == null:
-		if not ResourceLoader.exists("res://imagen-action/aye/ice_moon/aye-ice_moon-1.png"):
-			return null
-		ice_moon_frames = SpriteFrames.new()
-		ice_moon_frames.add_animation("erupt")
-		ice_moon_frames.set_animation_speed("erupt", 20.0)   # crece rápido, AGUANTA estática un rato, luego estalla
-		ice_moon_frames.set_animation_loop("erupt", false)
-		var i := 1
-		while ResourceLoader.exists("res://imagen-action/aye/ice_moon/aye-ice_moon-%d.png" % i):
-			ice_moon_frames.add_frame("erupt", load("res://imagen-action/aye/ice_moon/aye-ice_moon-%d.png" % i))
-			i += 1
-	var g := AnimatedSprite2D.new()
-	g.sprite_frames = ice_moon_frames
-	g.animation = "erupt"
-	g.z_index = 6
-	var s := 0.62 * absf(scale.x)
-	# la luna es ASIMÉTRICA (creciente): se ESPEJA con el facing de Aye (source mira a la DERECHA).
-	# El efecto cuelga del arena (no del fighter), así que el flip va en su propia escala.x.
-	g.scale = Vector2(s * float(facing), s)
-	get_parent().add_child(g)
-	var ground_y := to_global(Vector2(0.0, SHADOW_FEET_OFFSET)).y
-	g.global_position = Vector2(gx, ground_y - 499.0 * s)
-	g.animation_finished.connect(g.queue_free)
-	g.play("erupt")
-	var ruta := "res://imagen-action/sound-effect/ice-growing.mp3"
-	if ResourceLoader.exists(ruta):
-		var sfx := AudioStreamPlayer.new()
-		get_parent().add_child(sfx)
-		sfx.stream = load(ruta)
-		sfx.play()
-		sfx.finished.connect(sfx.queue_free)
-	return g
-
-# Aye ↓E (sweep): PÚAS DE HIELO morado que erupcionan del piso cerca de ella. Misma geometría de
-# canvas que ice-grow/ice-moon (base en FEET_Y=1139 -> offset 499, escala 0.62). Al golpear CONGELA
-# al rival (frozen_t) — la reacción la maneja receive_hit; acá sólo el VISUAL + SFX.
 var ice_spikes_frames: SpriteFrames = null
 var spikes_cast_spawned := false
-func spawn_ice_spikes(gx: float) -> Node2D:
-	if ice_spikes_frames == null:
-		if not ResourceLoader.exists("res://imagen-action/aye/ice_spikes/aye-ice_spikes-1.png"):
-			return null
-		ice_spikes_frames = SpriteFrames.new()
-		ice_spikes_frames.add_animation("erupt")
-		ice_spikes_frames.set_animation_speed("erupt", 28.0)   # erupta rápido y estalla en esquirlas
-		ice_spikes_frames.set_animation_loop("erupt", false)
-		var i := 1
-		while ResourceLoader.exists("res://imagen-action/aye/ice_spikes/aye-ice_spikes-%d.png" % i):
-			ice_spikes_frames.add_frame("erupt", load("res://imagen-action/aye/ice_spikes/aye-ice_spikes-%d.png" % i))
-			i += 1
-	var g := AnimatedSprite2D.new()
-	g.sprite_frames = ice_spikes_frames
-	g.animation = "erupt"
-	g.z_index = 6
-	var s := 0.50 * absf(scale.x)   # un poco más pequeño que la luna/pilar
-	g.scale = Vector2(s * float(facing), s)   # las púas SE INCLINAN a la derecha en source -> espeja con el facing
-	get_parent().add_child(g)
-	var ground_y := to_global(Vector2(0.0, SHADOW_FEET_OFFSET)).y
-	g.global_position = Vector2(gx, ground_y - 499.0 * s)
-	g.animation_finished.connect(g.queue_free)
-	g.play("erupt")
-	var ruta := "res://imagen-action/sound-effect/ice-growing.mp3"
-	if ResourceLoader.exists(ruta):
-		var sfx := AudioStreamPlayer.new()
-		get_parent().add_child(sfx)
-		sfx.stream = load(ruta)
-		sfx.play()
-		sfx.finished.connect(sfx.queue_free)
-	return g
-
-# enciende el BORDE MORADO de cast (Aye) durante `dur` seg; se apaga solo en _physics_process.
 func _cast_border_on(dur: float, col := Color(1.45, 0.35, 2.0, 1.0)) -> void:
 	cast_border_t = maxf(cast_border_t, dur)
 	var mb := get_parent()
@@ -2500,33 +2314,6 @@ func spawn_water_geyser(gx: float) -> Node2D:
 	return g
 
 # PILAR DE FUEGO del INFIERNO: columna VERTICAL de llamas que se alza del piso
-func _spawn_fire_pillar(escala := 1.0) -> void:
-	var f := CPUParticles2D.new()
-	f.texture = _soft_texture()
-	f.z_index = 4
-	f.position = Vector2(0.0, SHADOW_FEET_OFFSET - 30.0)   # brota del piso
-	f.one_shot = true
-	f.emitting = true
-	f.explosiveness = 0.45
-	f.amount = 30
-	f.lifetime = 0.55
-	f.direction = Vector2(0, -1)     # sube derecho
-	f.spread = 14.0
-	f.gravity = Vector2(0, -300)
-	f.initial_velocity_min = 200.0 * CHAR_SCALE
-	f.initial_velocity_max = 460.0 * CHAR_SCALE
-	f.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	f.emission_rect_extents = Vector2(55.0 * escala, 18.0)
-	f.scale_amount_min = 2.2 * escala
-	f.scale_amount_max = 4.5 * escala
-	var grad := Gradient.new()
-	grad.set_color(0, Color(1.35, 1.1, 0.55, 0.9))    # amarillo cálido (bloom suave)
-	grad.add_point(0.4, Color(1.35, 0.55, 0.15, 0.85))  # naranja
-	grad.set_color(1, Color(0.85, 0.12, 0.04, 0.0))   # rojo humo -> se apaga
-	f.color_ramp = grad
-	add_child(f)
-	f.finished.connect(f.queue_free)
-
 func _spawn_ghost(blue := false, blanco := false) -> void:
 	# blanco: estela de ENERGÍA PURA BLANCA (whirlpool nuevo de Fe)
 	var tex: Texture2D = sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)

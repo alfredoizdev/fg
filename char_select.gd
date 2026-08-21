@@ -59,7 +59,6 @@ const ST_SPACING := 250.0   # separación entre centros de tarjetas (juntas, tip
 const ST_PANEL := Rect2(490.0, 194.0, 940.0, 708.0)
 # --- pantalla de CARGA = pantalla "VS" cinemática (dos peleadores enfrentados, estilo SF/KOF) ---
 var load_overlay: Control
-var load_logo: TextureRect         # (legado) ya no se usa en la pantalla VS
 var load_spin: Control             # spinner chico en la esquina (indicador LOADING)
 var load_p1_clip: Control          # panel IZQ recortado (retrato P1) — se desliza desde la izquierda
 var load_p2_clip: Control          # panel DER recortado (retrato P2) — se desliza desde la derecha

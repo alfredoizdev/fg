@@ -18,7 +18,6 @@ const MAX_HP := 100   # (legado; la vida real es por personaje según arquetipo)
 const ARCH_HP := {"assassin": 1050, "wizard": 1150, "warrior": 1500}
 var hp_max := [1200, 1200]   # vida máxima por lado [P1, P2], se setea de cada peleador
 const HIT_MARGIN := 59.0     # tolerancia extra de alcance
-const AIR_REACH_H := 302.0   # altura maxima a la que un golpe aereo alcanza a un rival en el piso
 const WINS_NEEDED := 2       # rondas para ganar el combate
 const BODY_SEP := 225.0      # distancia de COREOGRAFIA (blink, colocado del inferno: con 190 la victima quedaba solapada)
 # (el empuje al CAMINAR ya no usa una constante: suma los body_halfw de la pareja — ver _char_data)
@@ -56,9 +55,9 @@ const HIT_DRAIN := 0.0018      # energía perdida al RECIBIR un impacto real, po
 var meter := [0.0, 0.0]        # carga del meter por lado (0..3)
 var hp_bar_bg := []            # [P1,P2] fondo poligonal inclinado de la barra de vida
 var hp_bar_fill := []          # [P1,P2] relleno poligonal (se recalcula por HP)
-var hp_grad := []              # [P1,P2] texturas de degradado del relleno
 var meter_bg := [[], []]       # fondo OSCURO de cada segmento (3 por lado)
 var meter_fill := [[], []]     # relleno VERDE por ancho (media barra = medio lleno)
+var _meter_last_f := [[-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]]   # dirty-check: fracción por segmento (no rehace el polígono si no cambió)
 var meter_fl := [[], []]       # borde negro (Line2D) de cada segmento
 var meter_spark := [[], []]    # chispas (CPUParticles2D) del segmento lleno
 
@@ -86,11 +85,9 @@ const PLANT_TIMEOUT := 8.0           # vida de un plantado antes de auto-volver
 const ORB_OUT_MAX := 4.0             # tope de vida de un orbe FUERA de órbita (vuelo/rebote): failsafe -> NUNCA se pierde
 const ORB_DETONATE_R := 300.0        # radio del estallido (🟡 bomba / 🩷 pulso de hielo con W)
 const ORB_MINE_R := 190.0            # 🩷 mina: radio para AUTO-estallar si el rival pasa cerca
-const RECALL_HOLD := 0.25            # mantener R para llamar los 3 (vs tap = 1)
 const ORB_DMG_YELLOW := 100          # daño del 🟡
 const PLANT_CHIP := 18               # golpe de IDA al plantar (sin efecto)
 const ORB_DMG_BLUE := 45             # daño del 🔵
-const ORB_FREEZE_T := 0.8            # congelado del 🩷
 const MANA_PER_BLUE := 0.12          # maná que suma el 🔵 al golpear
 const ORB_MANA_COST := 0.05          # ENERGÍA MALDITA: cada esfera lanzada gasta esto (subido de 0.03); tirar las 3 gasta 3x
 const ORB_CHARGE_WINDUP := 0.26      # 🔵 E: la azul se queda cargada ARRIBA-ATRÁS mientras ella sube el brazo; sale al lanzarlo
@@ -123,7 +120,6 @@ var _orb_hud: Node2D = null          # capa del HUD de orbes (en $UI); dibuja lo
 var mana_hud := [null, null]         # contenedor Node2D del anillo por lado (toggle visibilidad)
 var mana_ring_fill := [null, null]   # arco morado que se vacia (Line2D)
 var mana_ring_glow := [null, null]   # HALO neón detrás del arco (Line2D ancho translúcido -> bloom)
-var zetma_orb_frames: SpriteFrames = null   # ESPECIAL de Zetma: frames de la orb morada
 var void_orb_shader: Shader = null   # SHADER procedural del orbe VOID (reemplaza los PNG)
 var void_orb_tex: Texture2D = null   # textura blanca base sobre la que corre el shader
 var void_dome_shader: Shader = null  # SHADER de la CÚPULA void que enjaula al rival
@@ -145,6 +141,8 @@ var mana_avatar := [null, null]      # retrato del mago dentro del anillo (Sprit
 var mana_ring_bg := [null, null]     # anillo de fondo (Line2D) — se recompone con compensacion de aspecto
 var mana_ring_frame := [null, null]  # marco negro (Line2D)
 var mana_disc := [null, null]        # disco de fondo (Polygon2D)
+var _mana_last_fr := [-1.0, -1.0]    # dirty-check: última fracción dibujada -> no rehace el arco cada frame
+var _mana_last_xk := [-9.0, -9.0]    # dirty-check: último aspecto -> bg/marco/disco (geometría estática) solo al redimensionar
 const MANA_REGEN := 0.030            # recarga pasiva por segundo (~33s de vacio a lleno; MUY lento a proposito)
 const MANA_REGEN_IDLE := 0.018       # bonus si esta quieta en el suelo (recupera un poco mas rapido)
 const MANA_CHANNEL_REGEN := 0.25     # canaleo activo (doble-tap abajo): ~4s a full (rapido, vulnerable)
@@ -174,7 +172,6 @@ var tag_p2: Label
 var tag_t := 0.0
 const TAG_TIME := 6.0
 var win_dots := [[], []]       # puntos de victoria por lado
-var timed_out := false         # ya se resolvió el fin por tiempo
 var state := "intro"        # intro / fight / round_end
 var attack_done_p1 := ""    # ataque ya resuelto en esta instancia de animacion
 var attack_done_p2 := "" 
@@ -213,8 +210,6 @@ var _kick_voz_t := 0                        # cooldown (ms) para no solapar la v
 var _voz_cache := {}                        # streams de voz cacheados por nombre
 var ding_stream = null
 var combo_ui := []      # contenedor por lado
-var combo_plate := []   # (OBSOLETO) placa vieja; el estilo nuevo usa banda + labels
-var combo_digits := []  # (OBSOLETO) dígitos-imagen viejos
 var combo_num_lbl := [] # NÚMERO grande del combo (estilo READY/FIGHT) por lado
 var combo_hit_lbl := [] # palabra "HIT / HITS" por lado
 var combo_band := []    # mini banda roja inclinada detrás del número, por lado
@@ -222,7 +217,6 @@ var combo_nom := []     # nombre FORZADO del ultra (APOCALYPSE...); el rango va 
 var combo_font: SystemFont   # fuente heavy del contador
 var combo_plate_tex := {}    # rango -> Texture2D de la placa
 var combo_digit_tex := []    # 0-9 -> Texture2D del dígito
-const COMBO_PLATE_BY_RANK := {"DOUBLE!": "double", "TRIPLE!": "triple", "GREAT!": "great",
 	"MASTER!": "master", "AWESOME!": "awesome", "LEGENDARY!!": "legendary"}
 var combo_rest_x := [270.0, 1650.0]   # x de reposo del cartel (izq / der)
 var combo_show_ms := [-100000, -100000]  # reloj REAL del inicio de la entrada deslizada
@@ -240,8 +234,6 @@ var moves_col1: Label    # columna de MOVES (cambia según personaje)
 var moves_fin: Label     # bloque SPECIALS & FINISHERS (cambia según personaje)
 var moves_avatar: TextureRect   # retrato del personaje en la pantalla MOVES del trainer
 var moves_avframe: ColorRect    # marco de acento del retrato
-var menu_opts := []
-var menu_sel := 0
 # --- PANTALLA PRINCIPAL (title) y submenú TRAINER ---
 var title_panel: Control          # pantalla principal: banner + VS CPU / TRAINER / VS ONLINE
 var title_opts := []              # labels de las 3 opciones
@@ -271,7 +263,6 @@ const CHARS := [
 ]
 var char_panel: ColorRect
 var char_cards := []            # [{border, av, name_lbl, wip_lbl, ready}] por personaje
-var char_sel := 0              # índice de CHARS resaltado
 var selected_char := "dam"    # personaje elegido por el jugador
 var pending_mode := 0         # modo de pelea elegido antes de elegir personaje
 var hud_name := [null, null]  # labels del nombre en el HUD [P1,P2]
@@ -285,8 +276,6 @@ var flash_rect: ColorRect
 var orb_screen: ColorRect              # tinte MORADO OSCURO de pantalla mientras dura la esfera de Zetma
 var ultra_panel: TextureRect          # paneles manga a pantalla completa durante el ultra
 var ultra_panels: Array = []          # texturas ultra-1..6 (líneas de acción)
-var break_t := 0.0
-var flash_t := 0.0
 var code_stage: Node2D = null  # escenario activo (para el tinte de combo)
 var ultra_active := false       # ULTRA COMBO en curso (auto-ejecutado)
 var ultra_largo := false        # version larga (APOCALIPSIS): dos tandas + cambio de lado
@@ -442,7 +431,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KJ"
+	get_window().title = "FG Fighter — build 2026-08-21 KK"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1180,13 +1169,6 @@ func on_parry(quien: Node2D, atacante: Node2D) -> void:
 		_set_inputs(true)
 		dummy.ai_enabled = dummy_ai_mode
 
-func _hide_announce_soon() -> void:
-	await get_tree().create_timer(0.6).timeout
-	if state == "fight" or state == "demo":
-		announce.visible = false
-
-# pone el título / MOVES / FINISHERS de la lista según el personaje ELEGIDO
-# texto de MOVE LIST por personaje (compartido por la pantalla MOVES y el menú de pausa)
 func _char_move_text(cid: String) -> Dictionary:
 	if cid == "aye":
 		return {
@@ -2383,9 +2365,6 @@ const FAVI_FEET_FROM_CENTER := 500.0
 # AYE (The Blooming Dynamo): NENA de ~5 años -> más baja aún que Fe. Ágil ("dynamo").
 # Pre-cableada con PLACEHOLDER (los frames de DAM) hasta procesar sus hojas verdes.
 const AYE_SPD := 1.0     # multiplicador de la velocidad de ANIMACIÓN de Aye (anims sin override)
-const AYE_MOVE_SPD := 0.69   # DESPLAZAMIENTO: 0.55 base no-skate * 1.25 (mismo factor que sus anims apuradas -> el walk sigue sin patinar)
-const AYE_SCALE := 0.72            # ~5 años: más chica que Fe (0.85)
-const AYE_FEET_FROM_CENTER := 500.0
 # AYE-2 (idol rediseñada): la MÁS chica del juego. Arte 632px * 0.666 = 421 -> body_k 0.60.
 const AYE2_SCALE := 0.666
 const AYE2_FEET_FROM_CENTER := 500.0
@@ -3651,6 +3630,34 @@ func _stage_dust_tint() -> Color:
 			return Color(1, 1, 1)            # claro: polvo natural
 	return Color(1, 1, 1)
 
+# CACHÉ de SpriteFrames por (id:skin). Antes _build_*_frames + _fix_placeholders corría en CADA
+# _start_round (2× por round, hasta 3 rounds) — reconstruía cientos de frames (hitch del 1er round).
+# Los sprite_frames NO se mutan en runtime (solo se reproducen anims), así que la MISMA instancia se
+# comparte con seguridad entre rounds e incluso en espejo (DAM vs DAM). Se limpia si cambia el roster.
+var _sf_cache := {}
+func _get_char_frames(id: String, skin: String) -> SpriteFrames:
+	var key := id + ":" + skin
+	if _sf_cache.has(key) and is_instance_valid(_sf_cache[key]):
+		return _sf_cache[key]
+	var sf: SpriteFrames
+	match id:
+		"favi":
+			sf = _build_favi_frames()
+			_fix_placeholders(sf, _favi_action_frames)
+		"aye":
+			sf = _build_aye2_frames(skin)
+			_fix_placeholders(sf, func(a): return _aye2_action_frames(a, skin))
+		"zetma":
+			sf = _build_zetma_frames(skin)
+			_fix_placeholders(sf, func(a): return _zetma_action_frames(a, skin))
+		"roum":
+			sf = _build_roum_frames()
+			_fix_placeholders(sf, _roum_action_frames)
+		_:
+			sf = _build_dam_frames()
+	_sf_cache[key] = sf
+	return sf
+
 func _apply_char(f: Node2D, id: String) -> void:
 	var c := _char_data(id)
 	f.archetype = String(c["arch"])
@@ -3668,8 +3675,7 @@ func _apply_char(f: Node2D, id: String) -> void:
 	# Separacion minima de una pareja = suma (DAM+Aye 210, Fe+Aye 165, DAM+Fe 225 como antes)
 	f.body_halfw = 130.0 if id == "zetma" else (90.0 if id == "favi" else (75.0 if id == "aye" else 150.0))   # Zetma: stance ninja medio
 	if id == "favi":
-		f.sprite.sprite_frames = _build_favi_frames()
-		_fix_placeholders(f.sprite.sprite_frames, _favi_action_frames)   # nada de arte de DAM
+		f.sprite.sprite_frames = _get_char_frames(id, "skin-1")
 		# base_scale (no sprite.scale directo): el efecto squash del fighter reescribe
 		# sprite.scale cada frame, así que la escala de personaje va en base_scale.
 		f.base_scale = Vector2(FAVI_SCALE, FAVI_SCALE)
@@ -3680,8 +3686,7 @@ func _apply_char(f: Node2D, id: String) -> void:
 	elif id == "aye":
 		# SLOT AYE = la nueva AYE-2 (idol de esferas). Skin por lado (Sel.p1/p2_skin).
 		var skin: String = Sel.p1_skin if f == player else Sel.p2_skin
-		f.sprite.sprite_frames = _build_aye2_frames(skin)
-		_fix_placeholders(f.sprite.sprite_frames, func(a): return _aye2_action_frames(a, skin))
+		f.sprite.sprite_frames = _get_char_frames(id, skin)
 		f.base_scale = Vector2(AYE2_SCALE, AYE2_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, AYE2_FEET_FROM_CENTER / AYE2_SCALE - AYE2_FEET_FROM_CENTER)
@@ -3689,16 +3694,14 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.jump_mult = 1.12
 	elif id == "zetma":
 		var zskin: String = Sel.p1_skin if f == player else Sel.p2_skin   # SKIN por lado (como Aye)
-		f.sprite.sprite_frames = _build_zetma_frames(zskin)
-		_fix_placeholders(f.sprite.sprite_frames, func(a): return _zetma_action_frames(a, zskin))   # nada de arte de DAM
+		f.sprite.sprite_frames = _get_char_frames(id, zskin)
 		f.base_scale = Vector2(ZETMA_SCALE, ZETMA_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, ZETMA_FEET_FROM_CENTER / ZETMA_SCALE - ZETMA_FEET_FROM_CENTER)
 		f.spd = 1.7   # desplazamiento (ninja ágil): sincroniza con el walk a 35fps y su zancada nueva (larga) para que NO patine
 		f.jump_mult = 1.28   # ninja ÁGIL: salta ALTO (antes 1.0 = el más bajo de todos)
 	elif id == "roum":
-		f.sprite.sprite_frames = _build_roum_frames()
-		_fix_placeholders(f.sprite.sprite_frames, _roum_action_frames)   # nada de arte de DAM
+		f.sprite.sprite_frames = _get_char_frames(id, "skin-1")
 		f.base_scale = Vector2(ROUM_SCALE, ROUM_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, ROUM_FEET_FROM_CENTER / ROUM_SCALE - ROUM_FEET_FROM_CENTER)
@@ -3706,7 +3709,7 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.jump_mult = 1.35    # salta MÁS ALTO (pedido: que se levante más en el aire)
 		f.body_halfw = 185.0  # CUERPO ANCHO: el más grande de todos (empuje al caminar)
 	else:
-		f.sprite.sprite_frames = _build_dam_frames()
+		f.sprite.sprite_frames = _get_char_frames(id, "skin-1")
 		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
 		f.sprite.scale = f.base_scale
 		f.sprite.offset = Vector2(0, DAM_FEET_FROM_CENTER / DAM_SCALE - DAM_FEET_FROM_CENTER)
@@ -3725,7 +3728,6 @@ func _apply_char(f: Node2D, id: String) -> void:
 # Golpea en el suelo O en el aire si ya está en juggle (hit_flying), no si saltó a propósito.
 const GEYSER_BODY := 350.0   # 1 "cuerpo" de distancia (clara, adelante de Fe) para el géiser
 const WATER_DMG := [80, 110, 150]     # Q · W · E
-const WATER_LIFT := [1.1, 1.5, 2.0]   # altura de lanzamiento por nivel (más alto = más hang-time)
 
 # efecto visual del cast de Fe: borde AZUL eléctrico brillante + pocas partículas azules
 var _fe_cast_mat: ShaderMaterial = null
@@ -4009,15 +4011,6 @@ func _fe_add_mark(idx: int) -> void:
 	var victima: Node2D = dummy if idx == 0 else player
 	if is_instance_valid(victima):
 		victima.set_fe_marks(fe_marks[idx])
-
-func _combo_name(n: int) -> String:
-	if n >= 11: return "LEGENDARY!!"
-	if n >= 9: return "AWESOME!"
-	if n >= 7: return "MASTER!"
-	if n >= 5: return "GREAT!"
-	if n >= 3: return "TRIPLE!"
-	if n >= 2: return "DOUBLE!"
-	return ""
 
 func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 	# drop: ventana cerrada, golpe repetido, o bajar en la escalera de fuerza
@@ -4607,7 +4600,6 @@ func _zetma_void_launch(atacante: Node2D, victima: Node2D, idx: int, dir: int) -
 		victima.voz_player.pitch_scale = 1.0
 
 # ---- INFIERNO: crítico de FUEGO (↓↘→+E tras un combo de 7+) ----
-const CRIT_DMG := 50   # el golpe mas fuerte del juego
 
 func try_critical(atacante: Node2D) -> bool:
 	if state != "fight" or ultra_active:
@@ -5484,14 +5476,6 @@ func _mana_disc_pts(cx: float, cy: float, r: float, n: int) -> PackedVector2Arra
 		pts.append(Vector2(cx + cos(a) * r * k, cy + sin(a) * r))
 	return pts
 
-func _aye_bar_ok(caster: Node2D) -> bool:
-	var idx := 0 if caster == player else 1
-	return meter[idx] >= 1.0
-
-# BLINK de Aye (←← / →→): glitch EN EL SITIO (anim teleport + tiembla + sonido) y
-# reaparece ~CUERPO Y MEDIO hacia ATRÁS (escape) o ADELANTE (avance; frena a UN cuerpo
-# del rival para no montarse encima). Sin golpe. Esquiva breve. El maná ya se cobró
-# en fighter._start_blink.
 func _aye_blink(caster: Node2D, fwd := false) -> void:
 	if state != "fight" or ultra_active:
 		return
@@ -6903,6 +6887,7 @@ func _build_hud() -> void:
 		mana_ring_frame[side] = rfr
 
 # actualiza el relleno inclinado de una barra de vida (se vacía hacia el centro)
+var _hp_last_frac := [-1.0, -1.0]   # dirty-check: no rehace el polígono de la barra si el HP no cambió
 func _update_hp_bar(side: int, hp: int) -> void:
 	var fill: Polygon2D = hp_bar_fill[side]
 	var frac := clampf(float(hp) / float(hp_max[side]), 0.0, 1.0)
@@ -6910,14 +6895,17 @@ func _update_hp_bar(side: int, hp: int) -> void:
 		fill.visible = false
 		return
 	fill.visible = true
-	var x0: float = P1_BAR_X if side == 0 else P2_BAR_X
-	var lx: float
-	var rx: float
-	if side == 0:                       # outer = izquierda; se vacía hacia el centro (der)
-		lx = x0; rx = x0 + BAR_W * frac
-	else:                               # outer = derecha; se vacía hacia el centro (izq)
-		rx = x0 + BAR_W; lx = rx - BAR_W * frac
-	fill.polygon = _bar_poly(side, lx, rx, HP_YT, HP_YB, HP_SL)
+	# DIRTY-CHECK: el polígono solo depende de frac; el color (parpadeo de peligro) sí se escribe siempre.
+	if frac != _hp_last_frac[side]:
+		var x0: float = P1_BAR_X if side == 0 else P2_BAR_X
+		var lx: float
+		var rx: float
+		if side == 0:                       # outer = izquierda; se vacía hacia el centro (der)
+			lx = x0; rx = x0 + BAR_W * frac
+		else:                               # outer = derecha; se vacía hacia el centro (izq)
+			rx = x0 + BAR_W; lx = rx - BAR_W * frac
+		fill.polygon = _bar_poly(side, lx, rx, HP_YT, HP_YB, HP_SL)
+		_hp_last_frac[side] = frac
 	# relleno AZUL PLANO para ambos. En peligro (≤25%) parpadea ROJO.
 	if hp > 0 and hp <= int(hp_max[side] * ULTRA_HP):
 		var p := 0.6 + 0.4 * absf(sin(glow_time * 7.0))
@@ -7639,14 +7627,6 @@ func _ease_out_back(p: float) -> float:
 	var q := p - 1.0
 	return 1.0 + c3 * q * q * q + c1 * q * q
 
-func _tint_hp_bar(bar: ColorRect, hp: int) -> void:
-	if hp > 0 and hp <= int(MAX_HP * ULTRA_HP):
-		var p := 0.6 + 0.4 * absf(sin(glow_time * 7.0))
-		bar.color = Color(1.15 * p, 0.16 * p, 0.12 * p, 1.0)   # rojo que palpita
-	else:
-		bar.color = Color(0.32, 0.82, 0.4, 1.0)                # verde normal
-
-# ---------- ORBES DE AYE-2: manager (el árbitro posee y actualiza los 3 orbes) ----------
 func _orb_name(c: int) -> String:
 	return ["yellow", "pink", "blue"][c]
 
@@ -8141,19 +8121,6 @@ func _orb_recall(owner: Node2D, count: int) -> void:
 
 # RECALL POR COLOR: si ESE color está PLANTADO, lo hace volver (Q=amarilla, W=rosada). Devuelve
 # true si lo recogió. La AZUL no usa esto (su botón E hace TELEPORT, no recall).
-func _orb_recall_color(owner: Node2D, color: int) -> bool:
-	var st := _orb_set_for(owner)
-	if st.is_empty():
-		return false
-	var o: Dictionary = st["orbs"][color]
-	if o["state"] != OST_PLANTED:
-		return false
-	o["state"] = OST_RECALL
-	o["hit_done"] = false
-	st["plant_order"].erase(color)
-	return true
-
-# ¿el rival del owner está a menos de `r` de una posición del mundo? (para mina/estallido)
 func _orb_target_near(st: Dictionary, pos: Vector2, r: float) -> bool:
 	var owner: Node2D = st["owner"]
 	var tgt: Node2D = dummy if owner == player else player
@@ -8628,11 +8595,14 @@ func _physics_process(_delta: float) -> void:
 				fp.visible = false
 			else:
 				fp.visible = true
-				var bx := _meter_x(side, s)
-				if side == 0:   # llena desde la izquierda (lado del avatar) hacia el centro
-					fp.polygon = _para(bx, bx + M_W * f, M_Y, M_Y + M_H, msl)
-				else:           # llena desde la derecha (lado del avatar) hacia el centro
-					fp.polygon = _para(bx + M_W * (1.0 - f), bx + M_W, M_Y, M_Y + M_H, msl)
+				# DIRTY-CHECK: solo rehace el polígono si la fracción de ESTE segmento cambió.
+				if f != _meter_last_f[side][s]:
+					var bx := _meter_x(side, s)
+					if side == 0:   # llena desde la izquierda (lado del avatar) hacia el centro
+						fp.polygon = _para(bx, bx + M_W * f, M_Y, M_Y + M_H, msl)
+					else:           # llena desde la derecha (lado del avatar) hacia el centro
+						fp.polygon = _para(bx + M_W * (1.0 - f), bx + M_W, M_Y, M_Y + M_H, msl)
+					_meter_last_f[side][s] = f
 			if s < meter_spark[side].size():
 				meter_spark[side][s].emitting = lleno   # chispas solo en el segmento lleno
 	# RABIA de DAM: se llena con la VIDA PERDIDA; en berserk se DRENA con el tiempo
@@ -8674,15 +8644,20 @@ func _physics_process(_delta: float) -> void:
 			mana_flash_t[mside] = maxf(0.0, mana_flash_t[mside] - _delta)
 		var mfr: float = clampf(void_charge[mside] if void_side[mside] else (orb_charge[mside] if orb_side[mside] else (rage[mside] if rage_side[mside] else mana[mside])), 0.0, 1.0)
 		var mcx2: float = MANA_CX_L if mside == 0 else MANA_CX_R
-		var rfl: Line2D = mana_ring_fill[mside]
-		rfl.points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, mfr, mside)
-		# compensacion de aspecto (circulo perfecto en cualquier ventana)
-		if mana_ring_bg[mside] != null:
-			mana_ring_bg[mside].points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, 1.0, mside)
-		if mana_ring_frame[mside] != null:
-			mana_ring_frame[mside].points = _mana_circle_pts(mcx2, MANA_CY, MANA_R + MANA_RING_W * 0.5 + 1.5, 48, 1.0, mside)
-		if mana_disc[mside] != null:
-			mana_disc[mside].polygon = _mana_disc_pts(mcx2, MANA_CY, MANA_R - 3.0, 40)
+		var xk: float = _mana_xk()
+		# DIRTY-CHECK: el ARCO (fill) solo se rehace si cambió la fracción o el aspecto de la ventana.
+		if mfr != _mana_last_fr[mside] or xk != _mana_last_xk[mside]:
+			(mana_ring_fill[mside] as Line2D).points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, mfr, mside)
+			_mana_last_fr[mside] = mfr
+		# bg/marco/disco son geometría ESTÁTICA (frac=1.0): solo se recomponen al cambiar el aspecto/ventana.
+		if xk != _mana_last_xk[mside]:
+			if mana_ring_bg[mside] != null:
+				mana_ring_bg[mside].points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, 1.0, mside)
+			if mana_ring_frame[mside] != null:
+				mana_ring_frame[mside].points = _mana_circle_pts(mcx2, MANA_CY, MANA_R + MANA_RING_W * 0.5 + 1.5, 48, 1.0, mside)
+			if mana_disc[mside] != null:
+				mana_disc[mside].polygon = _mana_disc_pts(mcx2, MANA_CY, MANA_R - 3.0, 40)
+			_mana_last_xk[mside] = xk
 		if mana_avatar[mside] != null:
 			mana_avatar[mside].scale.x = mana_avatar[mside].scale.y * _mana_xk()
 		# DETECTA el instante en que se LLENA -> destello de "full mana"
@@ -9873,34 +9848,6 @@ func _portal_suck_fx(pos: Vector2) -> CPUParticles2D:
 
 # POLVO de arrastre: RÁFAGA one-shot (se ve TODO de golpe, no depende de cuánto dure el grab).
 # dir = sentido de la barrida del polvo (rival: contrario al hala; Roum: hacia donde hala).
-func _pull_dust(dir: int) -> CPUParticles2D:
-	var p := CPUParticles2D.new()
-	p.texture = _orb_mote_tex()
-	p.z_index = 6
-	p.amount = 46
-	p.lifetime = 0.55
-	p.one_shot = true              # RÁFAGA: suelta las 46 de una y no repite
-	p.explosiveness = 0.9          # casi todas en el instante 0 -> puff bien visible
-	p.local_coords = false
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(28.0, 82.0)
-	p.direction = Vector2(float(dir), -0.35)          # barrida lateral (líneas blancas del boceto)
-	p.spread = 26.0
-	p.gravity = Vector2(0, 240)
-	p.initial_velocity_min = 300.0
-	p.initial_velocity_max = 640.0
-	p.scale_amount_min = 0.40
-	p.scale_amount_max = 1.05                          # más grandes = se ven
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(0.82, 0.74, 0.64, 0.95))  # polvo claro, opaco al salir
-	ramp.add_point(0.5, Color(0.6, 0.52, 0.44, 0.6))
-	ramp.set_color(1, Color(0.4, 0.34, 0.3, 0.0))
-	p.color_ramp = ramp
-	p.emitting = true
-	add_child(p)
-	return p
-
-# libera un nodo (ej. partículas one-shot) tras `delay` seg, para que la ráfaga se vea completa
 func _free_node_later(node: Node, delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
 	if is_instance_valid(node):
@@ -10415,52 +10362,6 @@ func _make_void_dome(arena: Node) -> Sprite2D:
 	sw.emitting = true
 	arena.add_child(sp)
 	return sp
-
-func _spawn_zetma_orb(caster: Node2D) -> void:
-	var dir: int = caster.facing
-	var opp: Node2D = dummy if caster == player else player
-	var arena: Node = caster.get_parent()
-	var proj := _make_void_orb(arena)          # ORBE VOID por SHADER (no PNG)
-	proj.z_index = 7
-	var _sh := "res://imagen-action/zetma/sound-effect/orb-energy.mp3"   # sonido de ENERGÍA del orb
-	if ResourceLoader.exists(_sh):
-		# player PROPIO en la arena: no lo corta el sfx_player ni hereda un volume_db bajo (p.ej. -8 del pose)
-		var _strm = load(_sh)
-		if _strm is AudioStreamMP3:
-			_strm.loop = false
-		var _osp := AudioStreamPlayer.new()
-		_osp.stream = _strm
-		_osp.volume_db = 6.0                    # bien audible
-		arena.add_child(_osp)
-		_osp.finished.connect(_osp.queue_free)
-		_osp.play()
-	var py: float = caster.position.y - 32.0    # más al CENTRO del cañón (antes salía arriba)
-	var startx: float = caster.position.x + float(dir) * 230.0
-	proj.position = Vector2(startx, py)
-	proj.scale = Vector2(0.38, 0.38)            # sale un poco MÁS PEQUEÑA y crece
-	proj.modulate = Color(0.74, 0.62, 0.92, 1.0) # más oscuro (morado más profundo)
-	var hit := false
-	var start_ms := Time.get_ticks_msec()
-	var last_ms := start_ms
-	var travelled := 0.0
-	while state == "fight" and is_instance_valid(proj) and (Time.get_ticks_msec() - start_ms) < 2200:
-		var now := Time.get_ticks_msec()
-		var dt := clampf(float(now - last_ms) / 1000.0, 0.0, 0.05)
-		last_ms = now
-		var step: float = 1050.0 * dt
-		proj.position.x += float(dir) * step
-		travelled += step
-		proj.scale = Vector2.ONE * lerpf(0.38, 0.82, clampf(travelled / 320.0, 0.0, 1.0))   # crece (un poco más chica)
-		if is_instance_valid(opp) and not opp.koed and not opp.is_downed() \
-				and opp.breaker_inv_t <= 0.0 and absf(proj.position.x - opp.position.x) < 150.0:
-			hit = true; break
-		if proj.position.x < LEFT_LIMIT or proj.position.x > RIGHT_LIMIT:
-			break
-		await get_tree().process_frame
-	if hit and is_instance_valid(opp):
-		_zetma_orb_hit(caster, opp, proj)
-	elif is_instance_valid(proj):
-		var tw := proj.create_tween(); tw.tween_property(proj, "modulate:a", 0.0, 0.2); tw.tween_callback(proj.queue_free)
 
 func _spawn_dmg_number(arena: Node, wx: float, wy: float, amount: int) -> void:
 	if not is_instance_valid(arena):
