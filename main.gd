@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KX"
+	get_window().title = "FG Fighter — build 2026-08-21 KY"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -5173,17 +5173,16 @@ func try_aye_ultra(atacante: Node2D) -> bool:
 	if atacante.airborne or atacante.hit_flying or atacante.position.y < atacante.floor_y - 4.0:
 		return false
 	var idx := 0 if atacante == player else 1
-	if meter[idx] < 2.0:
-		return false
-	if combo_n[idx] < 3 or combo_t[idx] > COMBO_WINDOW:
-		return false
 	var vhp: int = dummy_hp if idx == 0 else player_hp
 	if float(vhp) > float(hp_max[1 - idx]) * 0.25:
-		return false
+		return false          # rival en ROJO (≤25%) — SE MANTIENE (pedido)
 	var victima: Node2D = dummy if idx == 0 else player
-	if absf(victima.position.x - atacante.position.x) > 560.0:
+	if absf(victima.position.x - atacante.position.x) > 620.0:
 		return false
-	meter[idx] -= 2.0
+	# TEST: meter (2 barras) y combo DESACTIVADOS para aislar. Reactivar tras validar la coreo:
+	#if meter[idx] < 2.0: return false
+	#if combo_n[idx] < 3 or combo_t[idx] > 1.25: return false
+	#meter[idx] -= 2.0
 	_run_aye_ultra(atacante, idx)
 	return true
 
@@ -8310,7 +8309,7 @@ func _orb_apply_effect(st: Dictionary, color: int, full: bool, reaction := "norm
 	var aname: String = "orb_yellow" if color == ORB_YELLOW else ("orb_pink" if color == ORB_PINK else "orb_blue")
 	var dmg_real: int = _combo_hit(idx, dmg, aname, tgt.airborne)
 	_dmg_number(tgt, dmg_real)
-	meter[idx] = minf(METER_MAX, meter[idx] + float(dmg_real) * 0.0020)   # los ORBES cargan barra de súper (como el melee) -> si no, aye2 nunca llenaba para su ultra
+	meter[idx] = minf(METER_MAX, meter[idx] + float(dmg_real) * 0.0040)   # los ORBES cargan barra (x2 del melee: casi todo su kit es orbe, si no nunca llegaba a 2 barras)
 	if full and color == ORB_BLUE:
 		mana[st["idx"]] = minf(1.0, mana[st["idx"]] + MANA_PER_BLUE)   # 🔵 carga maná
 		if reaction == "normal" and tgt.has_method("apply_orb_slow"):
