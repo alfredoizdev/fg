@@ -217,7 +217,6 @@ var combo_nom := []     # nombre FORZADO del ultra (APOCALYPSE...); el rango va 
 var combo_font: SystemFont   # fuente heavy del contador
 var combo_plate_tex := {}    # rango -> Texture2D de la placa
 var combo_digit_tex := []    # 0-9 -> Texture2D del dígito
-	"MASTER!": "master", "AWESOME!": "awesome", "LEGENDARY!!": "legendary"}
 var combo_rest_x := [270.0, 1650.0]   # x de reposo del cartel (izq / der)
 var combo_show_ms := [-100000, -100000]  # reloj REAL del inicio de la entrada deslizada
 var combo_was_vis := [false, false]   # para detectar cuando aparece (y disparar el slide)
@@ -8645,6 +8644,7 @@ func _physics_process(_delta: float) -> void:
 		var mfr: float = clampf(void_charge[mside] if void_side[mside] else (orb_charge[mside] if orb_side[mside] else (rage[mside] if rage_side[mside] else mana[mside])), 0.0, 1.0)
 		var mcx2: float = MANA_CX_L if mside == 0 else MANA_CX_R
 		var xk: float = _mana_xk()
+		var rfl: Line2D = mana_ring_fill[mside]   # arco de relleno (no-null: chequeado arriba); su color/ancho se setean abajo
 		# DIRTY-CHECK: el ARCO (fill) solo se rehace si cambió la fracción o el aspecto de la ventana.
 		if mfr != _mana_last_fr[mside] or xk != _mana_last_xk[mside]:
 			(mana_ring_fill[mside] as Line2D).points = _mana_circle_pts(mcx2, MANA_CY, MANA_R, 48, mfr, mside)
