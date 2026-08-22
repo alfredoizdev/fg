@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LD"
+	get_window().title = "FG Fighter — build 2026-08-21 LE"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -5187,6 +5187,22 @@ func try_aye_ultra(atacante: Node2D) -> bool:
 	_run_aye_ultra(atacante, idx)
 	return true
 
+# Orbe VISIBLE de la coreo del ultra: vuela de `from` a `to` y ESTALLA. (Las orbs reales de Aye se
+# encogen a 0 durante su propio ultra por el vanish -> estos son sprites aparte para que SE VEAN.)
+func _ultra_orb_shot(from: Vector2, to: Vector2, color: int) -> void:
+	var spr := AnimatedSprite2D.new()
+	spr.sprite_frames = _orb_frames(color)
+	spr.animation = "spin"
+	spr.play("spin")
+	spr.scale = Vector2(ORB_SCALE, ORB_SCALE) * 1.5
+	spr.z_index = 8
+	spr.global_position = from
+	add_child(spr)
+	var tw := create_tween()
+	tw.tween_property(spr, "global_position", to, 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_orb_burst_vfx.bind(to, color))
+	tw.tween_callback(spr.queue_free)
+
 func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
@@ -5217,7 +5233,7 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	Engine.time_scale = 0.0
 	await get_tree().create_timer(1.0, true, false, true).timeout
 	Engine.time_scale = 1.0
-	# ---- FASE 1: orbes ROSADOS juggle en el AIRE (mientras Aye mueve las manos) ----
+	# ---- FASE 1: orbes VISIBLES vuelan desde Aye y machacan al rival en el AIRE (juggle) ----
 	var n0: int = combo_n[idx]
 	var base_y: float = victima.floor_y - 330.0
 	var HITS := 8
@@ -5238,12 +5254,16 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 		victima.position.y = base_y - float(h) * 8.0 + sin(float(h) * 1.4) * 14.0
 		if victima.sprite.sprite_frames.has_animation("hit_fly") and String(victima.sprite.animation) != "hit_fly":
 			victima.sprite.play("hit_fly")
-		_orb_burst_vfx(victima.global_position, ORB_PINK)   # orbe ROSADO estalla en el rival
+		var col: int = [ORB_YELLOW, ORB_PINK, ORB_BLUE][h % 3]   # orbe VISIBLE que vuela y estalla en el rival
+		_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -120.0)), victima.global_position, col)
+		await get_tree().create_timer(0.09).timeout   # deja que el orbe LLEGUE antes del impacto
+		if state != "ultra" or not is_instance_valid(victima):
+			break
 		victima._burst(0.9, false, 1)
 		victima._play_sfx_key("take_hit")
 		_shake(9.0, 0.08)
 		flash_ms = Time.get_ticks_msec()
-		flash_rect.color = Color(0.85, 0.35, 1.3, 0.35)
+		flash_rect.color = Color(0.85, 0.35, 1.3, 0.30)
 		var d := (crit_total - dealt) if h == HITS - 1 else int(crit_total / HITS)
 		dealt += d
 		if idx == 0:
@@ -5257,40 +5277,49 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 		if ultra_panels.size() > 0:
 			ultra_panel.texture = ultra_panels[h % ultra_panels.size()]
 			ultra_panel.visible = true
-		await get_tree().create_timer(0.15).timeout
-	# ---- FASE 2: CONGELADO en el aire con la ROSADA ----
+		await get_tree().create_timer(0.07).timeout
+	# ---- FASE 2: lo dejo CAER media distancia y lo CONGELO con la ROSADA (W) ----
 	if state == "ultra" and is_instance_valid(victima):
-		victima.position.y = base_y + 60.0
+		var top_y: float = victima.position.y
+		var half_y: float = top_y + (victima.floor_y - top_y) * 0.5   # MEDIA distancia al piso
+		var ft := 0.0
+		while ft < 0.35 and state == "ultra" and is_instance_valid(victima):
+			victima.position.y = lerpf(top_y, half_y, ft / 0.35)
+			victima.vel_x = 0.0
+			victima.vel_y = 0.0
+			await get_tree().process_frame
+			ft += get_process_delta_time()
+	if state == "ultra" and is_instance_valid(victima):
+		_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -80.0)), victima.global_position, ORB_PINK)
+		await get_tree().create_timer(0.1).timeout
 		victima.vel_x = 0.0
 		victima.vel_y = 0.0
-		_orb_burst_vfx(victima.global_position, ORB_PINK)
-		victima.frozen_t = 1.2   # CONGELADO en el aire (ultra_hover lo sostiene)
+		victima.frozen_t = 1.4   # CONGELADO a media altura (ultra_hover lo sostiene)
 		_shake(13.0, 0.2)
 		flash_ms = Time.get_ticks_msec()
 		flash_rect.color = Color(0.55, 0.7, 1.6, 0.45)   # fogonazo helado
 		Engine.time_scale = 0.4
-		await get_tree().create_timer(0.5, true, false, true).timeout
+		await get_tree().create_timer(0.45, true, false, true).timeout
 		Engine.time_scale = 1.0
-		await get_tree().create_timer(0.55).timeout
-	# ---- FASE 3: ANTI-AÉREO (↑R) -> lo LEVANTA recto arriba y lo deja CAER ----
+		await get_tree().create_timer(0.4).timeout
+	# ---- FASE 3: lo EMPUJA con la R -> sale despedido hacia ATRÁS ----
 	if state == "ultra" and is_instance_valid(victima):
 		victima.frozen_t = 0.0
-		victima.ultra_hover = false   # ya no flota: el anti-aéreo lo lanza y CAE
 		atacante.set_facing(dir)
-		atacante.position.x = clampf(victima.position.x - float(dir) * 210.0, LEFT_LIMIT, RIGHT_LIMIT)
-		if atacante.sprite.sprite_frames.has_animation("air_jab"):
-			atacante.sprite.play("air_jab")
-		_orb_antiair(atacante)   # los 3 orbes barren el círculo (visual del anti-aéreo)
-		victima.set_facing(-dir)
-		victima.airborne = true
-		victima.hit_flying = false
-		victima.frozen_t = 0.0
-		victima.receive_hit(false, true, 0, "kick_impact", false, 1.5)   # recto arriba ALTO -> cae
-		_shake(26.0, 0.4)
-		flash_ms = Time.get_ticks_msec()
-		flash_rect.color = Color(0.9, 0.4, 1.6, 0.65)
+		_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -60.0)), victima.global_position, ORB_YELLOW)
+		await get_tree().create_timer(0.1).timeout
+		if is_instance_valid(victima):
+			victima.ultra_hover = false
+			victima.airborne = true
+			victima.hit_flying = true
+			victima.frozen_t = 0.0
+			victima.receive_hit(false, true, dir, "kick_impact", false, 0.7)   # empuje hacia ATRÁS (push_dir = dir)
+			victima.vel_x = float(dir) * 1500.0   # empujón HORIZONTAL fuerte: la R lo DESPIDE
+			_shake(26.0, 0.4)
+			flash_ms = Time.get_ticks_msec()
+			flash_rect.color = Color(0.9, 0.4, 1.6, 0.6)
 		var rec := 0.0
-		while rec < 0.55 and state == "ultra":
+		while rec < 0.5 and state == "ultra":
 			atacante.set_facing(dir)
 			await get_tree().process_frame
 			rec += get_process_delta_time()
@@ -7938,6 +7967,14 @@ func _ease_out_back(p: float) -> float:
 func _orb_name(c: int) -> String:
 	return ["yellow", "pink", "blue"][c]
 
+# BORDE VISIBLE de la pantalla en coords de MUNDO (con margen). Con cámara de scroll sigue a la cámara;
+# sin scroll = pantalla fija 0..1920. Para que los orbes REBOTEN en el borde y no se vayan de pantalla.
+func _orb_screen_bounds() -> Vector2:
+	if game_cam != null and is_instance_valid(game_cam):
+		var cx: float = game_cam.global_position.x
+		return Vector2(cx - 900.0, cx + 900.0)
+	return Vector2(60.0, 1860.0)
+
 # SpriteFrames animado (loop) del orbe de ese color, con caché. El usuario puso varios frames por color.
 func _orb_frames(c: int) -> SpriteFrames:
 	if _orb_frames_cache.has(c):
@@ -8063,6 +8100,11 @@ func _orb_update(delta: float) -> void:
 						o["pos"].y -= ORB_CHARGE_UP * delta   # sube junto a la mano (arriba-atrás)
 					else:
 						o["pos"] += o["vel"] * delta
+						var sbf: Vector2 = _orb_screen_bounds()   # REBOTA en el borde de pantalla -> vuelve (no se va)
+						if (o["pos"].x <= sbf.x and o["vel"].x < 0.0) or (o["pos"].x >= sbf.y and o["vel"].x > 0.0):
+							o["pos"].x = clampf(o["pos"].x, sbf.x, sbf.y)
+							o["vel"].x = -o["vel"].x
+							o["returning"] = true
 						if not o["hit_done"] and _orb_hits_target(st, o) != null:
 							_orb_apply_effect(st, c, true, "push" if o.get("volley", false) else "normal")
 							o["hit_done"] = true
@@ -8075,6 +8117,15 @@ func _orb_update(delta: float) -> void:
 					# PLANTAR: viaja PLANT_DIST (atravesando al rival con chip), y se queda plantado.
 					o["pos"] += o["vel"] * delta
 					o["age"] += delta
+					var sbp: Vector2 = _orb_screen_bounds()   # si toca el borde, se PLANTA ahí (no se va)
+					if o["pos"].x <= sbp.x or o["pos"].x >= sbp.y:
+						o["pos"].x = clampf(o["pos"].x, sbp.x, sbp.y)
+						o["state"] = OST_PLANTED
+						o["world_pos"] = o["pos"]
+						o["grounded"] = false
+						o["age"] = 0.0
+						if not st["plant_order"].has(c):
+							st["plant_order"].append(c)
 					if not o["hit_done"] and _orb_hits_target(st, o) != null:
 						_orb_apply_effect(st, c, false)     # golpe de IDA = chip, SIN efecto
 						o["hit_done"] = true
@@ -8090,6 +8141,10 @@ func _orb_update(delta: float) -> void:
 						o["age"] += delta
 						o["vel"].y += ORB_BOUNCE_GRAV * delta
 						o["pos"] += o["vel"] * delta
+						var sbb: Vector2 = _orb_screen_bounds()   # REBOTA horizontal en el borde (no se va de pantalla)
+						if (o["pos"].x <= sbb.x and o["vel"].x < 0.0) or (o["pos"].x >= sbb.y and o["vel"].x > 0.0):
+							o["pos"].x = clampf(o["pos"].x, sbb.x, sbb.y)
+							o["vel"].x = -o["vel"].x
 						# 🩷 PINK: NO estalla al rebotar/tocar -> sigue y se PLANTA como TRAMPA (mina con delay de armado).
 						# Amarilla/azul SÍ pegan su efecto FULL en el trayecto del rebote.
 						if not o["hit_done"] and c != ORB_PINK and _orb_hits_target(st, o) != null:
