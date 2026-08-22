@@ -521,9 +521,11 @@ var buffer_t := 0.0
 var buffer_air := false      # el boton se apreto EN EL AIRE: al replay NO abre golpes agachados
 var breaker_ready := true    # combo breaker disponible (uno por ronda)
 var breaker_inv_t := 0.0     # invencibilidad tras romper
-var parry_t := 0.0           # ventana del PARRY (Q+W): si te pegan mientras >0 → COUNTER
-const PARRY_WINDOW := 0.5    # medio segundo de ventana de parry
-const PARRY_SIMUL := 0.09    # Q y W deben pulsarse dentro de esta ventana (~simultáneas), no una mantenida
+var parry_t := 0.0           # SF6: timer de la ventana PERFECTA del parry (>0 = si te pegan acá → COUNTER)
+var parry_stance := false    # SF6: POSTURA de parry MANTENIDA (Q+W held): absorbe golpes sin daño y drena barra
+const PARRY_WINDOW := 0.5    # (legado) — ya no se usa como duración; la postura dura mientras mantengas Q+W
+const PARRY_PERFECT := 0.13  # ventana JUST-FRAME al ENTRAR: golpe acá = PERFECT PARRY → counter cinemático
+const PARRY_SIMUL := 0.09    # (legado) — ya no se exige simultaneidad; ahora basta MANTENER Q+W
 
 # destello de impacto: chispas radiales al recibir un golpe
 const BURST_TIME := 0.22
@@ -1597,10 +1599,11 @@ func do_parry() -> bool:
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
-	parry_t = PARRY_WINDOW                                  # ventana ~0.5s: si te pegan acá → COUNTER
-	breaker_fx_t = maxf(breaker_fx_t, PARRY_WINDOW + 0.15)  # sombras MORADAS (Aye) / AZUL (Fe) / ROJO (DAM)
+	parry_stance = true                                    # ENTRA a la postura mantenida (se sostiene en _physics_process)
+	parry_t = PARRY_PERFECT                                 # ventana JUST-FRAME: golpe acá → COUNTER (después = absorber)
+	breaker_fx_t = maxf(breaker_fx_t, 0.3)                  # sombras MORADAS (Aye) / AZUL (Fe) / ROJO (DAM), se refrescan al mantener
 	if fx_floral:
-		_cast_border_on(PARRY_WINDOW + 0.15)   # BORDE outline MORADO de Aye durante el parry
+		_cast_border_on(0.3)   # BORDE outline MORADO de Aye durante el parry
 	sprite.speed_scale = 1.0
 	if sprite.sprite_frames.has_animation("parry") and sprite.sprite_frames.get_frame_count("parry") > 8:
 		sprite.play("parry")        # v2: SNAP a la pose de desvío + HOLD (clip dedicado)
@@ -2959,22 +2962,38 @@ func _physics_process(delta: float) -> void:
 		_spawn_dash_smoke(0.5, 200.0)
 		dash_smoke_cd = 0.6
 
-	# PARRY (Q+W): CONGELADO en la pose de desvío durante la ventana (~0.5s), con el borde/
-	# aura del color del personaje. Si te pegan acá, main dispara el counter (y pone parry_t=0).
-	# Si expira sin golpe, vuelve a la guardia (la barra ya se gastó al activarlo).
-	if parry_t > 0.0 and not koed:
-		parry_t = maxf(0.0, parry_t - delta)
-		breaker_fx_t = maxf(breaker_fx_t, 0.15)   # sombras del color del personaje
-		# GLOW PULSANTE (MORADO Aye / azul Fe / rojo DAM) para INDICAR que está en la postura de parry
-		var pg := 0.55 + 0.45 * absf(sin((PARRY_WINDOW - parry_t) * 26.0))
-		var pcol: Color = Color(1.5, 0.5, 2.0) if fx_floral else (Color(0.5, 0.85, 1.9) if fx_blue else (Color(0.95, 0.30, 1.85) if fx_dark else Color(1.9, 0.45, 0.35)))
-		sprite.modulate = Color(1, 1, 1, 1).lerp(pcol, pg)
-		if String(sprite.animation) == "counter":
-			sprite.frame = 0                      # sostiene la pose de desvío (1er frame)
-		if parry_t <= 0.0:
-			sprite.modulate = Color(1, 1, 1, 1)   # sale de la postura: color normal
-			sprite.play("pose")
-		return   # quieto durante la ventana de parry
+	# PARRY estilo SF6 (MANTENER Q+W): POSTURA que ABSORBE golpes sin daño y DRENA barra mientras la
+	# sostenés. Los primeros PARRY_PERFECT s (parry_t>0) son la ventana JUST-FRAME: un golpe ahí = COUNTER
+	# cinemático. Después, cada golpe se ABSORBE (sin daño, chip mínimo, empujón corto) gastando barra.
+	# El árbitro (main._process_attacker) lee parry_t (perfect) y parry_stance (absorber).
+	if not koed:
+		var _mbp := get_parent()
+		var _pheld: bool = _es_humano() and input_enabled \
+			and Input.is_action_pressed(act("attack")) and Input.is_action_pressed(act("kick"))
+		# ENTRAR: ambos botones apretados, en el piso, y NO en medio de un golpe / hitstun / vuelo.
+		if _pheld and not parry_stance and not airborne and not hit_flying \
+				and not (String(sprite.animation) in ATTACKS and sprite.is_playing()) \
+				and not (String(sprite.animation) in ["take_hit", "take_hit_low", "hit_down"] and sprite.is_playing()) \
+				and _mbp != null and _mbp.has_method("parry_has_meter") and _mbp.parry_has_meter(self):
+			do_parry()
+		if parry_stance:
+			parry_t = maxf(0.0, parry_t - delta)   # cuenta atrás de la ventana PERFECTA
+			breaker_fx_t = maxf(breaker_fx_t, 0.16)
+			var pg := 0.5 + 0.5 * absf(sin(float(Time.get_ticks_msec()) * 0.028))
+			var pcol: Color = Color(1.5, 0.5, 2.0) if fx_floral else (Color(0.5, 0.85, 1.9) if fx_blue else (Color(0.95, 0.30, 1.85) if fx_dark else Color(1.9, 0.45, 0.35)))
+			sprite.modulate = Color(1, 1, 1, 1).lerp(pcol, pg)
+			if String(sprite.animation) in ["counter", "block", "parry"]:
+				sprite.frame = 0                  # sostiene la pose de desvío (1er frame)
+			vel_x = 0.0
+			# drena barra por tiempo; si soltás Q/W, se acaba la barra, o te derriban -> SALE de la postura
+			var _still: bool = _mbp != null and _mbp.has_method("parry_drain_time") and _mbp.parry_drain_time(self, delta)
+			if not _pheld or not _still or airborne or hit_flying:
+				parry_stance = false
+				parry_t = 0.0
+				sprite.modulate = Color(1, 1, 1, 1)
+				sprite.play("pose")
+			else:
+				return   # quieto sosteniendo la postura de parry
 
 	# noqueado: si está EN EL AIRE, deja que CAIGA y aterrice tendido (el aterrizaje lo
 	# pone en "ko"); ya en el SUELO queda tendido y no responde a nada.
@@ -3553,25 +3572,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if koed or is_downed():
 		return
-	# marca el TAP reciente de Q y de W (para exigir que el parry sea con las dos SIMULTÁNEAS)
-	if event.is_action_pressed(act("attack")):
-		pq_tap_t = PARRY_SIMUL
-	if event.is_action_pressed(act("kick")):
-		pw_tap_t = PARRY_SIMUL
-	# PARRY (Q+W A LA VEZ, estándar todos): entra en POSE de counter con borde ~0.5s. Si te pegan en
-	# esa ventana → contraataque (3 golpes). Gasta 1 barra. Solo parado en el piso.
-	# CLAVE: exige que Q y W se pulsen CASI A LA VEZ (dentro de PARRY_SIMUL). Mantener una y DESPUÉS
-	# tocar la otra ya NO activa (la vieja expiró su ventana), aunque las dos queden apretadas.
-	if not airborne and parry_t <= 0.0 \
-			and Input.is_action_pressed(act("attack")) and Input.is_action_pressed(act("kick")) \
-			and ((event.is_action_pressed(act("attack")) and pw_tap_t > 0.0) \
-				or (event.is_action_pressed(act("kick")) and pq_tap_t > 0.0)):
-		var _mbq := get_parent()
-		if _mbq and _mbq.has_method("meter_can_parry") and _mbq.meter_can_parry(self):
-			if do_parry():
-				if _mbq.has_method("on_parry_start"):
-					_mbq.on_parry_start(self)
-				return
+	# PARRY estilo SF6: ya NO se activa acá con un tap simultáneo. Ahora es una POSTURA que se ENTRA y
+	# SOSTIENE MANTENIENDO Q+W — la maneja _physics_process (entrar/absorber/drenar/salir). Ver do_parry.
 	# RABIA de DAM (E+R A LA VEZ, con el anillo LLENO): castea el berserk. Misma regla de
 	# simultaneidad que el parry — mantener una y luego tocar la otra NO activa.
 	if event.is_action_pressed(act("spin_kick")):

@@ -1076,7 +1076,42 @@ func on_breaker(quien: Node2D) -> void:
 	get_tree().create_timer(0.55, true, false, true).timeout.connect(
 		func() -> void: Engine.time_scale = 1.0)
 
-# ---- PARRY / COUNTER (↓+E, estándar): desvía el combo y contraataca. Gasta 1 barra. ----
+# ---- PARRY estilo SF6 (mantener Q+W): POSTURA que absorbe golpes y DRENA barra. El just-frame
+# (primeros PARRY_PERFECT s) da COUNTER; el resto ABSORBE sin daño. ----
+const PARRY_DRAIN_RATE := 0.55   # barra/seg que drena SOSTENER la postura
+const PARRY_ABSORB_COST := 0.22  # barra que cuesta cada golpe ABSORBIDO (no-perfect)
+const PARRY_MIN_METER := 0.15    # barra mínima para ENTRAR/sostener la postura
+
+# ¿tiene barra para ENTRAR a la postura de parry?
+func parry_has_meter(quien: Node2D) -> bool:
+	if break_practice:
+		return true
+	var i := 0 if quien == player else 1
+	return meter[i] >= PARRY_MIN_METER
+
+# DRENA barra por TIEMPO mientras sostiene la postura; devuelve false si se quedó sin barra (→ sale).
+func parry_drain_time(quien: Node2D, dt: float) -> bool:
+	if break_practice:
+		return true
+	var i := 0 if quien == player else 1
+	meter[i] = maxf(0.0, meter[i] - PARRY_DRAIN_RATE * dt)
+	return meter[i] > 0.0
+
+# PARRY normal (no-perfect): ABSORBE el golpe sin daño real, empujón corto, chispa de bloqueo, gasta
+# barra. La postura SIGUE (podés absorber varios mientras te quede barra). NO dispara el counter.
+func _parry_absorb(def: Node2D, att: Node2D) -> void:
+	var i := 0 if def == player else 1
+	if not break_practice:
+		meter[i] = maxf(0.0, meter[i] - PARRY_ABSORB_COST)
+	var dir := 1 if att.position.x >= def.position.x else -1
+	def.set_facing(-dir)
+	def.position.x = clampf(def.position.x + float(dir) * 24.0, LEFT_LIMIT, RIGHT_LIMIT)   # empujón corto
+	def._burst(0.75, true)                 # chispa de BLOQUEO/desvío
+	def._play_sfx_key("block")
+	flash_ms = Time.get_ticks_msec()
+	flash_rect.color = Color(0.6, 0.85, 1.0, 0.20)   # destello celeste breve del desvío
+	_shake(5.0, 0.06)
+
 func meter_can_parry(quien: Node2D) -> bool:
 	if break_practice:
 		return true
@@ -1099,7 +1134,8 @@ func on_parry_start(quien: Node2D) -> void:
 	flash_rect.color = (Color(0.55, 0.85, 1.0, 0.30) if quien.fx_blue else Color(1.0, 0.6, 0.4, 0.30))
 
 func on_parry(quien: Node2D, atacante: Node2D) -> void:
-	quien.parry_t = 0.0                                   # consume la ventana
+	quien.parry_t = 0.0                                   # consume la ventana PERFECTA
+	quien.parry_stance = false                            # sale de la postura (el counter toma el control)
 	quien.sprite.modulate = Color(1, 1, 1, 1)            # limpia el glow de la postura
 	var p_idx := 0 if quien == player else 1
 	var a_idx := 1 if quien == player else 0
@@ -11547,11 +11583,16 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		if String(atk["name"]) in ["spin_kick", "air_spin_kick", "ember_dash"]:
 			return ""
 		return done
-	# PARRY: si el defensor está en la VENTANA de parry (Q+W) y el golpe iba a conectar,
-	# lo DESVÍA y CONTRAATACA (on_parry) en vez de recibir daño.
+	# PARRY estilo SF6: si el defensor sostiene la postura (Q+W) y el golpe iba a conectar:
+	#  · PERFECT (parry_t>0, primeros ~0.13s) → DESVÍA y CONTRAATACA (on_parry, counter cinemático).
+	#  · normal (parry_stance) → ABSORBE sin daño, drena barra, la postura sigue.
 	if def.parry_t > 0.0 and not def.koed:
 		att.duck_swing()          # corta el whoosh del atacante
 		on_parry(def, att)
+		return done
+	if def.parry_stance and not def.koed:
+		att.duck_swing()
+		_parry_absorb(def, att)
 		return done
 	var push := 1 if dx >= 0.0 else -1
 	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)), false, bool(atk.get("freeze", false)), float(atk.get("shove", 0.0)), bool(atk.get("bounce", false)))
