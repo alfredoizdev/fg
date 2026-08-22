@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LK"
+	get_window().title = "FG Fighter — build 2026-08-21 LL"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1911,6 +1911,8 @@ func _charswap_confirm() -> void:
 	var new_id := String(CHARS[charswap_sel]["id"])
 	selected_char = new_id
 	_orb_clear_for(player)                 # limpia las esferas de Aye antes de cambiar (si no, quedan en el nuevo)
+	# PRECARGA SEGURA (hilo principal, spinner girando): sin freeze ni "colgado" al cambiar de char
+	await _prefetch_frames(new_id, _char_skin(player, new_id))
 	_apply_char(player, new_id)
 	if player.fx_floral:                   # nuevo char = Aye -> recrea sus 3 orbes
 		_orb_setup_for(player, 0)
@@ -3816,6 +3818,112 @@ func _get_char_frames(id: String, skin: String) -> SpriteFrames:
 	_sf_cache[key] = sf
 	return sf
 
+# skin que usa _apply_char por personaje (aye/zetma = por lado; el resto skin-1)
+func _char_skin(f: Node2D, id: String) -> String:
+	if id == "aye" or id == "zetma":
+		return Sel.p1_skin if f == player else Sel.p2_skin
+	return "skin-1"
+
+# raíz de FRAMES del personaje para el skin dado (para calentar la caché de texturas)
+func _char_frame_root(id: String, skin: String) -> String:
+	match id:
+		"aye": return "imagen-action/aye-2/" + skin
+		"zetma": return "imagen-action/zetma/skin-2" if skin == "skin-2" else "imagen-action/zetma"
+		"favi": return "imagen-action/favi"
+		"roum": return "imagen-action/roum"
+		_: return "imagen-action/dam"
+
+# lista recursiva de .png bajo root (res://), saltando carpetas de fuentes/audio/otro-skin
+func _collect_pngs(root: String, exclude: Array) -> PackedStringArray:
+	var out := PackedStringArray()
+	var d := DirAccess.open("res://" + root)
+	if d == null:
+		return out
+	for fpng in d.get_files():
+		if fpng.ends_with(".png"):
+			out.append("res://" + root + "/" + fpng)
+	for sub in d.get_directories():
+		if not (sub in exclude):
+			out.append_array(_collect_pngs(root + "/" + sub, exclude))
+	return out
+
+# PRECARGA SEGURA (hilo PRINCIPAL, por tandas con presupuesto de tiempo): calienta la caché de
+# texturas del personaje cediendo frames -> el spinner gira y NO se congela. Luego el builder pega
+# cache-hit y va rápido. NO usa Thread (cargar texturas fuera del hilo principal CRASHEA en Godot).
+func _prefetch_frames(id: String, skin: String) -> void:
+	var key := id + ":" + skin
+	if _sf_cache.has(key) and is_instance_valid(_sf_cache[key]):
+		return
+	_show_load_spinner()
+	await get_tree().process_frame                     # que el overlay aparezca YA
+	var excl := ["sheets", "sound-effect", "backup-voz", "backup", "cutin"]
+	if id == "zetma" and skin != "skin-2":
+		excl.append("skin-2")                          # skin-1: no cargar el arte del otro skin
+	var paths := _collect_pngs(_char_frame_root(id, skin), excl)
+	var held := []                                     # mantiene las texturas VIVAS hasta construir (cache-hit)
+	var t0 := Time.get_ticks_msec()
+	for p in paths:
+		var t = load(p)                                # HILO PRINCIPAL (creación de textura GPU segura)
+		if t != null:
+			held.append(t)
+		if Time.get_ticks_msec() - t0 > 12:            # ~12ms por frame -> cede para que el spinner gire
+			await get_tree().process_frame
+			t0 = Time.get_ticks_msec()
+	_get_char_frames(id, skin)                         # construye con la caché caliente (cache-hit, rápido)
+	_hide_load_spinner()
+
+# ---- SPINNER de carga (overlay, hilo principal): indica que está cargando (no colgado) ----
+var _load_spinner: CanvasLayer = null
+var _load_spin_node: Node2D = null
+func _ensure_load_spinner() -> void:
+	if _load_spinner != null and is_instance_valid(_load_spinner):
+		return
+	_load_spinner = CanvasLayer.new()
+	_load_spinner.layer = 200
+	add_child(_load_spinner)
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.02, 0.05, 0.88)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # CUBRE toda la pantalla (robusto)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_load_spinner.add_child(dim)
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var cx: float = vp.x * 0.5
+	var cy: float = vp.y * 0.5
+	var ring := Line2D.new()
+	var pts := PackedVector2Array()
+	var n := 40
+	for i in n + 1:
+		var a: float = deg_to_rad(-90.0) + deg_to_rad(280.0) * float(i) / float(n)
+		pts.append(Vector2(cos(a), sin(a)) * 46.0)
+	ring.points = pts
+	ring.width = 9.0
+	ring.default_color = Color(0.55, 0.85, 2.4, 0.95)
+	ring.joint_mode = Line2D.LINE_JOINT_ROUND
+	ring.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.end_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.position = Vector2(cx, cy)
+	_load_spinner.add_child(ring)
+	_load_spin_node = ring
+	var lbl := Label.new()
+	lbl.text = "CARGANDO..."
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(cx - 400.0, cy + 78.0)
+	lbl.size = Vector2(800, 60)
+	if combo_font != null:
+		lbl.add_theme_font_override("font", combo_font)
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(0.9, 0.92, 1.0, 0.95))
+	_load_spinner.add_child(lbl)
+	_load_spinner.visible = false
+
+func _show_load_spinner() -> void:
+	_ensure_load_spinner()
+	_load_spinner.visible = true
+
+func _hide_load_spinner() -> void:
+	if _load_spinner != null and is_instance_valid(_load_spinner):
+		_load_spinner.visible = false
+
 func _apply_char(f: Node2D, id: String) -> void:
 	var c := _char_data(id)
 	f.archetype = String(c["arch"])
@@ -4085,6 +4193,10 @@ func _start_round() -> void:
 			if _f.sprite != null:
 				_f.sprite.rotation = 0.0
 	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
+	# PRECARGA SEGURA (hilo principal, spinner girando): calienta la caché de texturas de ambos
+	# peleadores cediendo frames. Sin esto, el _apply_char síncrono congela en negro al entrar.
+	await _prefetch_frames(selected_char, _char_skin(player, selected_char))
+	await _prefetch_frames(cpu_char, _char_skin(dummy, cpu_char))
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
 	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)
@@ -5205,6 +5317,17 @@ func _ultra_orb_shot(from: Vector2, to: Vector2, color: int) -> void:
 	tw.tween_callback(_orb_burst_vfx.bind(to, color))
 	tw.tween_callback(spr.queue_free)
 
+# Clava al rival en pose de VOLANDO: hit_fly en un frame de VUELO (no el ÚLTIMO, que es el TENDIDO
+# -> Roum quedaba "acostado en el aire"). Estático pero claramente en el aire, golpeado.
+func _victim_fly_pose(v: Node2D) -> void:
+	if v == null or not is_instance_valid(v) or not v.sprite.sprite_frames.has_animation("hit_fly"):
+		return
+	if String(v.sprite.animation) != "hit_fly":
+		v.sprite.play("hit_fly")
+	var hfc: int = v.sprite.sprite_frames.get_frame_count("hit_fly")
+	v.sprite.frame = clampi(int(float(hfc) * 0.25), 0, maxi(0, hfc - 1))
+	v.sprite.speed_scale = 0.0
+
 func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
@@ -5257,10 +5380,7 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 		victima.vel_x = 0.0
 		victima.vel_y = 0.0
 		victima.position.y = base_y - float(hit_i) * 7.0 + sin(jt * 9.0) * 12.0
-		# FUERZA la pose de VOLANDO cada frame (si no, el fighter la resetea a idle -> se veía "parado")
-		if victima.sprite.sprite_frames.has_animation("hit_fly") and String(victima.sprite.animation) != "hit_fly":
-			victima.sprite.play("hit_fly")
-		victima.sprite.speed_scale = 1.0
+		_victim_fly_pose(victima)   # pose de VOLANDO clavada en frame de vuelo (no el tendido final)
 		hit_cd -= dt
 		if hit_cd <= 0.0 and hit_i < HITS:
 			hit_cd = 0.16
@@ -5268,8 +5388,7 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 			_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -120.0)), victima.global_position, col)
 			victima._burst(0.95, false, 1)
 			victima._play_sfx_key("take_hit")
-			if victima.sprite.sprite_frames.has_animation("hit_fly"):
-				victima.sprite.play("hit_fly")   # re-lanza el tumbo por cada golpe (reacción de impacto)
+			_victim_fly_pose(victima)
 			_shake(10.0, 0.09)
 			flash_ms = Time.get_ticks_msec()
 			flash_rect.color = Color(0.85, 0.35, 1.3, 0.30)
@@ -5299,9 +5418,7 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 			victima.position.y = lerpf(top_y, half_y, ft / 0.35)
 			victima.vel_x = 0.0
 			victima.vel_y = 0.0
-			if victima.sprite.sprite_frames.has_animation("hit_fly") and String(victima.sprite.animation) != "hit_fly":
-				victima.sprite.play("hit_fly")
-			victima.sprite.speed_scale = 1.0
+			_victim_fly_pose(victima)
 			await get_tree().process_frame
 			ft += get_process_delta_time()
 	if state == "ultra" and is_instance_valid(victima):
@@ -5311,8 +5428,7 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	if state == "ultra" and is_instance_valid(victima):
 		victima._burst(1.0, false, 1)   # flinch de golpeado por la rosa
 		victima._play_sfx_key("take_hit")
-		if victima.sprite.sprite_frames.has_animation("hit_fly"):
-			victima.sprite.play("hit_fly")
+		_victim_fly_pose(victima)
 		victima.vel_x = 0.0
 		victima.vel_y = 0.0
 		victima.frozen_t = 4.0   # congelado LARGO: aguanta toda la fase de giro
@@ -9294,6 +9410,9 @@ func _setup_scroll_camera() -> void:
 
 func _process(_dt: float) -> void:
 	var ahora := Time.get_ticks_msec()
+	# spinner de carga: gira mientras se calienta la caché (hilo principal, por tandas)
+	if _load_spinner != null and is_instance_valid(_load_spinner) and _load_spinner.visible and _load_spin_node != null:
+		_load_spin_node.rotation += _dt * 7.0
 	# CÁMARA con SCROLL (santuario): sigue el punto medio de los peleadores, acotada al mundo.
 	if scroll_stage and game_cam != null and is_instance_valid(player) and is_instance_valid(dummy):
 		var mid := (player.position.x + dummy.position.x) * 0.5
