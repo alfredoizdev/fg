@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LO"
+	get_window().title = "FG Fighter — build 2026-08-21 LP"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -10515,17 +10515,21 @@ func _make_portal_ribbons(n_ribbons: int) -> Node2D:
 	cont.z_index = 24   # POR ENCIMA del portal (z=22) -> se ven sobre el borde rojo
 	for i in n_ribbons:
 		var ln := Line2D.new()
-		ln.width = 30.0                           # GRUESAS como las vendas del personaje
+		ln.width = 38.0                           # GRUESAS como las vendas del personaje
 		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
 		ln.joint_mode = Line2D.LINE_JOINT_ROUND
 		var g := Gradient.new()
-		g.set_color(0, Color(0.01, 0.0, 0.01))    # NEGRO (mismo color que el interior del agujero)
-		g.set_color(1, Color(0.03, 0.0, 0.03))    # negro (NADA de rojo)
+		# VENDA: marrón OSCURO en el portal (como sus wraps) -> PUNTA carmesí que BRILLA (HDR). Antes
+		# eran negras planas = invisibles contra el fondo nocturno (se veían como humo, no como cintas).
+		g.set_color(0, Color(0.16, 0.07, 0.06))   # marrón oscuro de venda
+		g.set_color(1, Color(1.8, 0.12, 0.14))    # PUNTA carmesí brillante (como el borde del portal)
+		g.add_point(0.7, Color(0.42, 0.06, 0.07)) # transición marrón -> rojizo
 		ln.gradient = g
 		var wc := Curve.new()
-		wc.add_point(Vector2(0.0, 1.0))           # gruesa en el portal
-		wc.add_point(Vector2(1.0, 0.7))           # sigue gorda hacia la punta
+		wc.add_point(Vector2(0.0, 1.0))           # ancha en el portal
+		wc.add_point(Vector2(0.8, 0.85))          # sigue gorda casi hasta el final
+		wc.add_point(Vector2(1.0, 0.18))          # se AFINA a punta (tira de venda que engancha)
 		ln.width_curve = wc
 		cont.add_child(ln)
 	add_child(cont)
@@ -10654,7 +10658,10 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 	if grab_ok:
 		var _opp_air: bool = opp.airborne or opp.hit_flying or opp.position.y < opp.floor_y - 40.0
 		var _opp_dx: float = absf(opp.position.x - f.position.x)
-		will_grab = _opp_air and _opp_dx <= 760.0
+		# ANTI-AÉREO: alcance GENEROSO — al patear (W) el rival sale volando LEJOS (cruza media
+		# pantalla), mucho más que 760px, así que el agarre nunca conectaba. Con el rival EN EL AIRE
+		# y dentro de ~toda la pantalla, el hoyo aparece SOBRE él y lo agarra.
+		will_grab = _opp_air and _opp_dx <= 1500.0
 		if _opp_air:
 			sky_pos = Vector2(opp.position.x, opp.position.y - 140.0)   # hoyo SOBRE el rival en el aire
 	if state == "fight" and grab_ok:
@@ -10663,17 +10670,27 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 		sky.position = sky_pos
 		sky.rotation = -float(fc) * 0.95                      # MÁS ladeado (de medio lado)
 		sky.scale = Vector2(float(fc) * 0.28, 0.62)           # MÁS ANGOSTO y elongado (óvalo de medio lado)
-		await _portal_grow(sky, 0.0, 1.0, 0.11)               # se abre en su lugar (NO sigue al rival)
-		var suck := _portal_suck_fx(sky.position)
 		var ribbons := _make_portal_ribbons(5)
 		var rib_phase := 0.0
-		# las cintas SALEN del hoyo fijo e intentan alcanzar al rival
-		var rt := 0.0
-		while rt < 0.09 and is_instance_valid(opp) and not opp.koed:
-			rt += get_process_delta_time()
+		var suck: CPUParticles2D = null
+		var _sky_mat: ShaderMaterial = sky.material as ShaderMaterial
+		# ABRE + PERSIGUE al rival que cae (anti-aéreo): el hoyo se mantiene SOBRE él y las vendas se
+		# extienden hasta alcanzarlo. Antes se abría FIJO y el rival caía al lado sin ser agarrado.
+		var op := 0.0
+		var op_dur := 0.15
+		while op < op_dur and is_instance_valid(opp) and not opp.koed:
+			op += get_process_delta_time()
 			rib_phase += get_process_delta_time() * 11.0
-			_update_portal_ribbons(ribbons, sky.position, Vector2(opp.position.x, opp.position.y), clampf(rt / 0.09, 0.0, 1.0), rib_phase)
+			if will_grab and (opp.airborne or opp.hit_flying):
+				sky.position = Vector2(opp.position.x, opp.position.y - 140.0)   # el hoyo SIGUE al rival
+			if _sky_mat != null:
+				_sky_mat.set_shader_parameter("grow", clampf(op / 0.09, 0.0, 1.0))   # se abre en ~0.09
+			if suck == null and op >= 0.06:
+				suck = _portal_suck_fx(sky.position)
+			_update_portal_ribbons(ribbons, sky.position, Vector2(opp.position.x, opp.position.y), clampf(op / op_dur, 0.0, 1.0), rib_phase)
 			await get_tree().process_frame
+		if suck == null:
+			suck = _portal_suck_fx(sky.position)
 		if will_grab:
 			var opp_was_input: bool = opp.input_enabled
 			var opp_was_ai: bool = opp.ai_enabled

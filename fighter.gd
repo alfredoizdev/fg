@@ -2363,6 +2363,7 @@ func _spawn_ghost(blue := false, blanco := false) -> void:
 
 func _launch(push_dir: int, mult := 1.0) -> void:
 	crouching = false
+	ultra_hover = false   # ser LANZADO por un golpe termina cualquier hover de ultra (si quedó colgado, no flotar)
 	airborne = true
 	var en_juggle := hit_flying   # ¿ya venía VOLANDO de un golpe anterior?
 	hit_flying = true
@@ -2976,6 +2977,8 @@ func _physics_process(delta: float) -> void:
 	# noqueado: si está EN EL AIRE, deja que CAIGA y aterrice tendido (el aterrizaje lo
 	# pone en "ko"); ya en el SUELO queda tendido y no responde a nada.
 	if koed and not airborne and not hit_flying:
+		if position.y < floor_y - 4.0:
+			force_grounded_ko()   # KO flotando (agarre/portal interrumpido) -> tíralo al piso, no lo dejes en el aire
 		return
 
 	# juggle aereo del ULTRA: se queda flotando donde lo pusieron (sin gravedad
@@ -3017,6 +3020,15 @@ func _physics_process(delta: float) -> void:
 			elif sprite.frame == 6:
 				hover = SPIN_HOVER * 0.35
 			position.y = lerpf(position.y, floor_y - hover, minf(14.0 * delta, 1.0))
+	elif hit_flying and not airborne:
+		# SEGURIDAD: hit_flying SIN airborne = vuelo a medias (un agarre/portal interrumpido lo dejó
+		# flotando sin gravedad). Si quedó ARRIBA, retoma la caída; si ya está a ras de piso, limpia el
+		# vuelo. Evita que se quede FLOTANDO de cabeza en pose de vuelo (bug tras el pit-grab / al golpearlo).
+		if position.y < floor_y - 4.0:
+			airborne = true          # retoma la gravedad -> cae y aterriza normal
+		else:
+			hit_flying = false
+			position.y = floor_y
 	elif not airborne and not hit_flying and position.y != floor_y:
 		position.y = floor_y  # al terminar (o si lo interrumpen) vuelve al piso
 
