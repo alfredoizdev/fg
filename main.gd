@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LC"
+	get_window().title = "FG Fighter — build 2026-08-21 LD"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -5173,14 +5173,21 @@ func try_aye_ultra(atacante: Node2D) -> bool:
 	if atacante.airborne or atacante.hit_flying or atacante.position.y < atacante.floor_y - 4.0:
 		return false
 	var idx := 0 if atacante == player else 1
-	# ===== DIAGNÓSTICO: SIN condiciones -> R dispara el ultra directo. Restaurar rojo/meter/combo después. =====
+	if meter[idx] < 2.0:
+		return false
+	if combo_n[idx] < 3 or combo_t[idx] > 1.25:   # combo VIVO (ventana ancha de aye2, sus orbes tardan)
+		return false
+	var vhp: int = dummy_hp if idx == 0 else player_hp
+	if float(vhp) > float(hp_max[1 - idx]) * ULTRA_HP:
+		return false          # rival en ROJO (mismo umbral que la barra roja)
+	var victima: Node2D = dummy if idx == 0 else player
+	if absf(victima.position.x - atacante.position.x) > 620.0:
+		return false
+	meter[idx] -= 2.0
 	_run_aye_ultra(atacante, idx)
 	return true
 
 func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
-	flash_ms = Time.get_ticks_msec()   # DIAGNÓSTICO: destello al entrar (confirma que se llamó)
-	flash_rect.color = Color(0.9, 0.35, 1.4, 0.7)
-	_shake(24.0, 0.35)
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
 	ultra_active = true

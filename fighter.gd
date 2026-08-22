@@ -3581,11 +3581,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if fx_floral:
 		# AYE-2: ↓← + Q/W/E = TIRO DIAGONAL arriba (lo maneja el gesto normal, ver _orb_downback_buffered).
-		# ULTRA CORTO "PRISM STORM". DIAGNÓSTICO: R plano dispara. Restaurar → R + rojo/meter/combo después.
+		# ULTRA CORTO "PRISM STORM" = → R (adelante mantenido o reciente + R).
 		if event.is_action_pressed(act("weak_punch")):
-			var mau := get_parent()
-			if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
-				return
+			var _uf := int(signf(Input.get_axis(act("ui_left"), act("ui_right"))))
+			if fwd_recent_t > 0.0 or _uf == facing:   # ADELANTE + R
+				var mau := get_parent()
+				if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
+					return
 	elif sprite.sprite_frames.has_animation("water_cast"):
 		# --- FE: sus propios especiales/ultra. NO hereda los ultras de fuego de DAM. ---
 		# WHIRLPOOL (↓←+E): finisher tras combo (cuesta 1 barra).
