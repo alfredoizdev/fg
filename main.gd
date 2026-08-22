@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LP"
+	get_window().title = "FG Fighter — build 2026-08-21 LQ"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -10744,7 +10744,10 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 					opp._spawn_jump_dust(1.1)
 				_shake(14.0, 0.14)
 				opp._burst(1.1, false, 1, false, 500.0 * (1.0 - opp.base_scale.y))
-				var d := 85
+				# PASAR POR LOS PORTALES = 2 HITS: registra dos golpes en el combo (nombres distintos +
+				# aéreo) para que el combo NO se caiga (resetea el timer combo_t) y sume al contador.
+				var aidx: int = 0 if f == player else 1
+				var d: int = _combo_hit(aidx, 40, "pit_grab_a", true) + _combo_hit(aidx, 45, "pit_grab_b", true)
 				_dmg_number(opp, d)
 				if f == player:
 					dummy_hp = maxi(0, dummy_hp - d)
@@ -10775,7 +10778,11 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 			ribbons.queue_free()
 	else:
 		await get_tree().create_timer(0.12).timeout
-	# CORTA el sonido y CIERRA los portales
+	# LIBERA a Roum YA (que pueda ENCADENAR un golpe): los portales se CIERRAN SOLOS de fondo sin
+	# tenerlo bloqueado. Antes quedaba "congelado" ~0.3s mientras los hoyos se cerraban -> costaba
+	# conectar un golpe después del agarre.
+	_warp_restore(f, was_input, was_ai)
+	# CORTA el sonido y CIERRA los portales (visual, en segundo plano)
 	if is_instance_valid(bhp):
 		var tw := create_tween()
 		tw.tween_property(bhp, "volume_db", -40.0, 0.18)
@@ -10786,7 +10793,6 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 	if is_instance_valid(pit):
 		await _portal_grow(pit, 1.0, 0.0, 0.12)
 		pit.queue_free()
-	_warp_restore(f, was_input, was_ai)
 
 # anima el 'grow' del portal de a->b en dur segundos (apertura/cierre)
 func _portal_grow(portal: Sprite2D, a: float, b: float, dur: float) -> void:
