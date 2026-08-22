@@ -1542,9 +1542,11 @@ func force_grounded_ko() -> void:
 		sprite.position.y = (0.0 if _koc > 100 else ko_lie_drop_up)
 
 func do_breaker() -> bool:
-	if not breaker_ready or koed or orb_trap_t > 0.0:   # atrapado en la esfera: NO puede romper
+	# BURST defensivo: se puede usar SIEMPRE que tengas barra (el costo ½ lo cobra main.on_breaker),
+	# ya NO "1 por ronda". Lo mantienen a raya el costo de barra + el límite de los primeros 4 golpes
+	# del combo (combo_hits_on). breaker_ready quedó sin efecto: el recurso ahora es la BARRA.
+	if koed or orb_trap_t > 0.0:   # atrapado en la esfera: NO puede romper
 		return false
-	breaker_ready = false
 	hit_flying = false
 	crouching = false
 	punch_followup = false
