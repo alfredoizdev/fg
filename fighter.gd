@@ -3633,11 +3633,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif fx_floral:
 		# --- AYE-2: ULTRA CORTO "PRISM STORM" = → R (adelante reciente + R). 2 barras + combo + rival en ROJO. ---
 		if event.is_action_pressed(act("weak_punch")):
-			var _uf := int(signf(Input.get_axis(act("ui_left"), act("ui_right"))))
-			if fwd_recent_t > 0.0 or _uf == facing:   # adelante RECIENTE o MANTENIDO + R
-				var mau := get_parent()
-				if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
-					return
+			# DIAGNÓSTICO: R PLANO dispara (sin exigir adelante). Restaurar → R después.
+			var mau := get_parent()
+			if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
+				return
 	else:
 		# --- DAM: sus finishers de fuego ---
 		# comando ANIQUILACIÓN: → R (adelante reciente + R)

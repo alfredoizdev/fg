@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 KY"
+	get_window().title = "FG Fighter — build 2026-08-21 LA"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -5173,20 +5173,14 @@ func try_aye_ultra(atacante: Node2D) -> bool:
 	if atacante.airborne or atacante.hit_flying or atacante.position.y < atacante.floor_y - 4.0:
 		return false
 	var idx := 0 if atacante == player else 1
-	var vhp: int = dummy_hp if idx == 0 else player_hp
-	if float(vhp) > float(hp_max[1 - idx]) * 0.25:
-		return false          # rival en ROJO (≤25%) — SE MANTIENE (pedido)
-	var victima: Node2D = dummy if idx == 0 else player
-	if absf(victima.position.x - atacante.position.x) > 620.0:
-		return false
-	# TEST: meter (2 barras) y combo DESACTIVADOS para aislar. Reactivar tras validar la coreo:
-	#if meter[idx] < 2.0: return false
-	#if combo_n[idx] < 3 or combo_t[idx] > 1.25: return false
-	#meter[idx] -= 2.0
+	# ===== DIAGNÓSTICO: SIN condiciones -> R dispara el ultra directo. Restaurar rojo/meter/combo después. =====
 	_run_aye_ultra(atacante, idx)
 	return true
 
 func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
+	flash_ms = Time.get_ticks_msec()   # DIAGNÓSTICO: destello al entrar (confirma que se llamó)
+	flash_rect.color = Color(0.9, 0.35, 1.4, 0.7)
+	_shake(24.0, 0.35)
 	var victima: Node2D = dummy if idx == 0 else player
 	var dir := 1 if victima.position.x >= atacante.position.x else -1
 	ultra_active = true
@@ -8829,7 +8823,9 @@ func _physics_process(_delta: float) -> void:
 
 	# en entrenamiento solo existe el jugador: sin empuje, sin golpes, sin barras
 	if TRAINING:
-		player.position.x = clampf(player.position.x, LEFT_LIMIT, RIGHT_LIMIT)
+		# la pared es el BORDE del cuerpo (body_halfw), no el centro: si no, medio cuerpo se sale
+		player.arena_left = LEFT_LIMIT + player.body_halfw; player.arena_right = RIGHT_LIMIT - player.body_halfw
+		player.position.x = clampf(player.position.x, player.arena_left, player.arena_right)
 		return
 
 	# CONTADOR del round (solo rondas reales: VS CPU / VS 2P; se congela durante ultras).
@@ -8883,13 +8879,15 @@ func _physics_process(_delta: float) -> void:
 		if player.airborne and dummy.airborne:
 			player.position.y = lerpf(player.position.y, clampf(dummy.position.y, 145.0, 625.0), 0.4)
 
-	# limites de pantalla. SINCRONIZA los límites al fighter (sus clamps internos de knockback/salto/
-	# shove los usan): en stages con SCROLL el mundo es más ancho y sin esto el empuje chocaba un muro
-	# invisible en 1805 a mitad del stage.
-	player.arena_left = LEFT_LIMIT; player.arena_right = RIGHT_LIMIT
-	dummy.arena_left = LEFT_LIMIT; dummy.arena_right = RIGHT_LIMIT
-	player.position.x = clampf(player.position.x, LEFT_LIMIT, RIGHT_LIMIT)
-	dummy.position.x = clampf(dummy.position.x, LEFT_LIMIT, RIGHT_LIMIT)
+	# limites de pantalla. La pared es el BORDE del cuerpo, no su centro: antes se clampaba el
+	# CENTRO a [LEFT,RIGHT] y medio cuerpo (body_halfw) quedaba FUERA del borde (Fe/Roum se salían).
+	# Ahora se resta body_halfw => el borde del cuerpo se detiene en el límite. Se sincroniza en
+	# arena_left/right para que los clamps internos de fighter.gd (knockback/salto/shove) usen la
+	# MISMA pared (en stages con SCROLL el mundo es más ancho, por eso NO se usa 115/1805 fijo).
+	player.arena_left = LEFT_LIMIT + player.body_halfw; player.arena_right = RIGHT_LIMIT - player.body_halfw
+	dummy.arena_left = LEFT_LIMIT + dummy.body_halfw;  dummy.arena_right = RIGHT_LIMIT - dummy.body_halfw
+	player.position.x = clampf(player.position.x, player.arena_left, player.arena_right)
+	dummy.position.x = clampf(dummy.position.x, dummy.arena_left, dummy.arena_right)
 
 	if state == "fight" or state == "demo":
 		# siempre de frente al rival
