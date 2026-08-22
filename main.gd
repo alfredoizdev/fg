@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LH"
+	get_window().title = "FG Fighter — build 2026-08-21 LI"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1911,7 +1911,10 @@ func _charswap_confirm() -> void:
 	var new_id := String(CHARS[charswap_sel]["id"])
 	selected_char = new_id
 	_orb_clear_for(player)                 # limpia las esferas de Aye antes de cambiar (si no, quedan en el nuevo)
-	_apply_char(player, new_id)
+	# PRECARGA en Thread (spinner girando) para que NO se congele ni parezca colgado al cambiar de char
+	await _prefetch_frames(new_id, _char_skin(player, new_id))
+	_hide_load_spinner()
+	_apply_char(player, new_id)            # cache-hit instantáneo (ya precargado arriba)
 	if player.fx_floral:                   # nuevo char = Aye -> recrea sus 3 orbes
 		_orb_setup_for(player, 0)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3793,10 +3796,9 @@ func _stage_dust_tint() -> Color:
 # Los sprite_frames NO se mutan en runtime (solo se reproducen anims), así que la MISMA instancia se
 # comparte con seguridad entre rounds e incluso en espejo (DAM vs DAM). Se limpia si cambia el roster.
 var _sf_cache := {}
-func _get_char_frames(id: String, skin: String) -> SpriteFrames:
-	var key := id + ":" + skin
-	if _sf_cache.has(key) and is_instance_valid(_sf_cache[key]):
-		return _sf_cache[key]
+# BUILD CRUDO (síncrono, thread-safe: solo load() + SpriteFrames, NO toca el árbol). Se corre
+# en un Thread desde _prefetch_frames para no congelar el hilo principal. NO cachea (lo hace el caller).
+func _build_char_frames_raw(id: String, skin: String) -> SpriteFrames:
 	var sf: SpriteFrames
 	match id:
 		"favi":
@@ -3813,8 +3815,90 @@ func _get_char_frames(id: String, skin: String) -> SpriteFrames:
 			_fix_placeholders(sf, _roum_action_frames)
 		_:
 			sf = _build_dam_frames()
+	return sf
+
+func _get_char_frames(id: String, skin: String) -> SpriteFrames:
+	var key := id + ":" + skin
+	if _sf_cache.has(key) and is_instance_valid(_sf_cache[key]):
+		return _sf_cache[key]
+	var sf := _build_char_frames_raw(id, skin)   # síncrono (fallback si no se precargó)
 	_sf_cache[key] = sf
 	return sf
+
+# skin que usa _apply_char por personaje (aye/zetma = por lado; el resto skin-1)
+func _char_skin(f: Node2D, id: String) -> String:
+	if id == "aye" or id == "zetma":
+		return Sel.p1_skin if f == player else Sel.p2_skin
+	return "skin-1"
+
+# PRECARGA ASÍNCRONA: construye los SpriteFrames en un Thread de fondo mientras el hilo principal
+# sigue vivo (spinner girando). Deja el resultado en _sf_cache -> el _apply_char siguiente pega
+# cache-hit INSTANTÁNEO. Si ya está en caché, no hace nada (no vuelve a cargar miles de PNG).
+func _prefetch_frames(id: String, skin: String) -> void:
+	var key := id + ":" + skin
+	if _sf_cache.has(key) and is_instance_valid(_sf_cache[key]):
+		return
+	_show_load_spinner()
+	var th := Thread.new()
+	th.start(_build_char_frames_raw.bind(id, skin))
+	while th.is_alive():
+		await get_tree().process_frame          # el hilo principal respira -> spinner animado
+	var sf: SpriteFrames = th.wait_to_finish()
+	if sf != null:
+		_sf_cache[key] = sf
+
+# ---- SPINNER de carga (overlay): indica al usuario que está cargando (no que se colgó) ----
+var _load_spinner: CanvasLayer = null
+var _load_spin_node: Node2D = null
+func _ensure_load_spinner() -> void:
+	if _load_spinner != null and is_instance_valid(_load_spinner):
+		return
+	_load_spinner = CanvasLayer.new()
+	_load_spinner.layer = 200                       # SOBRE todo (peleadores, HUD, menús)
+	add_child(_load_spinner)
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.02, 0.05, 0.82)
+	dim.position = Vector2(-40, -40)
+	dim.size = vp + Vector2(80, 80)
+	_load_spinner.add_child(dim)
+	var cx: float = vp.x * 0.5
+	var cy: float = vp.y * 0.5
+	# anillo giratorio (arco de ~280°)
+	var ring := Line2D.new()
+	var pts := PackedVector2Array()
+	var n := 40
+	for i in n + 1:
+		var a: float = deg_to_rad(-90.0) + deg_to_rad(280.0) * float(i) / float(n)
+		pts.append(Vector2(cos(a), sin(a)) * 46.0)
+	ring.points = pts
+	ring.width = 9.0
+	ring.default_color = Color(0.55, 0.85, 2.4, 0.95)   # cian HDR (bloom)
+	ring.joint_mode = Line2D.LINE_JOINT_ROUND
+	ring.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.end_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.position = Vector2(cx, cy)
+	_load_spinner.add_child(ring)
+	_load_spin_node = ring
+	var lbl := Label.new()
+	lbl.text = "CARGANDO..."
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(cx - 400.0, cy + 80.0)
+	lbl.size = Vector2(800, 60)
+	if combo_font != null:
+		lbl.add_theme_font_override("font", combo_font)
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(0.9, 0.92, 1.0, 0.95))
+	_load_spinner.add_child(lbl)
+	_load_spinner.visible = false
+
+func _show_load_spinner() -> void:
+	_ensure_load_spinner()
+	_load_spinner.visible = true
+
+func _hide_load_spinner() -> void:
+	if _load_spinner != null and is_instance_valid(_load_spinner):
+		_load_spinner.visible = false
 
 func _apply_char(f: Node2D, id: String) -> void:
 	var c := _char_data(id)
@@ -4085,6 +4169,11 @@ func _start_round() -> void:
 			if _f.sprite != null:
 				_f.sprite.rotation = 0.0
 	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
+	# PRECARGA ASÍNCRONA de ambos peleadores (Thread + spinner): antes el _apply_char síncrono
+	# congelaba en negro varios segundos al entrar a la pelea. Cache-hit -> instantáneo.
+	await _prefetch_frames(selected_char, _char_skin(player, selected_char))
+	await _prefetch_frames(cpu_char, _char_skin(dummy, cpu_char))
+	_hide_load_spinner()
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
 	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)
@@ -9294,6 +9383,9 @@ func _setup_scroll_camera() -> void:
 
 func _process(_dt: float) -> void:
 	var ahora := Time.get_ticks_msec()
+	# spinner de carga: gira mientras el Thread construye los frames (el hilo principal sigue vivo)
+	if _load_spinner != null and is_instance_valid(_load_spinner) and _load_spinner.visible and _load_spin_node != null:
+		_load_spin_node.rotation += _dt * 7.0
 	# CÁMARA con SCROLL (santuario): sigue el punto medio de los peleadores, acotada al mundo.
 	if scroll_stage and game_cam != null and is_instance_valid(player) and is_instance_valid(dummy):
 		var mid := (player.position.x + dummy.position.x) * 0.5
@@ -10513,10 +10605,17 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 	# pero el AGARRE real (meter→sacar→daño) SÓLO conecta si está EN EL AIRE y CERCA (anti-aéreo corto).
 	# HOYO AÉREO a una DISTANCIA FIJA de Roum (arriba-adelante) — NO donde está el rival. Sale SIEMPRE
 	# en el mismo punto; agarra sólo si el rival está EN EL AIRE y DENTRO de ese hoyo (cerca del punto).
-	var sky_pos := Vector2(f.position.x + float(fc) * 760.0, f.position.y - 350.0)   # MÁS a la DERECHA (adelante) y arriba
-	var will_grab: bool = grab_ok \
-		and (opp.airborne or opp.hit_flying or opp.position.y < opp.floor_y - 40.0) \
-		and opp.position.distance_to(sky_pos) <= 560.0
+	# ANTI-AÉREO: agarra si el rival está EN EL AIRE y dentro del alcance HORIZONTAL de Roum. ANTES
+	# exigía estar cerca de un punto FIJO 760px adelante -> un salto normal cerca de Roum casi nunca
+	# caía ahí y NO agarraba al que vuela. El 2º hoyo aparece SOBRE el rival volador para atraparlo.
+	var will_grab := false
+	var sky_pos := Vector2(f.position.x + float(fc) * 420.0, f.position.y - 350.0)   # por defecto: arriba-adelante de Roum
+	if grab_ok:
+		var _opp_air: bool = opp.airborne or opp.hit_flying or opp.position.y < opp.floor_y - 40.0
+		var _opp_dx: float = absf(opp.position.x - f.position.x)
+		will_grab = _opp_air and _opp_dx <= 760.0
+		if _opp_air:
+			sky_pos = Vector2(opp.position.x, opp.position.y - 140.0)   # hoyo SOBRE el rival en el aire
 	if state == "fight" and grab_ok:
 		sky = _make_void_portal(self)
 		# 2º HOLE ESTÁTICO a distancia fija de Roum, BIEN de medio lado (diagonal y angosto)
