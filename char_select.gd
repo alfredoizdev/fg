@@ -35,8 +35,9 @@ var load_t := 0.0
 const VS_MIN_SHOW := 0.6     # tiempo mínimo que se ve la pantalla de carga (aunque cargue antes)
 # PRECARGA de frames de los peleadores en VARIOS HILOS DE FONDO en paralelo (mucho más
 # rápida que un solo hilo; aprovecha SSD + núcleos, y el spinner sigue fluido)
-var _warm: Array = []        # rutas .png a precalentar (en el HILO PRINCIPAL, por tandas)
-var _warm_i := 0             # índice de la próxima ruta a precalentar
+var _warm: Array = []        # rutas .png a precalentar (por tandas, sin stallear)
+var _warm_i := 0             # índice de la próxima ruta a RECOLECTAR
+var _warm_req_i := 0         # índice de la próxima ruta a PEDIR (load_threaded_request)
 const WARM_SKIP := ["select", "sheets", "avatar"]   # dirs que NO son frames de pelea
 # --- paso SELECT STAGE (picking == 2) — CARRUSEL ---
 var sel_stage := 0
@@ -784,15 +785,13 @@ func _start_loading() -> void:
 	Sel.warm_cache.clear()
 	_warm.clear()
 	_warm_i = 0
+	_warm_req_i = 0
 	_scan_fight_pngs("res://imagen-action/%s" % Sel.p1, _warm)
 	if Sel.p2 != Sel.p1:
 		_scan_fight_pngs("res://imagen-action/%s" % Sel.p2, _warm)
-	# LANZA TODAS las cargas EN PARALELO con la API OFICIAL (misma que main.tscn arriba). SEGURA:
-	# el worker de Godot lee del disco en paralelo y la textura se sube a GPU recién en
-	# load_threaded_get (hilo principal, en _update_loading) -> NO crashea como un Thread propio.
-	for p in _warm:
-		if ResourceLoader.exists(p):
-			ResourceLoader.load_threaded_request(p)
+	# NOTA: los load_threaded_request NO se disparan todos aquí (eran ~8000 exists()+request en UN
+	# frame -> stalleaba el hilo principal y se cortaba la música). Se DISPARAN Y RECOLECTAN por
+	# tandas en _update_loading, todo con presupuesto de tiempo, así el spinner sigue fluido.
 	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
 	if stage_overlay != null:
 		stage_overlay.visible = false
@@ -1134,14 +1133,22 @@ func _update_loading(delta: float) -> void:
 		load_vs_fx.queue_redraw()
 	if load_spin != null:
 		load_spin.queue_redraw()
-	# RECOLECTA las cargas que fueron terminando (lanzadas en PARALELO en _start_loading). El
-	# load_threaded_get sube la textura a GPU EN EL HILO PRINCIPAL (seguro) -> Sel.warm_cache
-	# (persiste entre escenas) -> main.gd pega cache-hit y entra directo al juego. Por TANDAS
-	# (~10ms/frame) para que el spinner de la pantalla VS siga girando sin congelarse.
+	# PRECALENTADO por TANDAS con PRESUPUESTO DE TIEMPO (para NO stallear el hilo principal -> la
+	# música ya no se corta). Dos fases por frame:
+	#  1) DISPARA algunos load_threaded_request (el worker de Godot los lee del disco en paralelo).
+	#  2) RECOLECTA los que ya están LOADED con load_threaded_get (sube a GPU en el HILO PRINCIPAL,
+	#     seguro) hacia Sel.warm_cache (persiste entre escenas -> main.gd pega cache-hit).
 	var warm_done: bool = _warm_i >= _warm.size()
 	if not warm_done:
 		var t0 := Time.get_ticks_msec()
-		while _warm_i < _warm.size() and Time.get_ticks_msec() - t0 < 10:
+		# fase 1: pedir (spread por frames; ~4ms de presupuesto)
+		while _warm_req_i < _warm.size() and Time.get_ticks_msec() - t0 < 4:
+			var rp: String = _warm[_warm_req_i]
+			_warm_req_i += 1
+			if ResourceLoader.exists(rp):
+				ResourceLoader.load_threaded_request(rp)
+		# fase 2: recolectar SOLO lo ya pedido, en orden (~hasta 11ms total)
+		while _warm_i < _warm_req_i and Time.get_ticks_msec() - t0 < 11:
 			var p: String = _warm[_warm_i]
 			if not ResourceLoader.exists(p):
 				_warm_i += 1
