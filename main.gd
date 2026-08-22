@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LM"
+	get_window().title = "FG Fighter — build 2026-08-21 LN"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -10638,7 +10638,9 @@ func _run_roum_pit(f: Node2D, opp: Node2D) -> void:
 	# hacia ARRIBA, frente a Roum.
 	var sky: Sprite2D = null
 	# el 2º HOLE + las cintas SALEN SIEMPRE (aunque el rival no salte) — INTENTAN agarrar.
-	var grab_ok: bool = is_instance_valid(opp) and not opp.koed and not opp.is_downed()
+	# ANTI-AÉREO: el rival VOLANDO (hit_flying) es JUSTO el objetivo -> NO excluirlo. is_downed() incluye
+	# hit_flying, por eso el portal aéreo nunca salía contra un rival lanzado. Solo excluimos KO / tendido en piso.
+	var grab_ok: bool = is_instance_valid(opp) and not opp.koed and not (String(opp.sprite.animation) == "hit_down" and opp.sprite.is_playing())
 	# pero el AGARRE real (meter→sacar→daño) SÓLO conecta si está EN EL AIRE y CERCA (anti-aéreo corto).
 	# HOYO AÉREO a una DISTANCIA FIJA de Roum (arriba-adelante) — NO donde está el rival. Sale SIEMPRE
 	# en el mismo punto; agarra sólo si el rival está EN EL AIRE y DENTRO de ese hoyo (cerca del punto).
