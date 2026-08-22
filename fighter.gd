@@ -3581,8 +3581,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if fx_floral:
 		# AYE-2: ↓← + Q/W/E = TIRO DIAGONAL arriba (lo maneja el gesto normal, ver _orb_downback_buffered).
-		# El viejo CRYSTAL FLURRY (↓←Q súper de Aye vieja) queda DESHABILITADO hasta rediseñar el súper de aye2.
-		pass
+		# ULTRA CORTO "PRISM STORM". DIAGNÓSTICO: R plano dispara. Restaurar → R + rojo/meter/combo después.
+		if event.is_action_pressed(act("weak_punch")):
+			var mau := get_parent()
+			if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
+				return
 	elif sprite.sprite_frames.has_animation("water_cast"):
 		# --- FE: sus propios especiales/ultra. NO hereda los ultras de fuego de DAM. ---
 		# WHIRLPOOL (↓←+E): finisher tras combo (cuesta 1 barra).
@@ -3630,13 +3633,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				var mru := get_parent()
 				if mru and mru.has_method("try_roum_ultra") and mru.try_roum_ultra(self):
 					return
-	elif fx_floral:
-		# --- AYE-2: ULTRA CORTO "PRISM STORM" = → R (adelante reciente + R). 2 barras + combo + rival en ROJO. ---
-		if event.is_action_pressed(act("weak_punch")):
-			# DIAGNÓSTICO: R PLANO dispara (sin exigir adelante). Restaurar → R después.
-			var mau := get_parent()
-			if mau and mau.has_method("try_aye_ultra") and mau.try_aye_ultra(self):
-				return
 	else:
 		# --- DAM: sus finishers de fuego ---
 		# comando ANIQUILACIÓN: → R (adelante reciente + R)

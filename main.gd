@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LA"
+	get_window().title = "FG Fighter — build 2026-08-21 LC"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -6456,7 +6456,7 @@ func _pu_damage(idx: int, dmg: int) -> void:
 	combo_dmg[idx] += dmg
 	combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
 
-const PU_GAP := 360.0   # distancia Roum↔rival en el pummel (evita que se encimen; Roum es ancho)
+const PU_GAP := 420.0   # distancia Roum↔rival en el pummel (borde a borde: Roum halfw 185 + rival ancho 150 + margen; evita que se ENCIMEN/metan dentro de Roum)
 var _pu_vscale := Vector2.ONE   # escala REAL del nodo del rival al empezar el ultra (para restaurar bien)
 var _pu_i := 0                  # nº de golpe del ultra (para el ritmo: empieza LENTO y ACELERA)
 const PU_TOTAL := 22.0          # golpes aprox del ultra (para el ramp de velocidad)
@@ -10574,8 +10574,11 @@ func _run_roum_warp(f: Node2D, opp: Node2D) -> void:
 			ribbons.queue_free()
 		# EMERGE por el 1er PORTAL (frente a Roum) y se desliza a su sitio, mirando a Roum + daño
 		if is_instance_valid(opp) and not opp.koed:
-			var emerge_x: float = clampf(f.position.x + float(fc) * 480.0, LEFT_LIMIT, RIGHT_LIMIT)  # sale POR el 1er portal
-			var target_x: float = clampf(f.position.x + float(fc) * 260.0, LEFT_LIMIT, RIGHT_LIMIT)  # queda adelante de Roum
+			# GAP borde-a-borde: el rival queda al FRENTE de Roum (no DENTRO de su cuerpo ancho).
+			# Antes 260 fijo < body_halfw de Roum (185) => el rival se metía adentro/atrás de Roum.
+			var _rgap: float = f.body_halfw + opp.body_halfw + 60.0
+			var emerge_x: float = clampf(f.position.x + float(fc) * (_rgap + 200.0), LEFT_LIMIT, RIGHT_LIMIT)  # sale POR el 1er portal (más afuera)
+			var target_x: float = clampf(f.position.x + float(fc) * _rgap, LEFT_LIMIT, RIGHT_LIMIT)  # queda adelante de Roum, a su borde
 			opp.position = Vector2(emerge_x, opp.floor_y)
 			opp.set_facing(-fc)
 			if opp.sprite.sprite_frames.has_animation("get_pull"):
