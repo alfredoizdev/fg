@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-22 LT"
+	get_window().title = "FG Fighter — build 2026-08-22 LU"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -10982,6 +10982,9 @@ func _run_roum_warp(f: Node2D, opp: Node2D) -> void:
 				else:
 					player_hp = maxi(0, player_hp - d)
 					if player_hp <= 0 and _round_real(): _end_round(false)
+		# LIBERA a Roum YA con el rival al FRENTE: puede encadenar un golpe de INMEDIATO (no queda
+		# bloqueado esperando la ventana + el cierre de los portales). Los huecos se cierran de fondo.
+		_warp_restore(f, was_input, was_ai)
 		await get_tree().create_timer(0.15).timeout   # breve ventana de combo (más corta)
 		if is_instance_valid(opp):
 			opp.modulate = Color(1, 1, 1, 1)   # asegura color pleno al soltarlo
@@ -10989,20 +10992,22 @@ func _run_roum_warp(f: Node2D, opp: Node2D) -> void:
 			opp.ai_enabled = opp_was_ai
 			if String(opp.sprite.animation) == "get_pull":
 				opp.sprite.play("pose")
+	# LIBERA a Roum (cubre el caso donde el agarre NO conectó: igual no debe quedar bloqueado durante
+	# el cierre). En el camino que SÍ conectó ya se liberó arriba; llamarlo de nuevo es inofensivo.
+	_warp_restore(f, was_input, was_ai)
 	# CORTA el sonido del agujero negro AL IRSE los huecos (fade corto, en paralelo al cierre):
 	# el clip dura más que la acción, así no sigue sonando después de que desaparecen los portales.
 	if is_instance_valid(bhp):
 		var tw := create_tween()
 		tw.tween_property(bhp, "volume_db", -40.0, 0.18)
 		tw.tween_callback(bhp.queue_free)
-	# CIERRA los dos portales
+	# CIERRA los dos portales (visual, en segundo plano)
 	if portal2 != null and is_instance_valid(portal2):
 		await _portal_grow(portal2, 1.0, 0.0, 0.10)
 		portal2.queue_free()
 	if is_instance_valid(portal):
 		await _portal_grow(portal, 1.0, 0.0, 0.12)
 		portal.queue_free()
-	_warp_restore(f, was_input, was_ai)
 
 func _orb_mote_tex() -> Texture2D:
 	# mote REDONDO con núcleo brillante y borde suave (para que las partículas no salgan cuadradas)
