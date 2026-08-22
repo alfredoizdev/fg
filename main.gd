@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LL"
+	get_window().title = "FG Fighter — build 2026-08-21 LM"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -5317,6 +5317,14 @@ func _ultra_orb_shot(from: Vector2, to: Vector2, color: int) -> void:
 	tw.tween_callback(_orb_burst_vfx.bind(to, color))
 	tw.tween_callback(spr.queue_free)
 
+# Mantiene a Aye CASTEANDO (mueve las manos) TODO el combo: si su anim se cambió a idle, re-lanza cast_ultra.
+func _keep_casting(a: Node2D) -> void:
+	if a == null or not is_instance_valid(a) or not a.sprite.sprite_frames.has_animation("cast_ultra"):
+		return
+	if String(a.sprite.animation) != "cast_ultra":
+		a.sprite.play("cast_ultra")
+	a.sprite.speed_scale = 1.0
+
 # Clava al rival en pose de VOLANDO: hit_fly en un frame de VUELO (no el ÚLTIMO, que es el TENDIDO
 # -> Roum quedaba "acostado en el aire"). Estático pero claramente en el aire, golpeado.
 func _victim_fly_pose(v: Node2D) -> void:
@@ -5352,13 +5360,14 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	var combo_x: float = float(combo_rest_x[idx])
 	_play_cutin(-1 if combo_x >= 960.0 else 1, atacante)
 	atacante.sprite.play("cast_ultra")
+	if atacante.sprite.sprite_frames.has_animation("cast_ultra"):
+		atacante.sprite.sprite_frames.set_animation_loop("cast_ultra", true)   # loopea: Aye castea TODO el combo
 	atacante.position.x = clampf(victima.position.x - float(dir) * 300.0, LEFT_LIMIT, RIGHT_LIMIT)
 	flash_ms = Time.get_ticks_msec()
 	flash_rect.color = Color(0.9, 0.35, 1.4, 0.30)
 	Engine.time_scale = 0.0
-	await get_tree().create_timer(1.0, true, false, true).timeout
+	await get_tree().create_timer(0.7, true, false, true).timeout
 	Engine.time_scale = 1.0
-	# ---- FASE 1: juggle aéreo — el rival en pose de VOLANDO (hit_fly, forzada CADA frame) + orbes pegándole ----
 	var n0: int = combo_n[idx]
 	var base_y: float = victima.floor_y - 330.0
 	var HITS := 8
@@ -5372,18 +5381,19 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	var hit_i := 0
 	var hit_cd := 0.0
 	var jt := 0.0
-	var jfin := float(HITS) * 0.16 + 0.08
+	var jfin := float(HITS) * 0.11 + 0.06
 	while jt < jfin and state == "ultra" and is_instance_valid(victima):
 		var dt := get_process_delta_time()
+		_keep_casting(atacante)
 		atacante.set_facing(dir)
 		victima.set_facing(-dir)
 		victima.vel_x = 0.0
 		victima.vel_y = 0.0
 		victima.position.y = base_y - float(hit_i) * 7.0 + sin(jt * 9.0) * 12.0
-		_victim_fly_pose(victima)   # pose de VOLANDO clavada en frame de vuelo (no el tendido final)
+		_victim_fly_pose(victima)
 		hit_cd -= dt
 		if hit_cd <= 0.0 and hit_i < HITS:
-			hit_cd = 0.16
+			hit_cd = 0.11
 			var col: int = [ORB_YELLOW, ORB_PINK, ORB_BLUE][hit_i % 3]
 			_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -120.0)), victima.global_position, col)
 			victima._burst(0.95, false, 1)
@@ -5408,14 +5418,14 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 			hit_i += 1
 		jt += dt
 		await get_tree().process_frame
-	# ---- FASE 2: cae MEDIA distancia (en hit_fly) y lo CONGELO con la ROSADA (W) ----
 	if state == "ultra" and is_instance_valid(victima):
 		var top_y: float = victima.position.y
 		var half_y: float = top_y + (victima.floor_y - top_y) * 0.5
 		var ft := 0.0
-		while ft < 0.35 and state == "ultra" and is_instance_valid(victima):
+		while ft < 0.24 and state == "ultra" and is_instance_valid(victima):
+			_keep_casting(atacante)
 			victima.set_facing(-dir)
-			victima.position.y = lerpf(top_y, half_y, ft / 0.35)
+			victima.position.y = lerpf(top_y, half_y, ft / 0.24)
 			victima.vel_x = 0.0
 			victima.vel_y = 0.0
 			_victim_fly_pose(victima)
@@ -5423,22 +5433,21 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 			ft += get_process_delta_time()
 	if state == "ultra" and is_instance_valid(victima):
 		_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -80.0)), victima.global_position, ORB_PINK)
-		await get_tree().create_timer(0.1).timeout
+		await get_tree().create_timer(0.08).timeout
 	var spin_orbs := []
 	if state == "ultra" and is_instance_valid(victima):
-		victima._burst(1.0, false, 1)   # flinch de golpeado por la rosa
+		victima._burst(1.0, false, 1)
 		victima._play_sfx_key("take_hit")
 		_victim_fly_pose(victima)
 		victima.vel_x = 0.0
 		victima.vel_y = 0.0
-		victima.frozen_t = 4.0   # congelado LARGO: aguanta toda la fase de giro
+		victima.frozen_t = 4.0
 		_shake(14.0, 0.22)
 		flash_ms = Time.get_ticks_msec()
-		flash_rect.color = Color(0.55, 0.7, 1.6, 0.5)   # fogonazo helado
+		flash_rect.color = Color(0.55, 0.7, 1.6, 0.5)
 		Engine.time_scale = 0.4
-		await get_tree().create_timer(0.3, true, false, true).timeout
+		await get_tree().create_timer(0.18, true, false, true).timeout
 		Engine.time_scale = 1.0
-		# ---- las 3 orbes GIRAN ~4 vueltas alrededor del congelado y lo GOLPEAN ----
 		for c3 in 3:
 			var so := AnimatedSprite2D.new()
 			so.sprite_frames = _orb_frames(c3)
@@ -5448,25 +5457,28 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 			so.z_index = 9
 			add_child(so)
 			spin_orbs.append(so)
-		var spin_dur := 0.95
+		var spin_dur := 0.66
 		var spr_t := 0.0
 		var last_half := -1
 		var crit2 := int(hp_max[1 - idx] * 0.12)
 		while spr_t < spin_dur and state == "ultra" and is_instance_valid(victima):
+			_keep_casting(atacante)
 			var pp := spr_t / spin_dur
-			var ang := pp * 4.0 * TAU   # ~4 vueltas
+			var ang := pp * 4.0 * TAU
 			var cen := victima.global_position
-			var rr := 215.0 * (1.0 - 0.18 * pp)   # se cierra un poco al final
+			var rr := 215.0 * (1.0 - 0.18 * pp)
 			for c3 in 3:
 				var a := ang + float(c3) * TAU / 3.0
 				spin_orbs[c3].global_position = cen + Vector2(cos(a), sin(a)) * rr
-			var half := int(ang / PI)   # golpe cada MEDIA vuelta
+			var half := int(ang / PI)
 			if half != last_half:
 				last_half = half
-				victima._burst(0.6, false, 1)
-				_shake(6.0, 0.05)
+				victima._burst(0.8, false, 1)
+				_orb_burst_vfx(victima.global_position, half % 3)
+				victima._play_sfx_key("take_hit")
+				_shake(7.0, 0.06)
 				flash_ms = Time.get_ticks_msec()
-				flash_rect.color = Color(0.7, 0.4, 1.2, 0.22)
+				flash_rect.color = Color(0.75, 0.4, 1.25, 0.25)
 				var dd := maxi(1, crit2 / 8)
 				if idx == 0:
 					dummy_hp = maxi(1, dummy_hp - dd)
@@ -5476,15 +5488,14 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 				combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
 			spr_t += get_process_delta_time()
 			await get_tree().process_frame
-	# ---- FASE 3: vuelven a Aye y las MANDA TODAS al frente (como R) -> lo EMPUJA antes de caer ----
 	if state == "ultra" and is_instance_valid(victima):
 		atacante.set_facing(dir)
 		var home := atacante.to_global(Vector2(30.0 * float(dir), ORB_CENTER_DY))
 		for c3 in 3:
 			if is_instance_valid(spin_orbs[c3]):
 				var twr := create_tween()
-				twr.tween_property(spin_orbs[c3], "global_position", home, 0.16)
-		await get_tree().create_timer(0.18).timeout
+				twr.tween_property(spin_orbs[c3], "global_position", home, 0.12)
+		await get_tree().create_timer(0.13).timeout
 		victima.frozen_t = 0.0
 		victima.ultra_hover = false
 		victima.airborne = true
@@ -5492,23 +5503,22 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 		for c3 in 3:
 			if is_instance_valid(spin_orbs[c3]):
 				var twf := create_tween()
-				twf.tween_property(spin_orbs[c3], "global_position", victima.global_position, 0.11)
+				twf.tween_property(spin_orbs[c3], "global_position", victima.global_position, 0.09)
 				twf.tween_callback(spin_orbs[c3].queue_free)
-		await get_tree().create_timer(0.12).timeout
+		await get_tree().create_timer(0.1).timeout
 		if is_instance_valid(victima):
 			victima._burst(1.3, false, 1)
 			victima._play_sfx_key("take_hit")
-			victima.receive_hit(false, true, dir, "kick_impact", false, 0.7)   # empuje hacia ATRÁS
-			victima.vel_x = float(dir) * 1600.0   # DESPEDIDO al frente (como la R)
+			victima.receive_hit(false, true, dir, "kick_impact", false, 0.7)
+			victima.vel_x = float(dir) * 1600.0
 			_shake(28.0, 0.4)
 			flash_ms = Time.get_ticks_msec()
 			flash_rect.color = Color(0.9, 0.4, 1.6, 0.65)
 		var rec := 0.0
-		while rec < 0.5 and state == "ultra":
+		while rec < 0.38 and state == "ultra":
 			atacante.set_facing(dir)
 			await get_tree().process_frame
 			rec += get_process_delta_time()
-	# limpieza de orbes de giro por si algo cortó la fase
 	for so2 in spin_orbs:
 		if is_instance_valid(so2):
 			so2.queue_free()
