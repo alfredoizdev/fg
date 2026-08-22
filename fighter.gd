@@ -2586,14 +2586,20 @@ func _update_frozen_label() -> void:
 		if frozen_label == null:
 			frozen_label = Label.new()
 			frozen_label.text = "FROZEN"
-			frozen_label.add_theme_font_size_override("font_size", 40)
-			frozen_label.add_theme_color_override("font_color", Color(0.78, 0.92, 1.7))
-			frozen_label.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.22))
-			frozen_label.add_theme_constant_override("outline_size", 8)
+			var ff := SystemFont.new()   # fuente HEAVY como los carteles del juego (Arial Black 900 = letras GORDAS)
+			ff.font_names = PackedStringArray(["Arial Black", "Impact", "Helvetica Neue", "Arial"])
+			ff.font_weight = 900
+			frozen_label.add_theme_font_override("font", ff)
+			frozen_label.add_theme_font_size_override("font_size", 30)   # más CHICO
+			frozen_label.add_theme_color_override("font_color", Color(0.85, 0.95, 1.75))
+			frozen_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.05, 0.16, 0.95))
+			frozen_label.add_theme_constant_override("shadow_offset_x", 4)
+			frozen_label.add_theme_constant_override("shadow_offset_y", 4)
+			frozen_label.add_theme_constant_override("shadow_outline_size", 0)   # sombra PLANA (offset sólido, sin blur)
 			frozen_label.z_index = 40
 			add_child(frozen_label)
 		frozen_label.visible = true
-		frozen_label.position = Vector2(-95.0, -360.0)   # arriba de la cabeza (coords locales del fighter)
+		frozen_label.position = Vector2(-70.0, -350.0)   # arriba de la cabeza (coords locales del fighter)
 	elif frozen_label != null:
 		frozen_label.visible = false
 
