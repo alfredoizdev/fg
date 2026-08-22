@@ -2787,20 +2787,22 @@ func _physics_process(delta: float) -> void:
 	elif sprite.scale != base_scale:
 		sprite.scale = base_scale
 
-	# memoria del ↓ para detectar el cuarto adelante (↓ luego →+Q)
+	# memoria del ↓ para detectar el cuarto adelante (↓ luego →+Q). VENTANAS MÁS AMPLIAS (pedido:
+	# combos menos difíciles): el motion del especial sobrevive más tras un normal -> cancelar
+	# normal→especial es MUCHO más fácil de clavar sin volverse un input libre.
 	if _es_humano() and input_enabled and Input.is_action_pressed(act("ui_down")):
-		down_recent_t = 0.4
+		down_recent_t = 0.55
 	else:
 		down_recent_t = maxf(0.0, down_recent_t - delta)
 	# memoria de ADELANTE (hacia el rival) para el comando del ULTRA (→ R R)
 	var _fwd := Input.get_axis(act("ui_left"), act("ui_right"))
 	if _es_humano() and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == facing:
-		fwd_recent_t = 0.5
+		fwd_recent_t = 0.62
 	else:
 		fwd_recent_t = maxf(0.0, fwd_recent_t - delta)
 	# memoria de ATRÁS (lejos del rival) para el motion ←→ del DASH DE AGUJAS de Fe
 	if _es_humano() and input_enabled and _fwd != 0.0 and int(signf(_fwd)) == -facing:
-		back_recent_t = 0.45
+		back_recent_t = 0.6
 	else:
 		back_recent_t = maxf(0.0, back_recent_t - delta)
 	# HCB (→ ↓ ← = ADELANTE, ABAJO, ATRÁS) para el FROST ORB de Aye (+R). Máquina de estados con ventana.
@@ -3517,16 +3519,16 @@ func _unhandled_input(event: InputEvent) -> void:
 					_start_quick_step(true)
 				return
 			fwd_tap_win = 0.28
-	# doble toque ↑: habilita el breaker con movimiento (↑↑+E)
+	# doble toque ↑: habilita el breaker con movimiento (↑↑+E). Ventana más amplia (combos fáciles).
 	if event.is_action_pressed(act("ui_up")):
 		if up_tap_t > 0.0:
-			double_up_t = 0.3
-		up_tap_t = 0.35
-	# doble toque ↓: habilita el INFIERNO (↓↓+E)
+			double_up_t = 0.42
+		up_tap_t = 0.42
+	# doble toque ↓: habilita el INFIERNO (↓↓+E). Ventana más amplia.
 	if event.is_action_pressed(act("ui_down")):
 		if down_tap_t > 0.0:
-			double_down_t = 0.35
-		down_tap_t = 0.4
+			double_down_t = 0.46
+		down_tap_t = 0.46
 	# doble toque ATRÁS (← ←): habilita el VOID LASH de ROUM (←←→ + W)
 	var _btap := 0
 	if event.is_action_pressed(act("ui_left")): _btap = -1
@@ -3744,7 +3746,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Si vino del AIRE, el replay al aterrizar NO puede abrir golpes agachados
 		# ("salto + ↓R y sale el tigre" — pedido: los abajo SOLO con press en el suelo)
 		buffer_action = accion
-		buffer_t = 0.3
+		buffer_t = 0.45   # buffer de encadenado MÁS AMPLIO (pedido: combos menos difíciles de clavar)
 		buffer_air = airborne
 
 # hit_frame REAL de una anim para las VENTANAS de cancel/encadenado: el global de
