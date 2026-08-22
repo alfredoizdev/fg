@@ -253,9 +253,9 @@ func _ready() -> void:
 	_build_loading_overlay()
 	_build_stage_overlay()
 	_refresh()
-	# precalienta en segundo plano los frames de select de todos los personajes (cursor fluido)
-	_sel_warm_thread = Thread.new()
-	_sel_warm_thread.start(_sel_warm_worker)
+	# NOTA: se QUITÓ el precalentado de select en Thread. Cargar texturas (ResourceLoader.load)
+	# en un hilo de fondo CRASHEA en Godot (RID leaks de TextureStorage + signal 11). El cursor
+	# carga los frames bajo demanda en el hilo principal (leve hitch al pasar por un char nuevo).
 
 # HILO: carga (disco+import) todas las texturas de select de todos los personajes y las
 # devuelve; así _frames_for las encuentra en caché y no traba el cursor al pasar por uno nuevo.
@@ -802,27 +802,12 @@ func _start_loading() -> void:
 	if _sel_warm_thread != null:
 		_sel_warm_cache = _sel_warm_thread.wait_to_finish()
 		_sel_warm_thread = null
-	# carga la escena de pelea EN SEGUNDO PLANO (no congela la pantalla de carga)
+	# carga la escena de pelea EN SEGUNDO PLANO con la API OFICIAL (SEGURA: el hand-off a GPU
+	# ocurre en el hilo principal dentro de load_threaded_get). NO usar hilos propios para cargar
+	# texturas: eso CRASHEA (RID leaks + signal 11). El PRECALENTADO de texturas de PELEA lo hace
+	# ahora main.gd EN EL HILO PRINCIPAL (_prefetch_frames, con spinner) al entrar al round.
 	ResourceLoader.load_threaded_request("res://main.tscn")
-	# lista de frames de los 2 peleadores a PRECALENTAR mientras gira el spinner (así main.gd
-	# construye sus SpriteFrames desde caché y NO se congela al entrar al round)
 	Sel.warm_cache.clear()
-	_warm.clear()
-	_scan_fight_pngs("res://imagen-action/%s" % Sel.p1, _warm)
-	if Sel.p2 != Sel.p1:
-		_scan_fight_pngs("res://imagen-action/%s" % Sel.p2, _warm)
-	# reparte las rutas en VARIOS hilos que precalientan en paralelo (no bloquean el spinner)
-	_warm_threads.clear()
-	var total := _warm.size()
-	var per := int(ceil(float(total) / float(WARM_THREADS)))
-	for i in WARM_THREADS:
-		var lo := i * per
-		var hi: int = min(lo + per, total)
-		if lo >= hi:
-			break
-		var th := Thread.new()
-		th.start(_warm_worker.bind(_warm.slice(lo, hi)))
-		_warm_threads.append(th)
 	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
 	if stage_overlay != null:
 		stage_overlay.visible = false
