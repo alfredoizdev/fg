@@ -787,6 +787,12 @@ func _start_loading() -> void:
 	_scan_fight_pngs("res://imagen-action/%s" % Sel.p1, _warm)
 	if Sel.p2 != Sel.p1:
 		_scan_fight_pngs("res://imagen-action/%s" % Sel.p2, _warm)
+	# LANZA TODAS las cargas EN PARALELO con la API OFICIAL (misma que main.tscn arriba). SEGURA:
+	# el worker de Godot lee del disco en paralelo y la textura se sube a GPU recién en
+	# load_threaded_get (hilo principal, en _update_loading) -> NO crashea como un Thread propio.
+	for p in _warm:
+		if ResourceLoader.exists(p):
+			ResourceLoader.load_threaded_request(p)
 	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
 	if stage_overlay != null:
 		stage_overlay.visible = false
@@ -1128,19 +1134,28 @@ func _update_loading(delta: float) -> void:
 		load_vs_fx.queue_redraw()
 	if load_spin != null:
 		load_spin.queue_redraw()
-	# PRECALENTA texturas de pelea en el HILO PRINCIPAL, por TANDAS (presupuesto ~10ms/frame) para
-	# que el spinner de la pantalla VS siga girando sin congelarse. Al terminar quedan en
-	# Sel.warm_cache (persiste entre escenas) -> main.gd pega cache-hit y entra directo al juego.
+	# RECOLECTA las cargas que fueron terminando (lanzadas en PARALELO en _start_loading). El
+	# load_threaded_get sube la textura a GPU EN EL HILO PRINCIPAL (seguro) -> Sel.warm_cache
+	# (persiste entre escenas) -> main.gd pega cache-hit y entra directo al juego. Por TANDAS
+	# (~10ms/frame) para que el spinner de la pantalla VS siga girando sin congelarse.
 	var warm_done: bool = _warm_i >= _warm.size()
 	if not warm_done:
 		var t0 := Time.get_ticks_msec()
 		while _warm_i < _warm.size() and Time.get_ticks_msec() - t0 < 10:
 			var p: String = _warm[_warm_i]
-			_warm_i += 1
-			if ResourceLoader.exists(p):
-				var tex = ResourceLoader.load(p)   # HILO PRINCIPAL (creación de textura GPU segura)
+			if not ResourceLoader.exists(p):
+				_warm_i += 1
+				continue
+			var status := ResourceLoader.load_threaded_get_status(p)
+			if status == ResourceLoader.THREAD_LOAD_LOADED:
+				var tex = ResourceLoader.load_threaded_get(p)   # sube a GPU en el HILO PRINCIPAL (seguro)
 				if tex != null:
 					Sel.warm_cache.append(tex)
+				_warm_i += 1
+			elif status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				break                                            # aún cargando en paralelo -> próximo frame
+			else:
+				_warm_i += 1                                     # FAILED/INVALID: sáltala
 		warm_done = _warm_i >= _warm.size()
 	# cuando la escena cargó, los frames están calientes Y ya se vio el mínimo -> entrar
 	var st := ResourceLoader.load_threaded_get_status("res://main.tscn")
