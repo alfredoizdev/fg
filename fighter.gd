@@ -2400,6 +2400,15 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 		return "ignored"
 	if koed or (is_downed() and not hit_flying):
 		return "ignored"
+	# YA CONGELADO (🩷): un golpe NO-lanzador (otra orbe/W, chip de plantado, jab) lo MANTIENE en su
+	# pose de hielo — NO reproduce take_hit ni lo descongela. Antes, tirarle otra W encima rompía el
+	# hielo con la anim de golpe. El daño sigue (chip via combo, res "frozen" cuenta). Lo ROMPEN solo
+	# los lanzadores (strong/wall/trip) o un nuevo freeze (pink, que refresca el timer más abajo).
+	if frozen_t > 0.0 and not freeze and not strong and not wall and not trip:
+		_burst(0.7, false, 1, atk_blue)
+		vel_x = 0.0
+		vel_y = 0.0
+		return "frozen"
 	# SUPER ARMOR (TANK): durante el ARRANQUE de su golpe pesado (kick) aguanta golpes
 	# NO-lanzadores sin trastabillar ni frenar su golpe -> mata el mash del assassin. Recibe
 	# CHIP (lo aplica main._process_attacker). Los LANZADORES (strong/wall/trip) SÍ lo atraviesan.

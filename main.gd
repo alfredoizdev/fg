@@ -3881,12 +3881,15 @@ func _ensure_load_spinner() -> void:
 	_load_spinner = CanvasLayer.new()
 	_load_spinner.layer = 200
 	add_child(_load_spinner)
-	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.02, 0.05, 0.88)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # CUBRE toda la pantalla (robusto)
-	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_load_spinner.add_child(dim)
 	var vp: Vector2 = get_viewport().get_visible_rect().size
+	# DIM con Polygon2D (Node2D): un ColorRect (Control) NO toma tamaño dentro de un CanvasLayer y
+	# NO cubría. El polígono se dibuja siempre (como el anillo Line2D) y tapa TODA la pantalla.
+	var dim := Polygon2D.new()
+	dim.polygon = PackedVector2Array([
+		Vector2(-2000, -2000), Vector2(vp.x + 2000, -2000),
+		Vector2(vp.x + 2000, vp.y + 2000), Vector2(-2000, vp.y + 2000)])
+	dim.color = Color(0.02, 0.02, 0.05, 0.92)
+	_load_spinner.add_child(dim)
 	var cx: float = vp.x * 0.5
 	var cy: float = vp.y * 0.5
 	var ring := Line2D.new()
@@ -4193,10 +4196,9 @@ func _start_round() -> void:
 			if _f.sprite != null:
 				_f.sprite.rotation = 0.0
 	Sel.stop_menu_music()   # empieza la pelea: corta la canción del menú
-	# PRECARGA SEGURA (hilo principal, spinner girando): calienta la caché de texturas de ambos
-	# peleadores cediendo frames. Sin esto, el _apply_char síncrono congela en negro al entrar.
-	await _prefetch_frames(selected_char, _char_skin(player, selected_char))
-	await _prefetch_frames(cpu_char, _char_skin(dummy, cpu_char))
+	# Las texturas YA se precalentaron en el HILO PRINCIPAL durante la pantalla VS del char-select
+	# (Sel.warm_cache persiste entre escenas) -> _apply_char pega cache-hit y NO hay 2da pantalla de
+	# carga. En rematch/round 2+ los SpriteFrames ya están en _sf_cache (instantáneo). SIN spinner aquí.
 	_apply_char(player, selected_char)          # personaje del jugador (frames + arquetipo + escala)
 	_apply_char(dummy, cpu_char)                # el rival (P2/CPU): el que eligió el jugador en el 2do paso
 	_apply_alt_colors()                         # P2 con otro tono (mirror match, distinguir P1/P2)

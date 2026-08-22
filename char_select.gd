@@ -35,9 +35,8 @@ var load_t := 0.0
 const VS_MIN_SHOW := 0.6     # tiempo mínimo que se ve la pantalla de carga (aunque cargue antes)
 # PRECARGA de frames de los peleadores en VARIOS HILOS DE FONDO en paralelo (mucho más
 # rápida que un solo hilo; aprovecha SSD + núcleos, y el spinner sigue fluido)
-var _warm: Array = []        # rutas .png a precalentar
-var _warm_threads: Array = []
-const WARM_THREADS := 4      # hilos de precarga en paralelo
+var _warm: Array = []        # rutas .png a precalentar (en el HILO PRINCIPAL, por tandas)
+var _warm_i := 0             # índice de la próxima ruta a precalentar
 const WARM_SKIP := ["select", "sheets", "avatar"]   # dirs que NO son frames de pelea
 # --- paso SELECT STAGE (picking == 2) — CARRUSEL ---
 var sel_stage := 0
@@ -164,8 +163,6 @@ func _zetma_sel_frames(skin: String) -> SpriteFrames:
 	return sf
 # precarga en HILO de los frames de select de TODOS los personajes: sin esto, la 1ª vez que
 # el cursor cae en un personaje se cargaban sus 145 frames de golpe y el cursor se "trababa".
-var _sel_warm_thread: Thread = null
-var _sel_warm_cache: Array = []
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -256,26 +253,6 @@ func _ready() -> void:
 	# NOTA: se QUITÓ el precalentado de select en Thread. Cargar texturas (ResourceLoader.load)
 	# en un hilo de fondo CRASHEA en Godot (RID leaks de TextureStorage + signal 11). El cursor
 	# carga los frames bajo demanda en el hilo principal (leve hitch al pasar por un char nuevo).
-
-# HILO: carga (disco+import) todas las texturas de select de todos los personajes y las
-# devuelve; así _frames_for las encuentra en caché y no traba el cursor al pasar por uno nuevo.
-func _exit_tree() -> void:
-	# une el hilo de precalentado antes de destruir el nodo (evita "Thread destroyed" al salir)
-	if _sel_warm_thread != null:
-		_sel_warm_thread.wait_to_finish()
-		_sel_warm_thread = null
-
-func _sel_warm_worker() -> Array:
-	var res := []
-	for id in SEL_ANIM:
-		var cfg: Dictionary = SEL_ANIM[id]
-		for i in range(1, int(cfg["n"]) + 1):
-			var p := "%s/%s-%d.png" % [String(cfg["dir"]), String(cfg["prefix"]), i]
-			if ResourceLoader.exists(p):
-				var tex = ResourceLoader.load(p)
-				if tex != null:
-					res.append(tex)
-	return res
 
 # ---------- personajes animados ----------
 # SpriteFrames del personaje: TODOS los frames del video a su FPS (regla: no submuestrear);
@@ -798,32 +775,23 @@ func _start_loading() -> void:
 	load_flash = 0.0
 	_set_vs_portraits()
 	set_process_unhandled_input(false)
-	# cierra el hilo de precalentado de select si aún corre (evita hilo colgando al cambiar escena)
-	if _sel_warm_thread != null:
-		_sel_warm_cache = _sel_warm_thread.wait_to_finish()
-		_sel_warm_thread = null
 	# carga la escena de pelea EN SEGUNDO PLANO con la API OFICIAL (SEGURA: el hand-off a GPU
-	# ocurre en el hilo principal dentro de load_threaded_get). NO usar hilos propios para cargar
-	# texturas: eso CRASHEA (RID leaks + signal 11). El PRECALENTADO de texturas de PELEA lo hace
-	# ahora main.gd EN EL HILO PRINCIPAL (_prefetch_frames, con spinner) al entrar al round.
+	# ocurre en el hilo principal dentro de load_threaded_get).
 	ResourceLoader.load_threaded_request("res://main.tscn")
+	# PRECALENTA las texturas de PELEA en el HILO PRINCIPAL, por tandas, DURANTE esta pantalla VS
+	# (ver _update_loading). Se guardan en Sel.warm_cache (persiste entre escenas) -> main.gd pega
+	# cache-hit y entra DIRECTO al juego, SIN una 2da pantalla de carga. NADA de Threads: crashea.
 	Sel.warm_cache.clear()
+	_warm.clear()
+	_warm_i = 0
+	_scan_fight_pngs("res://imagen-action/%s" % Sel.p1, _warm)
+	if Sel.p2 != Sel.p1:
+		_scan_fight_pngs("res://imagen-action/%s" % Sel.p2, _warm)
 	# ocultar el overlay de stage (evita que tape la carga -> ya no parece bug)
 	if stage_overlay != null:
 		stage_overlay.visible = false
 	load_overlay.visible = true
 
-# HILO DE FONDO: carga (disco+import) todas las texturas y las devuelve. ResourceLoader.load
-# es thread-safe; el subir a GPU pasa luego en el hilo principal al usarlas (rápido por textura).
-func _warm_worker(paths: Array) -> Array:
-	var res := []
-	for p in paths:
-		if not ResourceLoader.exists(p):
-			continue   # png aún SIN importar (skin/clip nuevo): sáltalo, no spamear "No loader found"
-		var tex = ResourceLoader.load(p)
-		if tex != null:
-			res.append(tex)
-	return res
 
 # junta recursivamente los .png de PELEA de un personaje (omite select/sheets/avatar)
 func _scan_fight_pngs(path: String, out: Array) -> void:
@@ -1117,10 +1085,6 @@ func _ease_out(x: float) -> float:
 
 func _process(delta: float) -> void:
 	t += delta
-	# recoge el hilo de precalentado de frames de select cuando termina (mantiene refs en caché)
-	if _sel_warm_thread != null and not _sel_warm_thread.is_alive():
-		_sel_warm_cache = _sel_warm_thread.wait_to_finish()
-		_sel_warm_thread = null
 	if loading:
 		_update_loading(delta)
 		return
@@ -1164,16 +1128,20 @@ func _update_loading(delta: float) -> void:
 		load_vs_fx.queue_redraw()
 	if load_spin != null:
 		load_spin.queue_redraw()
-	# los HILOS precalientan en paralelo: el spinner sigue girando sin bloquearse.
-	var warm_done := true
-	for th in _warm_threads:
-		if th.is_alive():
-			warm_done = false
-			break
-	if warm_done and not _warm_threads.is_empty():
-		for th in _warm_threads:
-			Sel.warm_cache.append_array(th.wait_to_finish())   # recoge las texturas calientes
-		_warm_threads.clear()
+	# PRECALENTA texturas de pelea en el HILO PRINCIPAL, por TANDAS (presupuesto ~10ms/frame) para
+	# que el spinner de la pantalla VS siga girando sin congelarse. Al terminar quedan en
+	# Sel.warm_cache (persiste entre escenas) -> main.gd pega cache-hit y entra directo al juego.
+	var warm_done: bool = _warm_i >= _warm.size()
+	if not warm_done:
+		var t0 := Time.get_ticks_msec()
+		while _warm_i < _warm.size() and Time.get_ticks_msec() - t0 < 10:
+			var p: String = _warm[_warm_i]
+			_warm_i += 1
+			if ResourceLoader.exists(p):
+				var tex = ResourceLoader.load(p)   # HILO PRINCIPAL (creación de textura GPU segura)
+				if tex != null:
+					Sel.warm_cache.append(tex)
+		warm_done = _warm_i >= _warm.size()
 	# cuando la escena cargó, los frames están calientes Y ya se vio el mínimo -> entrar
 	var st := ResourceLoader.load_threaded_get_status("res://main.tscn")
 	if st == ResourceLoader.THREAD_LOAD_LOADED and warm_done and load_t >= VS_MIN_SHOW:
