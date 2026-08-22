@@ -488,6 +488,7 @@ var floor_bounce_pending := false   # REBOTE contra el suelo (ROUM E/cabezazo): 
 var hitstop_t := 0.0   # HITSTOP: frames de congelamiento en el impacto (peso del golpe)
 const FREEZE_DUR := 1.0   # Aye ↓E (ice-spikes): tiempo que el rival queda CONGELADO en su frame (tinte morado)
 var frozen_t := 0.0       # >0 = inmóvil, sprite pausado en su pose, teñido de morado (poder de hielo)
+var frozen_label: Label = null   # cartel "FROZEN" arriba del peleador mientras está congelado (cualquier freeze)
 const SLOW_DUR := 0.5     # ESFERA AZUL de Aye (E): tiempo que el rival queda AZUL y LENTO
 const SLOW_FACTOR := 0.45 # multiplicador de movimiento mientras dura el slow (se mueve lento, no inmóvil)
 var slow_t := 0.0         # >0 = rival AZUL y LENTO (esfera azul); tinte azul + walk a SLOW_FACTOR
@@ -2578,8 +2579,27 @@ func _ensure_burn_smoke() -> void:
 		add_child(burn_smoke_front)
 		burn_smoke_front.play("humo")
 
+# Cartel "FROZEN" flotando arriba del peleador SIEMPRE que esté congelado (no solo en el ultra).
+# Hijo del fighter (el nodo NO se voltea; el flip es del sprite) -> no se espeja y se libera con él.
+func _update_frozen_label() -> void:
+	if frozen_t > 0.0 and not koed:
+		if frozen_label == null:
+			frozen_label = Label.new()
+			frozen_label.text = "FROZEN"
+			frozen_label.add_theme_font_size_override("font_size", 40)
+			frozen_label.add_theme_color_override("font_color", Color(0.78, 0.92, 1.7))
+			frozen_label.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.22))
+			frozen_label.add_theme_constant_override("outline_size", 8)
+			frozen_label.z_index = 40
+			add_child(frozen_label)
+		frozen_label.visible = true
+		frozen_label.position = Vector2(-95.0, -360.0)   # arriba de la cabeza (coords locales del fighter)
+	elif frozen_label != null:
+		frozen_label.visible = false
+
 func _physics_process(delta: float) -> void:
 	queue_redraw()
+	_update_frozen_label()   # cartel FROZEN (antes de los early-returns del congelado/hover)
 	if swing_layer:
 		swing_layer.queue_redraw()   # la estela se dibuja por delante del cuerpo
 	# HITSTOP: mientras dure, el cuerpo queda CONGELADO (frame del impacto). Solo

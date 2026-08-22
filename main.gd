@@ -439,7 +439,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-21 LF"
+	get_window().title = "FG Fighter — build 2026-08-21 LH"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -3865,7 +3865,9 @@ func _apply_char(f: Node2D, id: String) -> void:
 		f.sprite.offset = Vector2(0, ROUM_FEET_FROM_CENTER / ROUM_SCALE - ROUM_FEET_FROM_CENTER)
 		f.spd = 1.03          # camina más rápido (pedido); walk 30->44 fps + spd 0.60->0.88 escalan JUNTOS para no patinar
 		f.jump_mult = 1.35    # salta MÁS ALTO (pedido: que se levante más en el aire)
-		f.body_halfw = 185.0  # CUERPO ANCHO: el más grande de todos (empuje al caminar)
+		f.body_halfw = 260.0  # CUERPO ANCHO (panza enorme): el más grande de todos. 185 era MUY chico
+							  # vs su ancho visual real -> el rival se le PEGABA/encimaba. La push-box,
+							  # el borde de pantalla y el hit-check usan body_halfw, así que sube todo junto.
 	else:
 		f.sprite.sprite_frames = _get_char_frames(id, "skin-1")
 		f.base_scale = Vector2(DAM_SCALE, DAM_SCALE)
@@ -5305,43 +5307,96 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 	if state == "ultra" and is_instance_valid(victima):
 		_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -80.0)), victima.global_position, ORB_PINK)
 		await get_tree().create_timer(0.1).timeout
-		if state == "ultra" and is_instance_valid(victima):
-			victima._burst(1.0, false, 1)   # flinch de GOLPEADO por la rosa
-			victima._play_sfx_key("take_hit")
-			if victima.sprite.sprite_frames.has_animation("hit_fly"):
-				victima.sprite.play("hit_fly")
-			victima.vel_x = 0.0
-			victima.vel_y = 0.0
-			victima.frozen_t = 1.4   # CONGELADO a media altura EN pose de golpeado (hit_fly)
-			_shake(14.0, 0.22)
-			flash_ms = Time.get_ticks_msec()
-			flash_rect.color = Color(0.55, 0.7, 1.6, 0.5)   # fogonazo helado
-			Engine.time_scale = 0.4
-			await get_tree().create_timer(0.45, true, false, true).timeout
-			Engine.time_scale = 1.0
-			await get_tree().create_timer(0.4).timeout
-	# ---- FASE 3: lo EMPUJA con la R -> sale despedido hacia ATRÁS ----
+	var spin_orbs := []
 	if state == "ultra" and is_instance_valid(victima):
-		victima.frozen_t = 0.0
+		victima._burst(1.0, false, 1)   # flinch de golpeado por la rosa
+		victima._play_sfx_key("take_hit")
+		if victima.sprite.sprite_frames.has_animation("hit_fly"):
+			victima.sprite.play("hit_fly")
+		victima.vel_x = 0.0
+		victima.vel_y = 0.0
+		victima.frozen_t = 4.0   # congelado LARGO: aguanta toda la fase de giro
+		_shake(14.0, 0.22)
+		flash_ms = Time.get_ticks_msec()
+		flash_rect.color = Color(0.55, 0.7, 1.6, 0.5)   # fogonazo helado
+		Engine.time_scale = 0.4
+		await get_tree().create_timer(0.3, true, false, true).timeout
+		Engine.time_scale = 1.0
+		# ---- las 3 orbes GIRAN ~4 vueltas alrededor del congelado y lo GOLPEAN ----
+		for c3 in 3:
+			var so := AnimatedSprite2D.new()
+			so.sprite_frames = _orb_frames(c3)
+			so.animation = "spin"
+			so.play("spin")
+			so.scale = Vector2(ORB_SCALE, ORB_SCALE) * 1.5
+			so.z_index = 9
+			add_child(so)
+			spin_orbs.append(so)
+		var spin_dur := 0.95
+		var spr_t := 0.0
+		var last_half := -1
+		var crit2 := int(hp_max[1 - idx] * 0.12)
+		while spr_t < spin_dur and state == "ultra" and is_instance_valid(victima):
+			var pp := spr_t / spin_dur
+			var ang := pp * 4.0 * TAU   # ~4 vueltas
+			var cen := victima.global_position
+			var rr := 215.0 * (1.0 - 0.18 * pp)   # se cierra un poco al final
+			for c3 in 3:
+				var a := ang + float(c3) * TAU / 3.0
+				spin_orbs[c3].global_position = cen + Vector2(cos(a), sin(a)) * rr
+			var half := int(ang / PI)   # golpe cada MEDIA vuelta
+			if half != last_half:
+				last_half = half
+				victima._burst(0.6, false, 1)
+				_shake(6.0, 0.05)
+				flash_ms = Time.get_ticks_msec()
+				flash_rect.color = Color(0.7, 0.4, 1.2, 0.22)
+				var dd := maxi(1, crit2 / 8)
+				if idx == 0:
+					dummy_hp = maxi(1, dummy_hp - dd)
+				else:
+					player_hp = maxi(1, player_hp - dd)
+				combo_dmg[idx] += dd
+				combo_dmg_lbl[idx].text = "DMG  %d" % combo_dmg[idx]
+			spr_t += get_process_delta_time()
+			await get_tree().process_frame
+	# ---- FASE 3: vuelven a Aye y las MANDA TODAS al frente (como R) -> lo EMPUJA antes de caer ----
+	if state == "ultra" and is_instance_valid(victima):
 		atacante.set_facing(dir)
-		_ultra_orb_shot(atacante.to_global(Vector2(70.0 * float(dir), -60.0)), victima.global_position, ORB_YELLOW)
-		await get_tree().create_timer(0.1).timeout
+		var home := atacante.to_global(Vector2(30.0 * float(dir), ORB_CENTER_DY))
+		for c3 in 3:
+			if is_instance_valid(spin_orbs[c3]):
+				var twr := create_tween()
+				twr.tween_property(spin_orbs[c3], "global_position", home, 0.16)
+		await get_tree().create_timer(0.18).timeout
+		victima.frozen_t = 0.0
+		victima.ultra_hover = false
+		victima.airborne = true
+		victima.hit_flying = true
+		for c3 in 3:
+			if is_instance_valid(spin_orbs[c3]):
+				var twf := create_tween()
+				twf.tween_property(spin_orbs[c3], "global_position", victima.global_position, 0.11)
+				twf.tween_callback(spin_orbs[c3].queue_free)
+		await get_tree().create_timer(0.12).timeout
 		if is_instance_valid(victima):
-			victima.ultra_hover = false
-			victima.airborne = true
-			victima.hit_flying = true
-			victima.frozen_t = 0.0
-			victima.receive_hit(false, true, dir, "kick_impact", false, 0.7)   # empuje hacia ATRÁS (push_dir = dir)
-			victima.vel_x = float(dir) * 1500.0   # empujón HORIZONTAL fuerte: la R lo DESPIDE
-			_shake(26.0, 0.4)
+			victima._burst(1.3, false, 1)
+			victima._play_sfx_key("take_hit")
+			victima.receive_hit(false, true, dir, "kick_impact", false, 0.7)   # empuje hacia ATRÁS
+			victima.vel_x = float(dir) * 1600.0   # DESPEDIDO al frente (como la R)
+			_shake(28.0, 0.4)
 			flash_ms = Time.get_ticks_msec()
-			flash_rect.color = Color(0.9, 0.4, 1.6, 0.6)
+			flash_rect.color = Color(0.9, 0.4, 1.6, 0.65)
 		var rec := 0.0
 		while rec < 0.5 and state == "ultra":
 			atacante.set_facing(dir)
 			await get_tree().process_frame
 			rec += get_process_delta_time()
-	# ---- FIN ----
+	# limpieza de orbes de giro por si algo cortó la fase
+	for so2 in spin_orbs:
+		if is_instance_valid(so2):
+			so2.queue_free()
+		# ---- FIN ----
 	_focus_end()
 	if ultra_panel != null:
 		ultra_panel.visible = false
@@ -7432,6 +7487,27 @@ func _focus_apply() -> void:
 # borde MORADO para los CAST de hielo de Aye (W pilar / ↓W luna): como los ultras, pero
 # corto y sin oscurecer la escena. Reusa el shader de outline con line_color morado.
 var _cast_mat: ShaderMaterial = null
+# ¿el peleador está RECIBIENDO (hurt)? -> se dibuja DETRÁS del atacante (z dinámico). Cubre
+# reacciones de golpe, derribo, vuelo, electro, atrapado en orbe y congelado.
+func _fighter_hurt(f: Node2D) -> bool:
+	if not is_instance_valid(f):
+		return false
+	if f.koed or f.is_downed() or f.hit_flying or f.electro_t > 0.0 or f.orb_trap_t > 0.0 or f.frozen_t > 0.0:
+		return true
+	return String(f.sprite.animation) in ["take_hit", "take_hit_low", "pummeled", "get_pull", "hit_fly", "ko", "hit_down"]
+
+# ¿se le permite RE-ENCARAR al rival este frame? NO mientras ataca / está en special / recibe /
+# está en un move scripteado (input off: grab/ultra). Si no, al cruzar el centro del rival (Roum
+# es ANCHO) el facing se volteaba MID-MOVE y el peleador "se cambiaba de lado".
+func _can_reface(f: Node2D) -> bool:
+	if not is_instance_valid(f) or not f.input_enabled:
+		return false
+	if f.special_t > 0.0 or _fighter_hurt(f):
+		return false
+	if f.sprite.is_playing() and String(f.sprite.animation) in f.ATTACKS:
+		return false
+	return true
+
 func _cast_border(atacante: Node2D, on: bool, col := Color(1.45, 0.35, 2.0, 1.0)) -> void:
 	if on:
 		if _cast_mat == null:
@@ -8928,15 +9004,31 @@ func _physics_process(_delta: float) -> void:
 	# posiciones a mano y el empuje DESLIZABA al par (whirlpool contra la pared
 	# se corría al centro arrastrando a la víctima).
 	if not ultra_active \
+			and player.input_enabled and dummy.input_enabled \
 			and not player.airborne and not dummy.airborne \
 			and not player.koed and not dummy.koed \
 			and not player.is_downed() and not dummy.is_downed():
+		# input_enabled en AMBOS: si uno está en un move scripteado (grab/ultra/jalón), la push-box
+		# NO debe empujar -> antes peleaba contra el jalón y "los dos se corrían" al agarrar.
 		var sep_dx: float = dummy.position.x - player.position.x
 		var overlap: float = (player.body_halfw + dummy.body_halfw) - absf(sep_dx)
 		if overlap > 0.0:
 			var dir := 1.0 if sep_dx >= 0.0 else -1.0
 			player.position.x -= dir * overlap * 0.5
 			dummy.position.x += dir * overlap * 0.5
+
+	# Z-ORDER DINÁMICO (corre SIEMPRE, también en ultras): el que RECIBE (hurt) se dibuja DETRÁS
+	# y el ATACANTE al FRENTE. Sin esto, como el Dummy se agrega después en main.tscn dibuja SIEMPRE
+	# encima -> el cuerpo ANCHO de Roum tapaba al rival al comboarlo/en el ultra ("metido atrás").
+	if state == "fight" or state == "ultra" or state == "demo":
+		var _ph: bool = _fighter_hurt(player)
+		var _dh: bool = _fighter_hurt(dummy)
+		if _ph and not _dh:
+			player.z_index = 0; dummy.z_index = 1     # player recibe -> atrás; atacante (dummy) al frente
+		elif _dh and not _ph:
+			dummy.z_index = 0; player.z_index = 1     # dummy recibe -> atrás; atacante (player) al frente
+		else:
+			player.z_index = 0; dummy.z_index = 0     # empate -> orden por defecto
 
 	# combos de 5+ hits: el ESCENARIO se tine dramatico (los peleadores y la UI
 	# quedan normales y resaltan como con reflector)
@@ -8970,9 +9062,12 @@ func _physics_process(_delta: float) -> void:
 	dummy.position.x = clampf(dummy.position.x, dummy.arena_left, dummy.arena_right)
 
 	if state == "fight" or state == "demo":
-		# siempre de frente al rival
-		player.set_facing(1 if dummy.position.x >= player.position.x else -1)
-		dummy.set_facing(1 if player.position.x >= dummy.position.x else -1)
+		# de frente al rival, pero SOLO en estado neutral (no mientras ataca/recibe/move scripteado):
+		# si no, al cruzar el centro del rival ANCHO (Roum) el facing se volteaba mid-move.
+		if _can_reface(player):
+			player.set_facing(1 if dummy.position.x >= player.position.x else -1)
+		if _can_reface(dummy):
+			dummy.set_facing(1 if player.position.x >= dummy.position.x else -1)
 
 		# golpes en ambos sentidos
 		attack_done_p1 = _process_attacker(player, dummy, attack_done_p1, true)
