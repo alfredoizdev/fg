@@ -17,7 +17,7 @@ const KNOCKBACK_Y := 2200.0 * CHAR_SCALE
 
 const SHADOW_FEET_OFFSET := 500.0
 const SHADOW_SQUASH := 0.3
-const SHADOW_ALPHA := 0.3
+const SHADOW_ALPHA := 0.5   # antes 0.3 (casi no se veía). Núcleo aún más denso en _draw
 
 # estela del corte: arco creciente que sigue a la hoja (se dibuja en _draw).
 # Por animacion: base = primer frame con estela, c = centro del arco (px del
@@ -451,6 +451,14 @@ var ai_target: Node2D = null
 var ai_timer := 0.0
 var ai_action := "idle"
 var ai_break_drill := false   # modo BREAK PRACTICE: se lanza a encadenar combos sin parar
+# CPU DURA PERO JUSTA: defensa reactiva (bloqueo/esquiva) + anti-aéreo. Timers/cooldowns para que
+# NO reaccione cada frame (si no, se sentiría tramposa). Ver _ai_process y receive_hit.
+var ai_guard_t := 0.0     # >0 = la CPU eligió DEFENDER: receive_hit bloqueará seguro (alto/bajo)
+var ai_react_cd := 0.0    # cooldown entre reacciones defensivas
+var ai_aa_cd := 0.0       # cooldown del anti-aéreo
+const AI_BLOCK_CHANCE := 0.45   # bloqueo REACTIVO en el impacto (antes 0.22): duro pero no 100%
+const AI_GUARD_CHANCE := 0.55   # prob de anticipar guardia/esquiva a un golpe entrante cercano
+const AI_AA_CHANCE := 0.6       # prob de recibir con anti-aéreo al que salta encima
 
 var facing := 1
 var crouching := false
@@ -521,6 +529,7 @@ var buffer_t := 0.0
 var buffer_air := false      # el boton se apreto EN EL AIRE: al replay NO abre golpes agachados
 var breaker_ready := true    # combo breaker disponible (uno por ronda)
 var breaker_inv_t := 0.0     # invencibilidad tras romper
+var breaker_hover_inv := false   # AYE: su counter la deja FLOTANDO (jump_kick) -> sostiene la invencibilidad mientras esté en el aire (se libera al aterrizar), para que el flote no la deje vendida
 var parry_t := 0.0           # SF6: timer de la ventana PERFECTA del parry (>0 = si te pegan acá → COUNTER)
 var parry_stance := false    # SF6: POSTURA de parry MANTENIDA (Q+W held): absorbe golpes sin daño y drena barra
 const PARRY_WINDOW := 0.5    # (legado) — ya no se usa como duración; la postura dura mientras mantengas Q+W
@@ -1566,6 +1575,7 @@ func do_breaker() -> bool:
 		sprite.play("jump_kick")
 		breaker_fx_t = 2.2
 		_cast_border_on(0.9)
+		breaker_hover_inv = true   # sostiene la invencibilidad mientras flota (se libera al aterrizar)
 	elif sprite.sprite_frames.has_animation("air_spin_kick"):
 		if not airborne:
 			airborne = true
@@ -1632,6 +1642,7 @@ func revive() -> void:
 	ultra_hover = false
 	breaker_ready = true
 	breaker_inv_t = 0.0
+	breaker_hover_inv = false
 	vel_x = 0.0
 	vel_y = 0.0
 	position.y = floor_y
@@ -2445,8 +2456,9 @@ func receive_hit(low: bool, strong: bool, push_dir: int, impact_key := "", trip 
 		_burst(1.2, false, 1, atk_blue)
 		_launch(push_dir, launch_mult)
 		return "launched"
-	# la IA bloquea por instinto de vez en cuando
-	if not is_player and ai_enabled and randf() < 0.22:
+	# la IA bloquea por instinto de vez en cuando (o SEGURO si anticipó la guardia: ai_guard_t)
+	if not is_player and ai_enabled and (ai_guard_t > 0.0 or randf() < AI_BLOCK_CHANCE):
+		ai_guard_t = 0.0
 		if low:
 			sprite.play("block_low")
 		else:
@@ -2705,7 +2717,10 @@ func _physics_process(delta: float) -> void:
 	air_float_t = maxf(0.0, air_float_t - delta)
 	juggle_hold_t = maxf(0.0, juggle_hold_t - delta)
 	_aye_air_hang_t = maxf(0.0, _aye_air_hang_t - delta)
-	breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
+	if breaker_hover_inv and airborne:
+		breaker_inv_t = maxf(breaker_inv_t, 0.14)   # AYE flotando su counter: invencible cada frame hasta caer
+	else:
+		breaker_inv_t = maxf(0.0, breaker_inv_t - delta)
 	slow_t = maxf(0.0, slow_t - delta)   # ESFERA AZUL: decae el slow (el tinte azul se pinta abajo)
 	if water_bg:
 		# volando por el poder del agua: cuerpo teñido de AZUL todo el vuelo (no se desvanece aún)
@@ -3166,6 +3181,7 @@ func _physics_process(delta: float) -> void:
 			vel_y = 0.0
 			sprite.speed_scale = 1.0   # ROUM hit_fly congelaba speed_scale=0: restaurar al caer
 			air_move_used = false   # tocó el piso: puede volver a atacar en el aire
+			breaker_hover_inv = false   # aterrizó: corta la invencibilidad sostenida del flote (decae normal)
 			water_bg = false   # tocó el suelo: dejan de salir las sombras azules
 			if koed:
 				# cayó noqueado desde el aire: queda TENDIDO
@@ -3387,8 +3403,14 @@ func _play_locomotion(forward: bool) -> void:
 		sprite.play_backwards("walk")
 
 func _ai_process(delta: float) -> void:
+	if not ai_enabled or koed or ai_target == null:
+		return
+	# cooldowns de defensa: decrementan SIEMPRE (aunque esté en un move) para que no se atasquen
+	ai_guard_t = maxf(0.0, ai_guard_t - delta)
+	ai_react_cd = maxf(0.0, ai_react_cd - delta)
+	ai_aa_cd = maxf(0.0, ai_aa_cd - delta)
 	# special_t: no camina/ataca durante un especial NI durante el casteo del berserk
-	if not ai_enabled or koed or ai_target == null or airborne or special_t > 0.0:
+	if airborne or special_t > 0.0:
 		return
 	# combo en curso: encadena el siguiente golpe al abrirse la ventana de cancel
 	if ai_combo.size() > 0:
@@ -3406,6 +3428,48 @@ func _ai_process(delta: float) -> void:
 			and sprite.is_playing():
 		return
 	var dist := absf(ai_target.position.x - position.x)
+	# ============ DEFENSA (CPU dura pero JUSTA): reacciona a lo que hace el rival ============
+	# Anti-aéreo: si el rival salta encima y estoy en el suelo, lo recibo con un golpe ascendente.
+	if ai_aa_cd <= 0.0 and not ai_break_drill and ai_target.airborne \
+			and dist < 360.0 * CHAR_SCALE and ai_target.position.y < position.y - 60.0:
+		ai_aa_cd = randf_range(0.5, 0.9)
+		if randf() < AI_AA_CHANCE:
+			var aa := "uppercut" if sprite.sprite_frames.has_animation("uppercut") \
+				else ("spin_kick" if sprite.sprite_frames.has_animation("spin_kick") else "punch")
+			walk_dir = 0
+			sprite.play(aa)
+			ai_action = "idle"
+			ai_timer = randf_range(0.3, 0.5)
+			return
+	# Bloqueo / esquiva ANTICIPADOS: el rival arrancó un golpe y estoy en su alcance.
+	if ai_react_cd <= 0.0 and not ai_break_drill and ai_guard_t <= 0.0:
+		var tanim := String(ai_target.sprite.animation)
+		if tanim in ai_target.ATTACKS and ai_target.sprite.is_playing() and dist < 470.0 * CHAR_SCALE:
+			ai_react_cd = randf_range(0.30, 0.55)
+			if randf() < AI_GUARD_CHANCE:
+				if randf() < 0.72:
+					# BLOQUEA (alto/bajo según el golpe) — ai_guard_t hace que receive_hit lo absorba seguro
+					ai_guard_t = 0.4
+					var low_atk: bool = tanim in ["sweep", "crouch_kick", "crouch_jab", "crouch_punch"]
+					if low_atk and sprite.sprite_frames.has_animation("block_low"):
+						crouching = true
+						sprite.play("block_low")
+					elif sprite.sprite_frames.has_animation("block"):
+						crouching = false
+						sprite.play("block")
+					walk_dir = 0
+					ai_action = "idle"
+					ai_timer = randf_range(0.22, 0.4)
+					return
+				else:
+					# ESQUIVA: paso atrás rápido para sacar el cuerpo del alcance
+					position.x -= facing * WALK_BACK_SPEED * 1.1 * spd * delta
+					if walk_dir != -1 or not _is_locomotion_anim():
+						_play_locomotion(false)
+					walk_dir = -1
+					ai_action = "retreat"
+					ai_timer = randf_range(0.12, 0.25)
+					return
 	ai_timer -= delta
 	if ai_timer <= 0.0:
 		ai_timer = randf_range(0.28, 0.6)   # decide más seguido (más agresiva)
@@ -4198,7 +4262,12 @@ func _draw() -> void:
 	var feet_local: float = (SHADOW_FEET_OFFSET + sprite.offset.y + swing_y_off) * base_scale.y - 34.0
 	var ground_local := Vector2(0.0, (floor_y - position.y) + feet_local)
 	draw_set_transform(ground_local, 0.0, Vector2(1.0, SHADOW_SQUASH))
-	draw_circle(Vector2.ZERO, body_halfw * 1.8 * t, Color(0, 0, 0, SHADOW_ALPHA * t))
+	# ANCHO proporcional al cuerpo (body_halfw: Aye 75 chica … Roum 260 grande) → la sombra
+	# SIEMPRE cuadra con el tamaño del modelo. Dos óvalos: halo suave + núcleo denso bajo los
+	# pies para que se lea (antes con alpha 0.3 y un solo círculo casi no se veía).
+	var r: float = body_halfw * 1.8 * t
+	draw_circle(Vector2.ZERO, r, Color(0, 0, 0, SHADOW_ALPHA * t))              # halo suave (borde)
+	draw_circle(Vector2.ZERO, r * 0.6, Color(0, 0, 0, SHADOW_ALPHA * 0.9 * t))  # núcleo denso (pies)
 	draw_set_transform(Vector2.ZERO)
 	_draw_hit_burst()   # la estela del arma la dibuja swing_layer (por delante del cuerpo)
 	# ESFERA: barra de TIEMPO de cámara lenta sobre la cabeza del atrapado (se vacía)

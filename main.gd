@@ -146,6 +146,7 @@ var _mana_last_fr := [-1.0, -1.0]    # dirty-check: última fracción dibujada -
 var _mana_last_xk := [-9.0, -9.0]    # dirty-check: último aspecto -> bg/marco/disco (geometría estática) solo al redimensionar
 const MANA_REGEN := 0.030            # recarga pasiva por segundo (~33s de vacio a lleno; MUY lento a proposito)
 const MANA_REGEN_IDLE := 0.018       # bonus si esta quieta en el suelo (recupera un poco mas rapido)
+const FE_INSTINCT_REGEN := 0.067     # FE (asesina): su INSTINTO carga ~15s (más rápido que el maná de maga) y SIN bonus por campear -> ritmo de "arma que se recarga", distinto del tanque de combustible fluido de Aye
 const MANA_CHANNEL_REGEN := 0.25     # canaleo activo (doble-tap abajo): ~4s a full (rapido, vulnerable)
 const MANA_R := 58.0                 # radio del anillo
 const MANA_RING_W := 6.0             # grosor del anillo (más delgado y limpio)
@@ -224,6 +225,7 @@ var combo_was_vis := [false, false]   # para detectar cuando aparece (y disparar
 
 # menu de modo de rival
 var dummy_ai_mode := true
+var _ai_dir_cd := 0.0     # cooldown del "director" de IA: dispara especiales/súper/ultra de la CPU
 var versus_2p := false          # VS 2P LOCAL: el dummy es un humano con teclas propias (_p2)
 var break_practice := false     # modo BREAK PRACTICE: la IA encadena combos y tú rompes
 var menu_panel: ColorRect
@@ -439,7 +441,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-22 LU"
+	get_window().title = "FG Fighter — build 2026-08-24 MB"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -1055,10 +1057,17 @@ func on_breaker(quien: Node2D) -> void:
 	meter[b_idx] = maxf(0.0, meter[b_idx] - 0.5)   # romper gasta ½ barra
 	var otro: Node2D = dummy if quien == player else player
 	var dir := 1.0 if otro.position.x >= quien.position.x else -1.0
-	otro.position.x = clampf(otro.position.x + dir * 240.0, LEFT_LIMIT, RIGHT_LIMIT)
-	# el atacante RECIBE el golpe del mortal del breaker
+	# el atacante RECIBE el golpe del mortal del counter y se SEPARA. Antes se lo TELETRANSPORTABA
+	# 240px (aparecía separado de golpe, "por arte de magia"); ahora se lo empuja con un
+	# DESLIZAMIENTO suave con fricción (~0.45s) — se ve como "lo pateé lejos", natural. El shove se
+	# setea DIRECTO tras receive_hit (garantizado aunque el rival "bloquee") y clampa con
+	# arena_left/right (scroll-safe). En el AIRE receive_hit ya lo LANZA, así que ahí no desliza.
 	if not otro.koed:
 		otro.receive_hit(false, false, int(dir), "kick_impact")
+		if not otro.airborne:
+			otro.shove_vx = dir * 750.0   # px/s; decae por SHOVE_FRICTION (~240px de slide total)
+			otro.shove_t = 0.45
+			otro.vel_x = 0.0
 	var idx := 1 if quien == player else 0
 	combo_n[idx] = 0
 	combo_t[idx] = 99.0
@@ -3405,6 +3414,18 @@ func _build_roum_frames() -> SpriteFrames:
 				sf.add_frame(accion, t)
 			sf.set_animation_speed(accion, reg[accion][0])
 			sf.set_animation_loop(accion, reg[accion][1])
+	# LOOP LIMPIO de la POSE (sin reversa): el clip completo 1..145 NO cierra -> el seam 145->1
+	# saltaba 5x lo normal. La ventana 55..123 SÍ loopea hacia ADELANTE casi sin costura (seam 1.57,
+	# ~igual que un paso normal). Recortamos la pose a ese rango: movimiento natural, sin flotar raro.
+	# (Medido con diff de silueta; pies ya anclados a y=1140 en todos los frames.)
+	if sf.has_animation("pose") and pose.size() >= 60:
+		var _a: int = mini(54, pose.size() - 2)          # frame 55 (0-indexed 54)
+		var _b: int = mini(123, pose.size())             # frame 123 (exclusivo)
+		sf.clear("pose")
+		for k in range(_a, _b):
+			sf.add_frame("pose", pose[k])
+		sf.set_animation_speed("pose", 28.0)
+		sf.set_animation_loop("pose", true)
 	# ATAQUES que ROUM aún NO tiene clip: dejarlos CORTOS (~6 frames de pose) para que NO CONGELEN
 	# el modelo ~12s (145 frames de pose @12fps) al dispararse. Se dispara la anim, hace un flash
 	# breve y vuelve a neutral (sin golpe) hasta que llegue su clip. NO toca take_hit/block/ko.
@@ -5583,6 +5604,62 @@ func _run_aye_ultra(atacante: Node2D, idx: int) -> void:
 # rival con un golpe. Sombras + borde MORADO que se desvanecen si no encadena un combo. Invulnerable.
 # ---- RABIA de DAM: activación del BERSERK (E+R simultáneas con el anillo LLENO) ----
 var rage_casting := [false, false]   # casteando la activación (sin drenaje aún)
+# ============ DIRECTOR DE IA: la CPU usa ESPECIALES / SÚPER / ULTRA como un jugador ============
+# Las funciones try_* se auto-verifican (meter/combo/vida), así que llamarlas es SEGURO: si no se
+# cumplen las condiciones devuelven false y no pasa nada. Prioridad: soltar el ULTRA como REMATE
+# (combo vivo + rival en rojo) y, si no, meter un súper/especial de vez en cuando. Corre cada frame
+# pero con cooldown: rápido cuando NO disparó (para cazar la ventana de combo), lento si ya disparó.
+func _ai_director(delta: float) -> void:
+	if state != "fight" or ultra_active or not dummy_ai_mode or not is_instance_valid(dummy) or not dummy.ai_enabled:
+		return
+	if dummy.koed or dummy.airborne or dummy.special_t > 0.0 or dummy.hit_flying:
+		return
+	# si lo están PRESIONANDO (recibiendo/bloqueando), no revienta un súper de la nada (se sentiría tramposo)
+	var danim := String(dummy.sprite.animation)
+	if danim in ["take_hit", "take_hit_low", "block", "block_low", "hit_down", "ko", "get_pull", "pummeled"]:
+		return
+	_ai_dir_cd = maxf(0.0, _ai_dir_cd - delta)
+	if _ai_dir_cd > 0.0:
+		return
+	var m: float = meter[1]
+	var cn: int = combo_n[1]
+	var live: bool = cn >= 2 and combo_t[1] < COMBO_WINDOW      # combo vivo (2+) para ultras de agarre
+	var live3: bool = cn >= 3 and combo_t[1] < COMBO_WINDOW     # combo vivo (3+) para los ultras de golpes
+	var pf: float = float(player_hp) / float(maxi(1, hp_max[0]))   # vida del jugador (0..1)
+	var dist: float = absf(player.position.x - dummy.position.x)
+	var fired := false
+	match cpu_char:
+		"dam":
+			if live3 and pf <= 0.25 and m >= 2.0:
+				fired = try_ultra(dummy)                       # ANIQUILACIÓN de fuego (remate)
+			if not fired and m >= 1.0 and dist < 520.0 and randf() < 0.5:
+				fired = try_critical(dummy)                    # INFIERNO (crítico)
+		"favi":
+			if live and pf <= 0.30 and m >= 3.0:
+				fired = try_fe_ultra_long(dummy)               # APOCALYPSE
+			if not fired and live and m >= 2.0:
+				fired = try_fe_ultra(dummy)                    # ultra corto aéreo
+			if not fired and live and m >= 1.0:
+				fired = try_whirlpool(dummy)                   # remolino (finisher)
+		"aye":
+			if pf <= 0.25 and m >= 2.0:
+				fired = try_aye_ultra(dummy)                   # PRISM STORM (remate)
+			if not fired and m >= 1.5 and dist < 950.0 and randf() < 0.45:
+				fired = try_crystal_flurry(dummy)              # ráfaga de cristales
+		"zetma":
+			if live3 and pf <= 0.25 and m >= 2.0:
+				fired = try_ultra(dummy)                       # ANIQUILACIÓN de Zetma (remate)
+			if not fired and m >= 1.0 and dist < 750.0 and randf() < 0.35:
+				fired = _zetma_orb_special(dummy)              # VOID ORB (cámara lenta)
+		"roum":
+			if live and pf <= 0.25 and m >= 2.0:
+				fired = try_roum_ultra(dummy)                  # ráfaga finisher ≤25%
+			if not fired and live and m >= 2.0:
+				fired = try_roum_portal_ultra(dummy)           # VOID GRASP (combo vivo)
+			if not fired and m >= 0.5 and dist < 560.0 and randf() < 0.4:
+				fired = _roum_void_cast(dummy)                 # VOID LASH (súper vendas)
+	_ai_dir_cd = randf_range(0.9, 1.5) if fired else randf_range(0.12, 0.22)
+
 func try_rage(f: Node2D) -> bool:
 	if state != "fight" or ultra_active:
 		return false
@@ -6734,42 +6811,74 @@ var _pu_vscale := Vector2.ONE   # escala REAL del nodo del rival al empezar el u
 var _pu_i := 0                  # nº de golpe del ultra (para el ritmo: empieza LENTO y ACELERA)
 const PU_TOTAL := 22.0          # golpes aprox del ultra (para el ramp de velocidad)
 
-# un GOLPE del pummel del ultra: congela la pose de impacto de Roum + pose de retroceso del
-# rival SIN encimarse (PU_GAP), chispas+polvo+shake, daña y cuenta. Devuelve el nuevo n.
+# un GOLPE del pummel del ultra: Roum BARRE de verdad la ventana activa del swing (el clip de 145f
+# SÍ se anima -> se ve el brazo/cuerpo moverse y la estela BARRE, no un arco congelado), lunge en el
+# impacto, y la víctima REACCIONA (flinch de take_hit + retroceso + squash que vuelven). Antes ambos
+# quedaban congelados en 1 frame (speed_scale=0) => "solo fotos, ni se movían". Devuelve el nuevo n.
 func _pu_hit(atacante: Node2D, victima: Node2D, idx: int, dir: int, gy: float, anim: String, hitfrac: float, dmg: int, nm: String, n: int, wait: float) -> int:
 	atacante.set_facing(dir)
-	atacante.position = Vector2(clampf(victima.position.x - float(dir) * PU_GAP, LEFT_LIMIT, RIGHT_LIMIT), gy)
-	if atacante.sprite.sprite_frames.has_animation(anim):
-		atacante.sprite.play(anim)
-		atacante.sprite.speed_scale = 0.0
-		var afc: int = atacante.sprite.sprite_frames.get_frame_count(anim)
-		atacante.sprite.frame = clampi(int(hitfrac * float(afc)), 0, afc - 1)
+	var ax_base: float = clampf(victima.position.x - float(dir) * PU_GAP, LEFT_LIMIT, RIGHT_LIMIT)
+	atacante.position = Vector2(ax_base, gy)
 	victima.set_facing(-dir)
 	victima.position.y = gy
-	var vanim: String = "pummeled" if victima.sprite.sprite_frames.has_animation("pummeled") else "take_hit"
+	var vx0: float = victima.position.x
+	# --- VENTANA ACTIVA del swing de Roum: del wind-up al impacto + arranque de recovery.
+	# Controlamos el frame a mano (speed_scale=0) para BARRER esa ventana en el 'beat' -> movimiento
+	# real y la estela de ROUM_SWING_FX barre progresiva (no se queda una banda roja quieta).
+	var use_anim: String = anim if atacante.sprite.sprite_frames.has_animation(anim) else "punch"
+	var afc: int = atacante.sprite.sprite_frames.get_frame_count(use_anim)
+	var f_imp: int = clampi(int(hitfrac * float(afc)), 0, afc - 1)
+	var f0: int = clampi(f_imp - maxi(2, int(0.12 * float(afc))), 0, afc - 1)   # antes del impacto (extensión)
+	var f1: int = clampi(f_imp + maxi(1, int(0.10 * float(afc))), 0, afc - 1)   # un poco después (recovery)
+	atacante.sprite.play(use_anim)
+	atacante.sprite.speed_scale = 0.0
+	# --- VÍCTIMA: reacción REAL. take_hit animado (flinch que pica en el impacto) + retroceso + squash.
+	var vanim: String = "take_hit" if victima.sprite.sprite_frames.has_animation("take_hit") else "pose"
+	var vfc: int = victima.sprite.sprite_frames.get_frame_count(vanim)
+	var vf0: int = clampi(int(0.30 * float(vfc)), 0, vfc - 1)   # braceado
+	var vf1: int = clampi(int(0.60 * float(vfc)), 0, vfc - 1)   # flinch profundo
 	victima.sprite.play(vanim)
 	victima.sprite.speed_scale = 0.0
-	var vfc: int = victima.sprite.sprite_frames.get_frame_count(vanim)
-	var vbase: int = 9 if vanim == "pummeled" else int(vfc / 2)
-	victima.sprite.frame = clampi(vbase - 1 + (n % 3), 0, vfc - 1)
-	atacante._play_sfx_key("kick_impact")   # golpe de IMPACTO (canal del atacante)
-	victima._play_sfx_key("take_hit")       # quejido del rival (otro canal)
-	# DING de COMBO que sube de tono con cada golpe encadenado (el sonido que faltaba)
-	if ding_stream:
-		var st: int = DING_SCALE[mini(maxi(n - 1, 0), DING_SCALE.size() - 1)]
-		ding_player.stream = ding_stream
-		ding_player.pitch_scale = pow(2.0, float(st) / 12.0)
-		ding_player.play()
-	victima._burst(1.05, false, 1, false)
-	atacante._spawn_slam_dust(dir, 0.7)
-	_shake(15.0, 0.1)
-	n += 1
-	_ultra_count(idx, n, nm)
-	_pu_damage(idx, dmg)
-	# RITMO: arranca LENTO y ACELERA de a poco (start slow -> fast). Ignora el 'wait' fijo.
-	var frac: float = clampf(float(_pu_i) / PU_TOTAL, 0.0, 1.0)
+	var vsc0: Vector2 = victima.scale
+	# RITMO: arranca LENTO y ACELERA (pero con piso para que el swing SE VEA, no un parpadeo).
+	var frac_r: float = clampf(float(_pu_i) / PU_TOTAL, 0.0, 1.0)
+	var beat: float = lerpf(0.22, 0.11, pow(frac_r, 0.9))
 	_pu_i += 1
-	await get_tree().create_timer(lerpf(0.26, 0.075, pow(frac, 0.9)), true, false, true).timeout
+	var impacted := false
+	var t := 0.0
+	while t < beat and state == "ultra":
+		t += get_process_delta_time()
+		var k: float = clampf(t / beat, 0.0, 1.0)
+		# Roum barre el brazo por la ventana activa + lunge (empuje del golpe) que pica al medio
+		atacante.sprite.frame = clampi(int(lerpf(float(f0), float(f1), k)), 0, afc - 1)
+		var lunge: float = sin(k * PI) * 24.0
+		atacante.position.x = clampf(ax_base + float(dir) * lunge, LEFT_LIMIT, RIGHT_LIMIT)
+		# retroceso de la víctima: 0 hasta el impacto, luego pico y vuelve (medio seno)
+		var vk: float = sin(clampf((k - 0.5) / 0.5, 0.0, 1.0) * PI) if impacted else 0.0
+		victima.sprite.frame = clampi(int(lerpf(float(vf0), float(vf1), vk)), 0, vfc - 1)
+		victima.position.x = vx0 + float(dir) * vk * 40.0
+		victima.scale = Vector2(vsc0.x * (1.0 - 0.06 * vk), vsc0.y * (1.0 + 0.05 * vk))
+		# IMPACTO al medio del barrido: chispas+polvo+shake+sonido+daño (una sola vez)
+		if not impacted and k >= 0.5:
+			impacted = true
+			atacante._play_sfx_key("kick_impact")   # golpe de IMPACTO (canal del atacante)
+			victima._play_sfx_key("take_hit")       # quejido del rival (otro canal)
+			if ding_stream:                          # DING de combo que sube de tono
+				var st: int = DING_SCALE[mini(maxi(n - 1, 0), DING_SCALE.size() - 1)]
+				ding_player.stream = ding_stream
+				ding_player.pitch_scale = pow(2.0, float(st) / 12.0)
+				ding_player.play()
+			victima._burst(1.15, false, 1, false)
+			atacante._spawn_slam_dust(dir, 0.7)
+			_shake(16.0, 0.12)
+			_pu_damage(idx, dmg)
+			_ultra_count(idx, n + 1, nm)
+		await get_tree().process_frame
+	# ASIENTA: Roum a su base, víctima a su sitio y escala normal (sin arrastres a la siguiente)
+	atacante.position.x = ax_base
+	victima.position.x = vx0
+	victima.scale = vsc0
+	n += 1
 	return n
 
 # LEVANTA al rival por el aire (juggle) mientras Roum se queda en el piso
@@ -6980,6 +7089,7 @@ func _run_roum_portal_ultra(atacante: Node2D, idx: int) -> void:
 	victima._burst(1.8, false, 1, false)
 	# VUELA y CAE: suelta el hover y lo LANZA fuerte hacia arriba -> _end_round maneja vuelo/caída/KO
 	victima.ultra_hover = false
+	victima.sprite.speed_scale = 1.0   # los _pu_hit lo dejaron en 0 (frame a mano); reactivar para que el vuelo SÍ anime
 	victima.receive_hit(false, true, dir, "kick_impact", false, 2.2)
 	await get_tree().create_timer(0.45, true, false, true).timeout
 	Engine.time_scale = 1.0
@@ -6995,6 +7105,7 @@ func _portal_ultra_end(atacante: Node2D, victima: Node2D, idx: int) -> void:
 	atacante.sprite.play("pose")
 	if is_instance_valid(victima):
 		victima.ultra_hover = false
+		victima.sprite.speed_scale = 1.0          # los _pu_hit congelaban el frame (0); reactivar por si abortó a media tanda
 		victima.scale = _pu_vscale                # restaura la escala REAL del nodo (por si abortó encogido)
 		victima.modulate = Color(1, 1, 1, 1)
 		if not victima.hit_flying:                # si fue LANZADO en el remate, que siga volando (no clavarlo)
@@ -8830,6 +8941,7 @@ func _orb_detonate(owner: Node2D, color: int) -> bool:
 func _physics_process(_delta: float) -> void:
 	# PRACTICE (training): salto automático del dummy + su HP clavado en 25%
 	_update_dummy_practice(_delta)
+	_ai_director(_delta)   # CPU dura: especiales/súper/ultra (se auto-verifica y auto-gatea por estado)
 	_orb_update(_delta)   # ORBES DE AYE-2: orbitan/viajan cada frame
 	# ESPECIAL de Zetma: la ORB se CARGA con el tiempo durante el combate (1 vez por round)
 	if state == "fight":
@@ -9257,6 +9369,8 @@ func _physics_process(_delta: float) -> void:
 					var mg := MANA_REGEN
 					if mf2.channeling:
 						mg = MANA_CHANNEL_REGEN                     # canaleo activo: recarga RAPIDA
+					elif mf2.fx_blue:
+						mg = FE_INSTINCT_REGEN                      # FE asesina: carga ~15s, SIN bonus por campear
 					elif not mf2.airborne and String(mf2.sprite.animation) in ["pose", "idle", "crouch"]:
 						mg += MANA_REGEN_IDLE
 					mana[mi] = clampf(mana[mi] + mg * _delta, 0.0, 1.0)
@@ -9368,6 +9482,12 @@ func _physics_process(_delta: float) -> void:
 		elif fk > 0.0:
 			rfl.default_color = (Color(2.05, 0.28, 0.30) if _void else (Color(2.1, 0.55, 0.20) if rage_side[mside] else (Color(0.30, 1.70, 3.05) if _azul else (Color(0.78, 0.12, 2.05) if _dark else Color(1.60, 0.60, 2.40))))).lerp(Color(2.6, 2.5, 3.0), fk)   # DESTELLO al llenarse
 			rfl.width = MANA_RING_W + 7.0 * fk
+		elif full_now and _azul:
+			# FE: INSTINTO CARGADO -> el anillo PULSA como un arma LISTA (no queda estático como el maná
+			# de Aye). Es la mitad visual de "cargar y descargar" vs el gauge fluido de la maga.
+			var _ip: float = 0.5 + 0.5 * absf(sin(float(Time.get_ticks_msec()) / 1000.0 * 7.0))
+			rfl.default_color = Color(0.30, 1.70, 3.05).lerp(Color(2.6, 2.7, 3.05), _ip)
+			rfl.width = MANA_RING_W + 5.0 * _ip
 		elif full_now:
 			rfl.default_color = Color(2.05, 0.28, 0.30) if _void else (Color(2.1, 0.55, 0.20) if rage_side[mside] else (Color(0.30, 1.70, 3.05) if _azul else (Color(0.78, 0.12, 2.05) if _dark else Color(1.60, 0.60, 2.40))))   # lleno: NEÓN carmesí
 			rfl.width = MANA_RING_W
@@ -11704,8 +11824,11 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# el METER carga: el que pega gana más, el que recibe un poco
 		meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.0020)   # pegar CARGA
 		meter[1 - hidx] = maxf(0.0, meter[1 - hidx] - float(dmg_real) * HIT_DRAIN)   # recibir DRENA
-		# la IA puede romper tu combo largo (si aun tiene su breaker)
-		if att_is_player and dummy_ai_mode and combo_n[0] >= 3 and randf() < 0.55:
+		# la IA puede romper tu combo — con las MISMAS reglas que el humano: cuesta ½ barra
+		# (meter_can_break) y solo en los primeros 4 golpes (combo_hits_on). Antes rompía GRATIS
+		# e ilimitado (on_breaker pisa la barra a 0), asimetría que hacía sentir el burst abusivo.
+		if att_is_player and dummy_ai_mode and combo_n[0] >= 3 and randf() < 0.55 \
+				and meter_can_break(dummy) and combo_hits_on(dummy) <= 4:
 			if dummy.do_breaker():
 				on_breaker(dummy)
 		if att_is_player:
