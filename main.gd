@@ -130,6 +130,8 @@ var orb_charge := [0.0, 0.0]   # carga del especial por lado (solo Zetma); 1.0 =
 var orb_used := [false, false] # ya usado este round (1 vez por round)
 var orb_side := [false, false] # este lado es ZETMA (muestra el anillo de carga del orb)
 const ORB_CHARGE_TIME := 18.0    # 1ª carga
+const ZETMA_ORB_PER_PUNISH := 0.30   # ZETMA: su ORBE carga CASTIGANDO (counter-hit: pegar mientras el rival ataca) -> ~3-4 castigos a lleno
+const ZETMA_ORB_REGEN := 0.010       # chorrito pasivo mínimo (nunca queda del todo trabado si el rival no ataca)
 const ORB_RECHARGE_TIME := 42.0  # tras usarlo: recarga MUY lenta
 # VOID de ROUM: 4ª fuente del anillo de recurso (mismo slot que maná/rabia/orbe). Se llena
 # PELEANDO (daño HECHO al rival, no recibido) y se GASTA en portales/cintas (warp/ground grab).
@@ -146,7 +148,7 @@ var _mana_last_fr := [-1.0, -1.0]    # dirty-check: última fracción dibujada -
 var _mana_last_xk := [-9.0, -9.0]    # dirty-check: último aspecto -> bg/marco/disco (geometría estática) solo al redimensionar
 const MANA_REGEN := 0.030            # recarga pasiva por segundo (~33s de vacio a lleno; MUY lento a proposito)
 const MANA_REGEN_IDLE := 0.018       # bonus si esta quieta en el suelo (recupera un poco mas rapido)
-const FE_INSTINCT_REGEN := 0.067     # FE (asesina): su INSTINTO carga ~15s (más rápido que el maná de maga) y SIN bonus por campear -> ritmo de "arma que se recarga", distinto del tanque de combustible fluido de Aye
+const FE_INSTINCT_PER_HIT := 0.10    # FE (asesina): su INSTINTO carga CONECTANDO golpes (~10 hits a lleno), NO por tiempo -> agresión, no campear. Ver _combo_hit
 const MANA_CHANNEL_REGEN := 0.25     # canaleo activo (doble-tap abajo): ~4s a full (rapido, vulnerable)
 const MANA_R := 58.0                 # radio del anillo
 const MANA_RING_W := 6.0             # grosor del anillo (más delgado y limpio)
@@ -441,7 +443,7 @@ const DEMO_COMBOS := [
 func _ready() -> void:
 	# SELLO DE BUILD en el titulo de la ventana: si el titulo NO coincide con el que
 	# Claude anuncio, la ventana corre codigo VIEJO (relanzar con jugar.command)
-	get_window().title = "FG Fighter — build 2026-08-24 MB"
+	get_window().title = "FG Fighter — build 2026-08-25 MF"
 	dummy.ai_target = player
 	# vida máxima según el arquetipo de cada peleador (assassin/wizard/warrior)
 	hp_max[0] = int(ARCH_HP.get(player.archetype, 1200))
@@ -4331,11 +4333,9 @@ const FE_MARK_DECAY := 6.0      # segundos sin marcar para que se caiga una
 const FE_CRIT_DMG := 300
 
 func _fe_add_mark(idx: int) -> void:
-	# INSTINTO (anillo tipo maná, azul): las marcas SOLO se acumulan con el anillo
-	# LLENO — así no puede aplicar la mecánica todo el tiempo. Sin instinto: blink rojo.
-	if mana[idx] < 0.999:
-		mana_flash_t[idx] = 0.5
-		return
+	# DESACOPLE: las MARCAS se plantan LIBRES cada 3 golpes (agresión). El INSTINTO ya NO gatea el
+	# plantado; ahora es el COMBUSTIBLE del crítico (plantás marcas combeando Y cargás instinto
+	# golpeando, en paralelo). El crítico exige 3 marcas + instinto lleno (ver fe_crit).
 	fe_mark_decay[idx] = FE_MARK_DECAY
 	if fe_marks[idx] >= FE_MARK_MAX:
 		return
@@ -4367,6 +4367,9 @@ func _combo_hit(idx: int, dmg: int, atk_name: String, aereo: bool) -> int:
 	if combo_n[idx] > 3:
 		factor = maxf(1.0 - 0.1 * float(combo_n[idx] - 3), 0.5)
 	var dmg_real := maxi(1, int(round(dmg * factor)))
+	# INSTINTO de Fe: carga CONECTANDO golpes (agresión), no por tiempo. Plano, sin escalado anti-infinito.
+	if is_instance_valid(atk_f) and atk_f.fx_blue:
+		mana[idx] = minf(1.0, mana[idx] + FE_INSTINCT_PER_HIT)
 	# MARCA de Fe: cada 3 golpes encadenados planta una marca en el rival
 	if is_instance_valid(atk_f) and atk_f.fx_blue and combo_n[idx] % 3 == 0:
 		_fe_add_mark(idx)
@@ -8943,13 +8946,12 @@ func _physics_process(_delta: float) -> void:
 	_update_dummy_practice(_delta)
 	_ai_director(_delta)   # CPU dura: especiales/súper/ultra (se auto-verifica y auto-gatea por estado)
 	_orb_update(_delta)   # ORBES DE AYE-2: orbitan/viajan cada frame
-	# ESPECIAL de Zetma: la ORB se CARGA con el tiempo durante el combate (1 vez por round)
+	# ESPECIAL de Zetma: la ORB se CARGA CASTIGANDO (counter-hits, ver _process_attacker), NO por tiempo
 	if state == "fight":
 		for _os in 2:
 			var _of: Node2D = player if _os == 0 else dummy
 			if is_instance_valid(_of) and _of.fx_dark and orb_charge[_os] < 1.0:
-				var _rt: float = ORB_RECHARGE_TIME if orb_used[_os] else ORB_CHARGE_TIME
-				orb_charge[_os] = minf(1.0, orb_charge[_os] + _delta / _rt)
+				orb_charge[_os] = minf(1.0, orb_charge[_os] + ZETMA_ORB_REGEN * _delta)   # chorrito pasivo; la carga real viene de CASTIGAR (counter-hits, ver _process_attacker)
 	# BREAK PRACTICE: el combo breaker se recarga solo (rompes cuantas veces quieras)
 	if break_practice and state == "fight" and player.breaker_inv_t <= 0.0:
 		player.breaker_ready = true
@@ -9370,7 +9372,7 @@ func _physics_process(_delta: float) -> void:
 					if mf2.channeling:
 						mg = MANA_CHANNEL_REGEN                     # canaleo activo: recarga RAPIDA
 					elif mf2.fx_blue:
-						mg = FE_INSTINCT_REGEN                      # FE asesina: carga ~15s, SIN bonus por campear
+						mg = 0.0                      # FE: su INSTINTO NO carga por tiempo — sube CONECTANDO golpes (ver _combo_hit)
 					elif not mf2.airborne and String(mf2.sprite.animation) in ["pose", "idle", "crouch"]:
 						mg += MANA_REGEN_IDLE
 					mana[mi] = clampf(mana[mi] + mg * _delta, 0.0, 1.0)
@@ -9480,7 +9482,7 @@ func _physics_process(_delta: float) -> void:
 			rfl.default_color = Color(1.9, 0.22, 0.32)          # falta recurso: rojo
 			rfl.width = MANA_RING_W
 		elif fk > 0.0:
-			rfl.default_color = (Color(2.05, 0.28, 0.30) if _void else (Color(2.1, 0.55, 0.20) if rage_side[mside] else (Color(0.30, 1.70, 3.05) if _azul else (Color(0.78, 0.12, 2.05) if _dark else Color(1.60, 0.60, 2.40))))).lerp(Color(2.6, 2.5, 3.0), fk)   # DESTELLO al llenarse
+			rfl.default_color = (Color(2.05, 0.28, 0.30) if _void else (Color(2.1, 0.55, 0.20) if rage_side[mside] else (Color(0.30, 1.70, 3.05) if _azul else (Color(0.78, 0.12, 2.05) if _dark else Color(2.40, 0.55, 1.90))))).lerp(Color(2.6, 2.5, 3.0), fk)   # DESTELLO al llenarse
 			rfl.width = MANA_RING_W + 7.0 * fk
 		elif full_now and _azul:
 			# FE: INSTINTO CARGADO -> el anillo PULSA como un arma LISTA (no queda estático como el maná
@@ -9489,10 +9491,10 @@ func _physics_process(_delta: float) -> void:
 			rfl.default_color = Color(0.30, 1.70, 3.05).lerp(Color(2.6, 2.7, 3.05), _ip)
 			rfl.width = MANA_RING_W + 5.0 * _ip
 		elif full_now:
-			rfl.default_color = Color(2.05, 0.28, 0.30) if _void else (Color(2.1, 0.55, 0.20) if rage_side[mside] else (Color(0.30, 1.70, 3.05) if _azul else (Color(0.78, 0.12, 2.05) if _dark else Color(1.60, 0.60, 2.40))))   # lleno: NEÓN carmesí
+			rfl.default_color = Color(2.05, 0.28, 0.30) if _void else (Color(2.1, 0.55, 0.20) if rage_side[mside] else (Color(0.30, 1.70, 3.05) if _azul else (Color(0.78, 0.12, 2.05) if _dark else Color(2.40, 0.55, 1.90))))   # lleno: NEÓN carmesí
 			rfl.width = MANA_RING_W
 		else:
-			rfl.default_color = Color(1.15, 0.10, 0.12) if _void else (Color(1.20, 0.28, 0.18) if rage_side[mside] else (Color(0.20, 1.10, 2.40) if _azul else (Color(0.50, 0.08, 1.55) if _dark else Color(1.05, 0.38, 1.90))))   # cargando: NEÓN carmesí
+			rfl.default_color = Color(1.15, 0.10, 0.12) if _void else (Color(1.20, 0.28, 0.18) if rage_side[mside] else (Color(0.20, 1.10, 2.40) if _azul else (Color(0.50, 0.08, 1.55) if _dark else Color(1.65, 0.38, 1.35))))   # cargando: NEÓN carmesí
 			rfl.width = MANA_RING_W
 		# HALO neon detras del arco (mismo recorrido, mas ancho y translucido -> bloom)
 		if mana_ring_glow[mside] != null:
@@ -11515,110 +11517,109 @@ func _fe_tiger_attack(caster: Node2D) -> void:
 #  esta función + su única llamada en _process_attacker). Estrella cómic + líneas
 #  de impacto radiales + anillo de choque DE MEDIO LADO (elipse ladeada), colores HDR.
 # ============================================================================
-const IMPACT_2XKO := false
-func _burst_star_pts(n: int) -> PackedVector2Array:
-	# estrella de n puntas, radio exterior variando (jagged/filoso tipo tinta), unitaria
-	var pts := PackedVector2Array()
-	for i in n * 2:
-		var ang := TAU * float(i) / float(n * 2) - PI * 0.5
-		var outer: bool = (i % 2) == 0
-		var r: float = (0.82 + 0.18 * absf(sin(float(i) * 2.3))) if outer else 0.40
-		pts.append(Vector2(cos(ang), sin(ang)) * r)
-	return pts
-func _scale_pts(pts: PackedVector2Array, s: float) -> PackedVector2Array:
-	var o := PackedVector2Array()
-	for p in pts:
-		o.append(p * s)
-	return o
-func _impact_2xko(pos: Vector2, sz: float, tint: Color) -> void:
+const IMPACT_2XKO := true
+# DESTELLO de 4 PUNTAS (twinkle / brillo de lente) — NO una estrella: puntas largas y FINÍSIMAS
+# (el valle pincha casi a 0), vertical más larga que la horizontal. Unitario, se escala luego.
+func _sparkle_pts(vlong: float, hlong: float) -> PackedVector2Array:
+	var v := 0.05   # medio-ancho del pinch (casi cero = puntas de aguja)
+	return PackedVector2Array([
+		Vector2(0.0, -vlong), Vector2(v, -v), Vector2(hlong, 0.0), Vector2(v, v),
+		Vector2(0.0, vlong), Vector2(-v, v), Vector2(-hlong, 0.0), Vector2(-v, -v)])
+func _circle_pts(r: float, n: int) -> PackedVector2Array:
+	var p := PackedVector2Array()
+	for j in n:
+		var a := TAU * float(j) / float(n)
+		p.append(Vector2(cos(a), sin(a)) * r)
+	return p
+func _impact_2xko(pos: Vector2, sz: float, tint: Color, flash := false) -> void:
 	var cont := Node2D.new()
 	cont.position = pos
 	cont.z_index = 26
 	add_child(cont)
-	var star_unit := _burst_star_pts(11)
-	var outline := Polygon2D.new()
-	outline.color = tint                                  # borde de COLOR (HDR → bloom)
-	cont.add_child(outline)
-	var core := Polygon2D.new()
-	core.color = Color(3.0, 3.0, 3.2)                     # relleno BLANCO HDR
-	cont.add_child(core)
-	# líneas de impacto radiales (spokes)
+	# GLOW redondo suave detrás (halo caliente)
+	var glow := Polygon2D.new()
+	glow.color = Color(tint.r, tint.g, tint.b, 0.55)
+	glow.z_index = -2
+	cont.add_child(glow)
+	# DESTELLO blanco extra (solo golpes PESADOS): disco que revienta y se apaga rápido
+	var wf: Polygon2D = null
+	if flash:
+		wf = Polygon2D.new()
+		wf.color = Color(3.2, 3.1, 2.7, 0.9)
+		wf.z_index = -1
+		cont.add_child(wf)
+	# LÍNEAS DE IMPACTO radiales FINAS (como #67): energía disparada hacia afuera
 	var lines: Array = []
-	for i in 8:
+	for i in 12:
 		var ln := Line2D.new()
-		ln.width = sz * 0.07
+		ln.width = sz * 0.045
 		ln.default_color = tint
 		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
 		cont.add_child(ln)
 		lines.append(ln)
-	# anillo de choque DE MEDIO LADO (elipse achatada en Y + ladeada), no círculo de frente
-	var ring := Line2D.new()
-	ring.width = sz * 0.055
-	ring.default_color = tint
-	ring.closed = true
-	cont.add_child(ring)
-	var ring_tilt := -0.45                                 # ladeo del anillo
+	# DESTELLO principal de 4 puntas (#68): borde tinte + núcleo blanco encima + diagonal sutil (twinkle)
+	var spark_o := Polygon2D.new()
+	spark_o.color = tint
+	cont.add_child(spark_o)
+	var spark_d := Polygon2D.new()          # 2º destello girado 45° = twinkle de 8 puntas sutil
+	spark_d.color = Color(2.4, 2.2, 1.5)
+	spark_d.rotation = PI * 0.25
+	cont.add_child(spark_d)
+	var spark_c := Polygon2D.new()
+	spark_c.color = Color(3.2, 3.2, 3.0)    # núcleo BLANCO HDR
+	cont.add_child(spark_c)
 	var t := 0.0
-	var life := 0.17
+	var life := 0.19
 	while t < life and is_instance_valid(cont):
 		t += get_process_delta_time()
 		var k: float = clampf(t / life, 0.0, 1.0)
-		var pop: float = 0.55 + _ease_out_cubic(clampf(k * 2.2, 0.0, 1.0)) * 0.75   # POP rápido
+		var pop: float = 0.5 + _ease_out_cubic(clampf(k * 2.4, 0.0, 1.0)) * 0.85   # POP rápido
 		var a: float = clampf(1.0 - k, 0.0, 1.0)
-		outline.polygon = _scale_pts(star_unit, sz * 1.16 * pop)
-		outline.self_modulate.a = a
-		core.polygon = _scale_pts(star_unit, sz * 0.90 * pop)
-		core.self_modulate.a = clampf(1.0 - k * 1.7, 0.0, 1.0)   # el blanco se va antes
+		glow.polygon = _circle_pts(sz * (0.85 + _ease_out_cubic(k) * 0.6), 20)
+		glow.self_modulate.a = clampf(0.6 - k * 0.6, 0.0, 1.0)
+		if wf != null:
+			wf.polygon = _circle_pts(sz * (1.2 + _ease_out_cubic(k) * 2.3), 24)
+			wf.self_modulate.a = clampf(1.0 - k * 2.3, 0.0, 1.0)
 		for i in lines.size():
 			var ln: Line2D = lines[i]
-			var ang := TAU * float(i) / float(lines.size()) + 0.19
+			var ang := TAU * float(i) / float(lines.size()) + 0.13
 			var d := Vector2(cos(ang), sin(ang))
-			ln.points = PackedVector2Array([d * sz * (0.85 + k * 0.7), d * sz * (1.25 + _ease_out_cubic(k) * 1.6)])
-			ln.self_modulate.a = a
-		# anillo: elipse ACHATADA (Y*0.5) y LADEADA (rotada) = se ve de medio lado
-		var rr: float = sz * (0.7 + _ease_out_cubic(k) * 2.1)
-		var rp := PackedVector2Array()
-		for j in 33:
-			var aa := TAU * float(j) / 32.0
-			var e := Vector2(cos(aa) * rr, sin(aa) * rr * 0.5)      # achatada en Y (de medio lado)
-			rp.append(e.rotated(ring_tilt))                        # ladeada
-		ring.points = rp
-		ring.self_modulate.a = clampf(1.0 - k * 1.15, 0.0, 1.0)
+			ln.points = PackedVector2Array([d * sz * (0.55 + k * 0.9), d * sz * (1.15 + _ease_out_cubic(k) * 2.2)])
+			ln.self_modulate.a = a * 0.9
+		spark_o.polygon = _sparkle_pts(sz * 2.1 * pop, sz * 1.35 * pop)
+		spark_o.self_modulate.a = a
+		spark_d.polygon = _sparkle_pts(sz * 1.15 * pop, sz * 0.82 * pop)
+		spark_d.self_modulate.a = a * 0.7
+		spark_c.polygon = _sparkle_pts(sz * 1.65 * pop, sz * 1.0 * pop)
+		spark_c.self_modulate.a = clampf(1.0 - k * 1.6, 0.0, 1.0)   # el blanco se va antes
 		await get_tree().process_frame
 	if is_instance_valid(cont):
 		cont.queue_free()
 
-# color del impacto según el ATACANTE (para que el burst combine con su energía)
-func _impact_tint(att: Node2D) -> Color:
-	if att.fx_blue:
-		return Color(0.5, 1.5, 3.2)          # Fe: azul
-	if att.fx_floral:
-		return Color(1.7, 0.5, 2.8)          # Aye: morado
-	if att.fx_dark:
-		return Color(1.3, 0.4, 2.7)          # Zetma: morado-oscuro
-	if att.archetype == "warrior":
-		return Color(2.6, 0.35, 0.3)         # Roum: carmesí
-	return Color(2.6, 1.4, 0.25)             # DAM/def: naranja-dorado
+# color del impacto: SIEMPRE AMARILLO-dorado (pedido) — el destello de impacto es físico, uniforme
+# para todo el roster (los efectos elementales de cada mago conservan su color aparte). HDR → bloom.
+func _impact_tint(_att: Node2D) -> Color:
+	return Color(2.9, 2.2, 0.35)
 
 # ---- NÚMEROS DE DAÑO: "-20" ROJO flotando sobre el golpeado en CADA impacto ----
-func _dmg_number(victima: Node2D, dmg: int, grande := false) -> void:
-	# grande = CRÍTICO de Fe (-300): número mucho más gordo, brillante y sube más
+# grande = CRÍTICO de Fe (-300, enorme). heavy = golpe FUERTE/pesado (número más gordo y naranja).
+func _dmg_number(victima: Node2D, dmg: int, grande := false, heavy := false) -> void:
 	if dmg <= 0 or not is_instance_valid(victima):
 		return
 	var l := Label.new()
 	l.text = "-%d" % dmg
 	if combo_font != null:
 		l.add_theme_font_override("font", combo_font)
-	l.add_theme_font_size_override("font_size", 92 if grande else 46)
-	l.add_theme_color_override("font_color", Color(1.9, 0.32, 0.2) if grande else Color(1.0, 0.24, 0.18))
+	l.add_theme_font_size_override("font_size", 92 if grande else (66 if heavy else 52))
+	l.add_theme_color_override("font_color", Color(1.9, 0.32, 0.2) if grande else (Color(2.0, 0.55, 0.12) if heavy else Color(1.0, 0.24, 0.18)))
 	l.add_theme_color_override("font_outline_color", Color(0.10, 0.0, 0.0, 0.92))
-	l.add_theme_constant_override("outline_size", 18 if grande else 12)
+	l.add_theme_constant_override("outline_size", 18 if grande else (15 if heavy else 12))
 	l.z_index = 30
 	l.position = Vector2(victima.position.x + randf_range(-55.0, 25.0), victima.position.y + 40.0)
 	add_child(l)
 	var tw := create_tween()
-	tw.tween_property(l, "position:y", l.position.y - (215.0 if grande else 140.0), 0.7 if grande else 0.6).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "position:y", l.position.y - (215.0 if grande else (175.0 if heavy else 140.0)), 0.7 if grande else 0.6).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.5 if grande else 0.45).set_delay(0.3 if grande else 0.2)
 	tw.tween_callback(l.queue_free)
 
@@ -11719,6 +11720,9 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		att.duck_swing()
 		_parry_absorb(def, att)
 		return done
+	# CASTIGO de Zetma (counter-hit): ¿el DEFENSOR atacaba al ser golpeado? Se lee ANTES de receive_hit
+	# (que le cambia la anim a take_hit). Si Zetma castiga con esto -> carga su ORBE (más abajo).
+	var _def_was_attacking: bool = not def.current_attack().is_empty()
 	var push := 1 if dx >= 0.0 else -1
 	var result: String = def.receive_hit(bool(atk["low"]), bool(atk.get("strong", false)), push, String(atk.get("impact_sfx", "")), bool(atk.get("trip", false)), float(atk.get("launch_mult", 1.0)), bool(atk.get("wall_launch", false)), false, bool(atk.get("freeze", false)), float(atk.get("shove", 0.0)), bool(atk.get("bounce", false)))
 	# lanzador VERTICAL (patadas POGO de DAM): sube RECTO, sin empuje lateral — la
@@ -11767,12 +11771,16 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 		# siente el control), técnica clásica de fighting games.
 		var strong := bool(atk.get("strong", false))
 		var dmg := float(atk.get("damage", 50))
-		# IMPACTO estilo 2XKO (PRUEBA — quitar esta llamada o poner IMPACT_2XKO=false para revertir):
-		# sólo en golpes FUERTES / lanzadores / súpers (los jabs livianos quedan con la chispa normal)
-		if IMPACT_2XKO and (strong or dmg >= 55.0 or result == "launched"):
-			var _big: float = 1.35 if (result == "launched" or dmg >= 90.0) else 1.0
+		# IMPACTO (destello de 4 puntas + líneas) escalado por FUERZA en 3 niveles: jab liviano =
+		# solo la chispa PNG; golpe MEDIO (strong o dmg≥45) = destello; golpe PESADO (lanzador o
+		# dmg≥85) = destello GRANDE + flash blanco + sacudón extra → "los fuertes se ven fuertes".
+		if IMPACT_2XKO and (strong or dmg >= 45.0 or result == "launched"):
+			var heavy: bool = result == "launched" or dmg >= 85.0
+			var _big: float = 1.5 if heavy else 1.0
 			var _hp := Vector2((att.position.x + def.position.x) * 0.5, def.position.y + 150.0 * def.base_scale.y)
-			_impact_2xko(_hp, 120.0 * _big * def.base_scale.y, _impact_tint(att))
+			_impact_2xko(_hp, 120.0 * _big * def.base_scale.y, _impact_tint(att), heavy)
+			if heavy:
+				_shake(20.0, 0.14)   # peso extra del golpe pesado
 		# valores tipo STREET FIGHTER (~11-16 frames): jab ~0.11s, golpe fuerte ~0.20s,
 		# lanzador ~0.26s. El freeze sólido da ese "peso" pesado de SF sin sentirse lento.
 		var hs := 0.11 + clampf(dmg / 100.0, 0.0, 1.0) * 0.09   # 0.11 (jab) .. 0.20 (100 dmg)
@@ -11794,7 +11802,7 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 			att.vel_y = minf(att.vel_y, -700.0 * att.CHAR_SCALE)
 		var hidx := 0 if att_is_player else 1
 		# CRÍTICO de Fe: con 3 MARCAS en el rival, este golpe físico revienta 300 FIJO
-		var fe_crit: bool = att.fx_blue and fe_marks[hidx] >= FE_MARK_MAX
+		var fe_crit: bool = att.fx_blue and fe_marks[hidx] >= FE_MARK_MAX and mana[hidx] >= 0.999   # DESACOPLE: crítico = 3 marcas + INSTINTO lleno
 		var dmg_real: int = _combo_hit(hidx, int(atk["damage"]),
 				String(atk["name"]), att.airborne or def.airborne)
 		if fe_crit:
@@ -11818,12 +11826,15 @@ func _process_attacker(att: Node2D, def: Node2D, done: String, att_is_player: bo
 				func() -> void: Engine.time_scale = 0.35)   # cola breve de cámara lenta
 			get_tree().create_timer(0.95, true, false, true).timeout.connect(
 				func() -> void: Engine.time_scale = 1.0)     # se reanuda justo al irse la banda
-		_dmg_number(def, dmg_real, fe_crit)
+		_dmg_number(def, dmg_real, fe_crit, strong or result == "launched" or dmg_real >= 70)
 		# temblorcito por cada golpe conectado (el crítico sacude FUERTE)
 		_shake(14.0 if fe_crit else clampf(4.0 + float(combo_n[hidx]) * 0.7, 4.0, 13.0), 0.16 if fe_crit else 0.08)
 		# el METER carga: el que pega gana más, el que recibe un poco
 		meter[hidx] = minf(METER_MAX, meter[hidx] + float(dmg_real) * 0.0020)   # pegar CARGA
 		meter[1 - hidx] = maxf(0.0, meter[1 - hidx] - float(dmg_real) * HIT_DRAIN)   # recibir DRENA
+		# ORBE de Zetma: carga CASTIGANDO — este golpe fue COUNTER-HIT (el rival estaba atacando).
+		if att.fx_dark and _def_was_attacking and orb_charge[hidx] < 1.0:
+			orb_charge[hidx] = minf(1.0, orb_charge[hidx] + ZETMA_ORB_PER_PUNISH)
 		# la IA puede romper tu combo — con las MISMAS reglas que el humano: cuesta ½ barra
 		# (meter_can_break) y solo en los primeros 4 golpes (combo_hits_on). Antes rompía GRATIS
 		# e ilimitado (on_breaker pisa la barra a 0), asimetría que hacía sentir el burst abusivo.
